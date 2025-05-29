@@ -1,73 +1,120 @@
-# Welcome to your Lovable project
+# Volleyball Game Central
 
-## Project info
+A modern web application for managing volleyball games, participants, and registrations. This application provides an intuitive interface for administrators to organize games and for participants to register and manage their participation.
 
-**URL**: https://lovable.dev/projects/fd1ee0da-a911-4bad-8238-f15b0488d262
+## 🏐 Project Overview
 
-## How can I edit this code?
+Volleyball Game Central is designed to streamline the organization of volleyball games by providing tools for:
+- Creating and managing volleyball games
+- Participant registration and management
+- Automatic waiting list management when games reach capacity
+- Real-time updates and notifications
 
-There are several ways of editing your application.
+## ✨ Key Features
 
-**Use Lovable**
+### Admin Dashboard
+- **Game Management**: Create new volleyball games with customizable date, time, and participant limits
+- **Participant Management**: Add, edit, and remove participants from the system
+- **Registration Overview**: View all upcoming games and their current registration status
+- **Waiting List Management**: Automatically manage waiting lists when games reach capacity
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/fd1ee0da-a911-4bad-8238-f15b0488d262) and start prompting.
+### Participant Features
+- **Game Registration**: Easy registration for upcoming volleyball games
+- **Waiting List**: Automatic placement on waiting lists for full games
+- **Profile Management**: Manage personal information and Telegram username
+- **Game History**: View participation history and upcoming games
 
-Changes made via Lovable will be committed automatically to this repo.
+### Smart Registration System
+- **Capacity Management**: Automatic handling of game capacity limits
+- **Queue System**: Fair waiting list management with automatic promotion
+- **Real-time Updates**: Instant updates when spots become available
 
-**Use your preferred IDE**
+## 🛠 Technology Stack
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+This project is built with modern web technologies:
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- **Frontend Framework**: React 18 with TypeScript
+- **Build Tool**: Vite for fast development and optimized builds
+- **UI Components**: shadcn/ui component library
+- **Styling**: Tailwind CSS for responsive design
+- **State Management**: Zustand for efficient state management
+- **Routing**: React Router for navigation
+- **Data Fetching**: TanStack Query for server state management
+- **Form Handling**: React Hook Form with Zod validation
+- **Icons**: Lucide React for consistent iconography
 
-Follow these steps:
+## 🚀 Getting Started
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### Prerequisites
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+- Node.js (version 16 or higher)
+- npm or yarn package manager
 
-# Step 3: Install the necessary dependencies.
-npm i
+### Installation
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd volley-game-central
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Start the development server**
+   ```bash
+   npm run dev
+   ```
+
+4. **Open your browser**
+   Navigate to `http://localhost:5173` to view the application
+
+### Available Scripts
+
+- `npm run dev` - Start the development server with hot reload
+- `npm run build` - Build the application for production
+- `npm run preview` - Preview the production build locally
+- `npm run lint` - Run ESLint for code quality checks
+
+## 📱 Usage
+
+### For Administrators
+
+1. **Creating Games**: Use the "Create New Game" button to set up volleyball games with specific dates and participant limits
+2. **Managing Participants**: Add new participants to the system with their Telegram usernames and display names
+3. **Monitoring Registrations**: View real-time registration status for all games
+4. **Handling Waiting Lists**: The system automatically manages waiting lists and promotes participants when spots open up
+
+### For Participants
+
+1. **Registration**: Browse available games and register with a single click
+2. **Waiting Lists**: Get automatically added to waiting lists for full games
+3. **Profile Management**: Update personal information and contact details
+4. **Game Tracking**: Keep track of registered games and participation history
+
+## 🏗 Project Structure
+
+```
+src/
+├── components/          # Reusable UI components
+├── pages/              # Page components and routing
+├── store/              # State management (Zustand)
+├── auth/               # Authentication context
+├── hooks/              # Custom React hooks
+├── lib/                # Utility functions
+└── types/              # TypeScript type definitions
 ```
 
-**Edit a file directly in GitHub**
+## 🤝 Contributing
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-**Use GitHub Codespaces**
+## 📄 License
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/fd1ee0da-a911-4bad-8238-f15b0488d262) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+This project is open source and available under the [MIT License](LICENSE).
