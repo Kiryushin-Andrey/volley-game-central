@@ -1,39 +1,42 @@
-# Welcome to your Lovable project
+# Volley Game Central
 
-## Project info
+A platform for organizing volleyball games with Telegram authentication.
 
-**URL**: https://lovable.dev/projects/fd1ee0da-a911-4bad-8238-f15b0488d262
+## Project Structure
 
-## How can I edit this code?
+The project is organized into two main directories:
 
-There are several ways of editing your application.
+- `frontend/`: React application built with Vite, TypeScript, and Tailwind CSS
+- `backend/`: Node.js server with Express, PostgreSQL, and Telegram bot integration
 
-**Use Lovable**
+## Prerequisites
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/fd1ee0da-a911-4bad-8238-f15b0488d262) and start prompting.
+- Node.js & npm
+- PostgreSQL database
+- Telegram Bot Token (obtain from @BotFather)
 
-Changes made via Lovable will be committed automatically to this repo.
+## Setup
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
+1. Clone the repository and install dependencies:
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+git clone <repository-url>
+cd volley-game-central
+npm install
+cd frontend && npm install
+cd ../backend && npm install
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+2. Configure the environment:
+```sh
+cp backend/.env.example backend/.env
+# Edit backend/.env with your database and Telegram bot credentials
+```
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+3. Start the development servers:
+```sh
+# In the root directory:
 npm run dev
+# This will start both frontend and backend servers
 ```
 
 **Edit a file directly in GitHub**
@@ -50,24 +53,29 @@ npm run dev
 - Click on "New codespace" to launch a new Codespace environment.
 - Edit files directly within the Codespace and commit and push your changes once you're done.
 
-## What technologies are used for this project?
+## Technologies Used
 
-This project is built with:
-
+Frontend:
 - Vite
 - TypeScript
 - React
 - shadcn-ui
 - Tailwind CSS
 
-## How can I deploy this project?
+Backend:
+- Node.js
+- Express
+- PostgreSQL with TypeORM
+- Telegraf (Telegram Bot Framework)
 
-Simply open [Lovable](https://lovable.dev/projects/fd1ee0da-a911-4bad-8238-f15b0488d262) and click on Share -> Publish.
+## Development
 
-## Can I connect a custom domain to my Lovable project?
+- Frontend runs on: http://localhost:5173
+- Backend runs on: http://localhost:3000
 
-Yes, you can!
+## Features
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+- Telegram authentication
+- Game creation and management
+- Player registration for games
+- Real-time updates via Telegram bot
