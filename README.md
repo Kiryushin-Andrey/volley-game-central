@@ -70,7 +70,7 @@ Backend:
 
 ## Development
 
-- Frontend runs on: http://localhost:5173
+- Frontend runs on: http://127.0.0.1
 - Backend runs on: http://localhost:3000
 
 ## Features

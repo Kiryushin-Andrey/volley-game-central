@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { Telegraf } from 'telegraf';
 import jwt from 'jsonwebtoken';
 import { db } from '../db';
@@ -7,6 +7,14 @@ import { eq } from 'drizzle-orm';
 
 const router = Router();
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN || '');
+
+export interface AuthRequest extends Request {
+  user?: {
+    id: number;
+    telegramId: string;
+    isAdmin: boolean;
+  };
+}
 
 interface TelegramAuthData {
   id: number;
@@ -19,21 +27,51 @@ interface User {
   id: number;
   telegramId: string;
   username: string;
+  isAdmin: boolean;
   createdAt: Date | null;
 }
 
 // Generate JWT token
 const generateToken = (user: User): string => {
   return jwt.sign(
-    { id: user.id, telegramId: user.telegramId },
+    { id: user.id, telegramId: user.telegramId, isAdmin: user.isAdmin },
     process.env.JWT_SECRET || 'your-secret-key',
     { expiresIn: process.env.JWT_EXPIRES_IN || '7d' } as jwt.SignOptions
   );
 };
 
+export const verifyToken = (req: AuthRequest, res: Response, next: NextFunction) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  
+  if (!token) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as jwt.JwtPayload;
+    req.user = {
+      id: decoded.id,
+      telegramId: decoded.telegramId,
+      isAdmin: decoded.isAdmin
+    };
+    next();
+  } catch (error) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+};
+
+export const requireAdmin = (req: AuthRequest, res: Response, next: NextFunction) => {
+  if (!req.user?.isAdmin) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  next();
+};
+
 // Telegram authentication endpoint
 router.get('/telegram', (_req: Request, res: Response) => {
-  const loginUrl = `https://telegram.org/auth?bot_id=${process.env.TELEGRAM_BOT_TOKEN}&origin=http://localhost:5173`;
+  // Get bot username from token (format: <numbers>:AAF...)
+  const botUsername = process.env.TELEGRAM_BOT_TOKEN?.split(':')[0];
+  const loginUrl = `https://oauth.telegram.org/auth?bot_id=${botUsername}&origin=${process.env.CORS_ORIGIN}&request_access=write`;
   res.redirect(loginUrl);
 });
 
@@ -57,14 +95,17 @@ router.post('/telegram/callback', async (req: Request<{}, {}, TelegramAuthData>,
 
     const token = generateToken(user);
 
-    // Send postMessage to parent window with user data
+    // Send postMessage to parent window with user data and token
     res.send(`
       <script>
         window.opener.postMessage({
           type: 'TELEGRAM_LOGIN',
-          user: ${JSON.stringify(user)},
+          user: ${JSON.stringify({
+            ...user,
+            token
+          })},
           token: '${token}'
-        }, 'http://localhost:5173');
+        }, '${process.env.CORS_ORIGIN}');
         window.close();
       </script>
     `);
