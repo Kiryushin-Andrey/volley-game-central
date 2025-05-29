@@ -12,42 +12,41 @@ interface CreateGameModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const getNextSunday = () => {
-  const { games } = useGameStore();
-  
-  // Get all upcoming games
-  const upcomingGames = games
-    .filter(game => new Date(game.date) > new Date())
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  
-  // Start from either the last upcoming game date or today
-  const startDate = upcomingGames.length > 0 
-    ? new Date(upcomingGames[upcomingGames.length - 1].date)
-    : new Date();
-  
-  // Find next Sunday after the start date
-  const nextSunday = new Date(startDate);
-  const daysUntilSunday = (7 - nextSunday.getDay()) % 7;
-  
-  if (daysUntilSunday === 0) {
-    // If start date is Sunday, move to next Sunday
-    nextSunday.setDate(nextSunday.getDate() + 7);
-  } else {
-    nextSunday.setDate(nextSunday.getDate() + daysUntilSunday);
-  }
-  
-  return nextSunday.toISOString().split('T')[0];
-};
-
 export const CreateGameModal: React.FC<CreateGameModalProps> = ({ open, onOpenChange }) => {
+  const { games, addGame } = useGameStore();
+  const { toast } = useToast();
+
+  const getNextSunday = () => {
+    // Get all upcoming games
+    const upcomingGames = games
+      .filter(game => new Date(game.date) > new Date())
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    
+    // Start from either the last upcoming game date or today
+    const startDate = upcomingGames.length > 0 
+      ? new Date(upcomingGames[upcomingGames.length - 1].date)
+      : new Date();
+    
+    // Find next Sunday after the start date
+    const nextSunday = new Date(startDate);
+    const daysUntilSunday = (7 - nextSunday.getDay()) % 7;
+    
+    if (daysUntilSunday === 0) {
+      // If start date is Sunday, move to next Sunday
+      nextSunday.setDate(nextSunday.getDate() + 7);
+    } else {
+      nextSunday.setDate(nextSunday.getDate() + daysUntilSunday);
+    }
+    
+    return nextSunday.toISOString().split('T')[0];
+  };
   const [formData, setFormData] = useState({
     date: '',
     time: '17:00',
     maxParticipants: 14
   });
 
-  const { addGame } = useGameStore();
-  const { toast } = useToast();
+
 
   useEffect(() => {
     if (open) {
