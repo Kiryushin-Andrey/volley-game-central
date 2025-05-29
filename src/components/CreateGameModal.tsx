@@ -1,10 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { useGameStore } from '../store/gameStore';
 import { useToast } from '@/hooks/use-toast';
 
@@ -13,23 +12,42 @@ interface CreateGameModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const getNextSunday = () => {
+  const today = new Date();
+  const nextSunday = new Date(today);
+  const daysUntilSunday = (7 - today.getDay()) % 7;
+  if (daysUntilSunday === 0 && today.getDay() === 0) {
+    // If today is Sunday, get next Sunday
+    nextSunday.setDate(today.getDate() + 7);
+  } else {
+    nextSunday.setDate(today.getDate() + daysUntilSunday);
+  }
+  return nextSunday.toISOString().split('T')[0];
+};
+
 export const CreateGameModal: React.FC<CreateGameModalProps> = ({ open, onOpenChange }) => {
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
     date: '',
-    time: '',
-    location: '',
+    time: '17:00',
     maxParticipants: 14
   });
 
   const { addGame } = useGameStore();
   const { toast } = useToast();
 
+  useEffect(() => {
+    if (open) {
+      setFormData(prev => ({
+        ...prev,
+        date: getNextSunday()
+      }));
+    }
+  }, [open]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.title || !formData.date || !formData.time) {
+    if (!formData.date || !formData.time) {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -51,10 +69,7 @@ export const CreateGameModal: React.FC<CreateGameModalProps> = ({ open, onOpenCh
 
     const newGame = {
       id: Date.now().toString(),
-      title: formData.title,
-      description: formData.description,
       date: gameDate.toISOString(),
-      location: formData.location,
       maxParticipants: formData.maxParticipants,
       participants: [],
       waitingList: [],
@@ -71,11 +86,8 @@ export const CreateGameModal: React.FC<CreateGameModalProps> = ({ open, onOpenCh
 
     // Reset form
     setFormData({
-      title: '',
-      description: '',
-      date: '',
-      time: '',
-      location: '',
+      date: getNextSunday(),
+      time: '17:00',
       maxParticipants: 14
     });
 
@@ -84,23 +96,12 @@ export const CreateGameModal: React.FC<CreateGameModalProps> = ({ open, onOpenCh
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
           <DialogTitle>Create New Game</DialogTitle>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="title">Game Title *</Label>
-            <Input
-              id="title"
-              value={formData.title}
-              onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-              placeholder="e.g., Weekly Volleyball Match"
-              required
-            />
-          </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="date">Date *</Label>
@@ -125,16 +126,6 @@ export const CreateGameModal: React.FC<CreateGameModalProps> = ({ open, onOpenCh
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="location">Location</Label>
-            <Input
-              id="location"
-              value={formData.location}
-              onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-              placeholder="e.g., Central Sports Complex"
-            />
-          </div>
-
-          <div className="space-y-2">
             <Label htmlFor="maxParticipants">Maximum Participants</Label>
             <Input
               id="maxParticipants"
@@ -142,17 +133,6 @@ export const CreateGameModal: React.FC<CreateGameModalProps> = ({ open, onOpenCh
               min="1"
               value={formData.maxParticipants}
               onChange={(e) => setFormData(prev => ({ ...prev, maxParticipants: parseInt(e.target.value) || 14 }))}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Additional details about the game..."
-              rows={3}
             />
           </div>
 
