@@ -2,20 +2,16 @@ CREATE TABLE IF NOT EXISTS "game_registrations" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"game_id" serial NOT NULL,
 	"user_id" serial NOT NULL,
-	"status" varchar(50) DEFAULT 'pending' NOT NULL,
-	"created_at" timestamp DEFAULT now(),
-	"updated_at" timestamp DEFAULT now()
+	"paid" boolean DEFAULT false NOT NULL,
+	"is_waitlist" boolean DEFAULT false NOT NULL,
+	"created_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "games" (
 	"id" serial PRIMARY KEY NOT NULL,
-	"title" varchar(255) NOT NULL,
-	"description" text,
-	"location" varchar(255) NOT NULL,
 	"date_time" timestamp NOT NULL,
 	"max_players" serial NOT NULL,
 	"created_at" timestamp DEFAULT now(),
-	"updated_at" timestamp DEFAULT now(),
 	"created_by_id" serial NOT NULL
 );
 --> statement-breakpoint
@@ -23,10 +19,7 @@ CREATE TABLE IF NOT EXISTS "users" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"telegram_id" varchar(255) NOT NULL,
 	"username" varchar(255) NOT NULL,
-	"first_name" varchar(255),
-	"last_name" varchar(255),
 	"created_at" timestamp DEFAULT now(),
-	"updated_at" timestamp DEFAULT now(),
 	CONSTRAINT "users_telegram_id_unique" UNIQUE("telegram_id")
 );
 --> statement-breakpoint
