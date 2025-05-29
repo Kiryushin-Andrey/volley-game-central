@@ -15,7 +15,7 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
   const [showManagement, setShowManagement] = useState(false);
   const { participants } = useGameStore();
 
-  const gameDate = new Date(game.date);
+  const gameDate = new Date(game.dateTime);
   const now = new Date();
   const registrationOpen = new Date(gameDate.getTime() - 5 * 24 * 60 * 60 * 1000);
   const registrationCloses = new Date(gameDate.getTime() - 6 * 60 * 60 * 1000);
@@ -61,7 +61,7 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
 
             <div className="flex items-center text-sm text-gray-600">
               <Users className="mr-2 h-4 w-4" />
-              {registeredCount}/{game.maxParticipants} registered
+              {registeredCount}/{game.maxPlayers} registered
               {waitingCount > 0 && `, ${waitingCount} waiting`}
             </div>
           </div>
@@ -71,10 +71,10 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div 
                 className="bg-orange-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${Math.min((registeredCount / game.maxParticipants) * 100, 100)}%` }}
+                style={{ width: `${Math.min((registeredCount / game.maxPlayers) * 100, 100)}%` }}
               />
             </div>
-            {registeredCount >= game.maxParticipants && (
+            {registeredCount >= game.maxPlayers && (
               <p className="text-xs text-orange-600 font-medium">Game is full - new registrations go to waiting list</p>
             )}
           </div>

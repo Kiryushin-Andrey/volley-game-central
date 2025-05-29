@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { userApi, type User } from '../services/api';
 
-interface User {
+interface ExtendedUser extends User {
   id: number;
   telegramId: string;
   username: string;
@@ -42,11 +43,30 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
 
   // Listen for messages from Telegram login window
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
+    const handleMessage = async (event: MessageEvent) => {
       if (event.origin === 'http://localhost:3000' && event.data.type === 'TELEGRAM_LOGIN') {
-        const userData = event.data.user;
-        localStorage.setItem('user', JSON.stringify(userData));
-        setUser(userData);
+        const telegramData = event.data.user;
+        try {
+          // Try to get existing user
+          let userData = await userApi.getByTelegramId(telegramData.telegramId);
+          
+          // If user doesn't exist, create new user
+          if (!userData) {
+            userData = await userApi.create(telegramData.telegramId, telegramData.username);
+          }
+          
+          // Add Telegram-specific fields
+          const extendedUserData = {
+            ...userData,
+            firstName: telegramData.firstName,
+            lastName: telegramData.lastName
+          };
+          
+          localStorage.setItem('user', JSON.stringify(extendedUserData));
+          setUser(extendedUserData);
+        } catch (error) {
+          console.error('Error handling Telegram login:', error);
+        }
       }
     };
 

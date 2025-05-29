@@ -1,28 +1,24 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { Game as ApiGame, GameRegistration, User } from '../services/api';
 
-export interface Participant {
-  id: string;
-  telegramUsername: string;
-  displayName: string;
-  createdAt: string;
-}
+export interface Participant extends User {}
 
 export interface Game {
   id: string;
-  date: string;
-  maxParticipants: number;
+  dateTime: string;
+  maxPlayers: number;
   participants: string[]; // participant IDs
   waitingList: string[]; // participant IDs
   createdAt: string;
-  createdBy: string;
+  createdById: string;
 }
 
 interface GameStore {
   games: Game[];
   participants: Participant[];
-  addGame: (game: Game) => void;
+  addGame: (game: ApiGame) => void;
   addParticipant: (participant: Participant) => void;
   updateParticipant: (participant: Participant) => void;
   removeParticipant: (participantId: string) => void;
@@ -38,8 +34,16 @@ export const useGameStore = create<GameStore>()(
       games: [],
       participants: [],
 
-      addGame: (game) => set((state) => ({ 
-        games: [...state.games, game] 
+      addGame: (game: ApiGame) => set((state) => ({
+        games: [...state.games, {
+          id: game.id.toString(),
+          dateTime: game.dateTime,
+          maxPlayers: game.maxPlayers,
+          participants: [],
+          waitingList: [],
+          createdAt: game.createdAt,
+          createdById: game.createdById.toString()
+        }]
       })),
 
       addParticipant: (participant) => set((state) => ({
@@ -53,7 +57,7 @@ export const useGameStore = create<GameStore>()(
       })),
 
       removeParticipant: (participantId) => set((state) => ({
-        participants: state.participants.filter(participant => participant.id !== participantId),
+        participants: state.participants.filter(participant => participant.id.toString() !== participantId),
         games: state.games.map(game => ({
           ...game,
           participants: game.participants.filter(id => id !== participantId),
@@ -63,9 +67,9 @@ export const useGameStore = create<GameStore>()(
 
       addParticipantToGame: (gameId, participantId) => set((state) => ({
         games: state.games.map(game => {
-          if (game.id === gameId) {
+          if (game.id.toString() === gameId) {
             // If game is not full, add to participants, otherwise add to waiting list
-            if (game.participants.length < game.maxParticipants) {
+            if (game.participants.length < game.maxPlayers) {
               return {
                 ...game,
                 participants: [...game.participants, participantId]
@@ -83,7 +87,7 @@ export const useGameStore = create<GameStore>()(
 
       removeParticipantFromGame: (gameId, participantId, fromWaiting = false) => set((state) => ({
         games: state.games.map(game => {
-          if (game.id === gameId) {
+          if (game.id.toString() === gameId) {
             if (fromWaiting) {
               return {
                 ...game,
@@ -96,7 +100,7 @@ export const useGameStore = create<GameStore>()(
               };
               
               // If there's space and someone is waiting, move them up
-              if (updatedGame.participants.length < game.maxParticipants && game.waitingList.length > 0) {
+              if (updatedGame.participants.length < game.maxPlayers && game.waitingList.length > 0) {
                 const nextParticipant = game.waitingList[0];
                 updatedGame.participants.push(nextParticipant);
                 updatedGame.waitingList = game.waitingList.slice(1);
@@ -111,7 +115,7 @@ export const useGameStore = create<GameStore>()(
 
       moveParticipantToWaiting: (gameId, participantId) => set((state) => ({
         games: state.games.map(game => {
-          if (game.id === gameId) {
+          if (game.id.toString() === gameId) {
             return {
               ...game,
               participants: game.participants.filter(id => id !== participantId),
@@ -124,7 +128,7 @@ export const useGameStore = create<GameStore>()(
 
       moveParticipantToActive: (gameId, participantId) => set((state) => ({
         games: state.games.map(game => {
-          if (game.id === gameId && game.participants.length < game.maxParticipants) {
+          if (game.id.toString() === gameId && game.participants.length < game.maxPlayers) {
             return {
               ...game,
               participants: [...game.participants, participantId],

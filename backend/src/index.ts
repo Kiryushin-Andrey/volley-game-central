@@ -3,6 +3,8 @@ import express from 'express';
 import cors from 'cors';
 import { Telegraf } from 'telegraf';
 import authRoutes from './routes/auth';
+import userRoutes from './routes/users';
+import gameRoutes from './routes/games';
 import { db } from './db';
 
 // Initialize Express app
@@ -18,6 +20,8 @@ const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN || '');
 
 // Routes
 app.use('/auth', authRoutes);
+app.use('/users', userRoutes);
+app.use('/games', gameRoutes);
 
 // Start the server
 const PORT = process.env.PORT || 3000;

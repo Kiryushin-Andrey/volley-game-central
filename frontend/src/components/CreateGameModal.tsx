@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useGameStore } from '../store/gameStore';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '../auth/AuthContext';
+import { gameApi } from '../services/api';
 
 interface CreateGameModalProps {
   open: boolean;
@@ -15,16 +17,17 @@ interface CreateGameModalProps {
 export const CreateGameModal: React.FC<CreateGameModalProps> = ({ open, onOpenChange }) => {
   const { games, addGame } = useGameStore();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const getNextSunday = () => {
     // Get all upcoming games
     const upcomingGames = games
-      .filter(game => new Date(game.date) > new Date())
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      .filter(game => new Date(game.dateTime) > new Date())
+      .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime());
     
     // Start from either the last upcoming game date or today
     const startDate = upcomingGames.length > 0 
-      ? new Date(upcomingGames[upcomingGames.length - 1].date)
+      ? new Date(upcomingGames[upcomingGames.length - 1].dateTime)
       : new Date();
     
     // Find next Sunday after the start date
@@ -57,13 +60,13 @@ export const CreateGameModal: React.FC<CreateGameModalProps> = ({ open, onOpenCh
     }
   }, [open]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.date || !formData.time) {
+    if (!formData.date || !formData.time || !user) {
       toast({
         title: "Error",
-        description: "Please fill in all required fields",
+        description: "Please fill in all required fields and ensure you're logged in",
         variant: "destructive",
       });
       return;
@@ -80,31 +83,37 @@ export const CreateGameModal: React.FC<CreateGameModalProps> = ({ open, onOpenCh
       return;
     }
 
-    const newGame = {
-      id: Date.now().toString(),
-      date: gameDate.toISOString(),
-      maxParticipants: formData.maxParticipants,
-      participants: [],
-      waitingList: [],
-      createdAt: new Date().toISOString(),
-      createdBy: 'admin' // In a real app, this would be the logged-in admin ID
-    };
+    try {
+      const newGame = await gameApi.create(
+        gameDate.toISOString(),
+        formData.maxParticipants,
+        user.id
+      );
 
-    addGame(newGame);
-    
-    toast({
-      title: "Success",
-      description: "Game created successfully!",
-    });
+      // Convert API game to store game format
+      addGame(newGame);
+      
+      toast({
+        title: "Success",
+        description: "Game created successfully!",
+      });
 
-    // Reset form
-    setFormData({
-      date: getNextSunday(),
-      time: '17:00',
-      maxParticipants: 14
-    });
+      // Reset form
+      setFormData({
+        date: getNextSunday(),
+        time: '17:00',
+        maxParticipants: 14
+      });
 
-    onOpenChange(false);
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error creating game:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create game. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
