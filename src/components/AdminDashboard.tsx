@@ -1,9 +1,8 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Users, Calendar, Clock, Plus, UserPlus } from 'lucide-react';
+import { Calendar, Plus, UserPlus } from 'lucide-react';
 import { CreateGameModal } from './CreateGameModal';
 import { AddParticipantModal } from './AddParticipantModal';
 import { GameCard } from './GameCard';
@@ -12,15 +11,9 @@ import { useGameStore } from '../store/gameStore';
 export const AdminDashboard = () => {
   const [showCreateGame, setShowCreateGame] = useState(false);
   const [showAddParticipant, setShowAddParticipant] = useState(false);
-  const { games, participants } = useGameStore();
+  const { games } = useGameStore();
 
   const upcomingGames = games.filter(game => new Date(game.date) > new Date());
-  const activeRegistrations = games.filter(game => {
-    const now = new Date();
-    const gameDate = new Date(game.date);
-    const registrationOpen = new Date(gameDate.getTime() - 5 * 24 * 60 * 60 * 1000);
-    return now >= registrationOpen && now < gameDate;
-  }).length;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-blue-50 p-6">
@@ -28,49 +21,6 @@ export const AdminDashboard = () => {
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Volleyball Admin Dashboard</h1>
           <p className="text-gray-600">Manage games, participants, and registrations</p>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Participants</CardTitle>
-              <Users className="h-4 w-4 text-orange-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{participants.length}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Upcoming Games</CardTitle>
-              <Calendar className="h-4 w-4 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{upcomingGames.length}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Registrations</CardTitle>
-              <Clock className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{activeRegistrations}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Games</CardTitle>
-              <Calendar className="h-4 w-4 text-purple-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{games.length}</div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Action Buttons */}
