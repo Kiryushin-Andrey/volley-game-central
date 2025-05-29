@@ -13,15 +13,29 @@ interface CreateGameModalProps {
 }
 
 const getNextSunday = () => {
-  const today = new Date();
-  const nextSunday = new Date(today);
-  const daysUntilSunday = (7 - today.getDay()) % 7;
-  if (daysUntilSunday === 0 && today.getDay() === 0) {
-    // If today is Sunday, get next Sunday
-    nextSunday.setDate(today.getDate() + 7);
+  const { games } = useGameStore();
+  
+  // Get all upcoming games
+  const upcomingGames = games
+    .filter(game => new Date(game.date) > new Date())
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  
+  // Start from either the last upcoming game date or today
+  const startDate = upcomingGames.length > 0 
+    ? new Date(upcomingGames[upcomingGames.length - 1].date)
+    : new Date();
+  
+  // Find next Sunday after the start date
+  const nextSunday = new Date(startDate);
+  const daysUntilSunday = (7 - nextSunday.getDay()) % 7;
+  
+  if (daysUntilSunday === 0) {
+    // If start date is Sunday, move to next Sunday
+    nextSunday.setDate(nextSunday.getDate() + 7);
   } else {
-    nextSunday.setDate(today.getDate() + daysUntilSunday);
+    nextSunday.setDate(nextSunday.getDate() + daysUntilSunday);
   }
+  
   return nextSunday.toISOString().split('T')[0];
 };
 
