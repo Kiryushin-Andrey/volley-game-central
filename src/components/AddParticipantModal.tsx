@@ -15,9 +15,7 @@ interface AddParticipantModalProps {
 export const AddParticipantModal: React.FC<AddParticipantModalProps> = ({ open, onOpenChange }) => {
   const [formData, setFormData] = useState({
     telegramUsername: '',
-    firstName: '',
-    lastName: '',
-    phone: ''
+    displayName: ''
   });
 
   const { addParticipant, participants } = useGameStore();
@@ -26,10 +24,10 @@ export const AddParticipantModal: React.FC<AddParticipantModalProps> = ({ open, 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.telegramUsername || !formData.firstName) {
+    if (!formData.telegramUsername || !formData.displayName) {
       toast({
         title: "Error",
-        description: "Please fill in the required fields",
+        description: "Please fill in all required fields",
         variant: "destructive",
       });
       return;
@@ -54,9 +52,7 @@ export const AddParticipantModal: React.FC<AddParticipantModalProps> = ({ open, 
       telegramUsername: formData.telegramUsername.startsWith('@') 
         ? formData.telegramUsername 
         : `@${formData.telegramUsername}`,
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      phone: formData.phone,
+      displayName: formData.displayName,
       createdAt: new Date().toISOString()
     };
 
@@ -70,9 +66,7 @@ export const AddParticipantModal: React.FC<AddParticipantModalProps> = ({ open, 
     // Reset form
     setFormData({
       telegramUsername: '',
-      firstName: '',
-      lastName: '',
-      phone: ''
+      displayName: ''
     });
 
     onOpenChange(false);
@@ -97,35 +91,14 @@ export const AddParticipantModal: React.FC<AddParticipantModalProps> = ({ open, 
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="firstName">First Name *</Label>
-              <Input
-                id="firstName"
-                value={formData.firstName}
-                onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                placeholder="John"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name</Label>
-              <Input
-                id="lastName"
-                value={formData.lastName}
-                onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-                placeholder="Doe"
-              />
-            </div>
-          </div>
-
           <div className="space-y-2">
-            <Label htmlFor="phone">Phone Number</Label>
+            <Label htmlFor="displayName">Display Name *</Label>
             <Input
-              id="phone"
-              value={formData.phone}
-              onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-              placeholder="+1234567890"
+              id="displayName"
+              value={formData.displayName}
+              onChange={(e) => setFormData(prev => ({ ...prev, displayName: e.target.value }))}
+              placeholder="John Doe"
+              required
             />
           </div>
 

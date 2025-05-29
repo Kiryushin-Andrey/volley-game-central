@@ -1,13 +1,10 @@
-
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export interface Participant {
   id: string;
   telegramUsername: string;
-  firstName: string;
-  lastName: string;
-  phone?: string;
+  displayName: string;
   createdAt: string;
 }
 

@@ -98,7 +98,7 @@ export const GameManagementModal: React.FC<GameManagementModalProps> = ({
                     <div key={participant.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div>
                         <div className="font-medium">
-                          {participant.firstName} {participant.lastName}
+                          {participant.displayName}
                         </div>
                         <div className="text-sm text-gray-500">
                           {participant.telegramUsername}
@@ -138,7 +138,7 @@ export const GameManagementModal: React.FC<GameManagementModalProps> = ({
                     <div key={participant.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div>
                         <div className="font-medium">
-                          {participant.firstName} {participant.lastName}
+                          {participant.displayName}
                         </div>
                         <div className="text-sm text-gray-500">
                           {participant.telegramUsername} • Position #{index + 1}
@@ -180,7 +180,7 @@ export const GameManagementModal: React.FC<GameManagementModalProps> = ({
                     <SelectContent>
                       {availableParticipants.map(participant => (
                         <SelectItem key={participant.id} value={participant.id}>
-                          {participant.firstName} {participant.lastName} ({participant.telegramUsername})
+                          {participant.displayName} ({participant.telegramUsername})
                         </SelectItem>
                       ))}
                     </SelectContent>
