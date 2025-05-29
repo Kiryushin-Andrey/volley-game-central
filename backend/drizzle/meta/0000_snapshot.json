@@ -1,5 +1,5 @@
 {
-  "id": "1cb7106f-aedc-4d09-a8bc-6b2a8fb02a03",
+  "id": "32eb2252-3fde-4d8b-acf7-e26fc71d4373",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "5",
   "dialect": "pg",
@@ -156,6 +156,13 @@
           "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true
+        },
+        "is_admin": {
+          "name": "is_admin",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         },
         "created_at": {
           "name": "created_at",
