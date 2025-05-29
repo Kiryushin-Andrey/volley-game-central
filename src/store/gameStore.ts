@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
@@ -23,6 +24,8 @@ interface GameStore {
   participants: Participant[];
   addGame: (game: Game) => void;
   addParticipant: (participant: Participant) => void;
+  updateParticipant: (participant: Participant) => void;
+  removeParticipant: (participantId: string) => void;
   addParticipantToGame: (gameId: string, participantId: string) => void;
   removeParticipantFromGame: (gameId: string, participantId: string, fromWaiting?: boolean) => void;
   moveParticipantToWaiting: (gameId: string, participantId: string) => void;
@@ -41,6 +44,21 @@ export const useGameStore = create<GameStore>()(
 
       addParticipant: (participant) => set((state) => ({
         participants: [...state.participants, participant]
+      })),
+
+      updateParticipant: (updatedParticipant) => set((state) => ({
+        participants: state.participants.map(participant =>
+          participant.id === updatedParticipant.id ? updatedParticipant : participant
+        )
+      })),
+
+      removeParticipant: (participantId) => set((state) => ({
+        participants: state.participants.filter(participant => participant.id !== participantId),
+        games: state.games.map(game => ({
+          ...game,
+          participants: game.participants.filter(id => id !== participantId),
+          waitingList: game.waitingList.filter(id => id !== participantId)
+        }))
       })),
 
       addParticipantToGame: (gameId, participantId) => set((state) => ({

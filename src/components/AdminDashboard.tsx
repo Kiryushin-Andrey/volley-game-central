@@ -2,16 +2,18 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, Plus, UserPlus } from 'lucide-react';
+import { Calendar, Plus, UserPlus, Users } from 'lucide-react';
 import { CreateGameModal } from './CreateGameModal';
 import { AddParticipantModal } from './AddParticipantModal';
 import { GameCard } from './GameCard';
 import { useGameStore } from '../store/gameStore';
+import { useNavigate } from 'react-router-dom';
 
 export const AdminDashboard = () => {
   const [showCreateGame, setShowCreateGame] = useState(false);
   const [showAddParticipant, setShowAddParticipant] = useState(false);
   const { games } = useGameStore();
+  const navigate = useNavigate();
 
   const upcomingGames = games.filter(game => new Date(game.date) > new Date());
 
@@ -39,6 +41,14 @@ export const AdminDashboard = () => {
           >
             <UserPlus className="mr-2 h-4 w-4" />
             Add Participant
+          </Button>
+          <Button 
+            onClick={() => navigate('/participants')}
+            variant="outline"
+            className="border-green-600 text-green-600 hover:bg-green-50"
+          >
+            <Users className="mr-2 h-4 w-4" />
+            View Participants
           </Button>
         </div>
 
