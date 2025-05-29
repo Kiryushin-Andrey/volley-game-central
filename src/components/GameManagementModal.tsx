@@ -30,6 +30,8 @@ export const GameManagementModal: React.FC<GameManagementModalProps> = ({
     !game.participants.includes(p.id) && !game.waitingList.includes(p.id)
   );
 
+  const gameDate = new Date(game.date);
+
   const handleAddParticipant = () => {
     if (!selectedParticipant) return;
 
@@ -73,7 +75,7 @@ export const GameManagementModal: React.FC<GameManagementModalProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Manage Game: {game.title}</DialogTitle>
+          <DialogTitle>Manage Game - {gameDate.toLocaleDateString()}</DialogTitle>
         </DialogHeader>
         
         <Tabs defaultValue="participants" className="w-full">
