@@ -4,10 +4,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useGameStore } from '../store/gameStore';
+import { Game, gameApi } from '../services/api';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '../auth/AuthContext';
-import { gameApi } from '../services/api';
 
 interface CreateGameModalProps {
   open: boolean;
@@ -15,9 +14,23 @@ interface CreateGameModalProps {
 }
 
 export const CreateGameModal: React.FC<CreateGameModalProps> = ({ open, onOpenChange }) => {
-  const { games, addGame } = useGameStore();
   const { toast } = useToast();
   const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
+
+  const [games, setGames] = useState<Game[]>([]);
+
+  useEffect(() => {
+    const fetchGames = async () => {
+      try {
+        const allGames = await gameApi.getAll();
+        setGames(allGames);
+      } catch (error) {
+        console.error('Error fetching games:', error);
+      }
+    };
+    fetchGames();
+  }, []);
 
   const getNextSunday = () => {
     // Get all upcoming games
@@ -43,13 +56,12 @@ export const CreateGameModal: React.FC<CreateGameModalProps> = ({ open, onOpenCh
     
     return nextSunday.toISOString().split('T')[0];
   };
+
   const [formData, setFormData] = useState({
     date: '',
     time: '17:00',
     maxParticipants: 14
   });
-
-
 
   useEffect(() => {
     if (open) {
@@ -84,14 +96,8 @@ export const CreateGameModal: React.FC<CreateGameModalProps> = ({ open, onOpenCh
     }
 
     try {
-      const newGame = await gameApi.create(
-        gameDate.toISOString(),
-        formData.maxParticipants,
-        user.id
-      );
-
-      // Convert API game to store game format
-      addGame(newGame);
+      setLoading(true);
+      await gameApi.create(gameDate.toISOString(), parseInt(formData.maxParticipants.toString()), user.id);
       
       toast({
         title: "Success",
@@ -113,6 +119,8 @@ export const CreateGameModal: React.FC<CreateGameModalProps> = ({ open, onOpenCh
         description: "Failed to create game. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 

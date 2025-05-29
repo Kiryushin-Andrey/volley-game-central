@@ -9,8 +9,13 @@ import { db } from './db';
 
 // Initialize Express app
 const app = express();
+const corsOrigins = ['http://localhost:5173', 'http://localhost:8080'];
+if (process.env.CORS_ORIGIN) {
+  corsOrigins.push(process.env.CORS_ORIGIN);
+}
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN,
+  origin: corsOrigins,
   credentials: true
 }));
 app.use(express.json());

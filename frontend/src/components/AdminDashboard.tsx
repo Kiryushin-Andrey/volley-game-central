@@ -1,21 +1,39 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar, Plus, UserPlus, Users } from 'lucide-react';
 import { CreateGameModal } from './CreateGameModal';
 import { AddParticipantModal } from './AddParticipantModal';
 import { GameCard } from './GameCard';
-import { useGameStore } from '../store/gameStore';
+import { Game, gameApi } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 
 export const AdminDashboard = () => {
   const [showCreateGame, setShowCreateGame] = useState(false);
   const [showAddParticipant, setShowAddParticipant] = useState(false);
-  const { games } = useGameStore();
+  const [games, setGames] = useState<Game[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchGames = async () => {
+    try {
+      setLoading(true);
+      const allGames = await gameApi.getAll();
+      setGames(allGames);
+    } catch (error) {
+      console.error('Failed to fetch games:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchGames();
+  }, []);
+
   const navigate = useNavigate();
 
-  const upcomingGames = games.filter(game => new Date(game.date) > new Date());
+  const upcomingGames = games.filter(game => new Date(game.dateTime) > new Date());
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-blue-50 p-6">
@@ -71,8 +89,8 @@ export const AdminDashboard = () => {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {upcomingGames.map(game => (
-                <GameCard key={game.id} game={game} />
+              {games.map((game) => (
+                <GameCard key={game.id} game={game} onGameUpdate={fetchGames} />
               ))}
             </div>
           )}

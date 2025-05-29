@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useGameStore } from '../store/gameStore';
+import { User, userApi } from '../services/api';
 import { useToast } from '@/hooks/use-toast';
 
 interface AddParticipantModalProps {
@@ -14,17 +14,25 @@ interface AddParticipantModalProps {
 
 export const AddParticipantModal: React.FC<AddParticipantModalProps> = ({ open, onOpenChange }) => {
   const [formData, setFormData] = useState({
-    telegramUsername: '',
-    displayName: ''
+    telegramId: '',
+    username: ''
   });
 
-  const { addParticipant, participants } = useGameStore();
+  const [participants, setParticipants] = React.useState<User[]>([]);
+
+  React.useEffect(() => {
+    const loadParticipants = async () => {
+      const users = await userApi.getAll();
+      setParticipants(users);
+    };
+    loadParticipants();
+  }, []);
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.telegramUsername || !formData.displayName) {
+    if (!formData.telegramId || !formData.username) {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -33,43 +41,49 @@ export const AddParticipantModal: React.FC<AddParticipantModalProps> = ({ open, 
       return;
     }
 
+    // Clean up telegramId (remove @ if present)
+    const telegramId = formData.telegramId.startsWith('@')
+      ? formData.telegramId.substring(1)
+      : formData.telegramId;
+
     // Check if participant already exists
     const existingParticipant = participants.find(
-      p => p.telegramUsername.toLowerCase() === formData.telegramUsername.toLowerCase()
+      p => p.telegramId.toLowerCase() === telegramId.toLowerCase()
     );
 
     if (existingParticipant) {
       toast({
         title: "Error",
-        description: "A participant with this Telegram username already exists",
+        description: "A participant with this Telegram ID already exists",
         variant: "destructive",
       });
       return;
     }
 
-    const newParticipant = {
-      id: Date.now().toString(),
-      telegramUsername: formData.telegramUsername.startsWith('@') 
-        ? formData.telegramUsername 
-        : `@${formData.telegramUsername}`,
-      displayName: formData.displayName,
-      createdAt: new Date().toISOString()
-    };
+    try {
+      await userApi.create(telegramId, formData.username);
+      const updatedUsers = await userApi.getAll();
+      setParticipants(updatedUsers);
+      
+      toast({
+        title: "Success",
+        description: "Participant added successfully!",
+      });
 
-    addParticipant(newParticipant);
-    
-    toast({
-      title: "Success",
-      description: "Participant added successfully!",
-    });
+      // Reset form
+      setFormData({
+        telegramId: '',
+        username: ''
+      });
 
-    // Reset form
-    setFormData({
-      telegramUsername: '',
-      displayName: ''
-    });
-
-    onOpenChange(false);
+      onOpenChange(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add participant. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -81,22 +95,22 @@ export const AddParticipantModal: React.FC<AddParticipantModalProps> = ({ open, 
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="telegramUsername">Telegram Username *</Label>
+            <Label htmlFor="telegramId">Telegram ID *</Label>
             <Input
-              id="telegramUsername"
-              value={formData.telegramUsername}
-              onChange={(e) => setFormData(prev => ({ ...prev, telegramUsername: e.target.value }))}
+              id="telegramId"
+              value={formData.telegramId}
+              onChange={(e) => setFormData(prev => ({ ...prev, telegramId: e.target.value }))}
               placeholder="@username or username"
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="displayName">Display Name *</Label>
+            <Label htmlFor="username">Name *</Label>
             <Input
-              id="displayName"
-              value={formData.displayName}
-              onChange={(e) => setFormData(prev => ({ ...prev, displayName: e.target.value }))}
+              id="username"
+              value={formData.username}
+              onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
               placeholder="John Doe"
               required
             />

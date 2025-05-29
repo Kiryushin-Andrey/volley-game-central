@@ -1,30 +1,73 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Users } from 'lucide-react';
-import { Game, useGameStore } from '@/store/gameStore';
+import { Game, gameApi } from '@/services/api';
 import { useAuth } from '@/auth/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 interface ParticipantGameCardProps {
   game: Game;
 }
 
 export const ParticipantGameCard: React.FC<ParticipantGameCardProps> = ({ game }) => {
-  const { participants, addParticipantToGame, removeParticipantFromGame } = useGameStore();
+  const [loading, setLoading] = useState(false);
+
+  const { toast } = useToast();
+
+  const handleRegister = async () => {
+    try {
+      setLoading(true);
+      await gameApi.register(game.id, user.id);
+      toast({
+        title: 'Success',
+        description: 'Successfully registered for the game',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to register for the game',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUnregister = async () => {
+    try {
+      setLoading(true);
+      await gameApi.unregister(game.id, user.id);
+      toast({
+        title: 'Success',
+        description: 'Successfully unregistered from the game',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to unregister from the game',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const { user } = useAuth();
 
-  const gameDate = new Date(game.date);
+  const gameDate = new Date(game.dateTime);
   const now = new Date();
   const registrationOpen = new Date(gameDate.getTime() - 5 * 24 * 60 * 60 * 1000);
   const registrationCloses = new Date(gameDate.getTime() - 6 * 60 * 60 * 1000);
 
   const isRegistrationOpen = now >= registrationOpen && now < registrationCloses;
-  const registeredCount = game.participants.length;
-  const waitingCount = game.waitingList.length;
+  const registeredCount = game.registrations.filter(reg => !reg.isWaitlist).length;
+  const waitingCount = game.registrations.filter(reg => reg.isWaitlist).length;
 
-  const isParticipant = game.participants.includes(user?.id || '');
-  const isOnWaitingList = game.waitingList.includes(user?.id || '');
+  const isRegistered = game.registrations.some(reg => reg.userId === user.id);
+  const isWaitlisted = game.registrations.some(reg => reg.userId === user.id && reg.isWaitlist);
+
 
   const getRegistrationStatus = () => {
     if (now < registrationOpen) {
@@ -39,53 +82,26 @@ export const ParticipantGameCard: React.FC<ParticipantGameCardProps> = ({ game }
     return { status: 'finished', color: 'bg-gray-100 text-gray-800', text: 'Game Finished' };
   };
 
-  const handleRegistration = () => {
-    if (isParticipant) {
-      removeParticipantFromGame(game.id, user?.id || '');
-    } else if (isOnWaitingList) {
-      removeParticipantFromGame(game.id, user?.id || '', true);
-    } else {
-      addParticipantToGame(game.id, user?.id || '');
+  const handleRegistration = async () => {
+    if (!user?.id) return;
+
+    try {
+      if (isRegistered) {
+        await handleUnregister();
+      } else {
+        await handleRegister();
+      }
+    } catch (error) {
+      console.error('Error handling registration:', error);
     }
   };
 
-  const getRegistrationButton = () => {
-    if (!isRegistrationOpen) {
-      return null;
+  const getRegistrationText = () => {
+    if (isRegistered) {
+      return isWaitlisted ? 'Leave Waiting List' : 'Unregister';
+    } else {
+      return 'Register';
     }
-
-    if (isParticipant) {
-      return (
-        <Button 
-          onClick={handleRegistration}
-          variant="destructive"
-          className="w-full mt-4"
-        >
-          Cancel Registration
-        </Button>
-      );
-    }
-
-    if (isOnWaitingList) {
-      return (
-        <Button 
-          onClick={handleRegistration}
-          variant="destructive"
-          className="w-full mt-4"
-        >
-          Leave Waiting List
-        </Button>
-      );
-    }
-
-    return (
-      <Button 
-        onClick={handleRegistration}
-        className="w-full mt-4 bg-orange-600 hover:bg-orange-700"
-      >
-        {registeredCount >= game.maxParticipants ? 'Join Waiting List' : 'Register for Game'}
-      </Button>
-    );
   };
 
   const registrationStatus = getRegistrationStatus();
@@ -111,7 +127,7 @@ export const ParticipantGameCard: React.FC<ParticipantGameCardProps> = ({ game }
 
           <div className="flex items-center text-sm text-gray-600">
             <Users className="mr-2 h-4 w-4" />
-            {registeredCount}/{game.maxParticipants} registered
+            {registeredCount}/{game.maxPlayers} registered
             {waitingCount > 0 && `, ${waitingCount} waiting`}
           </div>
         </div>
@@ -121,10 +137,10 @@ export const ParticipantGameCard: React.FC<ParticipantGameCardProps> = ({ game }
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div 
               className="bg-orange-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${Math.min((registeredCount / game.maxParticipants) * 100, 100)}%` }}
+              style={{ width: `${Math.min((registeredCount / game.maxPlayers) * 100, 100)}%` }}
             />
           </div>
-          {registeredCount >= game.maxParticipants && (
+          {registeredCount >= game.maxPlayers && (
             <p className="text-xs text-orange-600 font-medium">Game is full - new registrations go to waiting list</p>
           )}
         </div>
@@ -134,16 +150,15 @@ export const ParticipantGameCard: React.FC<ParticipantGameCardProps> = ({ game }
           <div>
             <h3 className="text-sm font-semibold mb-1">Registered Participants:</h3>
             <div className="text-sm text-gray-600">
-              {game.participants.length > 0 ? (
+              {registeredCount > 0 ? (
                 <div className="grid grid-cols-2 gap-1">
-                  {game.participants.map(participantId => {
-                    const participant = participants.find(p => p.id === participantId);
-                    return (
-                      <div key={participantId} className="truncate">
-                        {participant?.displayName || 'Unknown'}
-                      </div>
-                    );
-                  })}
+                  {game.registrations
+                    .filter(reg => !reg.isWaitlist)
+                    .map((registration) => (
+                    <div key={registration.id} className="text-sm">
+                      {registration.user?.username || 'Unknown'}
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <p>No participants yet</p>
@@ -156,21 +171,27 @@ export const ParticipantGameCard: React.FC<ParticipantGameCardProps> = ({ game }
               <h3 className="text-sm font-semibold mb-1">Waiting List:</h3>
               <div className="text-sm text-gray-600">
                 <div className="grid grid-cols-2 gap-1">
-                  {game.waitingList.map(participantId => {
-                    const participant = participants.find(p => p.id === participantId);
-                    return (
-                      <div key={participantId} className="truncate">
-                        {participant?.displayName || 'Unknown'}
-                      </div>
-                    );
-                  })}
+                  {game.registrations
+                    .filter(reg => reg.isWaitlist)
+                    .map((registration) => (
+                    <div key={registration.id} className="text-sm">
+                      {registration.user?.username || 'Unknown'}
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
           )}
         </div>
 
-        {getRegistrationButton()}
+        <Button 
+          onClick={handleRegistration}
+          variant={isRegistered ? 'destructive' : 'default'}
+          className="w-full mt-4"
+          disabled={loading}
+        >
+          {getRegistrationText()}
+        </Button>
       </CardContent>
     </Card>
   );

@@ -1,40 +1,63 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, Users, Settings } from 'lucide-react';
-import { Game, useGameStore } from '../store/gameStore';
+import { Game, gameApi } from '../services/api';
 import { GameManagementModal } from './GameManagementModal';
 
 interface GameCardProps {
   game: Game;
+  onGameUpdate: () => void;
 }
 
-export const GameCard: React.FC<GameCardProps> = ({ game }) => {
+export const GameCard: React.FC<GameCardProps> = ({ game, onGameUpdate }) => {
   const [showManagement, setShowManagement] = useState(false);
-  const { participants } = useGameStore();
+  const [loading, setLoading] = useState(false);
+
+  const handleAddParticipant = async (gameId: number, participantId: number) => {
+    try {
+      setLoading(true);
+      await gameApi.register(gameId, participantId);
+      onGameUpdate();
+    } catch (error) {
+      console.error('Failed to add participant:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveParticipant = async (gameId: number, participantId: number) => {
+    try {
+      setLoading(true);
+      await gameApi.unregister(gameId, participantId);
+      onGameUpdate();
+    } catch (error) {
+      console.error('Failed to remove participant:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const gameDate = new Date(game.dateTime);
   const now = new Date();
   const registrationOpen = new Date(gameDate.getTime() - 5 * 24 * 60 * 60 * 1000);
   const registrationCloses = new Date(gameDate.getTime() - 6 * 60 * 60 * 1000);
 
-  const isRegistrationOpen = now >= registrationOpen && now < registrationCloses;
-  const registeredCount = game.participants.length;
-  const waitingCount = game.waitingList.length;
+  const activeParticipants = game.registrations.filter(reg => !reg.isWaitlist).length;
+  const waitingParticipants = game.registrations.filter(reg => reg.isWaitlist).length;
 
   const getRegistrationStatus = () => {
     if (now < registrationOpen) {
-      return { status: 'upcoming', color: 'bg-yellow-100 text-yellow-800', text: 'Registration Opens Soon' };
+      return 'Not open yet';
     }
-    if (now >= registrationOpen && now < registrationCloses) {
-      return { status: 'open', color: 'bg-green-100 text-green-800', text: 'Registration Open' };
+    if (now >= registrationCloses) {
+      return 'Registration closed';
     }
-    if (now >= registrationCloses && now < gameDate) {
-      return { status: 'closed', color: 'bg-red-100 text-red-800', text: 'Registration Closed' };
+    if (activeParticipants >= game.maxPlayers) {
+      return 'Full';
     }
-    return { status: 'finished', color: 'bg-gray-100 text-gray-800', text: 'Game Finished' };
+    return 'Open';
   };
 
   const registrationStatus = getRegistrationStatus();
@@ -47,8 +70,8 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
             <CardTitle className="text-lg font-semibold">
               Volleyball Game - {gameDate.toLocaleDateString()}
             </CardTitle>
-            <Badge className={registrationStatus.color}>
-              {registrationStatus.text}
+            <Badge className="bg-gray-100 text-gray-800">
+              {registrationStatus}
             </Badge>
           </div>
         </CardHeader>
@@ -60,9 +83,10 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
             </div>
 
             <div className="flex items-center text-sm text-gray-600">
-              <Users className="mr-2 h-4 w-4" />
-              {registeredCount}/{game.maxPlayers} registered
-              {waitingCount > 0 && `, ${waitingCount} waiting`}
+              <div className="text-sm text-gray-500">
+                {activeParticipants} registered
+                {waitingParticipants > 0 && ` (${waitingParticipants} waiting)`}
+              </div>
             </div>
           </div>
 
@@ -96,11 +120,13 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
         </CardContent>
       </Card>
 
-      <GameManagementModal 
-        game={game}
-        open={showManagement}
-        onOpenChange={setShowManagement}
-      />
+      {showManagement && (
+        <GameManagementModal
+          game={game}
+          onClose={() => setShowManagement(false)}
+          onGameUpdate={onGameUpdate}
+        />
+      )}
     </>
   );
 };

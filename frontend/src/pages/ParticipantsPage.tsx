@@ -5,25 +5,59 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ArrowLeft, UserPlus, Edit, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useGameStore } from '../store/gameStore';
+import { User, userApi } from '../services/api';
 import { AddParticipantModal } from '../components/AddParticipantModal';
 import { EditParticipantModal } from '../components/EditParticipantModal';
 import { useToast } from '@/hooks/use-toast';
 
 const ParticipantsPage = () => {
   const [showAddParticipant, setShowAddParticipant] = useState(false);
-  const [editingParticipant, setEditingParticipant] = useState(null);
+  const [editingParticipant, setEditingParticipant] = useState<User | null>(null);
   const navigate = useNavigate();
-  const { participants, removeParticipant } = useGameStore();
+  const [participants, setParticipants] = useState<User[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchParticipants = async () => {
+    try {
+      setLoading(true);
+      const users = await userApi.getAll();
+      setParticipants(users);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load participants",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchParticipants();
+  }, []);
   const { toast } = useToast();
 
-  const handleRemoveParticipant = (participantId: string) => {
+  React.useEffect(() => {
+    fetchParticipants();
+  }, [fetchParticipants]);
+
+  const handleRemoveParticipant = async (participantId: number) => {
     if (window.confirm('Are you sure you want to remove this participant?')) {
-      removeParticipant(participantId);
-      toast({
-        title: "Success",
-        description: "Participant removed successfully",
-      });
+      try {
+        await userApi.remove(participantId);
+        await fetchParticipants();
+        toast({
+          title: "Success",
+          description: "Participant removed successfully",
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to remove participant",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -88,9 +122,9 @@ const ParticipantsPage = () => {
                   {participants.map((participant) => (
                     <TableRow key={participant.id}>
                       <TableCell className="font-medium">
-                        {participant.displayName}
+                        {participant.username}
                       </TableCell>
-                      <TableCell>{participant.telegramUsername}</TableCell>
+                      <TableCell>@{participant.telegramId}</TableCell>
                       <TableCell>
                         {new Date(participant.createdAt).toLocaleDateString()}
                       </TableCell>

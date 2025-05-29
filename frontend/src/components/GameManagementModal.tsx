@@ -1,106 +1,154 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowUp, ArrowDown, X } from 'lucide-react';
-import { Game, useGameStore } from '../store/gameStore';
+import { Game, User, gameApi, userApi } from '../services/api';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '../auth/AuthContext';
-import { gameApi } from '../services/api';
 
 interface GameManagementModalProps {
   game: Game;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onClose: () => void;
+  onGameUpdate: () => void;
 }
 
-export const GameManagementModal: React.FC<GameManagementModalProps> = ({ 
-  game, 
-  open, 
-  onOpenChange 
-}) => {
+export const GameManagementModal: React.FC<GameManagementModalProps> = ({ game, onClose, onGameUpdate }) => {
   const [selectedParticipant, setSelectedParticipant] = useState<string>('');
-  const { participants, addParticipantToGame, removeParticipantFromGame, moveParticipantToWaiting, moveParticipantToActive } = useGameStore();
+  const handleUpdateGame = async (updatedGame: Game) => {
+    try {
+      await gameApi.update(updatedGame.id, updatedGame);
+      onClose();
+      onGameUpdate();
+    } catch (error) {
+      console.error('Failed to update game:', error);
+    }
+  };
+
+  const handleDeleteGame = async () => {
+    try {
+      await gameApi.remove(game.id);
+      onClose();
+      onGameUpdate();
+    } catch (error) {
+      console.error('Failed to delete game:', error);
+    }
+  };
+
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const gameParticipants = participants.filter(p => game.participants.includes(p.id.toString()));
-  const waitingParticipants = participants.filter(p => game.waitingList.includes(p.id.toString()));
+  const [participants, setParticipants] = useState<User[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchParticipants = async () => {
+      try {
+        setLoading(true);
+        const users = await userApi.getAll();
+        setParticipants(users);
+      } catch (error) {
+        console.error('Failed to fetch participants:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchParticipants();
+  }, []);
+
+  const activeParticipants = game.registrations
+    .filter(reg => !reg.isWaitlist)
+    .map(reg => participants.find(p => p.id === reg.userId))
+    .filter((p): p is User => p !== undefined);
+
+  const waitingParticipants = game.registrations
+    .filter(reg => reg.isWaitlist)
+    .map(reg => participants.find(p => p.id === reg.userId))
+    .filter((p): p is User => p !== undefined);
+
   const availableParticipants = participants.filter(p => 
-    !game.participants.includes(p.id.toString()) && !game.waitingList.includes(p.id.toString())
+    !game.registrations.some(reg => reg.userId === p.id)
   );
 
   const gameDate = new Date(game.dateTime);
 
   const handleAddParticipant = async () => {
-    if (!selectedParticipant || !user) return;
+    if (!selectedParticipant) return;
 
     try {
-      const gameId = game.id.toString();
-      await gameApi.register(parseInt(gameId), parseInt(selectedParticipant));
-      addParticipantToGame(gameId, selectedParticipant);
+      await gameApi.register(game.id, parseInt(selectedParticipant));
+      toast({
+        title: 'Success',
+        description: 'Participant added successfully',
+      });
       setSelectedParticipant('');
-      
-      toast({
-        title: "Success",
-        description: "Participant added to game",
-      });
+      onGameUpdate();
     } catch (error) {
-      console.error('Error adding participant:', error);
       toast({
-        title: "Error",
-        description: "Failed to add participant to game",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to add participant',
+        variant: 'destructive',
       });
     }
   };
 
-  const handleRemoveParticipant = async (participantId: string, fromWaiting = false) => {
+  const handleRemoveParticipant = async (participantId: number) => {
     try {
-      const gameId = game.id.toString();
-      await gameApi.unregister(parseInt(gameId), parseInt(participantId));
-      removeParticipantFromGame(gameId, participantId, fromWaiting);
-      
+      await gameApi.unregister(game.id, participantId);
       toast({
-        title: "Success",
-        description: "Participant removed from game",
+        title: 'Success',
+        description: 'Participant removed successfully',
       });
+      onGameUpdate();
     } catch (error) {
-      console.error('Error removing participant:', error);
       toast({
-        title: "Error",
-        description: "Failed to remove participant from game",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to remove participant',
+        variant: 'destructive',
       });
     }
   };
 
-  const handleMoveToWaiting = (participantId: string) => {
-    const gameId = game.id.toString();
-    moveParticipantToWaiting(gameId, participantId);
-    
-    toast({
-      title: "Success",
-      description: "Participant moved to waiting list",
-    });
+  const handleMoveToWaiting = async (participantId: number) => {
+    try {
+      await gameApi.moveToWaitlist(game.id, participantId);
+      toast({
+        title: 'Success',
+        description: 'Participant moved to waiting list',
+      });
+      onGameUpdate();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to move participant',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleMoveToActive = (participantId: string) => {
-    const gameId = game.id.toString();
-    moveParticipantToActive(gameId, participantId);
-    
-    toast({
-      title: "Success",
-      description: "Participant moved to active list",
-    });
+  const handleMoveToActive = async (participantId: number) => {
+    try {
+      await gameApi.moveToActive(game.id, participantId);
+      toast({
+        title: 'Success',
+        description: 'Participant moved to active list',
+      });
+      onGameUpdate();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to move participant',
+        variant: 'destructive',
+      });
+    }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Manage Game - {gameDate.toLocaleDateString()}</DialogTitle>
         </DialogHeader>
@@ -108,7 +156,7 @@ export const GameManagementModal: React.FC<GameManagementModalProps> = ({
         <Tabs defaultValue="participants" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="participants">
-              Participants ({gameParticipants.length}/{game.maxPlayers})
+              Participants ({activeParticipants.length}/{game.maxPlayers})
             </TabsTrigger>
             <TabsTrigger value="waiting">
               Waiting List ({waitingParticipants.length})
@@ -119,34 +167,30 @@ export const GameManagementModal: React.FC<GameManagementModalProps> = ({
           <TabsContent value="participants" className="space-y-4">
             <div className="space-y-2">
               <h3 className="font-medium">Active Participants</h3>
-              {gameParticipants.length === 0 ? (
+              {activeParticipants.length === 0 ? (
                 <p className="text-sm text-gray-500">No participants registered yet</p>
               ) : (
-                <div className="space-y-2">
-                  {gameParticipants.map((participant, index) => (
-                    <div key={participant.id} className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="space-y-4">
+                  {activeParticipants.map((participant) => (
+                    <div key={participant.id} className="flex items-center justify-between">
                       <div>
-                        <div className="font-medium">
-                          {participant.username}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          @{participant.telegramId}
-                        </div>
+                        <div className="font-medium">{participant.username}</div>
+                        <div className="text-sm text-gray-500">{participant.telegramId}</div>
                       </div>
-                      <div className="flex space-x-2">
+                      <div className="space-x-2">
                         <Button
-                          size="sm"
                           variant="outline"
+                          size="sm"
                           onClick={() => handleMoveToWaiting(participant.id)}
                         >
-                          <ArrowDown className="h-3 w-3" />
+                          Move to Waiting
                         </Button>
                         <Button
+                          variant="destructive"
                           size="sm"
-                          variant="outline"
                           onClick={() => handleRemoveParticipant(participant.id)}
                         >
-                          <X className="h-3 w-3" />
+                          Remove
                         </Button>
                       </div>
                     </div>
@@ -175,17 +219,17 @@ export const GameManagementModal: React.FC<GameManagementModalProps> = ({
                       </div>
                       <div className="flex space-x-2">
                         <Button
-                          size="sm"
                           variant="outline"
+                          size="sm"
                           onClick={() => handleMoveToActive(participant.id)}
-                          disabled={gameParticipants.length >= game.maxPlayers}
+                          disabled={activeParticipants.length >= game.maxPlayers}
                         >
                           <ArrowUp className="h-3 w-3" />
                         </Button>
                         <Button
+                          variant="destructive"
                           size="sm"
-                          variant="outline"
-                          onClick={() => handleRemoveParticipant(participant.id, true)}
+                          onClick={() => handleRemoveParticipant(participant.id)}
                         >
                           <X className="h-3 w-3" />
                         </Button>
@@ -203,13 +247,13 @@ export const GameManagementModal: React.FC<GameManagementModalProps> = ({
                 <h3 className="font-medium">Add Participant to Game</h3>
                 <div className="flex space-x-2">
                   <Select value={selectedParticipant} onValueChange={setSelectedParticipant}>
-                    <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="Select a participant" />
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select participant" />
                     </SelectTrigger>
                     <SelectContent>
-                      {availableParticipants.map(participant => (
+                      {availableParticipants.map((participant) => (
                         <SelectItem key={participant.id} value={participant.id.toString()}>
-                          {participant.username} (@{participant.telegramId})
+                          {participant.username} ({participant.telegramId})
                         </SelectItem>
                       ))}
                     </SelectContent>

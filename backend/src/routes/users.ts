@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { db } from '../db';
 import { users } from '../db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and, ne } from 'drizzle-orm';
 
 const router = Router();
 
@@ -27,6 +27,18 @@ router.post('/', async (req, res) => {
 });
 
 // Get user by telegramId
+// Get all users
+router.get('/', async (req, res) => {
+  try {
+    const allUsers = await db.select().from(users);
+    res.json(allUsers);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// Get user by telegramId
 router.get('/:telegramId', async (req, res) => {
   try {
     const { telegramId } = req.params;
@@ -40,6 +52,55 @@ router.get('/:telegramId', async (req, res) => {
   } catch (error) {
     console.error('Error fetching user:', error);
     res.status(500).json({ error: 'Failed to fetch user' });
+  }
+});
+
+// Get user by ID
+router.get('/id/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await db.select().from(users).where(eq(users.id, parseInt(userId)));
+    
+    if (!user.length) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json(user[0]);
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).json({ error: 'Failed to fetch user' });
+  }
+});
+
+router.put('/:userId', async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId);
+    const { telegramId, username } = req.body;
+
+    // Check if user exists
+    const existingUser = await db.select().from(users).where(eq(users.id, userId));
+    if (!existingUser.length) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Check if telegramId is already taken by another user
+    const userWithTelegramId = await db.select().from(users).where(and(
+      eq(users.telegramId, telegramId),
+      ne(users.id, userId)
+    ));
+    if (userWithTelegramId.length) {
+      return res.status(400).json({ error: 'Telegram ID already taken' });
+    }
+
+    // Update user
+    const updatedUser = await db.update(users)
+      .set({ telegramId, username })
+      .where(eq(users.id, userId))
+      .returning();
+
+    res.json(updatedUser[0]);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update user' });
   }
 });
 

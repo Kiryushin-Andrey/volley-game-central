@@ -19,10 +19,7 @@ interface User {
   id: number;
   telegramId: string;
   username: string;
-  firstName: string | null;
-  lastName: string | null;
   createdAt: Date | null;
-  updatedAt: Date | null;
 }
 
 // Generate JWT token
@@ -53,9 +50,7 @@ router.post('/telegram/callback', async (req: Request<{}, {}, TelegramAuthData>,
       // Create new user
       const [newUser] = await db.insert(users).values({
         telegramId: id.toString(),
-        username: username || 'unknown',
-        firstName: first_name,
-        lastName: last_name
+        username: username || 'unknown'
       }).returning();
       user = newUser;
     }

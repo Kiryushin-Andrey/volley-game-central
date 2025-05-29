@@ -1,16 +1,34 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar } from 'lucide-react';
-import { useGameStore } from '@/store/gameStore';
+import { Game, gameApi } from '@/services/api';
 import { ParticipantGameCard } from '@/components/ParticipantGameCard';
 
 export const ParticipantDashboard = () => {
-  const { games } = useGameStore();
+  const [games, setGames] = useState<Game[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchGames = async () => {
+    try {
+      setLoading(true);
+      const allGames = await gameApi.getAll();
+      setGames(allGames);
+    } catch (error) {
+      console.error('Failed to fetch games:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchGames();
+  }, []);
+
   const now = new Date();
   const upcomingGames = games
-    .filter(game => new Date(game.date) > now)
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    .filter(game => new Date(game.dateTime) > now)
+    .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime());
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-blue-50 p-6">
