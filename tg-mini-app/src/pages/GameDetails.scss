@@ -1,0 +1,305 @@
+.game-details-container {
+  padding: 16px;
+  max-width: 100%;
+  margin: 0 auto;
+  padding-bottom: 80px; // Account for Telegram's main button
+}
+
+.game-header {
+  text-align: center;
+  margin-bottom: 24px;
+
+  h1 {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--tg-theme-text-color);
+  }
+
+  .game-date {
+    font-size: 18px;
+    color: var(--tg-theme-text-color);
+    margin-bottom: 12px;
+    font-weight: 500;
+  }
+
+  .user-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+
+    &.registered {
+      background: var(--tg-theme-button-color);
+      color: var(--tg-theme-button-text-color);
+    }
+
+    &.waitlist {
+      background: #ff9500;
+      color: white;
+    }
+  }
+}
+
+.game-stats-card {
+  background: var(--tg-theme-bg-color);
+  border: 1px solid #e1e8ed;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+  .stats-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--tg-theme-text-color);
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--tg-theme-hint-color);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      text-align: center;
+      margin-top: 4px;
+    }
+
+    &.waitlist {
+      .stat-value {
+        color: #ff9500;
+      }
+    }
+  }
+
+  .stat-divider {
+    font-size: 32px;
+    font-weight: 300;
+    color: var(--tg-theme-hint-color);
+  }
+
+  .waitlist-stats {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #e1e8ed;
+  }
+
+  .availability-indicator {
+    display: flex;
+    justify-content: center;
+
+    .status-badge {
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+
+      &.available {
+        background: #e8f5e8;
+        color: #2e7d32;
+      }
+
+      &.full {
+        background: #ffebee;
+        color: #c62828;
+      }
+    }
+  }
+}
+
+.players-section {
+  margin-bottom: 24px;
+
+  h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--tg-theme-text-color);
+    margin-bottom: 16px;
+    padding-left: 4px;
+  }
+
+  &.waitlist-section {
+    h2 {
+      color: #ff9500;
+    }
+  }
+}
+
+.players-list {
+  background: var(--tg-theme-bg-color);
+  border: 1px solid #e1e8ed;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.player-item {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #e1e8ed;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &.waitlist {
+    background: rgba(255, 149, 0, 0.05);
+  }
+
+  .player-number {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--tg-theme-button-color);
+    color: var(--tg-theme-button-text-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+    margin-right: 12px;
+    flex-shrink: 0;
+  }
+
+  .player-info {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .player-name {
+      font-size: 16px;
+      color: var(--tg-theme-text-color);
+      font-weight: 500;
+    }
+
+    .player-badge {
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: var(--tg-theme-button-color);
+      color: var(--tg-theme-button-text-color);
+
+      &.waitlist {
+        background: #ff9500;
+        color: white;
+      }
+    }
+  }
+}
+
+.no-players {
+  text-align: center;
+  padding: 48px 16px;
+  background: var(--tg-theme-bg-color);
+  border: 1px solid #e1e8ed;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+  h2 {
+    font-size: 20px;
+    margin-bottom: 8px;
+    color: var(--tg-theme-hint-color);
+  }
+
+  p {
+    color: var(--tg-theme-hint-color);
+    font-size: 16px;
+  }
+}
+
+.action-loading {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: var(--tg-theme-bg-color);
+  border: 1px solid #e1e8ed;
+  border-radius: 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--tg-theme-hint-color);
+    border-top: 2px solid var(--tg-theme-button-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  span {
+    font-size: 14px;
+    color: var(--tg-theme-text-color);
+    font-weight: 500;
+  }
+}
+
+.error-message {
+  text-align: center;
+  padding: 48px 16px;
+
+  h2 {
+    font-size: 20px;
+    margin-bottom: 8px;
+    color: #ff6b6b;
+  }
+
+  p {
+    color: var(--tg-theme-hint-color);
+    font-size: 16px;
+    margin-bottom: 16px;
+  }
+
+  .back-button {
+    background: var(--tg-theme-button-color);
+    color: var(--tg-theme-button-text-color);
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+
+    &:hover {
+      opacity: 0.8;
+    }
+
+    &:active {
+      opacity: 0.6;
+    }
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

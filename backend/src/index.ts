@@ -2,14 +2,19 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { Telegraf } from 'telegraf';
-import authRoutes from './routes/auth';
+import { telegramAuthMiddleware } from './middleware/telegramAuth';
 import userRoutes from './routes/users';
 import gameRoutes from './routes/games';
 import { db } from './db';
 
 // Initialize Express app
 const app = express();
-const corsOrigins = ['http://127.0.0.1'];
+const corsOrigins = [
+  'http://127.0.0.1',
+  'http://localhost:3001',
+  'http://127.0.0.1:3001',
+  'https://rnabq-89-19-36-2.a.free.pinggy.link/'
+];
 if (process.env.CORS_ORIGIN) {
   corsOrigins.push(process.env.CORS_ORIGIN);
 }
@@ -19,21 +24,71 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Initialize Telegram bot
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN || '');
 
-// Routes
-app.use('/auth', authRoutes);
-app.use('/users', userRoutes);
-app.use('/games', gameRoutes);
+// Public routes
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
+// Protected routes - apply telegramAuth middleware
+app.use('/users', telegramAuthMiddleware, userRoutes);
+app.use('/games', telegramAuthMiddleware, gameRoutes);
 
 // Start the server
 const PORT = process.env.PORT || 3000;
+const MINI_APP_URL = process.env.MINI_APP_URL || 'http://localhost:3001';
 
 // Start Express server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+});
+
+// Configure bot commands
+bot.command('start', (ctx) => {
+  ctx.reply('🏐 Welcome to Volleyball Game Central!\n\nTap the button below to view and join upcoming volleyball games:', {
+    reply_markup: {
+      inline_keyboard: [[
+        {
+          text: '🏐 Open Volleyball Games',
+          web_app: { url: MINI_APP_URL }
+        }
+      ]]
+    }
+  });
+});
+
+bot.command('games', (ctx) => {
+  ctx.reply('Open the volleyball games app:', {
+    reply_markup: {
+      inline_keyboard: [[
+        {
+          text: '🏐 Open Games App',
+          web_app: { url: MINI_APP_URL }
+        }
+      ]]
+    }
+  });
+});
+
+// Handle any text message - show the mini-app
+bot.on('text', (ctx) => {
+  // Skip if it's a command (already handled above)
+  if (ctx.message.text.startsWith('/')) return;
+  
+  ctx.reply('🏐 Access your volleyball games:', {
+    reply_markup: {
+      inline_keyboard: [[
+        {
+          text: '🏐 Open Games',
+          web_app: { url: MINI_APP_URL }
+        }
+      ]]
+    }
+  });
 });
 
 // Start Telegram bot

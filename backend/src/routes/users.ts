@@ -26,7 +26,21 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Get user by telegramId
+// Get currently authenticated user
+router.get('/me', async (req, res) => {
+  try {
+    // The user is attached to the request by the telegramAuth middleware
+    if (!req.user) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+    
+    res.json(req.user);
+  } catch (error) {
+    console.error('Error fetching current user:', error);
+    res.status(500).json({ error: 'Failed to fetch user data' });
+  }
+});
+
 // Get all users
 router.get('/', async (req, res) => {
   try {

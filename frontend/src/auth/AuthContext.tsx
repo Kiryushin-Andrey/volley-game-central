@@ -48,8 +48,12 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
   }, [navigate, location.pathname]);
 
   const login = () => {
-    // Open Telegram login window
-    window.open('http://localhost:3000/auth/telegram', '_blank', 'width=600,height=600');
+    console.log('[Auth] Starting login process...');
+    // Use 127.0.0.1 consistently and redirect in same tab
+    const returnTo = `${window.location.origin}/telegram/callback`;
+    const loginUrl = `http://127.0.0.1:3000/auth/telegram?return_to=${returnTo}`;
+    console.log('[Auth] Redirecting to:', loginUrl);
+    window.location.href = loginUrl;
   };
 
   const logout = () => {
@@ -61,16 +65,27 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
   // Listen for messages from Telegram login window
   useEffect(() => {
     const handleMessage = async (event: MessageEvent) => {
-      const apiUrl = import.meta.env.VITE_API_URL;
-      if (event.origin === apiUrl && event.data.type === 'TELEGRAM_LOGIN') {
+      console.log('[Auth] Received message:', {
+        data: event.data,
+        origin: event.origin,
+        source: event.source ? 'window' : 'unknown'
+      });
+      if (event.data?.type === 'TELEGRAM_LOGIN') {
+        console.log('[Auth] Processing Telegram login data...');
         const telegramData = event.data.user;
         try {
+          console.log('[Auth] Telegram data received:', telegramData);
+          
           // Try to get existing user
+          console.log('[Auth] Looking up user by Telegram ID:', telegramData.telegramId);
           let userData = await userApi.getByTelegramId(telegramData.telegramId);
           
           // If user doesn't exist, create new user
           if (!userData) {
+            console.log('[Auth] Creating new user...');
             userData = await userApi.create(telegramData.telegramId, telegramData.username);
+          } else {
+            console.log('[Auth] Existing user found:', userData);
           }
           
           // Add Telegram-specific fields and token
@@ -86,11 +101,14 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
             createdAt: userData.createdAt
           };
           
+          console.log('[Auth] Saving user data:', extendedUserData);
           localStorage.setItem('user', JSON.stringify(extendedUserData));
           setUser(extendedUserData);
           
           // Redirect based on admin status
-          navigate(extendedUserData.isAdmin ? '/admin' : '/dashboard');
+          const redirectPath = extendedUserData.isAdmin ? '/admin' : '/dashboard';
+          console.log('[Auth] Redirecting to:', redirectPath);
+          navigate(redirectPath);
         } catch (error) {
           console.error('Error handling Telegram login:', error);
         }
