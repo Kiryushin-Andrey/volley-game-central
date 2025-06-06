@@ -1,0 +1,167 @@
+.create-game-container {
+  padding: 1rem;
+  max-width: 600px;
+  margin: 0 auto;
+
+  h1 {
+    margin-bottom: 1.5rem;
+    color: var(--tg-theme-text-color, #000);
+    text-align: center;
+  }
+
+  .error-message {
+    background-color: rgba(255, 0, 0, 0.1);
+    color: #d32f2f;
+    padding: 0.75rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+
+  .form-group {
+    margin-bottom: 1.5rem;
+    
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: var(--tg-theme-hint-color, #888);
+      font-weight: 500;
+    }
+    
+    input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--tg-theme-hint-color, #ccc);
+      border-radius: 8px;
+      background-color: var(--tg-theme-bg-color, #fff);
+      color: var(--tg-theme-text-color, #000);
+      font-size: 1rem;
+      
+      &:focus {
+        outline: none;
+        border-color: var(--tg-theme-button-color, #50a8eb);
+        box-shadow: 0 0 0 2px rgba(80, 168, 235, 0.2);
+      }
+    }
+    
+    .datepicker-container {
+      width: 100%;
+      
+      .datepicker-input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid var(--tg-theme-hint-color, #ccc);
+        border-radius: 8px;
+        background-color: var(--tg-theme-bg-color, #fff);
+        color: var(--tg-theme-text-color, #000);
+        font-size: 1rem;
+        cursor: pointer;
+        
+        &:focus {
+          outline: none;
+          border-color: var(--tg-theme-button-color, #50a8eb);
+          box-shadow: 0 0 0 2px rgba(80, 168, 235, 0.2);
+        }
+      }
+    }
+  }
+
+  .button-group {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2rem;
+    
+    button {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      
+      &:active {
+        transform: scale(0.98);
+      }
+      
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
+    
+    .cancel-button {
+      background-color: var(--tg-theme-bg-color, #f5f5f5);
+      color: var(--tg-theme-text-color, #000);
+      border: 1px solid var(--tg-theme-hint-color, #ccc);
+      
+      &:hover:not(:disabled) {
+        background-color: #eaeaea;
+      }
+    }
+    
+    .create-button {
+      background-color: var(--tg-theme-button-color, #50a8eb);
+      color: var(--tg-theme-button-text-color, #fff);
+      
+      &:hover:not(:disabled) {
+        opacity: 0.9;
+      }
+    }
+  }
+}
+
+/* DatePicker custom styling */
+.react-datepicker {
+  font-family: inherit;
+  border-radius: 8px;
+  border: 1px solid var(--tg-theme-hint-color, #ccc);
+  background-color: var(--tg-theme-bg-color, #fff);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.react-datepicker__header {
+  background-color: var(--tg-theme-bg-color, #fff);
+  border-bottom: 1px solid var(--tg-theme-hint-color, #eee);
+  padding-top: 10px;
+}
+
+.react-datepicker__current-month,
+.react-datepicker__day-name {
+  color: var(--tg-theme-text-color, #000);
+}
+
+.react-datepicker__day {
+  color: var(--tg-theme-text-color, #000);
+  border-radius: 50%;
+}
+
+.react-datepicker__day:hover {
+  background-color: rgba(80, 168, 235, 0.1);
+}
+
+.react-datepicker__day--selected {
+  background-color: var(--tg-theme-button-color, #50a8eb) !important;
+  color: var(--tg-theme-button-text-color, #fff);
+}
+
+.react-datepicker__time-container {
+  border-left: 1px solid var(--tg-theme-hint-color, #eee);
+}
+
+.react-datepicker__time {
+  background-color: var(--tg-theme-bg-color, #fff);
+}
+
+.react-datepicker__time-list-item {
+  color: var(--tg-theme-text-color, #000);
+}
+
+.react-datepicker__time-list-item--selected {
+  background-color: var(--tg-theme-button-color, #50a8eb) !important;
+  color: var(--tg-theme-button-text-color, #fff) !important;
+}
+
+.react-datepicker__time-list-item:hover {
+  background-color: rgba(80, 168, 235, 0.1);
+}

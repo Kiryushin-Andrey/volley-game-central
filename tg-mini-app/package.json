@@ -9,23 +9,29 @@
     "preview": "vite preview",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["telegram", "mini-app", "volleyball"],
+  "keywords": [
+    "telegram",
+    "mini-app",
+    "volleyball"
+  ],
   "author": "",
   "license": "ISC",
   "description": "Telegram Mini App for Volleyball Game Central",
   "dependencies": {
+    "@types/react-datepicker": "6.2.0",
+    "axios": "^1.3.0",
     "react": "^18.2.0",
+    "react-datepicker": "8.4.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.8.0",
-    "axios": "^1.3.0"
+    "react-router-dom": "^6.8.0"
   },
   "devDependencies": {
+    "@types/node": "^18.14.2",
     "@types/react": "^18.0.27",
     "@types/react-dom": "^18.0.10",
-    "@types/node": "^18.14.2",
     "@vitejs/plugin-react-swc": "^3.0.0",
+    "sass": "^1.58.0",
     "typescript": "^4.9.3",
-    "vite": "^4.1.0",
-    "sass": "^1.58.0"
+    "vite": "^4.1.0"
   }
 }

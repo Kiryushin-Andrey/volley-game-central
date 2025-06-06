@@ -13,16 +13,18 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
   const [games, setGames] = useState<GameWithStats[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [includePastGames, setIncludePastGames] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     loadGames();
-  }, []);
+  }, [includePastGames]);
 
   const loadGames = async () => {
     try {
       setIsLoading(true);
-      const fetchedGames = await gamesApi.getAllGames();
+      // Pass includePastGames parameter to the API
+      const fetchedGames = await gamesApi.getAllGames(includePastGames);
       
       // Process games to add stats and user registration info
       const gamesWithStats: GameWithStats[] = fetchedGames.map((game: Game) => {
@@ -38,18 +40,9 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
           userRegistration,
         };
       });
-
-      // Filter to show only upcoming games
-      const upcomingGames = gamesWithStats.filter(game => 
-        new Date(game.dateTime) > new Date()
-      );
-
-      // Sort by date
-      upcomingGames.sort((a, b) => 
-        new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime()
-      );
-
-      setGames(upcomingGames);
+      
+      // Games are already filtered and sorted by the backend
+      setGames(gamesWithStats);
     } catch (err) {
       setError('Failed to load games');
       console.error('Error loading games:', err);
@@ -104,11 +97,34 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
     );
   }
 
+  const handleCreateGame = () => {
+    navigate('/create-game');
+  };
+
   return (
     <div className="games-list-container">
       <header className="games-header">
-        <h1>Upcoming Games</h1>
-        <p>Welcome, {user.username}!</p>
+        <h1>{includePastGames ? 'All Games' : 'Upcoming Games'}</h1>
+        <div className="header-actions">
+          <p>Welcome, {user.username}!</p>
+          {user.isAdmin && (
+            <>
+              <div className="admin-controls">
+                <label className="past-games-toggle">
+                  <input
+                    type="checkbox"
+                    checked={includePastGames}
+                    onChange={(e) => setIncludePastGames(e.target.checked)}
+                  />
+                  Show past games
+                </label>
+              </div>
+              <button onClick={handleCreateGame} className="create-game-button">
+                + New Game
+              </button>
+            </>
+          )}
+        </div>
       </header>
 
       {games.length === 0 ? (

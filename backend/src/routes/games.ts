@@ -1,18 +1,26 @@
 import { Router } from 'express';
 import { db } from '../db';
 import { games, gameRegistrations } from '../db/schema';
-import { eq, and } from 'drizzle-orm';
+import { gte, desc, inArray, eq, and, sql } from 'drizzle-orm';
+import { telegramAuthMiddleware } from '../middleware/telegramAuth';
 
 const router = Router();
 
 // Create a new game
 router.post('/', async (req, res) => {
   try {
-    const { dateTime, maxPlayers, createdById } = req.body;
+    const { dateTime, maxPlayers } = req.body;
     
-    if (!dateTime || !maxPlayers || !createdById) {
-      return res.status(400).json({ error: 'dateTime, maxPlayers, and createdById are required' });
+    if (!dateTime || !maxPlayers) {
+      return res.status(400).json({ error: 'dateTime and maxPlayers are required' });
     }
+
+    // Extract the user ID from the authenticated session
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: 'Authentication required to create a game' });
+    }
+    
+    const createdById = req.user.id;
 
     const newGame = await db.insert(games).values({
       dateTime: new Date(dateTime),
@@ -141,12 +149,37 @@ router.get('/:gameId', async (req, res) => {
 // Get all games with their registrations
 router.get('/', async (req, res) => {
   try {
-    const allGames = await db.select().from(games);
-    const allRegistrations = await db.select().from(gameRegistrations);
-
-    const gamesWithRegistrations = allGames.map(game => ({
+    // Parse the includePastGames query parameter
+    const includePastGames = req.query.includePastGames === 'true';
+    
+    // Get current date for filtering
+    const currentDate = new Date();
+    
+    // Build a query that filters and sorts in SQL rather than in memory
+    let query;
+    
+    // Apply date filter in SQL if not including past games
+    if (!includePastGames) {
+      query = db.select().from(games).where(gte(games.dateTime, currentDate));
+    } else {
+      query = db.select().from(games);
+    }
+    
+    // Sort by dateTime descending (newest to oldest) in SQL
+    const filteredGames = await query.orderBy(desc(games.dateTime));
+    
+    // Get registrations for these games (could optimize further with a join if needed)
+    const gameIds = filteredGames.map(game => game.id);
+    const relevantRegistrations = gameIds.length > 0 
+      ? await db.select()
+        .from(gameRegistrations)
+        .where(inArray(gameRegistrations.gameId, gameIds))
+      : [];
+    
+    // Map registrations to each game
+    const gamesWithRegistrations = filteredGames.map(game => ({
       ...game,
-      registrations: allRegistrations.filter(reg => reg.gameId === game.id)
+      registrations: relevantRegistrations.filter(reg => reg.gameId === game.id)
     }));
 
     res.json(gamesWithRegistrations);

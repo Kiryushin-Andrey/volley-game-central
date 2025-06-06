@@ -65,13 +65,18 @@ export const userApi = {
 };
 
 export const gamesApi = {
-  getAllGames: async (): Promise<Game[]> => {
-    const response = await api.get('/games');
+  getAllGames: async (includePastGames: boolean = false): Promise<Game[]> => {
+    const response = await api.get(`/games?includePastGames=${includePastGames}`);
     return response.data;
   },
 
   getGame: async (gameId: number): Promise<Game> => {
     const response = await api.get(`/games/${gameId}`);
+    return response.data;
+  },
+
+  createGame: async (gameData: { dateTime: string; maxPlayers: number }): Promise<Game> => {
+    const response = await api.post('/games', gameData);
     return response.data;
   },
 

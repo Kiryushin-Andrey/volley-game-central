@@ -4,11 +4,20 @@ import { db } from '../db';
 import { users } from '../db/schema';
 import { eq } from 'drizzle-orm';
 
+// Define User interface based on the database schema
+interface User {
+  id: number;
+  telegramId: string;
+  username: string;
+  isAdmin: boolean;
+  createdAt?: Date | null;
+}
+
 // Extend the Express Request type to include a user property
 declare global {
   namespace Express {
     interface Request {
-      user?: any;
+      user?: User;
       telegramInitData?: string;
     }
   }
