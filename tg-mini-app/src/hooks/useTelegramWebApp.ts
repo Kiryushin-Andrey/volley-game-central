@@ -44,7 +44,7 @@ export const useTelegramWebApp = () => {
       } else {
         logDebug('No Telegram user data available');
         setIsLoading(false);
-      }
+      } 
     } else {
       logDebug('Not running in Telegram WebApp environment');
       setIsLoading(false);
@@ -105,31 +105,111 @@ export const useTelegramWebApp = () => {
     }
   };
 
-  const showMainButton = (text: string, onClick: () => void) => {
-    if (webApp?.MainButton) {
-      webApp.MainButton.setText(text);
+  // Central state for the main button
+  const [mainButtonAction, setMainButtonAction] = useState<(() => void) | null>(null);
+  const [mainButtonText, setMainButtonText] = useState<string | null>(null);
+  
+  // Single event handler for all button actions
+  useEffect(() => {
+    if (!webApp?.MainButton) return;
+    
+    // Set up a single click handler that will dispatch to the current action
+    const handleMainButtonClick = () => {
+      logDebug(`Main button clicked: ${mainButtonText || '(no text)'}`);
+      if (mainButtonAction) {
+        mainButtonAction();
+      } else {
+        logDebug('No action defined for main button');
+      }
+    };
+    
+    // Configure the button once with our single handler
+    webApp.MainButton.onClick(handleMainButtonClick);
+    
+    return () => {
+      // Clean up on unmount
+      if (webApp?.MainButton) {
+        // According to docs, we should pass the specific handler to remove
+        webApp.MainButton.offClick(handleMainButtonClick);
+      }
+    };
+  }, [webApp, mainButtonText, mainButtonAction]);
+  
+  // Update button text and visibility whenever state changes
+  useEffect(() => {
+    if (!webApp?.MainButton) return;
+    
+    if (mainButtonText && mainButtonAction) {
+      webApp.MainButton.setText(mainButtonText);
       webApp.MainButton.show();
-      webApp.MainButton.onClick(onClick);
+      logDebug(`Main button configured: ${mainButtonText}`);
+    } else {
+      webApp.MainButton.hide();
+      logDebug('Main button hidden');
     }
+  }, [mainButtonText, mainButtonAction, webApp]);
+  
+  // API for components to control the button
+  const showMainButton = (text: string, onClick: () => void) => {
+    logDebug(`Setting main button: ${text}`);
+    setMainButtonText(text);
+    setMainButtonAction(() => onClick);
   };
 
   const hideMainButton = () => {
-    if (webApp?.MainButton) {
-      webApp.MainButton.hide();
-    }
+    logDebug('Hiding main button');
+    setMainButtonText(null);
+    setMainButtonAction(null);
   };
 
-  const showBackButton = (onClick: () => void) => {
-    if (webApp?.BackButton) {
+  // Similar to main button, manage back button with state
+  const [backButtonAction, setBackButtonAction] = useState<(() => void) | null>(null);
+  
+  // Single event handler for back button
+  useEffect(() => {
+    if (!webApp?.BackButton) return;
+    
+    const handleBackButtonClick = () => {
+      logDebug('Back button clicked');
+      if (backButtonAction) {
+        backButtonAction();
+      } else {
+        logDebug('No action defined for back button');
+      }
+    };
+    
+    // Configure the back button with our single handler
+    webApp.BackButton.onClick(handleBackButtonClick);
+    
+    return () => {
+      // Clean up on unmount
+      if (webApp?.BackButton) {
+        webApp.BackButton.offClick(handleBackButtonClick);
+      }
+    };
+  }, [webApp]);
+  
+  // Update back button visibility when state changes
+  useEffect(() => {
+    if (!webApp?.BackButton) return;
+    
+    if (backButtonAction) {
       webApp.BackButton.show();
-      webApp.BackButton.onClick(onClick);
+      logDebug('Back button shown');
+    } else {
+      webApp.BackButton.hide();
+      logDebug('Back button hidden');
     }
+  }, [backButtonAction, webApp]);
+  
+  const showBackButton = (onClick: () => void) => {
+    logDebug('Setting back button handler');
+    setBackButtonAction(() => onClick);
   };
 
   const hideBackButton = () => {
-    if (webApp?.BackButton) {
-      webApp.BackButton.hide();
-    }
+    logDebug('Removing back button handler');
+    setBackButtonAction(null);
   };
 
   return {

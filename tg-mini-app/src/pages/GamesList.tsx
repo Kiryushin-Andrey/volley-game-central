@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect, useRef, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Game, GameWithStats, User } from '../types';
+import { logDebug } from '../debug';
 import { gamesApi } from '../services/api';
+import { GameWithStats, User } from '../types';
 import LoadingSpinner from '../components/LoadingSpinner';
 import './GamesList.scss';
 
@@ -9,45 +10,177 @@ interface GamesListProps {
   user: User;
 }
 
+// Games List Item component for displaying individual games
+const GameItem = memo(({ game, onClick, formatDate }: { 
+  game: GameWithStats, 
+  onClick: (id: number) => void,
+  formatDate: (date: string) => string 
+}) => (
+  <div
+    className={`game-card ${game.isUserRegistered ? 'registered' : ''}`}
+    onClick={() => onClick(game.id)}
+  >
+    <div className="game-header">
+      <div className="game-date">
+        {formatDate(game.dateTime)}
+      </div>
+      {game.isUserRegistered && (
+        <div className={`registration-badge ${game.userRegistration?.isWaitlist ? 'waitlist' : 'active'}`}>
+          {game.userRegistration?.isWaitlist ? 'Waitlist' : 'Registered'}
+        </div>
+      )}
+    </div>
+    
+    <div className="game-stats">
+      {/* Past games: show paid/total counts */}
+      {game.paidCount !== undefined && (
+        <div className="compact-stats">
+          <span className="counter">{game.paidCount}</span>
+          <span className="divider">/</span>
+          <span className="counter">{game.totalRegisteredCount}</span>
+        </div>
+      )}
+
+      {/* Upcoming games within 6 days: show registered/total */}
+      {game.registeredCount !== undefined && (
+        <div className="compact-stats">
+          <span className="counter">{game.registeredCount}</span>
+          <span className="divider">/</span>
+          <span className="counter">{game.maxPlayers}</span>
+        </div>
+      )}
+      
+      {/* Regular upcoming games: show current count/capacity */}
+      {game.paidCount === undefined && game.registeredCount === undefined && (
+        <div className="compact-stats">
+          <span className="counter">{game.totalRegisteredCount}</span>
+          <span className="divider">/</span>
+          <span className="counter">{game.maxPlayers}</span>
+        </div>
+      )}
+    </div>
+  </div>
+));
+
+// Games List component to contain all game items
+const GameItemsList = memo(({ 
+  games, 
+  isLoading, 
+  includePastGames,
+  formatDate,
+  handleGameClick 
+}: { 
+  games: GameWithStats[], 
+  isLoading: boolean,
+  includePastGames: boolean,
+  formatDate: (date: string) => string,
+  handleGameClick: (id: number) => void
+}) => {
+  // Show loading indicator when loading
+  if (isLoading) {
+    return (
+      <div className="games-loading">
+        <LoadingSpinner />
+        <p className="loading-text">Loading...</p>
+      </div>
+    );
+  }
+  
+  // Show no games message when no games are available
+  if (games.length === 0) {
+    return (
+      <div className="no-games">
+        <p>No {includePastGames ? '' : 'upcoming '}games available</p>
+      </div>
+    );
+  }
+  
+  // Show the list of games
+  return (
+    <div className="games-list">
+      {games.map((game) => (
+        <GameItem 
+          key={game.id} 
+          game={game} 
+          onClick={handleGameClick}
+          formatDate={formatDate}
+        />
+      ))}
+    </div>
+  );
+});
+
 const GamesList: React.FC<GamesListProps> = ({ user }) => {
   const [games, setGames] = useState<GameWithStats[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [includePastGames, setIncludePastGames] = useState(false);
+  
+  // Use a ref for loading state to avoid re-renders of the parent component
+  const isLoadingRef = useRef(false);
+  const [loadingIndicator, setLoadingIndicator] = useState(false);
   const navigate = useNavigate();
 
+  // Function to handle the checkbox change without triggering full re-render
+  const handlePastGamesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.checked;
+    setIncludePastGames(newValue); // This will trigger the useEffect
+  };
+  
+  // Effect to re-load games when the checkbox state changes
   useEffect(() => {
     loadGames();
   }, [includePastGames]);
+  
+  // Ensure main button is hidden on games list screen
+  // It should only be visible on game details screen
+  useEffect(() => {
+    // Load games when component mounts
+    loadGames();
+
+    // No cleanup needed
+    return () => {};
+  }, []);
 
   const loadGames = async () => {
+    if (isLoadingRef.current) return;
     try {
-      setIsLoading(true);
-      // Pass includePastGames parameter to the API
-      const fetchedGames = await gamesApi.getAllGames(includePastGames);
+      isLoadingRef.current = true;
+      setLoadingIndicator(true);
       
-      // Process games to add stats and user registration info
-      const gamesWithStats: GameWithStats[] = fetchedGames.map((game: Game) => {
-        const activeRegistrations = game.registrations.filter(reg => !reg.isWaitlist);
-        const waitlistRegistrations = game.registrations.filter(reg => reg.isWaitlist);
-        const userRegistration = game.registrations.find(reg => reg.userId === user.id);
-
+      // Use setTimeout to ensure loading indicator has time to appear
+      // and to ensure DOM updates before the potentially expensive operation
+      const gamesPromise = gamesApi.getAllGames(includePastGames);
+      
+      const fetchedGames = await gamesPromise;
+      
+      // The optimized API now includes all necessary data:  
+      // - totalRegisteredCount, paidCount, registeredCount
+      // - isUserRegistered and userRegistration for games within 5 days
+      
+      // Process games to ensure they have all required properties with defaults
+      const gamesWithRequiredProps: GameWithStats[] = fetchedGames.map((game: any) => {
         return {
           ...game,
-          activePlayersCount: activeRegistrations.length,
-          waitlistCount: waitlistRegistrations.length,
-          isUserRegistered: !!userRegistration,
-          userRegistration,
+          // Ensure required fields have defaults
+          totalRegisteredCount: game.totalRegisteredCount || 0,
+          paidCount: game.paidCount,
+          registeredCount: game.registeredCount,
+          // User registration status (already included by API for games within 5 days)
+          isUserRegistered: game.isUserRegistered || false,
+          userRegistration: game.userRegistration || undefined
         };
       });
       
       // Games are already filtered and sorted by the backend
-      setGames(gamesWithStats);
+      setGames(gamesWithRequiredProps);
+      setError(null);
     } catch (err) {
       setError('Failed to load games');
-      console.error('Error loading games:', err);
+      logDebug('Error loading games:');
+      logDebug(err);
     } finally {
-      setIsLoading(false);
+      isLoadingRef.current = false;
+      setLoadingIndicator(false);
     }
   };
 
@@ -79,9 +212,7 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
     navigate(`/game/${gameId}`);
   };
 
-  if (isLoading) {
-    return <LoadingSpinner />;
-  }
+  // Loading state is now handled inside the GameItemsList component
 
   if (error) {
     return (
@@ -104,82 +235,41 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
   return (
     <div className="games-list-container">
       <header className="games-header">
-        <h1>{includePastGames ? 'All Games' : 'Upcoming Games'}</h1>
-        <div className="header-actions">
-          <p>Welcome, {user.username}!</p>
-          {user.isAdmin && (
-            <>
-              <div className="admin-controls">
-                <label className="past-games-toggle">
-                  <input
-                    type="checkbox"
-                    checked={includePastGames}
-                    onChange={(e) => setIncludePastGames(e.target.checked)}
-                  />
-                  Show past games
-                </label>
-              </div>
-              <button onClick={handleCreateGame} className="create-game-button">
-                + New Game
-              </button>
-            </>
-          )}
-        </div>
+        {user.isAdmin && (
+          <div className="admin-controls">
+            <label className="past-games-toggle">
+              <input
+                type="checkbox"
+                checked={includePastGames}
+                onChange={handlePastGamesChange}
+                disabled={isLoadingRef.current}
+              />
+              Show past games
+            </label>
+            <button 
+              onClick={handleCreateGame} 
+              className="create-game-button"
+              disabled={isLoadingRef.current}
+            >
+              + New Game
+            </button>
+          </div>
+        )}
       </header>
 
-      {games.length === 0 ? (
-        <div className="no-games">
-          <h2>No upcoming games</h2>
-          <p>Check back later for new volleyball games!</p>
+      {error ? (
+        <div className="error-message">
+          <p>{error}</p>
+          <button onClick={loadGames} className="retry-button">Retry</button>
         </div>
       ) : (
-        <div className="games-list">
-          {games.map((game) => (
-            <div
-              key={game.id}
-              className={`game-card ${game.isUserRegistered ? 'registered' : ''}`}
-              onClick={() => handleGameClick(game.id)}
-            >
-              <div className="game-header">
-                <div className="game-date">
-                  {formatDate(game.dateTime)}
-                </div>
-                {game.isUserRegistered && (
-                  <div className={`registration-badge ${game.userRegistration?.isWaitlist ? 'waitlist' : 'active'}`}>
-                    {game.userRegistration?.isWaitlist ? 'Waitlist' : 'Registered'}
-                  </div>
-                )}
-              </div>
-              
-              <div className="game-stats">
-                <div className="stat">
-                  <div className="stat-value">{game.activePlayersCount}</div>
-                  <div className="stat-label">Players</div>
-                </div>
-                <div className="stat-divider">/</div>
-                <div className="stat">
-                  <div className="stat-value">{game.maxPlayers}</div>
-                  <div className="stat-label">Max</div>
-                </div>
-                {game.waitlistCount > 0 && (
-                  <>
-                    <div className="stat-separator">•</div>
-                    <div className="stat waitlist">
-                      <div className="stat-value">{game.waitlistCount}</div>
-                      <div className="stat-label">Waiting</div>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              <div className={`availability-status ${
-                game.activePlayersCount >= game.maxPlayers ? 'full' : 'available'
-              }`}>
-                {game.activePlayersCount >= game.maxPlayers ? 'Full' : 'Available'}
-              </div>
-            </div>
-          ))}
-        </div>
+        <GameItemsList 
+          games={games}
+          isLoading={loadingIndicator}
+          includePastGames={includePastGames}
+          formatDate={formatDate}
+          handleGameClick={handleGameClick}
+        />
       )}
     </div>
   );

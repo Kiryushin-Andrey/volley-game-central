@@ -22,11 +22,20 @@ export interface GameRegistration {
   paid: boolean;
   isWaitlist: boolean;
   createdAt: Date | null;
+  user?: {
+    id: number;
+    telegramId: string;
+    username: string;
+  };
 }
 
 export interface GameWithStats extends Game {
-  activePlayersCount: number;
-  waitlistCount: number;
+  // Fields from optimized API
+  totalRegisteredCount: number;
+  paidCount?: number;         // For past games
+  registeredCount?: number;   // For upcoming games within 5 days
+  
+  // User registration status (for upcoming games within 5 days)
   isUserRegistered: boolean;
   userRegistration?: GameRegistration;
 }

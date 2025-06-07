@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Game, GameRegistration, User } from '../types';
+import { Game, User, GameWithStats } from '../types';
 import { logDebug } from '../debug';
 
 // Use /api prefix for proxy, fallback to environment variable for production
@@ -65,7 +65,7 @@ export const userApi = {
 };
 
 export const gamesApi = {
-  getAllGames: async (includePastGames: boolean = false): Promise<Game[]> => {
+  getAllGames: async (includePastGames: boolean = false): Promise<GameWithStats[]> => {
     const response = await api.get(`/games?includePastGames=${includePastGames}`);
     return response.data;
   },
@@ -80,13 +80,12 @@ export const gamesApi = {
     return response.data;
   },
 
-  registerForGame: async (gameId: number, userId: number): Promise<GameRegistration> => {
-    const response = await api.post(`/games/${gameId}/register`, { userId });
-    return response.data;
+  registerForGame: async (gameId: number): Promise<void> => {
+    await api.post(`/games/${gameId}/register`);
   },
 
-  unregisterFromGame: async (gameId: number, userId: number): Promise<void> => {
-    await api.delete(`/games/${gameId}/register/${userId}`);
+  unregisterFromGame: async (gameId: number): Promise<void> => {
+    await api.delete(`/games/${gameId}/register`);
   },
 };
 

@@ -9,13 +9,6 @@
   text-align: center;
   margin-bottom: 24px;
 
-  h1 {
-    font-size: 24px;
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: var(--tg-theme-text-color);
-  }
-
   .game-date {
     font-size: 18px;
     color: var(--tg-theme-text-color);
@@ -43,91 +36,73 @@
   }
 }
 
-.game-stats-card {
+.players-container {
   background: var(--tg-theme-bg-color);
   border: 1px solid #e1e8ed;
   border-radius: 12px;
-  padding: 20px;
   margin-bottom: 24px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 
-  .stats-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    margin-bottom: 16px;
-  }
+  .players-stats-header {
+    padding: 20px;
+    border-bottom: 1px solid #e1e8ed;
 
-  .stat {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-
-    .stat-value {
-      font-size: 32px;
-      font-weight: 700;
-      color: var(--tg-theme-text-color);
-      line-height: 1;
+    .stats-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 16px;
     }
 
-    .stat-label {
-      font-size: 12px;
-      color: var(--tg-theme-hint-color);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      text-align: center;
-      margin-top: 4px;
-    }
+    .stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
 
-    &.waitlist {
       .stat-value {
-        color: #ff9500;
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--tg-theme-text-color);
+        line-height: 1;
+      }
+
+      .stat-label {
+        font-size: 12px;
+        color: var(--tg-theme-hint-color);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        text-align: center;
+        margin-top: 4px;
+      }
+
+      &.waitlist {
+        .stat-value {
+          color: #ff9500;
+        }
       }
     }
-  }
 
-  .stat-divider {
-    font-size: 32px;
-    font-weight: 300;
-    color: var(--tg-theme-hint-color);
-  }
+    .stat-divider {
+      font-size: 24px;
+      font-weight: 300;
+      color: var(--tg-theme-hint-color);
+    }
 
-  .waitlist-stats {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 16px;
-    padding-top: 16px;
-    border-top: 1px solid #e1e8ed;
-  }
-
-  .availability-indicator {
-    display: flex;
-    justify-content: center;
-
-    .status-badge {
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 14px;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-
-      &.available {
-        background: #e8f5e8;
-        color: #2e7d32;
-      }
-
-      &.full {
-        background: #ffebee;
-        color: #c62828;
-      }
+    .waitlist-stats {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 0;
+      padding-top: 16px;
+      border-top: 1px solid #e1e8ed;
     }
   }
 }
 
 .players-section {
-  margin-bottom: 24px;
+  padding: 20px;
+  border-top: 1px solid #e1e8ed;
 
   h2 {
     font-size: 20px;
@@ -145,84 +120,61 @@
 }
 
 .players-list {
-  background: var(--tg-theme-bg-color);
-  border: 1px solid #e1e8ed;
-  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  // Removed border for cleaner UI
 }
 
 .player-item {
   display: flex;
   align-items: center;
-  padding: 16px;
-  border-bottom: 1px solid #e1e8ed;
-
-  &:last-child {
-    border-bottom: none;
-  }
+  padding: 10px 16px;
+  // Removed border-bottom for cleaner UI
+  
+  // No special styling needed for last child anymore
 
   &.waitlist {
-    background: rgba(255, 149, 0, 0.05);
+    background-color: #f9f9f9;
+  }
+}
+
+.player-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+
+  .player-name {
+    font-size: 16px;
+    color: var(--tg-theme-text-color);
+    font-weight: 500;
   }
 
-  .player-number {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
+  .player-badge {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
     background: var(--tg-theme-button-color);
     color: var(--tg-theme-button-text-color);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: 14px;
-    margin-right: 12px;
-    flex-shrink: 0;
-  }
-
-  .player-info {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-
-    .player-name {
-      font-size: 16px;
-      color: var(--tg-theme-text-color);
-      font-weight: 500;
-    }
-
-    .player-badge {
-      padding: 4px 8px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      background: var(--tg-theme-button-color);
-      color: var(--tg-theme-button-text-color);
-
-      &.waitlist {
-        background: #ff9500;
-        color: white;
-      }
+    
+    &.waitlist {
+      background: #ff9500;
+      color: white;
     }
   }
 }
 
 .no-players {
   text-align: center;
-  padding: 48px 16px;
-  background: var(--tg-theme-bg-color);
-  border: 1px solid #e1e8ed;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 24px;
 
   h2 {
-    font-size: 20px;
+    font-size: 18px;
+    color: var(--tg-theme-text-color);
     margin-bottom: 8px;
-    color: var(--tg-theme-hint-color);
   }
 
   p {

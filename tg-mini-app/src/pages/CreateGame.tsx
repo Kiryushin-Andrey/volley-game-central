@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { logDebug } from '../debug';
 import { useNavigate } from 'react-router-dom';
 import { gamesApi } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -54,7 +55,8 @@ const CreateGame: React.FC = () => {
         // Set the selected date
         setSelectedDate(defaultDate);
       } catch (err) {
-        console.error('Error calculating default date:', err);
+        logDebug('Error calculating default date:');
+        logDebug(err);
         setError('Failed to calculate default date');
         
         // Fallback to next Sunday if there's an error
@@ -90,7 +92,8 @@ const CreateGame: React.FC = () => {
       // Navigate back to the games list after successful creation
       navigate('/');
     } catch (err) {
-      console.error('Error creating game:', err);
+      logDebug('Error creating game:');
+      logDebug(err);
       setError('Failed to create game. Please try again.');
     } finally {
       setIsLoading(false);

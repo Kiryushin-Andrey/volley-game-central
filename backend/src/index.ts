@@ -13,7 +13,7 @@ const corsOrigins = [
   'http://127.0.0.1',
   'http://localhost:3001',
   'http://127.0.0.1:3001',
-  'https://rnabq-89-19-36-2.a.free.pinggy.link/'
+  'https://rnuwm-83-82-223-154.a.free.pinggy.link/'
 ];
 if (process.env.CORS_ORIGIN) {
   corsOrigins.push(process.env.CORS_ORIGIN);
@@ -49,24 +49,11 @@ app.listen(PORT, () => {
 
 // Configure bot commands
 bot.command('start', (ctx) => {
-  ctx.reply('🏐 Welcome to Volleyball Game Central!\n\nTap the button below to view and join upcoming volleyball games:', {
+  ctx.reply('🏐 Welcome to Haarlem Volleyball Community!', {
     reply_markup: {
       inline_keyboard: [[
         {
-          text: '🏐 Open Volleyball Games',
-          web_app: { url: MINI_APP_URL }
-        }
-      ]]
-    }
-  });
-});
-
-bot.command('games', (ctx) => {
-  ctx.reply('Open the volleyball games app:', {
-    reply_markup: {
-      inline_keyboard: [[
-        {
-          text: '🏐 Open Games App',
+          text: '🏐 Join games',
           web_app: { url: MINI_APP_URL }
         }
       ]]

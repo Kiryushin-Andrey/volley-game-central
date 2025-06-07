@@ -21,6 +21,5 @@ export const gameRegistrations = pgTable('game_registrations', {
   gameId: serial('game_id').references(() => games.id),
   userId: serial('user_id').references(() => users.id),
   paid: boolean('paid').notNull().default(false),
-  isWaitlist: boolean('is_waitlist').notNull().default(false),
   createdAt: timestamp('created_at').defaultNow(),
 });
