@@ -3,10 +3,10 @@ import { logDebug } from '../debug';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Game, User } from '../types';
 import { gamesApi } from '../services/api';
-import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 import LoadingSpinner from '../components/LoadingSpinner';
 import './GameDetails.scss';
 import WebApp from '@twa-dev/sdk';
+import { MainButton, BackButton } from '@twa-dev/sdk/react';
 
 interface GameDetailsProps {
   user: User;
@@ -15,7 +15,6 @@ interface GameDetailsProps {
 const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
   const { gameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
-  const { showMainButton, hideMainButton, showBackButton, hideBackButton, isTelegramWebApp } = useTelegramWebApp();
     
   const [game, setGame] = useState<Game | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -27,24 +26,6 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
       loadGame(parseInt(gameId));
     }
   }, [gameId]);
-
-  useEffect(() => {
-    // Show back button
-    showBackButton(() => {
-      navigate('/');
-    });
-
-    return () => {
-      hideBackButton();
-      hideMainButton();
-    };
-  }, [navigate, showBackButton, hideBackButton, hideMainButton]);
-
-  useEffect(() => {
-    if (game && user) {
-      updateMainButton();
-    }
-  }, [game, user, isLoading, isActionLoading, error, showMainButton, hideMainButton]);
 
   // Track last action time to prevent duplicate clicks
   const lastActionTimeRef = useRef<number>(0);
@@ -61,19 +42,11 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
     return true;
   };
 
-  // Make sure updateMainButton has access to all dependencies
-  // This is safer than relying on closure scope
-  const updateMainButton = useCallback(() => {
-    // Always hide button during loading states
-    if (!game || isLoading || isActionLoading) {
-      hideMainButton();
-      return;
-    }
-
-    // Don't show action buttons if there's an error
-    if (error) {
-      hideMainButton();
-      return;
+  // Determine if the main button should be shown and what text/action it should have
+  const mainButtonProps = useCallback(() => {
+    // No button during loading states or errors
+    if (!game || isLoading || isActionLoading || error) {
+      return { show: false };
     }
 
     // Find user's registration if any
@@ -82,29 +55,34 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
     if (userRegistration) {
       // Check if user can leave the game (up to 6 hours before or anytime if waitlisted)
       if (canLeaveGame(game.dateTime, userRegistration.isWaitlist)) {
-        // Set button to Leave mode with debounced handler
-        showMainButton('Leave Game', () => {
-          if (isActionAllowed()) {
-            handleUnregister();
+        return {
+          show: true,
+          text: 'Leave Game',
+          onClick: () => {
+            if (isActionAllowed()) {
+              handleUnregister();
+            }
           }
-        });
-      } else {
-        hideMainButton();
+        };
       }
     } else {
       // Check if user can join the game (starting 5 days before)
       if (canJoinGame(game.dateTime)) {
-        // Set button to Join mode with debounced handler
-        showMainButton('Join Game', () => {
-          if (isActionAllowed()) {
-            handleRegister();
+        return {
+          show: true,
+          text: 'Join Game',
+          onClick: () => {
+            if (isActionAllowed()) {
+              handleRegister();
+            }
           }
-        });
-      } else {
-        hideMainButton();
+        };
       }
     }
-  }, [game, user, isLoading, isActionLoading, error, hideMainButton, showMainButton]);
+    
+    // Default: don't show button
+    return { show: false };
+  }, [game, user, isLoading, isActionLoading, error]);
 
   const loadGame = async (id: number) => {
     try {
@@ -178,11 +156,8 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
 
     try {
       setIsActionLoading(true);
-      // Hide the button to prevent multiple clicks
-      hideMainButton();
-      
       await gamesApi.registerForGame(game.id);
-      // Reload game data to get updated registrations
+      // Reload the game to get updated registration status
       await loadGame(game.id);
     } catch (err: any) {
       logDebug('Error registering for game:');
@@ -226,10 +201,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
       if (buttonId === 'leave') {
         // User confirmed leaving the game
         performUnregistration();
-      } else {
-        // User cancelled, restore the main button
-        updateMainButton();
-      }
+      } 
     });
   };
   
@@ -238,9 +210,6 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
     
     try {
       setIsActionLoading(true);
-      // Hide the button to prevent multiple clicks
-      hideMainButton();
-      
       await gamesApi.unregisterFromGame(game.id);
       // Reload game data to get updated registrations
       await loadGame(game.id);
@@ -280,7 +249,6 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
           ]
         });
       }
-      updateMainButton();
     } finally {
       setIsActionLoading(false);
     }
@@ -308,8 +276,13 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
   const waitlistRegistrations = game.registrations.filter(reg => reg.isWaitlist);
   const userRegistration = game.registrations.find(reg => reg.userId === user.id);
 
+  // Get the current main button properties
+  const { show: showMainButton, text: mainButtonText, onClick: mainButtonClick } = mainButtonProps();
+
   return (
     <div className="game-details-container">
+      {/* BackButton component */}
+      <BackButton onClick={() => navigate('/')} />
       <header className="game-header">
         <div className="game-date">
           {formatDate(game.dateTime)}
@@ -394,6 +367,16 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
           <div className="spinner"></div>
           <span>Processing...</span>
         </div>
+      )}
+      
+      {/* MainButton component */}
+      {showMainButton && (
+        <MainButton
+          text={mainButtonText || ''}
+          onClick={mainButtonClick}
+          progress={isActionLoading}
+          disabled={isActionLoading}
+        />
       )}
     </div>
   );

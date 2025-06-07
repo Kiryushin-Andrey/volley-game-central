@@ -13,7 +13,7 @@ const corsOrigins = [
   'http://127.0.0.1',
   'http://localhost:3001',
   'http://127.0.0.1:3001',
-  'https://rnuwm-83-82-223-154.a.free.pinggy.link/'
+  'https://rnpvn-83-82-223-154.a.free.pinggy.link/'
 ];
 if (process.env.CORS_ORIGIN) {
   corsOrigins.push(process.env.CORS_ORIGIN);
