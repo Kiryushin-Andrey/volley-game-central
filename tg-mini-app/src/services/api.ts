@@ -87,6 +87,10 @@ export const gamesApi = {
   unregisterFromGame: async (gameId: number): Promise<void> => {
     await api.delete(`/games/${gameId}/register`);
   },
+
+  deleteGame: async (gameId: number): Promise<void> => {
+    await api.delete(`/games/${gameId}`);
+  },
 };
 
 export default api;

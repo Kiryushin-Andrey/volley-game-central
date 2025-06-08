@@ -110,6 +110,13 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
     return now >= fiveDaysBeforeGame;
   };
   
+  // Check if game is upcoming (for delete button visibility)
+  const isGameUpcoming = (gameDate: string): boolean => {
+    const gameDateTime = new Date(gameDate);
+    const now = new Date();
+    return gameDateTime > now;
+  };
+  
   const canLeaveGame = (gameDate: string, isWaitlist: boolean): boolean => {
     // Waitlist players can leave at any time
     if (isWaitlist) {
@@ -252,31 +259,57 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
           WebApp.showPopup({
             title: 'Cannot Leave Game',
             message: `You can only unregister up to ${deadline.toLocaleTimeString()} (5 hours before the game starts).`,
-            buttons: [
-              { type: 'ok' }
-            ]
+            buttons: [{ type: 'ok' }]
           });
         } else {
           WebApp.showPopup({
             title: 'Error',
             message: typeof err === 'string' ? err : err.message || 'Failed to leave the game',
-            buttons: [
-              { type: 'ok' }
-            ]
+            buttons: [{ type: 'ok' }]
           });
         }
       } else {
         WebApp.showPopup({
           title: 'Error',
           message: typeof err === 'string' ? err : err.message || 'Failed to leave the game',
-          buttons: [
-            { type: 'ok' }
-          ]
+          buttons: [{ type: 'ok' }]
         });
       }
     } finally {
       setIsActionLoading(false);
     }
+  };
+  
+  // Handle game deletion with confirmation
+  const handleDeleteGame = async () => {
+    if (!isActionAllowed()) return;
+    
+    // Show confirmation dialog
+    WebApp.showConfirm(
+      'Are you sure you want to delete this game? This action cannot be undone.',
+      async (confirmed) => {
+        if (confirmed) {
+          try {
+            setIsActionLoading(true);
+            await gamesApi.deleteGame(parseInt(gameId!));
+            
+            // Navigate back to games list after popup is closed
+            navigate('/');
+          } catch (error) {
+            logDebug('Error deleting game:');
+            logDebug(error);
+            
+            // Show error message
+            WebApp.showPopup({
+              title: 'Error',
+              message: 'Failed to delete the game. Please try again.',
+              buttons: [{ type: 'ok' }]
+            });
+            setIsActionLoading(false);
+          }
+        }
+      }
+    );
   };
 
   if (isLoading) {
@@ -308,16 +341,30 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
     <div className="game-details-container">
       {/* BackButton component */}
       <BackButton onClick={() => navigate('/')} />
-      <header className="game-header">
-        <div className="game-date">
-          {formatDate(game.dateTime)}
+      <div className="game-header">
+        <div className="game-date-container">
+          <div className="game-date">{formatDate(game.dateTime)}</div>
         </div>
         {userRegistration && (
           <div className={`user-status ${userRegistration.isWaitlist ? 'waitlist' : 'registered'}`}>
             {userRegistration.isWaitlist ? 'Waitlist' : "You're in"}
           </div>
         )}
-      </header>
+        
+        {/* Delete button - only visible to admins and only for upcoming games */}
+        {user.isAdmin && game && isGameUpcoming(game.dateTime) && (
+          <button 
+            className="delete-button" 
+            onClick={handleDeleteGame}
+            aria-label="Delete game"
+            disabled={isActionLoading}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+              <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+            </svg>
+          </button>
+        )}
+      </div>
 
       <div className="players-container">
         <div className="players-stats-header">

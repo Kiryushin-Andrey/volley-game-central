@@ -8,7 +8,7 @@
 .game-header {
   display: flex;
   align-items: baseline;
-  justify-content: center;
+  justify-content: space-between;
   gap: 16px;
   margin-bottom: 24px;
 
@@ -16,6 +16,12 @@
     font-size: 18px;
     color: var(--tg-theme-text-color);
     font-weight: 500;
+  }
+
+  .game-date-container {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
   }
 
   .user-status {
@@ -34,6 +40,32 @@
     &.waitlist {
       background: #ff9500;
       color: white;
+    }
+  }
+  
+  .delete-button {
+    background: transparent;
+    border: none;
+    padding: 8px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    
+    &:hover {
+      background-color: rgba(255, 107, 107, 0.1);
+    }
+    
+    &:active {
+      background-color: rgba(255, 107, 107, 0.2);
+    }
+    
+    svg {
+      width: 20px;
+      height: 20px;
+      fill: #ff6b6b;
     }
   }
 }
