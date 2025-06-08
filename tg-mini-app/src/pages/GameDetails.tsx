@@ -53,7 +53,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
     const userRegistration = game.registrations.find(reg => reg.userId === user.id);
     
     if (userRegistration) {
-      // Check if user can leave the game (up to 6 hours before or anytime if waitlisted)
+      // Check if user can leave the game (up to 5 hours before or anytime if waitlisted)
       if (canLeaveGame(game.dateTime, userRegistration.isWaitlist)) {
         return {
           show: true,
@@ -103,11 +103,11 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
     const gameDateTime = new Date(gameDate);
     const now = new Date();
     
-    // Can join starting 6 days before the game (same as server)
-    const sixDaysBeforeGame = new Date(gameDateTime.getTime());
-    sixDaysBeforeGame.setDate(sixDaysBeforeGame.getDate() - 6);
+    // Can join starting 5 days before the game (same as server)
+    const fiveDaysBeforeGame = new Date(gameDateTime.getTime());
+    fiveDaysBeforeGame.setDate(fiveDaysBeforeGame.getDate() - 5);
     
-    return now >= sixDaysBeforeGame;
+    return now >= fiveDaysBeforeGame;
   };
   
   const canLeaveGame = (gameDate: string, isWaitlist: boolean): boolean => {
@@ -119,11 +119,11 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
     const gameDateTime = new Date(gameDate);
     const now = new Date();
     
-    // Active players can leave up to 6 hours before the game (same as server)
-    const sixHoursBeforeGame = new Date(gameDateTime.getTime());
-    sixHoursBeforeGame.setHours(sixHoursBeforeGame.getHours() - 6);
+    // Active players can leave up to 5 hours before the game (same as server)
+    const fiveHoursBeforeGame = new Date(gameDateTime.getTime());
+    fiveHoursBeforeGame.setHours(fiveHoursBeforeGame.getHours() - 5);
     
-    return now <= sixHoursBeforeGame;
+    return now <= fiveHoursBeforeGame;
   };
 
   const formatDate = (dateString: string) => {
@@ -161,15 +161,15 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
     // If user is registered, check if they can leave
     if (userRegistration) {
       if (!canLeaveGame(game.dateTime, userRegistration.isWaitlist) && !userRegistration.isWaitlist) {
-        return "You can only leave the game up to 6 hours before it starts.";
+        return "You can only leave the game up to 5 hours before it starts.";
       }
     } else {
       // If user is not registered, check if they can join
       if (!canJoinGame(game.dateTime)) {
         const gameDateTime = new Date(game.dateTime);
-        const sixDaysBeforeGame = new Date(gameDateTime.getTime());
-        sixDaysBeforeGame.setDate(sixDaysBeforeGame.getDate() - 6);
-        return `Registration opens ${sixDaysBeforeGame.toLocaleDateString()} (6 days before the game).`;
+        const fiveDaysBeforeGame = new Date(gameDateTime.getTime());
+        fiveDaysBeforeGame.setDate(fiveDaysBeforeGame.getDate() - 5);
+        return `Registration opens ${fiveDaysBeforeGame.toLocaleDateString()} (5 days before the game).`;
       }
     }
     
@@ -193,7 +193,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
         const errData = err.response?.data;
         if (errData?.registrationOpensAt) {
           const openDate = new Date(errData.registrationOpensAt);
-          alert(`Registration is only possible starting ${openDate.toLocaleDateString()} (6 days before the game).`);
+          alert(`Registration is only possible starting ${openDate.toLocaleDateString()} (5 days before the game).`);
         } else {
           alert('You cannot register for this game yet due to timing restrictions.');
         }
@@ -251,7 +251,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
           
           WebApp.showPopup({
             title: 'Cannot Leave Game',
-            message: `You can only unregister up to ${deadline.toLocaleTimeString()} (6 hours before the game starts).`,
+            message: `You can only unregister up to ${deadline.toLocaleTimeString()} (5 hours before the game starts).`,
             buttons: [
               { type: 'ok' }
             ]

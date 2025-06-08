@@ -53,17 +53,17 @@ router.post('/:gameId/register', telegramAuthMiddleware, async (req, res) => {
       return res.status(404).json({ error: 'Game not found' });
     }
     
-    // Enforce timing restriction: can only join starting 6 days before the game
+    // Enforce timing restriction: can only join starting 5 days before the game
     const gameDateTime = new Date(game[0].dateTime);
     const now = new Date();
-    const sixDaysBeforeGame = new Date(gameDateTime);
-    sixDaysBeforeGame.setDate(sixDaysBeforeGame.getDate() - 6);
+    const fiveDaysBeforeGame = new Date(gameDateTime);
+    fiveDaysBeforeGame.setDate(fiveDaysBeforeGame.getDate() - 5);
     
-    if (now < sixDaysBeforeGame) {
+    if (now < fiveDaysBeforeGame) {
       return res.status(403).json({ 
-        error: 'Registration is only possible starting 6 days before the game',
+        error: 'Registration is only possible starting 5 days before the game',
         gameDateTime: gameDateTime,
-        registrationOpensAt: sixDaysBeforeGame
+        registrationOpensAt: fiveDaysBeforeGame
       });
     }
 
@@ -131,18 +131,18 @@ router.delete('/:gameId/register', telegramAuthMiddleware, async (req, res) => {
     // Determine if the user is on the waitlist based on registration order
     const isWaitlist = userRegIndex >= game[0].maxPlayers;
     
-    // If not on waitlist, enforce timing restriction: can only leave up to 6 hours before the game
+    // If not on waitlist, enforce timing restriction: can only leave up to 5 hours before the game
     if (!isWaitlist) {
       const gameDateTime = new Date(game[0].dateTime);
       const now = new Date();
-      const sixHoursBeforeGame = new Date(gameDateTime);
-      sixHoursBeforeGame.setHours(sixHoursBeforeGame.getHours() - 6);
+      const fiveHoursBeforeGame = new Date(gameDateTime);
+      fiveHoursBeforeGame.setHours(fiveHoursBeforeGame.getHours() - 5);
       
-      if (now > sixHoursBeforeGame) {
-        return res.status(403).json({ 
-          error: 'You can only unregister up to 6 hours before the game starts',
+      if (now > fiveHoursBeforeGame) {
+        return res.status(403).json({
+          error: 'You can only unregister up to 5 hours before the game starts',
           gameDateTime: gameDateTime,
-          unregistrationDeadline: sixHoursBeforeGame
+          deadline: fiveHoursBeforeGame
         });
       }
     }
