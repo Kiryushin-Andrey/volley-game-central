@@ -65,8 +65,8 @@ export const userApi = {
 };
 
 export const gamesApi = {
-  getAllGames: async (includePastGames: boolean = false): Promise<GameWithStats[]> => {
-    const response = await api.get(`/games?includePastGames=${includePastGames}`);
+  getAllGames: async (includeInactiveGames: boolean = false): Promise<GameWithStats[]> => {
+    const response = await api.get(`/games?includeInactiveGames=${includeInactiveGames}`);
     return response.data;
   },
 

@@ -214,8 +214,8 @@ router.get('/:gameId', async (req, res) => {
 // Get all games with optimized registration stats and user-specific registration info
 router.get('/', telegramAuthMiddleware, async (req, res) => {
   try {
-    // Parse the includePastGames query parameter
-    const includePastGames = req.query.includePastGames === 'true';
+    // Parse the includeInactiveGames query parameter
+    const includeInactiveGames = req.query.includeInactiveGames === 'true';
     
     // Get current date for filtering
     const currentDate = new Date();
@@ -227,9 +227,13 @@ router.get('/', telegramAuthMiddleware, async (req, res) => {
     // Build a query that filters and sorts in SQL
     let query;
     
-    // Apply date filter in SQL if not including past games
-    if (!includePastGames) {
-      query = db.select().from(games).where(gte(games.dateTime, currentDate));
+    // Apply date filter in SQL if not including inactive games (past games or future games not available for registration)
+    if (!includeInactiveGames) {
+      // Only show active games: current date <= game date <= 5 days from now
+      query = db.select().from(games).where(and(
+        gte(games.dateTime, currentDate),
+        sql`${games.dateTime} <= ${fiveDaysFromNow}`
+      ));
     } else {
       query = db.select().from(games);
     }

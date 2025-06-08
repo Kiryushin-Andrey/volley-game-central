@@ -66,13 +66,13 @@ const GameItem = memo(({ game, onClick, formatDate }: {
 const GameItemsList = memo(({ 
   games, 
   isLoading, 
-  includePastGames,
+  includeInactiveGames,
   formatDate,
   handleGameClick 
 }: { 
   games: GameWithStats[], 
   isLoading: boolean,
-  includePastGames: boolean,
+  includeInactiveGames: boolean,
   formatDate: (date: string) => string,
   handleGameClick: (id: number) => void
 }) => {
@@ -90,7 +90,7 @@ const GameItemsList = memo(({
   if (games.length === 0) {
     return (
       <div className="no-games">
-        <p>No {includePastGames ? '' : 'upcoming '}games available</p>
+        <p>No {includeInactiveGames ? '' : 'active '}games available</p>
       </div>
     );
   }
@@ -113,7 +113,7 @@ const GameItemsList = memo(({
 const GamesList: React.FC<GamesListProps> = ({ user }) => {
   const [games, setGames] = useState<GameWithStats[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [includePastGames, setIncludePastGames] = useState(false);
+  const [includeInactiveGames, setIncludeInactiveGames] = useState(false);
   
   // Use a ref for loading state to avoid re-renders of the parent component
   const isLoadingRef = useRef(false);
@@ -121,15 +121,15 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
   const navigate = useNavigate();
 
   // Function to handle the checkbox change without triggering full re-render
-  const handlePastGamesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInactiveGamesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.checked;
-    setIncludePastGames(newValue); // This will trigger the useEffect
+    setIncludeInactiveGames(newValue); // This will trigger the useEffect
   };
   
-  // Effect to re-load games when the checkbox state changes
+  // Effect to re-load games when the inactive games checkbox state changes
   useEffect(() => {
     loadGames();
-  }, [includePastGames]);
+  }, [includeInactiveGames]);
   
   // Ensure main button is hidden on games list screen
   // It should only be visible on game details screen
@@ -149,13 +149,7 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
       
       // Use setTimeout to ensure loading indicator has time to appear
       // and to ensure DOM updates before the potentially expensive operation
-      const gamesPromise = gamesApi.getAllGames(includePastGames);
-      
-      const fetchedGames = await gamesPromise;
-      
-      // The optimized API now includes all necessary data:  
-      // - totalRegisteredCount, paidCount, registeredCount
-      // - isUserRegistered and userRegistration for games within 5 days
+      const fetchedGames = await gamesApi.getAllGames(includeInactiveGames);
       
       // Process games to ensure they have all required properties with defaults
       const gamesWithRequiredProps: GameWithStats[] = fetchedGames.map((game: any) => {
@@ -241,11 +235,11 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
             <label className="past-games-toggle">
               <input
                 type="checkbox"
-                checked={includePastGames}
-                onChange={handlePastGamesChange}
+                checked={includeInactiveGames}
+                onChange={handleInactiveGamesChange}
                 disabled={isLoadingRef.current}
               />
-              Show past games
+              Show inactive games
             </label>
             <button 
               onClick={handleCreateGame} 
@@ -267,7 +261,7 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
         <GameItemsList 
           games={games}
           isLoading={loadingIndicator}
-          includePastGames={includePastGames}
+          includeInactiveGames={includeInactiveGames}
           formatDate={formatDate}
           handleGameClick={handleGameClick}
         />
