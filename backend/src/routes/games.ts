@@ -3,11 +3,12 @@ import { db } from '../db';
 import { games, gameRegistrations, users } from '../db/schema';
 import { gte, desc, inArray, eq, and, sql } from 'drizzle-orm';
 import { telegramAuthMiddleware } from '../middleware/telegramAuth';
+import { adminAuthMiddleware } from '../middleware/adminAuth';
 
 const router = Router();
 
 // Create a new game
-router.post('/', async (req, res) => {
+router.post('/', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) => {
   try {
     const { dateTime, maxPlayers } = req.body;
     
@@ -359,20 +360,31 @@ router.get('/', telegramAuthMiddleware, async (req, res) => {
 });
 
 
-// Update game details
-router.put('/:gameId', async (req, res) => {
+// Update game details - Admin only
+router.put('/:gameId', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) => {
   try {
     const gameId = parseInt(req.params.gameId);
     const { dateTime, maxPlayers } = req.body;
 
-    const game = await db.update(games)
-      .set({ dateTime: new Date(dateTime), maxPlayers })
-      .where(eq(games.id, gameId))
-      .returning();
+    // Validate required fields
+    if (!dateTime || !maxPlayers) {
+      return res.status(400).json({ error: 'dateTime and maxPlayers are required' });
+    }
 
-    if (!game.length) {
+    // Check if game exists before updating
+    const existingGame = await db.select().from(games).where(eq(games.id, gameId));
+    if (!existingGame.length) {
       return res.status(404).json({ error: 'Game not found' });
     }
+
+    // Update the game with new settings
+    const game = await db.update(games)
+      .set({ 
+        dateTime: new Date(dateTime), 
+        maxPlayers 
+      })
+      .where(eq(games.id, gameId))
+      .returning();
 
     res.json(game[0]);
   } catch (error) {
@@ -382,7 +394,7 @@ router.put('/:gameId', async (req, res) => {
 });
 
 // Delete game and its registrations
-router.delete('/:gameId', async (req, res) => {
+router.delete('/:gameId', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) => {
   try {
     const gameId = parseInt(req.params.gameId);
 

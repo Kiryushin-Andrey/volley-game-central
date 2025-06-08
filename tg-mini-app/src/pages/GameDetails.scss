@@ -7,30 +7,47 @@
 
 .game-header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 24px;
+  min-height: 36px; /* Ensure consistent height */
+  
+  .admin-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
 
   .game-date {
     font-size: 18px;
     color: var(--tg-theme-text-color);
     font-weight: 500;
+    line-height: 1.2;
+    display: flex;
+    align-items: center;
   }
 
   .game-date-container {
     display: flex;
-    align-items: baseline;
+    align-items: center;
+    height: 100%;
     gap: 16px;
   }
 
   .user-status {
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 14px;
+    justify-content: center;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
     font-weight: 500;
+    height: 24px;
+    box-sizing: border-box;
+    align-self: center;
+    white-space: nowrap;
+    min-width: max-content;
 
     &.registered {
       background: #28a745;
@@ -43,16 +60,21 @@
     }
   }
   
-  .delete-button {
+  .delete-game-button {
     background: transparent;
     border: none;
-    padding: 8px;
+    padding: 0;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transition: background-color 0.2s;
+    height: 24px;
+    width: 24px;
+    margin: 0;
+    flex-shrink: 0;
+    align-self: center;
     
     &:hover {
       background-color: rgba(255, 107, 107, 0.1);
@@ -63,9 +85,40 @@
     }
     
     svg {
-      width: 20px;
-      height: 20px;
-      fill: #ff6b6b;
+      width: 18px;
+      height: 18px;
+      fill: var(--tg-theme-hint-color, #888888);
+    }
+  }
+  
+  .edit-game-button {
+    background: transparent;
+    border: none;
+    padding: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    height: 32px;
+    width: 32px;
+    margin: 0;
+    flex-shrink: 0;
+    align-self: center;
+    
+    &:hover {
+      background-color: rgba(128, 128, 128, 0.1);
+    }
+    
+    &:active {
+      background-color: rgba(128, 128, 128, 0.2);
+    }
+    
+    svg {
+      width: 18px;
+      height: 18px;
+      fill: var(--tg-theme-hint-color, #888888);
     }
   }
 }

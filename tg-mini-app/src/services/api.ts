@@ -91,6 +91,11 @@ export const gamesApi = {
   deleteGame: async (gameId: number): Promise<void> => {
     await api.delete(`/games/${gameId}`);
   },
+
+  updateGame: async (gameId: number, gameData: { dateTime: string; maxPlayers: number }): Promise<Game> => {
+    const response = await api.put(`/games/${gameId}`, gameData);
+    return response.data;
+  },
 };
 
 export default api;
