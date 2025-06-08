@@ -26,6 +26,7 @@ export interface GameRegistration {
     id: number;
     telegramId: string;
     username: string;
+    avatarUrl?: string | null;
   };
 }
 
@@ -53,6 +54,7 @@ declare global {
             last_name?: string;
             username?: string;
             language_code?: string;
+            photo_url?: string;
           };
         };
         ready: () => void;

@@ -26,7 +26,7 @@ const GameItem = memo(({ game, onClick, formatDate }: {
       </div>
       {game.isUserRegistered && (
         <div className={`registration-badge ${game.userRegistration?.isWaitlist ? 'waitlist' : 'active'}`}>
-          {game.userRegistration?.isWaitlist ? 'Waitlist' : 'Registered'}
+          {game.userRegistration?.isWaitlist ? 'Waitlist' : 'You\'re in'}
         </div>
       )}
     </div>
@@ -193,18 +193,19 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
     const isToday = date.toDateString() === today.toDateString();
     const isTomorrow = date.toDateString() === tomorrow.toDateString();
 
+    const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
     if (isToday) {
-      return `Today, ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      return `Today, ${timeString}`;
     } else if (isTomorrow) {
-      return `Tomorrow, ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      return `Tomorrow, ${timeString}`;
     } else {
-      return date.toLocaleDateString([], { 
-        weekday: 'short', 
-        month: 'short', 
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
+      // Format as "8 June, Sunday, 17:00"
+      const day = date.getDate();
+      const month = date.toLocaleString('en-US', { month: 'long' });
+      const weekday = date.toLocaleString('en-US', { weekday: 'long' });
+      
+      return `${day} ${month}, ${weekday}, ${timeString}`;
     }
   };
 

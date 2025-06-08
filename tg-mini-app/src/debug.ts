@@ -16,20 +16,38 @@ export function toggleDebugMode(): void {
     debugLog.style.display = debugModeEnabled ? 'block' : 'none';
   }
   
-  // Reposition the toggle button based on debug panel visibility
+  // Reposition the toggle button based on debug panel visibility and info text presence
   if (debugToggle) {
-    if (debugModeEnabled) {
-      // When debug panel is visible, position above it
-      debugToggle.style.bottom = '210px';
-    } else {
-      // When debug panel is hidden, position in bottom corner
-      debugToggle.style.bottom = '10px';
-    }
+    updateDebugTogglePosition();
   }
   
   if (debugModeEnabled) {
     logDebug('Debug mode enabled');
   }
+}
+
+// Function to update debug toggle position based on info text presence
+export function updateDebugTogglePosition(): void {
+  const debugToggle = document.getElementById('debug-toggle');
+  const infoText = document.querySelector('.info-text');
+  
+  if (!debugToggle) return;
+  
+  let bottomPosition = 10; // Default position
+  
+  // Check if info text is present and visible
+  if (infoText && window.getComputedStyle(infoText).display !== 'none') {
+    // Get the height of the info text element
+    const infoTextHeight = infoText.getBoundingClientRect().height;
+    bottomPosition = infoTextHeight + 10; // 10px gap above info text
+  }
+  
+  // If debug panel is visible, add its height
+  if (debugModeEnabled) {
+    bottomPosition += 200; // Debug panel height
+  }
+  
+  debugToggle.style.bottom = `${bottomPosition}px`;
 }
 
 // Export getter for debug mode state
@@ -48,11 +66,24 @@ window.addEventListener('DOMContentLoaded', () => {
     debugLog.style.display = debugModeEnabled ? 'block' : 'none';
     
     // Set initial toggle button position based on debug mode
-    debugToggle.style.bottom = debugModeEnabled ? '210px' : '10px';
+    updateDebugTogglePosition();
     
     // Add event listener to toggle debug mode
     debugToggle.addEventListener('click', () => {
       toggleDebugMode();
+    });
+    
+    // Set up MutationObserver to watch for info text changes
+    const observer = new MutationObserver(() => {
+      updateDebugTogglePosition();
+    });
+    
+    // Observe changes to the document body
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['style', 'class']
     });
     
     // Log essential Telegram WebApp info

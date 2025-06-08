@@ -136,19 +136,44 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
     const isToday = date.toDateString() === today.toDateString();
     const isTomorrow = date.toDateString() === tomorrow.toDateString();
     
+    const timeString = date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+    
     if (isToday) {
-      return `Today at ${date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}`;
+      return `Today, ${timeString}`;
     } else if (isTomorrow) {
-      return `Tomorrow at ${date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}`;
+      return `Tomorrow, ${timeString}`;
     } else {
-      return date.toLocaleString('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
+      // Format as "8 June, Sunday, 17:00"
+      const day = date.getDate();
+      const month = date.toLocaleString('en-US', { month: 'long' });
+      const weekday = date.toLocaleString('en-US', { weekday: 'long' });
+      
+      return `${day} ${month}, ${weekday}, ${timeString}`;
     }
+  };
+
+  // Get info text for timing restrictions
+  const getInfoText = () => {
+    if (!game) return null;
+
+    const userRegistration = game.registrations.find(reg => reg.userId === user.id);
+    
+    // If user is registered, check if they can leave
+    if (userRegistration) {
+      if (!canLeaveGame(game.dateTime, userRegistration.isWaitlist) && !userRegistration.isWaitlist) {
+        return "You can only leave the game up to 6 hours before it starts.";
+      }
+    } else {
+      // If user is not registered, check if they can join
+      if (!canJoinGame(game.dateTime)) {
+        const gameDateTime = new Date(game.dateTime);
+        const sixDaysBeforeGame = new Date(gameDateTime.getTime());
+        sixDaysBeforeGame.setDate(sixDaysBeforeGame.getDate() - 6);
+        return `Registration opens ${sixDaysBeforeGame.toLocaleDateString()} (6 days before the game).`;
+      }
+    }
+    
+    return null;
   };
 
   const handleRegister = async () => {
@@ -289,7 +314,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
         </div>
         {userRegistration && (
           <div className={`user-status ${userRegistration.isWaitlist ? 'waitlist' : 'registered'}`}>
-            {userRegistration.isWaitlist ? 'You are on the waitlist' : 'You are registered'}
+            {userRegistration.isWaitlist ? 'Waitlist' : "You're in"}
           </div>
         )}
       </header>
@@ -320,11 +345,23 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
 
         {activeRegistrations.length > 0 ? (
           <div className="players-section">
-            <h2>Registered Players</h2>
             <div className="players-list">
               {activeRegistrations.map((registration) => (
                 <div key={registration.id} className="player-item">
                   <div className="player-info">
+                    <div className="player-avatar">
+                      {registration.user?.avatarUrl ? (
+                        <img 
+                          src={registration.user.avatarUrl} 
+                          alt={`${registration.user.username}'s avatar`}
+                          className="avatar-image"
+                        />
+                      ) : (
+                        <div className="avatar-placeholder">
+                          {(registration.user?.username || `Player ${registration.userId}`).charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
                     <div className="player-name">{registration.user?.username || `Player ${registration.userId}`}</div>
                     {registration.userId === user.id && (
                       <div className="player-badge">You</div>
@@ -343,6 +380,19 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
               {waitlistRegistrations.map((registration) => (
                 <div key={registration.id} className="player-item waitlist">
                   <div className="player-info">
+                    <div className="player-avatar">
+                      {registration.user?.avatarUrl ? (
+                        <img 
+                          src={registration.user.avatarUrl} 
+                          alt={`${registration.user.username}'s avatar`}
+                          className="avatar-image"
+                        />
+                      ) : (
+                        <div className="avatar-placeholder">
+                          {(registration.user?.username || `Player ${registration.userId}`).charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
                     <div className="player-name">{registration.user?.username || `Player ${registration.userId}`}</div>
                     {registration.userId === user.id && (
                       <div className="player-badge waitlist">You</div>
@@ -361,6 +411,12 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
           </div>
         )}
       </div>
+
+      {getInfoText() && (
+        <div className="info-text">
+          {getInfoText()}
+        </div>
+      )}
 
       {isActionLoading && (
         <div className="action-loading">

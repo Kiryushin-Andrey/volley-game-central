@@ -4,6 +4,7 @@ export const users = pgTable('users', {
   id: serial('id').primaryKey(),
   telegramId: varchar('telegram_id', { length: 255 }).notNull().unique(),
   username: varchar('username', { length: 255 }).notNull(),
+  avatarUrl: varchar('avatar_url', { length: 500 }),
   isAdmin: boolean('is_admin').notNull().default(false),
   createdAt: timestamp('created_at').defaultNow(),
 });

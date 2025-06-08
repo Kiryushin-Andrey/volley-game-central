@@ -6,13 +6,15 @@
 }
 
 .game-header {
-  text-align: center;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 16px;
   margin-bottom: 24px;
 
   .game-date {
     font-size: 18px;
     color: var(--tg-theme-text-color);
-    margin-bottom: 12px;
     font-weight: 500;
   }
 
@@ -25,8 +27,8 @@
     font-weight: 500;
 
     &.registered {
-      background: var(--tg-theme-button-color);
-      color: var(--tg-theme-button-text-color);
+      background: #28a745;
+      color: white;
     }
 
     &.waitlist {
@@ -39,13 +41,13 @@
 .players-container {
   background: var(--tg-theme-bg-color);
   border: 1px solid #e1e8ed;
-  border-radius: 12px;
-  margin-bottom: 24px;
+  border-radius: 8px;
+  margin-bottom: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 
   .players-stats-header {
-    padding: 20px;
+    padding: 12px;
     border-bottom: 1px solid #e1e8ed;
 
     .stats-row {
@@ -53,7 +55,7 @@
       align-items: center;
       justify-content: center;
       gap: 16px;
-      margin-bottom: 16px;
+      margin-bottom: 8px;
     }
 
     .stat {
@@ -101,14 +103,14 @@
 }
 
 .players-section {
-  padding: 20px;
+  padding: 8px;
   border-top: 1px solid #e1e8ed;
 
   h2 {
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 600;
     color: var(--tg-theme-text-color);
-    margin-bottom: 16px;
+    margin-bottom: 8px;
     padding-left: 4px;
   }
 
@@ -128,10 +130,7 @@
 .player-item {
   display: flex;
   align-items: center;
-  padding: 10px 16px;
-  // Removed border-bottom for cleaner UI
-  
-  // No special styling needed for last child anymore
+  padding: 8px 12px;
 
   &.waitlist {
     background-color: #f9f9f9;
@@ -143,11 +142,44 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
+  gap: 12px;
+
+  .player-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .avatar-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+    }
+
+    .avatar-placeholder {
+      width: 100%;
+      height: 100%;
+      background: var(--tg-theme-button-color);
+      color: var(--tg-theme-button-text-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 50%;
+    }
+  }
 
   .player-name {
     font-size: 16px;
     color: var(--tg-theme-text-color);
     font-weight: 500;
+    flex-grow: 1;
   }
 
   .player-badge {
@@ -159,6 +191,7 @@
     letter-spacing: 0.5px;
     background: var(--tg-theme-button-color);
     color: var(--tg-theme-button-text-color);
+    flex-shrink: 0;
     
     &.waitlist {
       background: #ff9500;
@@ -169,18 +202,34 @@
 
 .no-players {
   text-align: center;
-  padding: 24px;
+  padding: 40px 20px;
+  color: var(--tg-theme-hint-color);
 
   h2 {
     font-size: 18px;
-    color: var(--tg-theme-text-color);
     margin-bottom: 8px;
+    color: var(--tg-theme-text-color);
   }
 
   p {
-    color: var(--tg-theme-hint-color);
-    font-size: 16px;
+    font-size: 14px;
+    margin: 0;
   }
+}
+
+.info-text {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 12px 16px;
+  background: var(--tg-theme-secondary-bg-color, #f8f9fa);
+  border-top: 1px solid var(--tg-theme-hint-color, #e1e8ed);
+  font-size: 13px;
+  color: var(--tg-theme-hint-color);
+  text-align: center;
+  line-height: 1.4;
+  z-index: 10;
 }
 
 .action-loading {

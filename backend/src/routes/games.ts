@@ -186,7 +186,8 @@ router.get('/:gameId', async (req, res) => {
       user: {
         id: users.id,
         telegramId: users.telegramId,
-        username: users.username
+        username: users.username,
+        avatarUrl: users.avatarUrl
       }
     })
     .from(gameRegistrations)

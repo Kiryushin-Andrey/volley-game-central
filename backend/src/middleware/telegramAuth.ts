@@ -4,11 +4,22 @@ import { db } from '../db';
 import { users } from '../db/schema';
 import { eq } from 'drizzle-orm';
 
+// Telegram WebApp user data interface
+interface TelegramUser {
+  id: number;
+  first_name: string;
+  last_name?: string;
+  username?: string;
+  language_code?: string;
+  photo_url?: string;
+}
+
 // Define User interface based on the database schema
 interface User {
   id: number;
   telegramId: string;
   username: string;
+  avatarUrl?: string | null;
   isAdmin: boolean;
   createdAt?: Date | null;
 }
@@ -68,14 +79,15 @@ export const telegramAuthMiddleware = async (
       }
       
       // Parse user data
-      const userData = JSON.parse(userDataString);
+      const userData: TelegramUser = JSON.parse(userDataString);
       if (!userData.id) {
         return res.status(401).json({ error: 'Invalid user data in Telegram WebApp init data' });
       }
       
       // Find or create the user
       const user = await findOrCreateUser(userData.id.toString(), {
-        username: userData.username || userData.first_name || `user_${userData.id}`
+        username: userData.username || userData.first_name || `user_${userData.id}`,
+        avatarUrl: userData.photo_url
       });
       
       // Attach the user to the request object for downstream middleware/routes
@@ -96,16 +108,25 @@ export const telegramAuthMiddleware = async (
 /**
  * Helper function to find or create a user
  */
-async function findOrCreateUser(telegramId: string, data: { username?: string }) {
+async function findOrCreateUser(telegramId: string, data: { username?: string; avatarUrl?: string }) {
   const existingUser = await db.select().from(users).where(eq(users.telegramId, telegramId)).limit(1);
 
   if (existingUser.length > 0) {
+    // Update avatar URL if it has changed
+    if (data.avatarUrl && existingUser[0].avatarUrl !== data.avatarUrl) {
+      const [updatedUser] = await db.update(users)
+        .set({ avatarUrl: data.avatarUrl })
+        .where(eq(users.telegramId, telegramId))
+        .returning();
+      return updatedUser;
+    }
     return existingUser[0];
   }
 
   const [newUser] = await db.insert(users).values({
     telegramId,
     username: data.username || telegramId,
+    avatarUrl: data.avatarUrl,
   }).returning();
 
   return newUser;
