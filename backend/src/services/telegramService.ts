@@ -193,6 +193,11 @@ export async function sendGroupAnnouncement(message: string, topicId?: number): 
     // Use the provided topicId, or fall back to the environment variable, or undefined if neither exists
     const messageThreadId = topicId || TELEGRAM_TOPIC_ID;
     
+    // Get bot info to create a proper Telegram URL
+    const botInfo = await bot.telegram.getMe();
+    const botUsername = botInfo.username;
+    const telegramAppUrl = `https://t.me/${botUsername}?startapp=games`;
+    
     await bot.telegram.sendMessage(TELEGRAM_GROUP_ID, message, {
       parse_mode: 'HTML',
       disable_notification: false,
@@ -201,7 +206,7 @@ export async function sendGroupAnnouncement(message: string, topicId?: number): 
         inline_keyboard: [[
           {
             text: '🏐 Join Game',
-            web_app: { url: MINI_APP_URL }
+            url: telegramAppUrl
           }
         ]]
       }
@@ -278,17 +283,84 @@ bot.telegram.setMyCommands([
   console.error('Failed to register bot commands:', error);
 });
 
-// Initialize the bot
-bot.launch().catch((error: unknown) => {
-  console.error("Error starting Telegram bot in telegramService:", error);
-});
+// Debug function to post notifications about all upcoming games with open registration
+async function debugPostAllOpenRegistrations(): Promise<void> {
+  try {
+    const now = new Date();
+    
+    // Get upcoming games with their registration counts
+    const upcomingGames = await db
+      .select({
+        id: games.id,
+        dateTime: games.dateTime,
+        maxPlayers: games.maxPlayers,
+        registrationCount: count(gameRegistrations.id)
+      })
+      .from(games)
+      .leftJoin(gameRegistrations, eq(games.id, gameRegistrations.gameId))
+      .where(gt(games.dateTime, now))
+      .groupBy(games.id)
+      .orderBy(games.dateTime);
+    
+    // Filter games that are open for registration (less than 5 days away)
+    const openRegistrationGames = upcomingGames.filter(game => {
+      const gameDate = new Date(game.dateTime);
+      const registrationOpensAt = new Date(gameDate);
+      registrationOpensAt.setDate(registrationOpensAt.getDate() - 5);
+      return now >= registrationOpensAt;
+    });
+    
+    console.log(`[DEBUG] Found ${openRegistrationGames.length} games with open registration`);
+    
+    for (const game of openRegistrationGames) {
+      const gameDate = new Date(game.dateTime);
+      const formattedDate = gameDate.toLocaleDateString('en-GB', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      
+      const availableSpots = game.maxPlayers - Number(game.registrationCount);
+      const spotsText = availableSpots > 0 
+        ? `${availableSpots} spots available` 
+        : 'Waitlist only';
+      
+      const message = `<b>🏐 [DEBUG] Game Registration Open!</b>\n\n<b>${formattedDate}</b>\n${spotsText} (${game.registrationCount}/${game.maxPlayers})\n\nClick the button below to join:`;
+      
+      await sendGroupAnnouncement(message);
+      console.log(`[DEBUG] Posted notification for game on ${formattedDate}`);
+    }
+  } catch (error) {
+    console.error('[DEBUG] Error posting debug notifications:', error);
+  }
+}
 
-// Set up an hourly check for games with registration opening
-setInterval(checkAndAnnounceGameRegistrations, 60 * 60 * 1000); // Run once every hour
+// Launch the bot
+export function launchBot(): void {
+  // Set up periodic job to check for game registrations opening
+  setInterval(checkAndAnnounceGameRegistrations, 60 * 60 * 1000); // Check every hour
+  
+  // Also check once at startup
+  checkAndAnnounceGameRegistrations();
+  
+  // Debug: Post notifications about all upcoming games with open registration
+  // debugPostAllOpenRegistrations();
+  
+  // Launch the bot
+  bot.launch()
+    .then(() => {
+      console.log('Bot commands registered with Telegram');
+    })
+    .catch((error) => {
+      console.error('Failed to start the bot:', error);
+    });
+  
+  // Enable graceful stop
+  process.once('SIGINT', () => bot.stop('SIGINT'));
+  process.once('SIGTERM', () => bot.stop('SIGTERM'));
+}
 
-// Also run once at startup to catch any games that might have been missed
-setTimeout(checkAndAnnounceGameRegistrations, 5000); // Run 5 seconds after startup
-
-// Handle shutdown gracefully
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
+// Initialize the bot when this module is imported
+launchBot();
