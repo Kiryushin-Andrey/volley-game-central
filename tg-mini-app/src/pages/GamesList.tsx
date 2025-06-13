@@ -41,7 +41,7 @@ const GameItem = memo(({ game, onClick, formatDate }: {
         </div>
       )}
 
-      {/* Upcoming games within 6 days: show registered/total */}
+      {/* Upcoming games within 5 days: show registered/total */}
       {game.registeredCount !== undefined && (
         <div className="compact-stats">
           <span className="counter">{game.registeredCount}</span>

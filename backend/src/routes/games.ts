@@ -4,6 +4,7 @@ import { games, gameRegistrations, users } from '../db/schema';
 import { gte, desc, inArray, eq, and, sql } from 'drizzle-orm';
 import { telegramAuthMiddleware } from '../middleware/telegramAuth';
 import { adminAuthMiddleware } from '../middleware/adminAuth';
+import { sendTelegramNotification } from '../services/telegramService';
 
 const router = Router();
 
@@ -93,6 +94,46 @@ router.post('/:gameId/register', telegramAuthMiddleware, async (req, res) => {
       userId
     }).returning();
 
+    // Get all registrations to determine if the user is on the waitlist
+    const allRegistrations = await db.select()
+      .from(gameRegistrations)
+      .where(eq(gameRegistrations.gameId, parseInt(gameId)))
+      .orderBy(gameRegistrations.createdAt);
+
+    // Find position in registrations list
+    const position = allRegistrations.findIndex(reg => reg.userId === userId);
+    const isWaitlist = position >= game[0].maxPlayers;
+
+    // Get user details to send notification
+    const userDetails = await db.select().from(users).where(eq(users.id, userId));
+    
+    if (userDetails.length > 0) {
+      // Format date for the notification
+      const gameDate = new Date(game[0].dateTime);
+      const formattedDate = gameDate.toLocaleDateString('en-GB', { 
+        weekday: 'long',
+        day: 'numeric', 
+        month: 'long', 
+        hour: '2-digit', 
+        minute: '2-digit'
+      });
+      
+      // Send different notifications based on waitlist status
+      if (isWaitlist) {
+        // User is on waitlist
+        await sendTelegramNotification(
+          userDetails[0].telegramId,
+          `⏳ You've been added to the waiting list for the volleyball game on ${formattedDate}. We'll notify you if a spot becomes available! Position on waitlist: ${position - game[0].maxPlayers + 1}`
+        );
+      } else {
+        // User is a direct participant
+        await sendTelegramNotification(
+          userDetails[0].telegramId,
+          `✅ You're registered for the volleyball game on ${formattedDate}. See you there! 🏐`
+        );
+      }
+    }
+
     res.status(201).json(registration[0]);
   } catch (error) {
     console.error('Error registering for game:', error);
@@ -149,17 +190,75 @@ router.delete('/:gameId/register', telegramAuthMiddleware, async (req, res) => {
     }
     // Note: If user is on waitlist, they can leave at any time (no timing restriction)
 
-    // Perform the unregistration
-    const result = await db.delete(gameRegistrations)
+    // Get user details to send notification before deleting registration
+    const userDetails = await db.select().from(users).where(eq(users.id, userId));
+    
+    // Format date for the notification
+    const gameDate = new Date(game[0].dateTime);
+    const formattedDate = gameDate.toLocaleDateString('en-GB', { 
+      weekday: 'long',
+      day: 'numeric', 
+      month: 'long', 
+      hour: '2-digit', 
+      minute: '2-digit'
+    });
+    
+    // Delete the registration
+    await db.delete(gameRegistrations)
       .where(and(
         eq(gameRegistrations.gameId, parseInt(gameId)),
         eq(gameRegistrations.userId, userId)
-      ))
-      .returning();
-
-    // If someone was unregistered, we don't need to do any explicit promotion
-    // The next time the game is loaded, the waitlist status will be automatically computed
-    // based on the registration order, effectively promoting the next person in line
+      ));
+      
+    // Send notification to the user who left
+    if (userDetails.length > 0) {
+      await sendTelegramNotification(
+        userDetails[0].telegramId,
+        `❌ You've been unregistered from the volleyball game on ${formattedDate}. Hope to see you at another game soon! 🏐`
+      );
+    }
+    
+    // Check if someone from the waitlist is being promoted
+    if (!isWaitlist) {
+      // Get all registrations again to find who's being promoted
+      const updatedRegistrations = await db.select({
+        userId: gameRegistrations.userId,
+        createdAt: gameRegistrations.createdAt
+      })
+      .from(gameRegistrations)
+      .where(eq(gameRegistrations.gameId, parseInt(gameId)))
+      .orderBy(gameRegistrations.createdAt);
+      
+      // If there are more registrations than maxPlayers, someone is being promoted
+      if (updatedRegistrations.length >= game[0].maxPlayers) {
+        // The user at position maxPlayers - 1 is now the last non-waitlisted player
+        const promotedUserId = updatedRegistrations[game[0].maxPlayers - 1].userId;
+        
+        // Get the promoted user's details to send notification
+        const promotedUser = await db.select().from(users).where(eq(users.id, promotedUserId));
+        
+        if (promotedUser.length > 0) {
+          // Format date for the notification
+          const gameDate = new Date(game[0].dateTime);
+          const formattedDate = gameDate.toLocaleDateString('en-GB', { 
+            weekday: 'long',
+            day: 'numeric', 
+            month: 'long', 
+            hour: '2-digit', 
+            minute: '2-digit'
+          });
+          
+          // Send notification to the promoted user
+          await sendTelegramNotification(
+            promotedUser[0].telegramId,
+            `🎉 Good news! You've been moved from the waiting list to the participants list for the volleyball game on ${formattedDate}. See you there! 🏐`
+          );
+        }
+      }
+    }
+    
+    // The waitlist status will be automatically computed based on registration order
+    // when the game is loaded next time
 
     res.json({ message: 'Successfully unregistered from game' });
   } catch (error) {

@@ -56,7 +56,6 @@ games - Open volleyball games app
 TELEGRAM_BOT_TOKEN=your_bot_token_here
 MINI_APP_URL=https://your-mini-app-url.com
 DATABASE_URL=postgresql://username:password@host:port/database
-CORS_ORIGIN=https://your-mini-app-url.com
 ```
 
 #### Mini-App (.env)
