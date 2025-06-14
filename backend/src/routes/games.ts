@@ -488,14 +488,66 @@ router.put('/:gameId', telegramAuthMiddleware, adminAuthMiddleware, async (req, 
       return res.status(404).json({ error: 'Game not found' });
     }
 
+    // Store original values for comparison to determine what changed
+    const originalDateTime = new Date(existingGame[0].dateTime);
+    const originalMaxPlayers = existingGame[0].maxPlayers;
+    const newDateTime = new Date(dateTime);
+
     // Update the game with new settings
     const game = await db.update(games)
       .set({ 
-        dateTime: new Date(dateTime), 
+        dateTime: newDateTime, 
         maxPlayers 
       })
       .where(eq(games.id, gameId))
       .returning();
+
+    // Get all registrations for this game to notify users
+    const registrations = await db.select({
+      userId: gameRegistrations.userId
+    })
+    .from(gameRegistrations)
+    .where(eq(gameRegistrations.gameId, gameId));
+
+    // If there are registrations, notify all registered users about the changes
+    if (registrations.length > 0) {
+      // Format dates for the notification
+      const formattedNewDate = newDateTime.toLocaleDateString('en-GB', { 
+        weekday: 'long',
+        day: 'numeric', 
+        month: 'long',
+        hour: '2-digit', 
+        minute: '2-digit'
+      });
+
+      // Determine what changed for the notification message
+      const dateTimeChanged = originalDateTime.getTime() !== newDateTime.getTime();
+      const maxPlayersChanged = originalMaxPlayers !== maxPlayers;
+      
+      // Create notification message based on what changed
+      let notificationMessage = '🔄 Game Update: ';
+      
+      if (dateTimeChanged && maxPlayersChanged) {
+        notificationMessage += `The volleyball game has been rescheduled to ${formattedNewDate} and the player limit has been changed to ${maxPlayers} players.`;
+      } else if (dateTimeChanged) {
+        notificationMessage += `The volleyball game has been rescheduled to ${formattedNewDate}.`;
+      } else if (maxPlayersChanged) {
+        notificationMessage += `The player limit for the volleyball game on ${formattedNewDate} has been changed to ${maxPlayers} players.`;
+      }
+      
+      // Get user details for all registered users
+      for (const registration of registrations) {
+        const userDetails = await db.select().from(users).where(eq(users.id, registration.userId));
+        
+        if (userDetails.length > 0 && userDetails[0].telegramId) {
+          // Send notification to each registered user
+          await sendTelegramNotification(
+            userDetails[0].telegramId,
+            notificationMessage
+          );
+        }
+      }
+    }
 
     res.json(game[0]);
   } catch (error) {
