@@ -519,6 +519,14 @@ router.put('/:gameId', telegramAuthMiddleware, adminAuthMiddleware, async (req, 
         hour: '2-digit', 
         minute: '2-digit'
       });
+      
+      const formattedOldDate = originalDateTime.toLocaleDateString('en-GB', { 
+        weekday: 'long',
+        day: 'numeric', 
+        month: 'long',
+        hour: '2-digit', 
+        minute: '2-digit'
+      });
 
       // Determine what changed for the notification message
       const dateTimeChanged = originalDateTime.getTime() !== newDateTime.getTime();
@@ -528,11 +536,11 @@ router.put('/:gameId', telegramAuthMiddleware, adminAuthMiddleware, async (req, 
       let notificationMessage = '🔄 Game Update: ';
       
       if (dateTimeChanged && maxPlayersChanged) {
-        notificationMessage += `The volleyball game has been rescheduled to ${formattedNewDate} and the player limit has been changed to ${maxPlayers} players.`;
+        notificationMessage += `The volleyball game has been rescheduled from ${formattedOldDate} to ${formattedNewDate} and the player limit has been changed to ${maxPlayers} players (was ${originalMaxPlayers}).`;
       } else if (dateTimeChanged) {
-        notificationMessage += `The volleyball game has been rescheduled to ${formattedNewDate}.`;
+        notificationMessage += `The volleyball game has been rescheduled from ${formattedOldDate} to ${formattedNewDate}.`;
       } else if (maxPlayersChanged) {
-        notificationMessage += `The player limit for the volleyball game on ${formattedNewDate} has been changed to ${maxPlayers} players.`;
+        notificationMessage += `The player limit for the volleyball game on ${formattedNewDate} has been changed to ${maxPlayers} players (was ${originalMaxPlayers}).`;
       }
       
       // Get user details for all registered users
