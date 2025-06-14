@@ -15,122 +15,6 @@ const TELEGRAM_TOPIC_ID = process.env.TELEGRAM_TOPIC_ID ? parseInt(process.env.T
 // Initialize Telegram bot
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN || '');
 
-// Configure bot commands - IMPORTANT: Register commands before the text handler
-bot.command('start', (ctx) => {
-  console.log('Start command received');
-  ctx.reply('🏐 Welcome to Haarlem Volleyball Community!', {
-    reply_markup: {
-      inline_keyboard: [[
-        {
-          text: '🏐 Join games',
-          web_app: { url: MINI_APP_URL }
-        }
-      ]]
-    }
-  });
-});
-
-// Command to list all upcoming games with open registration
-bot.command('games', async (ctx) => {
-  console.log('Games command received from:', ctx.from?.id, ctx.from?.username);
-  try {
-    const now = new Date();
-    
-    // Find all games in the future that are open for registration
-    // (games happening within the next 5 days)
-    const fiveDaysFromNow = new Date(now);
-    fiveDaysFromNow.setDate(fiveDaysFromNow.getDate() + 5);
-    
-    // Get upcoming games with their registration counts
-    const upcomingGames = await db
-      .select({
-        id: games.id,
-        dateTime: games.dateTime,
-        maxPlayers: games.maxPlayers,
-        registrationCount: count(gameRegistrations.id)
-      })
-      .from(games)
-      .leftJoin(gameRegistrations, eq(games.id, gameRegistrations.gameId))
-      .where(gt(games.dateTime, now))
-      .groupBy(games.id)
-      .orderBy(games.dateTime);
-    
-    // Filter games that are open for registration (less than 5 days away)
-    const openRegistrationGames = upcomingGames.filter(game => {
-      const gameDate = new Date(game.dateTime);
-      const registrationOpensAt = new Date(gameDate);
-      registrationOpensAt.setDate(registrationOpensAt.getDate() - 5);
-      return now >= registrationOpensAt;
-    });
-    
-    if (openRegistrationGames.length === 0) {
-      await ctx.reply('No games with open registration at the moment. Check back later!');
-      return;
-    }
-    
-    // Format the response
-    let message = '<b>🏐 Upcoming Games with Open Registration:</b>\n\n';
-    
-    openRegistrationGames.forEach(game => {
-      const gameDate = new Date(game.dateTime);
-      const formattedDate = gameDate.toLocaleDateString('en-GB', { 
-        weekday: 'long',
-        day: 'numeric', 
-        month: 'long',
-        hour: '2-digit', 
-        minute: '2-digit'
-      });
-      
-      const availableSpots = game.maxPlayers - Number(game.registrationCount);
-      const spotsText = availableSpots > 0 
-        ? `${availableSpots} spots available` 
-        : 'Waitlist only';
-      
-      message += `<b>${formattedDate}</b>\n${spotsText} (${game.registrationCount}/${game.maxPlayers})\n\n`;
-    });
-    
-    // Send the message with appropriate button based on chat type
-    // web_app buttons only work in private chats, not in groups
-    const isPrivateChat = ctx.chat?.type === 'private';
-    
-    if (isPrivateChat) {
-      // In private chats, we can use web_app buttons
-      await ctx.reply(message, {
-        parse_mode: 'HTML',
-        reply_markup: {
-          inline_keyboard: [[
-            {
-              text: '🏐 Register for Games',
-              web_app: { url: MINI_APP_URL }
-            }
-          ]]
-        }
-      });
-    } else {
-      // In groups, we need to use a URL button that opens the mini app within Telegram
-      // Format: https://t.me/your_bot_username?startapp=...
-      const botInfo = await bot.telegram.getMe();
-      const botUsername = botInfo.username;
-      const telegramAppUrl = `https://t.me/${botUsername}?startapp=games`;
-      
-      await ctx.reply(message, {
-        parse_mode: 'HTML',
-        reply_markup: {
-          inline_keyboard: [[
-            {
-              text: '🏐 Register for Games',
-              url: telegramAppUrl
-            }
-          ]]
-        }
-      });
-    }
-    
-  } catch (error) {
-    console.error('Error listing games:', error);
-    await ctx.reply('❌ An error occurred while fetching the games. Please try again later.');
-  }
-});
 
 // Handle any text message - show the mini-app
 // IMPORTANT: This must come AFTER command handlers
@@ -273,15 +157,8 @@ export async function checkAndAnnounceGameRegistrations(): Promise<void> {
   }
 }
 
-// Register the commands with BotFather
-bot.telegram.setMyCommands([
-  { command: 'start', description: 'Start the bot' },
-  { command: 'games', description: 'List upcoming games with open registration' }
-]).then(() => {
-  console.log('Bot commands registered with Telegram');
-}).catch(error => {
-  console.error('Failed to register bot commands:', error);
-});
+// No commands to register with BotFather
+console.log('No bot commands to register with Telegram');
 
 // Debug function to post notifications about all upcoming games with open registration
 async function debugPostAllOpenRegistrations(): Promise<void> {
