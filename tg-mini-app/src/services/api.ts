@@ -65,6 +65,11 @@ export const userApi = {
 };
 
 export const gamesApi = {
+  getDefaultDateTime: async (): Promise<Date> => {
+    const response = await api.get('/games/default-datetime');
+    return new Date(response.data.defaultDateTime);
+  },
+
   getAllGames: async (includeInactiveGames: boolean = false): Promise<GameWithStats[]> => {
     const response = await api.get(`/games?includeInactiveGames=${includeInactiveGames}`);
     return response.data;

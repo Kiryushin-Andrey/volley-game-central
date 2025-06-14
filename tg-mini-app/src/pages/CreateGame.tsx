@@ -15,61 +15,38 @@ const CreateGame: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  // Calculate default date (next Sunday after the most recent scheduled game)
+  // Fetch default date and time from the server
   useEffect(() => {
-    const calculateDefaultDate = async () => {
+    const fetchDefaultDateTime = async () => {
       try {
         setIsInitialLoading(true);
-        // Fetch all games to find the latest one
-        const games = await gamesApi.getAllGames();
         
-        let defaultDate: Date;
+        // Call the API to get the default date and time
+        const defaultDate = await gamesApi.getDefaultDateTime();
         
-        if (games && games.length > 0) {
-          // Sort games by date (newest first)
-          const sortedGames = [...games].sort((a, b) => 
-            new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime()
-          );
-          
-          // Get date of the most recent game
-          const latestGameDate = new Date(sortedGames[0].dateTime);
-          
-          // Calculate the next Sunday after this date
-          defaultDate = new Date(latestGameDate);
-          defaultDate.setDate(defaultDate.getDate() + (7 - defaultDate.getDay()) % 7);
-          if (defaultDate <= latestGameDate) {
-            defaultDate.setDate(defaultDate.getDate() + 7);
-          }
-        } else {
-          // If no games, use next Sunday from today
-          defaultDate = new Date();
-          defaultDate.setDate(defaultDate.getDate() + (7 - defaultDate.getDay()) % 7);
-          if (defaultDate <= new Date()) {
-            defaultDate.setDate(defaultDate.getDate() + 7);
-          }
+        // Set time to 17:00 (5:00 PM) if not already set by the server
+        if (defaultDate.getHours() === 0 && defaultDate.getMinutes() === 0) {
+          defaultDate.setHours(17, 0, 0, 0);
         }
-        
-        // Set time to 17:00 (5:00 PM) for evening volleyball games
-        defaultDate.setHours(17, 0, 0, 0);
         
         // Set the selected date
         setSelectedDate(defaultDate);
       } catch (err) {
-        logDebug('Error calculating default date:');
+        logDebug('Error fetching default date and time:');
         logDebug(err);
-        setError('Failed to calculate default date');
+        setError('Failed to fetch default date and time');
         
         // Fallback to next Sunday if there's an error
         const defaultDate = new Date();
-        defaultDate.setDate(defaultDate.getDate() + (7 - defaultDate.getDay()) % 7);
-        defaultDate.setHours(17, 0, 0, 0);
+        defaultDate.setDate(defaultDate.getDate() + 7); // Add 1 week
+        defaultDate.setHours(17, 0, 0, 0); // Set to 5:00 PM
         setSelectedDate(defaultDate);
       } finally {
         setIsInitialLoading(false);
       }
     };
 
-    calculateDefaultDate();
+    fetchDefaultDateTime();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {

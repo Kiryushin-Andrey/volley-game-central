@@ -5,8 +5,20 @@ import { gte, desc, inArray, eq, and, sql } from 'drizzle-orm';
 import { telegramAuthMiddleware } from '../middleware/telegramAuth';
 import { adminAuthMiddleware } from '../middleware/adminAuth';
 import { sendTelegramNotification } from '../services/telegramService';
+import { gameService } from '../services/gameService';
 
 const router = Router();
+
+// Calculate default date and time for a new game
+router.get('/default-datetime', telegramAuthMiddleware, async (req, res) => {
+  try {
+    const defaultDateTime = await gameService.calculateDefaultDateTime();
+    res.json({ defaultDateTime });
+  } catch (error) {
+    console.error('Error calculating default date time:', error);
+    res.status(500).json({ error: 'Failed to calculate default date time' });
+  }
+});
 
 // Create a new game
 router.post('/', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) => {
