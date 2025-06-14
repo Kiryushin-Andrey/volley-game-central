@@ -1,8 +1,6 @@
-version: '3.8'
-
 services:
   volleybot:
-    image: andreykir/volleybot:1.0
+    image: andreykir/volleybot:1.2.1
     restart: always
     depends_on:
       postgres:
@@ -15,9 +13,9 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: volley_game_central
       # Telegram configuration
-      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
-      TELEGRAM_GROUP_ID: ${TELEGRAM_GROUP_ID}
-      MINI_APP_URL: ${MINI_APP_URL}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:?TELEGRAM_BOT_TOKEN is required}
+      TELEGRAM_GROUP_ID: ${TELEGRAM_GROUP_ID:?TELEGRAM_GROUP_ID is required}
+      MINI_APP_URL: ${MINI_APP_URL:?MINI_APP_URL is required}
       # Application settings
       NODE_ENV: production
     ports:

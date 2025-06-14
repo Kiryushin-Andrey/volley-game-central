@@ -5,7 +5,7 @@
 
 # Configuration
 IMAGE_NAME="andreykir/volleybot"
-TAG="1.0"
+TAG="1.2.1"
 
 # Colors for terminal output
 GREEN='\033[0;32m'
@@ -21,12 +21,26 @@ if ! docker info > /dev/null 2>&1; then
   exit 1
 fi
 
-# Step 1: Build the Docker image
-echo -e "${YELLOW}Step 1: Building Docker image ${IMAGE_NAME}:${TAG}...${NC}"
-if docker build -t ${IMAGE_NAME}:${TAG} .; then
-  echo -e "${GREEN}Build successful!${NC}"
+# Step 1: Set up Docker Buildx for multi-architecture builds
+echo -e "${YELLOW}Step 1: Setting up Docker Buildx for multi-architecture builds...${NC}"
+
+# Create a new builder instance if it doesn't exist
+if ! docker buildx inspect mybuilder > /dev/null 2>&1; then
+  docker buildx create --name mybuilder --use
+fi
+
+# Use the builder
+docker buildx use mybuilder
+
+# Bootstrap the builder
+docker buildx inspect --bootstrap
+
+# Step 2: Build and push the multi-architecture Docker image
+echo -e "${YELLOW}Step 2: Building and pushing multi-architecture image ${IMAGE_NAME}:${TAG}...${NC}"
+if docker buildx build --platform linux/amd64,linux/arm64 -t ${IMAGE_NAME}:${TAG} --push .; then
+  echo -e "${GREEN}Multi-architecture build and push successful!${NC}"
 else
-  echo -e "${RED}Build failed. Exiting.${NC}"
+  echo -e "${RED}Multi-architecture build failed. Exiting.${NC}"
   exit 1
 fi
 

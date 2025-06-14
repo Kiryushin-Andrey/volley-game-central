@@ -8,7 +8,7 @@ export function toggleDebugMode(): void {
   debugModeEnabled = !debugModeEnabled;
   localStorage.setItem('debugModeEnabled', debugModeEnabled.toString());
   
-  const debugLog = document.getElementById('global-debug-log');
+  const debugLog = document.getElementById('debug-log');
   const debugToggle = document.getElementById('debug-toggle');
   
   // Show or hide the debug logs panel
@@ -59,7 +59,7 @@ export function isDebugMode(): boolean {
 window.addEventListener('DOMContentLoaded', () => {
   // Find our embedded debug elements
   const debugToggle = document.getElementById('debug-toggle');
-  const debugLog = document.getElementById('global-debug-log');
+  const debugLog = document.getElementById('debug-log');
   
   if (debugToggle && debugLog) {
     // Set initial debug log visibility based on stored preference
@@ -116,7 +116,7 @@ export function logDebug(message: any): void {
   // Only update UI if debug mode is enabled
   if (!isDebugMode()) return;
   
-  const logElement = document.getElementById('global-debug-log');
+  const logElement = document.getElementById('debug-log');
   if (logElement) {
     // Create a new log entry
     const logEntry = document.createElement('div');
@@ -134,7 +134,7 @@ export function logDebug(message: any): void {
 
 // Function to clear all debug logs
 export function clearAllLogs(): void {
-  const logElement = document.getElementById('global-debug-log');
+  const logElement = document.getElementById('debug-log');
   if (logElement) {
     // Remove all child nodes
     while (logElement.firstChild) {
