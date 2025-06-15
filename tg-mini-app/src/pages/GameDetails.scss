@@ -132,57 +132,49 @@
   overflow: hidden;
 
   .players-stats-header {
-    padding: 12px;
+    padding: 16px;
     border-bottom: 1px solid #e1e8ed;
 
     .stats-row {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 16px;
-      margin-bottom: 8px;
     }
 
-    .stat {
+    .compact-stats {
       display: flex;
-      flex-direction: column;
       align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 700;
+      line-height: 1;
 
-      .stat-value {
-        font-size: 24px;
-        font-weight: 700;
-        color: var(--tg-theme-text-color);
-        line-height: 1;
-      }
-
-      .stat-label {
-        font-size: 12px;
-        color: var(--tg-theme-hint-color);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        text-align: center;
-        margin-top: 4px;
-      }
-
-      &.waitlist {
-        .stat-value {
-          color: #ff9500;
+      .registered-count {
+        color: #28a745; // Green for registered players
+        // Use a color that works in both light and dark themes
+        @media (prefers-color-scheme: dark) {
+          color: #4cd964; // Brighter green for dark theme
         }
       }
-    }
 
-    .stat-divider {
-      font-size: 24px;
-      font-weight: 300;
-      color: var(--tg-theme-hint-color);
-    }
+      .stats-divider {
+        margin: 0 6px;
+        font-weight: 300;
+        color: var(--tg-theme-hint-color);
+      }
 
-    .waitlist-stats {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 0;
-      padding-top: 16px;
-      border-top: 1px solid #e1e8ed;
+      .max-count {
+        color: var(--tg-theme-text-color); // Default text color for max players
+      }
+
+      .waitlist-indicator {
+        margin-left: 8px;
+        color: #ff9500; // Yellow/orange for waitlist
+        // Use a color that works in both light and dark themes
+        @media (prefers-color-scheme: dark) {
+          color: #ffcc00; // Brighter yellow for dark theme
+        }
+      }
     }
   }
 }
@@ -218,7 +210,7 @@
   padding: 8px 12px;
 
   &.waitlist {
-    background-color: #f9f9f9;
+    background-color: var(--tg-theme-bg-color);
   }
 }
 

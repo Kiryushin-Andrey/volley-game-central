@@ -379,25 +379,15 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
       <div className="players-container">
         <div className="players-stats-header">
           <div className="stats-row">
-            <div className="stat">
-              <div className="stat-value">{activeRegistrations.length}</div>
-              <div className="stat-label">Registered Players</div>
-            </div>
-            <div className="stat-divider">/</div>
-            <div className="stat">
-              <div className="stat-value">{game.maxPlayers}</div>
-              <div className="stat-label">Maximum Players</div>
+            <div className="compact-stats">
+              <span className="registered-count">{activeRegistrations.length}</span>
+              <span className="stats-divider">/</span>
+              <span className="max-count">{game.maxPlayers}</span>
+              {waitlistRegistrations.length > 0 && (
+                <span className="waitlist-indicator">(+{waitlistRegistrations.length})</span>
+              )}
             </div>
           </div>
-          
-          {waitlistRegistrations.length > 0 && (
-            <div className="waitlist-stats">
-              <div className="stat waitlist">
-                <div className="stat-value">{waitlistRegistrations.length}</div>
-                <div className="stat-label">On Waitlist</div>
-              </div>
-            </div>
-          )}
         </div>
 
         {activeRegistrations.length > 0 ? (
