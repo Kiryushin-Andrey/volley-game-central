@@ -1,0 +1,100 @@
+/* DatePicker mobile responsiveness fixes */
+
+/* Create a portal container for the datepicker */
+.react-datepicker-popper {
+  z-index: 1000 !important; /* Ensure it's above other elements */
+}
+
+/* Mobile-specific fixes */
+@media (max-width: 768px) {
+  /* Fix positioning on mobile */
+  .react-datepicker-popper {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    margin: 0 !important;
+    width: 90vw !important;
+    max-width: 320px !important;
+  }
+  
+  /* Ensure the datepicker fits within the screen */
+  .react-datepicker {
+    width: 100% !important;
+    max-height: 80vh !important;
+    overflow-y: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  
+  /* Adjust month container */
+  .react-datepicker__month-container {
+    width: 100% !important;
+    max-width: none !important;
+  }
+  
+  /* Adjust time container for mobile */
+  .react-datepicker__time-container {
+    width: 100% !important;
+    border-left: none !important;
+    border-top: 1px solid var(--tg-theme-hint-color, #eee) !important;
+  }
+  
+  /* Make sure time list is scrollable */
+  .react-datepicker__time-list {
+    max-height: 200px !important;
+    overflow-y: auto !important;
+  }
+  
+  /* Adjust time columns */
+  .react-datepicker__time-box {
+    width: 100% !important;
+    text-align: center !important;
+  }
+  
+  /* Ensure the header is properly sized */
+  .react-datepicker__header {
+    width: 100% !important;
+  }
+  
+  /* Make day names fit */
+  .react-datepicker__day-names {
+    display: flex !important;
+    justify-content: space-around !important;
+    width: 100% !important;
+  }
+  
+  /* Ensure days are properly sized */
+  .react-datepicker__month {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  /* Ensure week rows fit */
+  .react-datepicker__week {
+    display: flex !important;
+    justify-content: space-around !important;
+  }
+  
+  /* Add a semi-transparent overlay behind the datepicker */
+  .react-datepicker-popper::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: -1;
+  }
+}
+
+/* Ensure the input field is fully visible */
+.datepicker-input {
+  width: 100%;
+}
+
+/* Ensure the datepicker doesn't get cut off at the bottom of the screen */
+.react-datepicker__triangle {
+  display: none !important;
+}

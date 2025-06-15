@@ -4,8 +4,14 @@ import { logDebug } from '../debug';
 import { gamesApi } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import DatePicker from 'react-datepicker';
+import { registerLocale } from 'react-datepicker';
+import { enGB } from 'date-fns/locale/en-GB';
 import 'react-datepicker/dist/react-datepicker.css';
+import '../styles/datepicker-fixes.scss';
 import './EditGameSettings.scss';
+
+// Register the locale with Monday as first day of week
+registerLocale('en-GB', enGB);
 
 const EditGameSettings: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -105,6 +111,7 @@ const EditGameSettings: React.FC = () => {
               placeholderText="Select date and time"
               className="datepicker-input"
               calendarClassName="datepicker-calendar"
+              locale="en-GB" // Use locale with Monday as first day of week
               minDate={new Date()} // Cannot select dates in the past
               required
             />

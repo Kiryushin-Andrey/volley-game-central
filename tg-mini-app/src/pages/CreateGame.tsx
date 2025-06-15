@@ -4,8 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import { gamesApi } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import DatePicker from 'react-datepicker';
+import { registerLocale } from 'react-datepicker';
+import { enGB } from 'date-fns/locale/en-GB';
 import 'react-datepicker/dist/react-datepicker.css';
+import '../styles/datepicker-fixes.scss';
 import './CreateGame.scss';
+
+// Register the locale with Monday as first day of week
+registerLocale('en-GB', enGB);
 
 const CreateGame: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -102,10 +108,11 @@ const CreateGame: React.FC = () => {
               timeFormat="HH:mm"
               timeIntervals={15}
               timeCaption="Time"
-              dateFormat="MMMM d, yyyy h:mm aa"
+              dateFormat="MMMM d, yyyy HH:mm"
               placeholderText="Select date and time"
               className="datepicker-input"
               calendarClassName="datepicker-calendar"
+              locale="en-GB" // Use locale with Monday as first day of week
               required
             />
           </div>
