@@ -350,8 +350,12 @@ router.get('/', telegramAuthMiddleware, async (req, res) => {
       query = db.select().from(games);
     }
     
-    // Sort by dateTime descending (newest to oldest) in SQL
-    const filteredGames = await query.orderBy(desc(games.dateTime));
+    // Sort by dateTime based on includeInactiveGames parameter
+    // When includeInactiveGames is false: sort ascending (nearest future games first)
+    // When includeInactiveGames is true: sort descending (most recent games first)
+    const filteredGames = await query.orderBy(
+      includeInactiveGames ? desc(games.dateTime) : games.dateTime
+    );
     
     if (filteredGames.length === 0) {
       return res.json([]);
