@@ -30,9 +30,16 @@
     input[type="number"] {
       width: 100%;
       padding: 0.75rem;
-      border: 1px solid #ccc;
+      border: 1px solid var(--tg-theme-hint-color, #ccc);
       border-radius: 4px;
       font-size: 1rem;
+      background-color: var(--tg-theme-bg-color);
+      color: var(--tg-theme-text-color);
+      
+      &:focus {
+        outline: none;
+        border-color: var(--tg-theme-button-color, #2196f3);
+      }
     }
   }
 
@@ -76,22 +83,23 @@
     }
 
     .cancel-button {
-      background-color: #f5f5f5;
-      color: #333;
+      background-color: var(--tg-theme-secondary-bg-color, #f5f5f5);
+      color: var(--tg-theme-text-color, #333);
       margin-right: 0.5rem;
 
       &:hover:not(:disabled) {
-        background-color: #e0e0e0;
+        background-color: var(--tg-theme-hint-color, #e0e0e0);
       }
     }
 
     .save-button {
-      background-color: #2196f3;
-      color: white;
+      background-color: var(--tg-theme-button-color, #2196f3);
+      color: var(--tg-theme-button-text-color, white);
       margin-left: 0.5rem;
 
       &:hover:not(:disabled) {
-        background-color: #1976d2;
+        background-color: var(--tg-theme-button-color-rgb, #1976d2);
+        opacity: 0.8;
       }
     }
   }
