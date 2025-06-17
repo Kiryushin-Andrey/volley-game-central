@@ -10,6 +10,7 @@ export interface Game {
   id: number;
   dateTime: string;
   maxPlayers: number;
+  unregisterDeadlineHours: number;
   createdAt: Date | null;
   createdById: number;
   registrations: GameRegistration[];

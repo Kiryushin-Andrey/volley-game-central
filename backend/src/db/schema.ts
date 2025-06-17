@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, timestamp, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, timestamp, boolean, integer } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
@@ -13,6 +13,7 @@ export const games = pgTable('games', {
   id: serial('id').primaryKey(),
   dateTime: timestamp('date_time').notNull(),
   maxPlayers: serial('max_players').notNull(),
+  unregisterDeadlineHours: serial('unregister_deadline_hours').notNull().default(5),
   createdAt: timestamp('created_at').defaultNow(),
   createdById: serial('created_by_id').references(() => users.id),
 });

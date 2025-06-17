@@ -23,7 +23,7 @@ router.get('/default-datetime', telegramAuthMiddleware, async (req, res) => {
 // Create a new game
 router.post('/', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) => {
   try {
-    const { dateTime, maxPlayers } = req.body;
+    const { dateTime, maxPlayers, unregisterDeadlineHours = 5 } = req.body;
     
     if (!dateTime || !maxPlayers) {
       return res.status(400).json({ error: 'dateTime and maxPlayers are required' });
@@ -39,6 +39,7 @@ router.post('/', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) =
     const newGame = await db.insert(games).values({
       dateTime: new Date(dateTime),
       maxPlayers,
+      unregisterDeadlineHours,
       createdById
     }).returning();
 
@@ -185,18 +186,19 @@ router.delete('/:gameId/register', telegramAuthMiddleware, async (req, res) => {
     // Determine if the user is on the waitlist based on registration order
     const isWaitlist = userRegIndex >= game[0].maxPlayers;
     
-    // If not on waitlist, enforce timing restriction: can only leave up to 5 hours before the game
+    // If not on waitlist, enforce timing restriction: can only leave up to unregisterDeadlineHours before the game
     if (!isWaitlist) {
       const gameDateTime = new Date(game[0].dateTime);
       const now = new Date();
-      const fiveHoursBeforeGame = new Date(gameDateTime);
-      fiveHoursBeforeGame.setHours(fiveHoursBeforeGame.getHours() - 5);
+      const deadlineHours = game[0].unregisterDeadlineHours || 5; // Default to 6 hours if not set
+      const deadlineBeforeGame = new Date(gameDateTime);
+      deadlineBeforeGame.setHours(deadlineBeforeGame.getHours() - deadlineHours);
       
-      if (now > fiveHoursBeforeGame) {
+      if (now > deadlineBeforeGame) {
         return res.status(403).json({
-          error: 'You can only unregister up to 5 hours before the game starts',
+          error: `You can only unregister up to ${deadlineHours} hours before the game starts`,
           gameDateTime: gameDateTime,
-          deadline: fiveHoursBeforeGame
+          deadline: deadlineBeforeGame
         });
       }
     }
@@ -479,7 +481,7 @@ router.get('/', telegramAuthMiddleware, async (req, res) => {
 router.put('/:gameId', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) => {
   try {
     const gameId = parseInt(req.params.gameId);
-    const { dateTime, maxPlayers } = req.body;
+    const { dateTime, maxPlayers, unregisterDeadlineHours } = req.body;
 
     // Validate required fields
     if (!dateTime || !maxPlayers) {
@@ -495,13 +497,16 @@ router.put('/:gameId', telegramAuthMiddleware, adminAuthMiddleware, async (req, 
     // Store original values for comparison to determine what changed
     const originalDateTime = new Date(existingGame[0].dateTime);
     const originalMaxPlayers = existingGame[0].maxPlayers;
+    const originalDeadlineHours = existingGame[0].unregisterDeadlineHours || 5;
     const newDateTime = new Date(dateTime);
 
     // Update the game with new settings
     const game = await db.update(games)
       .set({ 
         dateTime: newDateTime, 
-        maxPlayers 
+        maxPlayers,
+        // Only update unregisterDeadlineHours if it was provided
+        ...(unregisterDeadlineHours !== undefined ? { unregisterDeadlineHours } : {})
       })
       .where(eq(games.id, gameId))
       .returning();

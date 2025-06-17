@@ -19,6 +19,7 @@ const EditGameSettings: React.FC = () => {
   
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [maxPlayers, setMaxPlayers] = useState<number>(14);
+  const [unregisterDeadlineHours, setUnregisterDeadlineHours] = useState<number>(5);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,6 +36,7 @@ const EditGameSettings: React.FC = () => {
         // Set form values from game data
         setSelectedDate(new Date(game.dateTime));
         setMaxPlayers(game.maxPlayers);
+        setUnregisterDeadlineHours(game.unregisterDeadlineHours || 5); // Default to 5 if not set
       } catch (err) {
         logDebug('Error loading game:');
         logDebug(err);
@@ -68,7 +70,8 @@ const EditGameSettings: React.FC = () => {
       
       await gamesApi.updateGame(parseInt(gameId), {
         dateTime: selectedDate.toISOString(),
-        maxPlayers
+        maxPlayers,
+        unregisterDeadlineHours
       });
       
       // Navigate back to the game details page after successful update
@@ -129,6 +132,22 @@ const EditGameSettings: React.FC = () => {
             max="30"
             required
           />
+        </div>
+        
+        <div className="form-group">
+          <label htmlFor="unregisterDeadlineHours">Unregister Deadline (hours before game):</label>
+          <input
+            type="number"
+            id="unregisterDeadlineHours"
+            value={unregisterDeadlineHours}
+            onChange={(e) => setUnregisterDeadlineHours(parseInt(e.target.value))}
+            min="1"
+            max="48"
+            required
+          />
+          <div className="field-description">
+            Players can unregister up until this many hours before the game starts.
+          </div>
         </div>
         
         <div className="button-group">

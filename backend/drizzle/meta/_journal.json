@@ -15,6 +15,13 @@
       "when": 1749378775488,
       "tag": "0001_exotic_pretty_boy",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1750000000000,
+      "tag": "0002_add_unregister_deadline_hours",
+      "breakpoints": true
     }
   ]
 }

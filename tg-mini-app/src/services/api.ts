@@ -80,7 +80,7 @@ export const gamesApi = {
     return response.data;
   },
 
-  createGame: async (gameData: { dateTime: string; maxPlayers: number }): Promise<Game> => {
+  createGame: async (gameData: { dateTime: string; maxPlayers: number; unregisterDeadlineHours: number }): Promise<Game> => {
     const response = await api.post('/games', gameData);
     return response.data;
   },
@@ -97,7 +97,7 @@ export const gamesApi = {
     await api.delete(`/games/${gameId}`);
   },
 
-  updateGame: async (gameId: number, gameData: { dateTime: string; maxPlayers: number }): Promise<Game> => {
+  updateGame: async (gameId: number, gameData: { dateTime: string; maxPlayers: number; unregisterDeadlineHours: number }): Promise<Game> => {
     const response = await api.put(`/games/${gameId}`, gameData);
     return response.data;
   },

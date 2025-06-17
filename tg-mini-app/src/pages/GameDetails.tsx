@@ -127,11 +127,14 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
     const gameDateTime = new Date(gameDate);
     const now = new Date();
     
-    // Active players can leave up to 5 hours before the game (same as server)
-    const fiveHoursBeforeGame = new Date(gameDateTime.getTime());
-    fiveHoursBeforeGame.setHours(fiveHoursBeforeGame.getHours() - 5);
+    // Get the configurable deadline hours from the game, default to 5 if not set
+    const deadlineHours = game?.unregisterDeadlineHours || 5;
     
-    return now <= fiveHoursBeforeGame;
+    // Active players can leave up to the configured deadline hours before the game
+    const deadlineTime = new Date(gameDateTime.getTime());
+    deadlineTime.setHours(deadlineTime.getHours() - deadlineHours);
+    
+    return now <= deadlineTime;
   };
 
   const formatDate = (dateString: string) => {
@@ -165,11 +168,12 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
     if (!game) return null;
 
     const userRegistration = game.registrations.find(reg => reg.userId === user.id);
+    const deadlineHours = game.unregisterDeadlineHours || 5;
     
     // If user is registered, check if they can leave
     if (userRegistration) {
       if (!canLeaveGame(game.dateTime, userRegistration.isWaitlist) && !userRegistration.isWaitlist) {
-        return "You can only leave the game up to 5 hours before it starts.";
+        return `You can only leave the game up to ${deadlineHours} hours before it starts.`;
       }
     } else {
       // If user is not registered, check if they can join
@@ -253,13 +257,14 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
       // Handle specific timing restriction errors from server
       if (err.response?.status === 403) {
         const errData = err.response?.data;
-        if (errData?.error?.includes('time restriction')) {
+        if (errData?.error?.includes('unregister')) {
           const gameTime = new Date(game.dateTime);
-          const deadline = new Date(gameTime.getTime() - 6 * 60 * 60 * 1000);
+          const deadlineHours = game.unregisterDeadlineHours || 5; // Default to 5 if not set
+          const deadline = new Date(gameTime.getTime() - deadlineHours * 60 * 60 * 1000);
           
           WebApp.showPopup({
             title: 'Cannot Leave Game',
-            message: `You can only unregister up to ${deadline.toLocaleTimeString()} (5 hours before the game starts).`,
+            message: `You can only unregister up to ${deadline.toLocaleTimeString()} (${deadlineHours} hours before the game starts).`,
             buttons: [{ type: 'ok' }]
           });
         } else {

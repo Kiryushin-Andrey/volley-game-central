@@ -16,6 +16,7 @@ registerLocale('en-GB', enGB);
 const CreateGame: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [maxPlayers, setMaxPlayers] = useState<number>(14);
+  const [unregisterDeadlineHours, setUnregisterDeadlineHours] = useState<number>(5);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,7 +70,8 @@ const CreateGame: React.FC = () => {
       
       await gamesApi.createGame({
         dateTime: selectedDate.toISOString(),
-        maxPlayers
+        maxPlayers,
+        unregisterDeadlineHours
       });
       
       // Navigate back to the games list after successful creation
@@ -129,6 +131,22 @@ const CreateGame: React.FC = () => {
             max="30"
             required
           />
+        </div>
+        
+        <div className="form-group">
+          <label htmlFor="unregisterDeadlineHours">Unregister Deadline (hours before game):</label>
+          <input
+            type="number"
+            id="unregisterDeadlineHours"
+            value={unregisterDeadlineHours}
+            onChange={(e) => setUnregisterDeadlineHours(parseInt(e.target.value))}
+            min="0"
+            max="48"
+            required
+          />
+          <div className="field-description">
+            Players can unregister up until this many hours before the game starts.
+          </div>
         </div>
         
         <div className="button-group">
