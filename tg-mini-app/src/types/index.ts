@@ -11,6 +11,7 @@ export interface Game {
   dateTime: string;
   maxPlayers: number;
   unregisterDeadlineHours: number;
+  paymentAmount: number;
   createdAt: Date | null;
   createdById: number;
   registrations: GameRegistration[];

@@ -7,7 +7,8 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import './GameDetails.scss';
 import WebApp from '@twa-dev/sdk';
 import { MainButton, BackButton } from '@twa-dev/sdk/react';
-import { FaCog } from 'react-icons/fa';
+import { FaCog, FaCheck, FaTimes } from 'react-icons/fa';
+import { formatEuros } from '../utils/currencyUtils';
 
 interface GameDetailsProps {
   user: User;
@@ -21,6 +22,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isPaidUpdating, setIsPaidUpdating] = useState<number | null>(null); // Stores userId of player being updated
 
   useEffect(() => {
     if (gameId) {
@@ -116,6 +118,13 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
     const gameDateTime = new Date(gameDate);
     const now = new Date();
     return gameDateTime > now;
+  };
+  
+  // Check if game is in the past
+  const isGamePast = (gameDate: string): boolean => {
+    const gameDateTime = new Date(gameDate);
+    const now = new Date();
+    return gameDateTime < now;
   };
   
   const canLeaveGame = (gameDate: string, isWaitlist: boolean): boolean => {
@@ -286,6 +295,50 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
     }
   };
   
+  // Handle toggling paid status for a player
+  const handleTogglePaidStatus = (userId: number, currentPaidStatus: boolean) => {
+    if (!game) return;
+    
+    const newPaidStatus = !currentPaidStatus;
+    const username = game.registrations.find(reg => reg.userId === userId)?.user?.username || `Player ${userId}`;
+    
+    // Show confirmation dialog
+    WebApp.showConfirm(
+      `${newPaidStatus ? 'Mark' : 'Unmark'} ${username} as ${newPaidStatus ? 'paid' : 'unpaid'}?`,
+      async (confirmed) => {
+        if (confirmed) {
+          try {
+            setIsPaidUpdating(userId);
+            await gamesApi.updatePlayerPaidStatus(game.id, userId, newPaidStatus);
+            
+            // Update local state to reflect the change
+            setGame(prevGame => {
+              if (!prevGame) return null;
+              
+              return {
+                ...prevGame,
+                registrations: prevGame.registrations.map(reg => 
+                  reg.userId === userId ? { ...reg, paid: newPaidStatus } : reg
+                )
+              };
+            });
+          } catch (err) {
+            logDebug('Error updating paid status:');
+            logDebug(err);
+            
+            WebApp.showPopup({
+              title: 'Error',
+              message: 'Failed to update payment status',
+              buttons: [{ type: 'ok' }]
+            });
+          } finally {
+            setIsPaidUpdating(null);
+          }
+        }
+      }
+    );
+  };
+  
   // Handle game deletion with confirmation
   const handleDeleteGame = async () => {
     if (!isActionAllowed()) return;
@@ -350,6 +403,13 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
       <div className="game-header">
         <div className="game-date-container">
           <div className="game-date">{formatDate(game.dateTime)}</div>
+        </div>
+        <div className="game-info">
+          {game.paymentAmount > 0 && (
+            <div className="payment-amount">
+              Payment: {formatEuros(game.paymentAmount)}
+            </div>
+          )}
         </div>
         {userRegistration && (
           <div className={`user-status ${userRegistration.isWaitlist ? 'waitlist' : 'registered'}`}>
@@ -417,6 +477,23 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
                     <div className="player-name">{registration.user?.username || `Player ${registration.userId}`}</div>
                     {registration.userId === user.id && (
                       <div className="player-badge">You</div>
+                    )}
+                    {/* Paid status checkbox for admins on past games (not for waitlist) */}
+                    {user.isAdmin && isGamePast(game.dateTime) && !registration.isWaitlist && (
+                      <div 
+                        className={`paid-status ${registration.paid ? 'paid' : 'unpaid'}`}
+                        onClick={() => handleTogglePaidStatus(registration.userId, registration.paid)}
+                        aria-label={registration.paid ? 'Paid' : 'Not paid'}
+                      >
+                        {isPaidUpdating === registration.userId ? (
+                          <div className="mini-spinner"></div>
+                        ) : registration.paid ? (
+                          <FaCheck className="paid-icon" />
+                        ) : (
+                          <FaTimes className="unpaid-icon" />
+                        )}
+                        <span>{registration.paid ? 'Paid' : 'Unpaid'}</span>
+                      </div>
                     )}
                   </div>
                 </div>

@@ -6,6 +6,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import DatePicker from 'react-datepicker';
 import { registerLocale } from 'react-datepicker';
 import { enGB } from 'date-fns/locale/en-GB';
+import { eurosToCents, centsToEuroString } from '../utils/currencyUtils';
 import 'react-datepicker/dist/react-datepicker.css';
 import '../styles/datepicker-fixes.scss';
 import './CreateGame.scss';
@@ -17,6 +18,8 @@ const CreateGame: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [maxPlayers, setMaxPlayers] = useState<number>(14);
   const [unregisterDeadlineHours, setUnregisterDeadlineHours] = useState<number>(5);
+  const [paymentAmount, setPaymentAmount] = useState<number>(500); // Stored in cents
+  const [paymentAmountDisplay, setPaymentAmountDisplay] = useState<string>(centsToEuroString(500)); // Display value in euros
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +74,8 @@ const CreateGame: React.FC = () => {
       await gamesApi.createGame({
         dateTime: selectedDate.toISOString(),
         maxPlayers,
-        unregisterDeadlineHours
+        unregisterDeadlineHours,
+        paymentAmount
       });
       
       // Navigate back to the games list after successful creation
@@ -87,6 +91,15 @@ const CreateGame: React.FC = () => {
 
   const handleCancel = () => {
     navigate('/');
+  };
+  
+  // Handle payment amount input changes, converting from euros to cents
+  const handlePaymentAmountChange = (value: string) => {
+    // Store the display value (with comma or dot as decimal separator)
+    setPaymentAmountDisplay(value);
+    
+    // Use the utility function to convert euros to cents
+    setPaymentAmount(eurosToCents(value));
   };
 
   if (isInitialLoading) {
@@ -146,6 +159,20 @@ const CreateGame: React.FC = () => {
           />
           <div className="field-description">
             Players can unregister up until this many hours before the game starts.
+          </div>
+        </div>
+        
+        <div className="form-group">
+          <label htmlFor="paymentAmount">Payment Amount (€):</label>
+          <input
+            type="text"
+            id="paymentAmount"
+            value={paymentAmountDisplay}
+            onChange={(e) => handlePaymentAmountChange(e.target.value)}
+            required
+          />
+          <div className="field-description">
+            Payment amount in euros.
           </div>
         </div>
         

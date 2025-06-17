@@ -34,6 +34,22 @@
     height: 100%;
     gap: 16px;
   }
+  
+  .game-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    
+    .payment-amount {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--tg-theme-text-color);
+      background: rgba(40, 167, 69, 0.1);
+      padding: 4px 8px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+  }
 
   .user-status {
     display: flex;
@@ -273,6 +289,50 @@
     &.waitlist {
       background: #ff9500;
       color: white;
+    }
+  }
+  
+  .paid-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    flex-shrink: 0;
+    
+    &.paid {
+      background-color: rgba(40, 167, 69, 0.1);
+      color: #28a745;
+      
+      .paid-icon {
+        color: #28a745;
+      }
+    }
+    
+    &.unpaid {
+      background-color: rgba(255, 107, 107, 0.1);
+      color: #ff6b6b;
+      
+      .unpaid-icon {
+        color: #ff6b6b;
+      }
+    }
+    
+    &:hover {
+      opacity: 0.8;
+    }
+    
+    .mini-spinner {
+      width: 12px;
+      height: 12px;
+      border: 2px solid transparent;
+      border-top: 2px solid currentColor;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
     }
   }
 }

@@ -6,6 +6,7 @@ import { telegramAuthMiddleware } from '../middleware/telegramAuth';
 import { adminAuthMiddleware } from '../middleware/adminAuth';
 import { sendTelegramNotification } from '../services/telegramService';
 import { gameService } from '../services/gameService';
+import { bunqService } from '../services/bunqService';
 
 const router = Router();
 
@@ -23,7 +24,7 @@ router.get('/default-datetime', telegramAuthMiddleware, async (req, res) => {
 // Create a new game
 router.post('/', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) => {
   try {
-    const { dateTime, maxPlayers, unregisterDeadlineHours = 5 } = req.body;
+    const { dateTime, maxPlayers, unregisterDeadlineHours = 5, paymentAmount } = req.body;
     
     if (!dateTime || !maxPlayers) {
       return res.status(400).json({ error: 'dateTime and maxPlayers are required' });
@@ -40,6 +41,7 @@ router.post('/', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) =
       dateTime: new Date(dateTime),
       maxPlayers,
       unregisterDeadlineHours,
+      paymentAmount,
       createdById
     }).returning();
 
@@ -481,7 +483,7 @@ router.get('/', telegramAuthMiddleware, async (req, res) => {
 router.put('/:gameId', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) => {
   try {
     const gameId = parseInt(req.params.gameId);
-    const { dateTime, maxPlayers, unregisterDeadlineHours } = req.body;
+    const { dateTime, maxPlayers, unregisterDeadlineHours, paymentAmount } = req.body;
 
     // Validate required fields
     if (!dateTime || !maxPlayers) {
@@ -505,8 +507,8 @@ router.put('/:gameId', telegramAuthMiddleware, adminAuthMiddleware, async (req, 
       .set({ 
         dateTime: newDateTime, 
         maxPlayers,
-        // Only update unregisterDeadlineHours if it was provided
-        ...(unregisterDeadlineHours !== undefined ? { unregisterDeadlineHours } : {})
+        unregisterDeadlineHours,
+        paymentAmount,
       })
       .where(eq(games.id, gameId))
       .returning();
@@ -595,6 +597,79 @@ router.delete('/:gameId', telegramAuthMiddleware, adminAuthMiddleware, async (re
   } catch (error) {
     console.error('Error deleting game:', error);
     res.status(500).json({ error: 'Failed to delete game' });
+  }
+});
+
+// Create payment requests for all unpaid players in a game (admin only)
+router.post('/:gameId/payment-requests', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) => {
+  try {
+    const gameId = parseInt(req.params.gameId);
+
+    // Check if game exists
+    const game = await db.select().from(games).where(eq(games.id, gameId));
+    if (!game.length) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+
+    // Create payment requests for all unpaid players
+    const result = await bunqService.createPaymentRequests(gameId);
+
+    if (result.success) {
+      res.json({
+        message: `Successfully created ${result.requestsCreated} payment requests`,
+        requestsCreated: result.requestsCreated,
+        errors: result.errors
+      });
+    } else {
+      res.status(500).json({
+        error: 'Failed to create payment requests',
+        errors: result.errors
+      });
+    }
+  } catch (error) {
+    console.error('Error creating payment requests:', error);
+    res.status(500).json({ error: 'Failed to create payment requests' });
+  }
+});
+
+// Update a player's paid status for a game (admin only)
+router.put('/:gameId/registrations/:userId/paid', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) => {
+  try {
+    const gameId = parseInt(req.params.gameId);
+    const userId = parseInt(req.params.userId);
+
+    // Check if game exists
+    const game = await db.select().from(games).where(eq(games.id, gameId));
+    if (!game.length) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+
+    // Check if registration exists
+    const registration = await db.select().from(gameRegistrations)
+      .where(and(
+        eq(gameRegistrations.gameId, gameId),
+        eq(gameRegistrations.userId, userId)
+      ));
+    
+    if (!registration.length) {
+      return res.status(404).json({ error: 'Registration not found' });
+    }
+
+    // Get paid status from request body, default to true if not provided
+    const { paid = true } = req.body;
+    
+    // Update paid status
+    const success = await bunqService.updatePaidStatus(gameId, userId, paid);
+
+    if (success) {
+      const statusMessage = paid ? 'paid' : 'unpaid';
+      res.json({ message: `Successfully marked registration as ${statusMessage}` });
+    } else {
+      res.status(400).json({ error: 'Failed to update registration paid status' });
+    }
+  } catch (error) {
+    console.error('Error updating registration paid status:', error);
+    res.status(500).json({ error: 'Failed to update registration paid status' });
   }
 });
 

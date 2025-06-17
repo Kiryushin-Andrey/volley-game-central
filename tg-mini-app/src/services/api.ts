@@ -80,7 +80,7 @@ export const gamesApi = {
     return response.data;
   },
 
-  createGame: async (gameData: { dateTime: string; maxPlayers: number; unregisterDeadlineHours: number }): Promise<Game> => {
+  createGame: async (gameData: { dateTime: string; maxPlayers: number; unregisterDeadlineHours: number; paymentAmount: number }): Promise<Game> => {
     const response = await api.post('/games', gameData);
     return response.data;
   },
@@ -97,8 +97,27 @@ export const gamesApi = {
     await api.delete(`/games/${gameId}`);
   },
 
-  updateGame: async (gameId: number, gameData: { dateTime: string; maxPlayers: number; unregisterDeadlineHours: number }): Promise<Game> => {
+  updateGame: async (gameId: number, gameData: { dateTime: string; maxPlayers: number; unregisterDeadlineHours: number; paymentAmount: number }): Promise<Game> => {
     const response = await api.put(`/games/${gameId}`, gameData);
+    return response.data;
+  },
+
+  /**
+   * Create payment requests for all unpaid players in a game
+   */
+  createPaymentRequests: async (gameId: number): Promise<{ message: string; requestsCreated: number; errors: string[] }> => {
+    const response = await api.post(`/games/${gameId}/payment-requests`);
+    return response.data;
+  },
+
+  /**
+   * Update a player's paid status for a game
+   * @param gameId The game ID
+   * @param userId The user ID
+   * @param paid Whether the player has paid (true) or not (false)
+   */
+  updatePlayerPaidStatus: async (gameId: number, userId: number, paid: boolean = true): Promise<{ message: string }> => {
+    const response = await api.put(`/games/${gameId}/registrations/${userId}/paid`, { paid });
     return response.data;
   },
 };
