@@ -19,6 +19,7 @@ interface Game {
   maxPlayers: number;
   unregisterDeadlineHours: number;
   paymentAmount: number;
+  fullyPaid: boolean;
   createdAt: Date | null;
   createdById: number;
 }
@@ -281,6 +282,54 @@ export const bunqService = {
         );
       
       console.log(`User ${userId} for game ${gameId} paid status updated to: ${paid}`);
+      
+      // If registration is being marked as unpaid, immediately set game as not fully paid
+      if (!paid) {
+        await db
+          .update(games)
+          .set({ fullyPaid: false })
+          .where(eq(games.id, gameId));
+        console.log(`Game ${gameId} marked as not fully paid`);
+        return true;
+      }
+      
+      // Only check all registrations if this registration is being marked as paid
+      // Get the game details
+      const gameDetails = await db
+        .select()
+        .from(games)
+        .where(eq(games.id, gameId))
+        .limit(1);
+      
+      if (!gameDetails.length) {
+        console.error('Game not found for ID', gameId);
+        return true; // Still return true as the registration update was successful
+      }
+      
+      const game = gameDetails[0];
+      
+      // Get all active (non-waitlist) registrations for this game
+      const allRegistrations = await db
+        .select()
+        .from(gameRegistrations)
+        .where(eq(gameRegistrations.gameId, gameId))
+        .orderBy(gameRegistrations.createdAt);
+      
+      // Filter out waitlisted players (those beyond maxPlayers)
+      const activeRegistrations = allRegistrations.slice(0, game.maxPlayers);
+      
+      // Check if all active registrations are paid
+      const allPaid = activeRegistrations.every(reg => reg.paid);
+      
+      // Update the game's fullyPaid status if all are paid
+      if (allPaid) {
+        await db
+          .update(games)
+          .set({ fullyPaid: true })
+          .where(eq(games.id, gameId));
+        console.log(`Game ${gameId} marked as fully paid`);
+      }
+      
       return true;
     } catch (error: any) {
       console.error('Error updating registration paid status:', error);

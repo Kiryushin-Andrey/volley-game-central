@@ -18,6 +18,8 @@ dist-ssr
 # Vite
 .vite
 
+.bunq/*
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
