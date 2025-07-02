@@ -22,6 +22,34 @@
       "when": 1750000000000,
       "tag": "0002_add_unregister_deadline_hours",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1750500000000,
+      "tag": "0003_add_fully_paid_column",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1751000000000,
+      "tag": "0004_add_bunq_credentials_table",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1751500000000,
+      "tag": "0005_add_payment_requests_table",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1751490966557,
+      "tag": "0006_add_payment_amount_column",
+      "breakpoints": true
     }
   ]
 }

@@ -603,7 +603,12 @@ router.delete('/:gameId', telegramAuthMiddleware, adminAuthMiddleware, async (re
 // Create payment requests for all unpaid players in a game (admin only)
 router.post('/:gameId/payment-requests', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) => {
   try {
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: 'Authentication required' })
+    }
+
     const gameId = parseInt(req.params.gameId);
+    const password = req.body.password;
 
     // Check if game exists
     const game = await db.select().from(games).where(eq(games.id, gameId));
@@ -612,7 +617,7 @@ router.post('/:gameId/payment-requests', telegramAuthMiddleware, adminAuthMiddle
     }
 
     // Create payment requests for all unpaid players
-    const result = await bunqService.createPaymentRequests(gameId);
+    const result = await bunqService.createPaymentRequests(gameId, req.user.id, password);
 
     if (result.success) {
       res.json({

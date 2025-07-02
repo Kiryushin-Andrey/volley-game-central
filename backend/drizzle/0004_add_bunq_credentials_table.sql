@@ -1,5 +1,5 @@
 -- Create bunq_credentials table with encryption support
-CREATE TABLE "bunq_credentials" (
+CREATE TABLE IF NOT EXISTS "bunq_credentials" (
   "user_id" integer PRIMARY KEY REFERENCES "users"("id") ON DELETE CASCADE,
   
   -- Monetary Account ID (unencrypted)
