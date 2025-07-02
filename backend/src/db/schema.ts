@@ -31,6 +31,9 @@ export const gameRegistrations = pgTable('game_registrations', {
 export const bunqCredentials = pgTable('bunq_credentials', {
   userId: integer('user_id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
   
+  // Monetary Account ID (unencrypted)
+  monetaryAccountId: integer('monetary_account_id'),
+  
   // API Key (encrypted)
   apiKeyEncrypted: text('api_key_encrypted').notNull(),
   apiKeyIv: text('api_key_iv').notNull(),
@@ -53,4 +56,15 @@ export const bunqCredentials = pgTable('bunq_credentials', {
   apiKeyUpdatedAt: timestamp('api_key_updated_at').defaultNow(),
   installationTokenUpdatedAt: timestamp('installation_token_updated_at'),
   sessionTokenUpdatedAt: timestamp('session_token_updated_at'),
+});
+
+export const paymentRequests = pgTable('payment_requests', {
+  id: serial('id').primaryKey(),
+  gameRegistrationId: serial('game_registration_id').references(() => gameRegistrations.id, { onDelete: 'cascade' }),
+  paymentRequestId: varchar('payment_request_id', { length: 255 }).notNull(),
+  paymentLink: varchar('payment_link', { length: 500 }).notNull(),
+  monetaryAccountId: integer('monetary_account_id').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  lastCheckedAt: timestamp('last_checked_at').defaultNow().notNull(),
+  paid: boolean('paid').notNull().default(false)
 });

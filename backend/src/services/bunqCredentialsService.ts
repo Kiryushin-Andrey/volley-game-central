@@ -6,8 +6,9 @@ import { encryptionUtils } from '../utils/encryptionUtils';
 /**
  * Interface for Bunq credentials
  */
-interface BunqCredentials {
+export interface BunqCredentials {
   apiKey: string;
+  monetaryAccountId?: number;
   installationToken?: string;
   sessionToken?: string;
 }
@@ -17,6 +18,9 @@ interface BunqCredentials {
  */
 interface EncryptedBunqCredentials {
   userId: number;
+  
+  // Monetary Account ID (unencrypted)
+  monetaryAccountId: number | null;
   
   // API Key
   apiKeyEncrypted: string;
@@ -63,11 +67,12 @@ export const bunqCredentialsService = {
    * Store API key for a user
    * @param userId User ID
    * @param apiKey API key to store
+   * @param monetaryAccountId Bunq monetary account ID (optional)
    * @param password Password for encryption
    * @returns True if successful, false otherwise
    * @description Storing a new API key will reset installation token and session token to null
    */
-  async storeApiKey(userId: number, apiKey: string, password: string): Promise<boolean> {
+  async storeApiKey(userId: number, apiKey: string, monetaryAccountId: number | null, password: string): Promise<boolean> {
     try {
       // Check if user exists
       const userExists = await this.checkUserExists(userId);
@@ -93,6 +98,7 @@ export const bunqCredentialsService = {
         await db
           .update(bunqCredentials)
           .set({
+            monetaryAccountId,
             apiKeyEncrypted: encryptedApiKey.encrypted,
             apiKeyIv: encryptedApiKey.iv,
             apiKeyAuthTag: encryptedApiKey.authTag,
@@ -121,6 +127,7 @@ export const bunqCredentialsService = {
           .insert(bunqCredentials)
           .values({
             userId,
+            monetaryAccountId,
             
             apiKeyEncrypted: encryptedApiKey.encrypted,
             apiKeyIv: encryptedApiKey.iv,
@@ -337,12 +344,55 @@ export const bunqCredentialsService = {
       
       return {
         apiKey,
+        monetaryAccountId: encryptedCredentials.monetaryAccountId || undefined,
         installationToken,
         sessionToken
       };
     } catch (error: any) {
       console.error('Error retrieving Bunq credentials:', error);
       return null;
+    }
+  },
+  
+  /**
+   * Update monetary account ID for a user
+   * @param userId User ID
+   * @param monetaryAccountId Bunq monetary account ID
+   * @returns True if successful, false otherwise
+   */
+  async updateMonetaryAccountId(userId: number, monetaryAccountId: number): Promise<boolean> {
+    try {
+      // Check if user exists
+      const userExists = await this.checkUserExists(userId);
+      if (!userExists) {
+        console.error(`User ${userId} does not exist`);
+        return false;
+      }
+      
+      // Check if credentials exist for this user
+      const existingCredentials = await db
+        .select()
+        .from(bunqCredentials)
+        .where(eq(bunqCredentials.userId, userId))
+        .then(rows => rows[0]);
+      
+      if (!existingCredentials) {
+        console.error(`No Bunq credentials found for user ${userId}`);
+        return false;
+      }
+      
+      // Update monetary account ID
+      await db
+        .update(bunqCredentials)
+        .set({
+          monetaryAccountId
+        })
+        .where(eq(bunqCredentials.userId, userId));
+      
+      return true;
+    } catch (error: any) {
+      console.error('Error updating monetary account ID:', error);
+      return false;
     }
   },
   

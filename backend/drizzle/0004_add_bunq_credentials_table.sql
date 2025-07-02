@@ -2,6 +2,9 @@
 CREATE TABLE "bunq_credentials" (
   "user_id" integer PRIMARY KEY REFERENCES "users"("id") ON DELETE CASCADE,
   
+  -- Monetary Account ID (unencrypted)
+  "monetary_account_id" integer,
+  
   -- API Key (encrypted)
   "api_key_encrypted" text NOT NULL,
   "api_key_iv" text NOT NULL,
