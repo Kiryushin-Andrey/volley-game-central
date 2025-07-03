@@ -5,6 +5,7 @@ import GamesList from './pages/GamesList';
 import GameDetails from './pages/GameDetails';
 import CreateGame from './pages/CreateGame';
 import EditGameSettings from './pages/EditGameSettings';
+import BunqSettings from './pages/BunqSettings';
 import LoadingSpinner from './components/LoadingSpinner';
 import './App.scss';
 import { logDebug, isDebugMode } from './debug';
@@ -46,6 +47,7 @@ function App() {
           <Route path="/game/:gameId" element={<GameDetails user={user} />} />
           <Route path="/create-game" element={<CreateGame />} />
           <Route path="/game/:gameId/edit" element={<EditGameSettings />} />
+          <Route path="/bunq-settings" element={<BunqSettings />} />
         </Routes>
       </Router>
     );

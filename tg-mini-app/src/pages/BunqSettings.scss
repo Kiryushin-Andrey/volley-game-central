@@ -1,0 +1,224 @@
+.bunq-settings-container {
+  padding: 16px;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.bunq-settings-header {
+  margin-bottom: 24px;
+  text-align: center;
+
+  h1 {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--tg-theme-text-color);
+    margin-bottom: 8px;
+  }
+
+  .subtitle {
+    font-size: 16px;
+    color: var(--tg-theme-hint-color);
+    margin: 0;
+  }
+}
+
+.settings-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-items: stretch;
+  min-height: 0;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  font-size: 16px;
+  color: var(--tg-theme-hint-color);
+}
+
+.error-message {
+  padding: 12px 16px;
+  background: #fee;
+  border: 1px solid #fcc;
+  border-radius: 8px;
+  color: #c33;
+  font-size: 14px;
+  line-height: 1.4;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-height: fit-content;
+  flex-shrink: 0;
+}
+
+.success-message {
+  padding: 12px 16px;
+  background: #efe;
+  border: 1px solid #cfc;
+  border-radius: 8px;
+  color: #363;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.integration-status {
+  padding: 20px;
+  background: var(--tg-theme-secondary-bg-color, #f8f9fa);
+  border-radius: 12px;
+  border: 1px solid var(--tg-theme-hint-color, #e1e8ed);
+
+  .status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .status-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      
+      &.enabled {
+        background: #4caf50;
+      }
+      
+      &.disabled {
+        background: #f44336;
+      }
+    }
+
+    .status-text {
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--tg-theme-text-color);
+    }
+  }
+}
+
+.action-section {
+  padding: 20px;
+  background: var(--tg-theme-bg-color);
+  border-radius: 12px;
+  border: 1px solid var(--tg-theme-hint-color, #e1e8ed);
+
+  .description {
+    font-size: 16px;
+    color: var(--tg-theme-text-color);
+    line-height: 1.5;
+    margin-bottom: 20px;
+  }
+
+  .button-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+.credentials-form {
+  padding: 20px;
+  background: var(--tg-theme-bg-color);
+  border-radius: 12px;
+  border: 1px solid var(--tg-theme-hint-color, #e1e8ed);
+
+  h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--tg-theme-text-color);
+    margin-bottom: 8px;
+  }
+
+  .form-description {
+    font-size: 14px;
+    color: var(--tg-theme-hint-color);
+    line-height: 1.4;
+    margin-bottom: 20px;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--tg-theme-text-color);
+      margin-bottom: 6px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 16px;
+      border: 1px solid var(--tg-theme-hint-color, #e1e8ed);
+      border-radius: 8px;
+      background: var(--tg-theme-bg-color);
+      color: var(--tg-theme-text-color);
+      box-sizing: border-box;
+
+      &:focus {
+        outline: none;
+        border-color: var(--tg-theme-button-color, #007aff);
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      &::placeholder {
+        color: var(--tg-theme-hint-color);
+      }
+    }
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+  }
+}
+
+.btn {
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: 500;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  flex: 1;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &.btn-primary {
+    background: var(--tg-theme-button-color, #007aff);
+    color: var(--tg-theme-button-text-color, white);
+
+    &:hover:not(:disabled) {
+      opacity: 0.9;
+    }
+  }
+
+  &.btn-secondary {
+    background: var(--tg-theme-secondary-bg-color, #f8f9fa);
+    color: var(--tg-theme-text-color);
+    border: 1px solid var(--tg-theme-hint-color, #e1e8ed);
+
+    &:hover:not(:disabled) {
+      background: var(--tg-theme-hint-color, #e1e8ed);
+    }
+  }
+
+  &.btn-danger {
+    background: #f44336;
+    color: white;
+
+    &:hover:not(:disabled) {
+      background: #d32f2f;
+    }
+  }
+}

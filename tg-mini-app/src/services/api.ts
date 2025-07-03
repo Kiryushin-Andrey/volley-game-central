@@ -122,4 +122,31 @@ export const gamesApi = {
   },
 };
 
+// Bunq-related API endpoints
+export const bunqApi = {
+  /**
+   * Check if Bunq integration is enabled for the current user
+   */
+  getStatus: async (): Promise<{ enabled: boolean }> => {
+    const response = await api.get('/users/me/bunq/status');
+    return response.data;
+  },
+
+  /**
+   * Enable Bunq integration with API key and password
+   */
+  enable: async (apiKey: string, password: string): Promise<{ success: boolean; message: string }> => {
+    const response = await api.post('/users/me/bunq/enable', { apiKey, password });
+    return response.data;
+  },
+
+  /**
+   * Disable Bunq integration
+   */
+  disable: async (): Promise<{ success: boolean; message: string }> => {
+    const response = await api.delete('/users/me/bunq/disable');
+    return response.data;
+  },
+};
+
 export default api;

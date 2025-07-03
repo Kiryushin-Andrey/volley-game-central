@@ -1,5 +1,5 @@
 {
-  "id": "60210fee-0d7b-442e-84e1-039a602436a8",
+  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "prevId": "5fc2b9d8-7e4a-4f0d-b8f2-a9c3e7d2e8f1",
   "version": "5",
   "dialect": "pg",
@@ -32,18 +32,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "api_key_auth_tag": {
-          "name": "api_key_auth_tag",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "api_key_salt": {
-          "name": "api_key_salt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
         "installation_token_encrypted": {
           "name": "installation_token_encrypted",
           "type": "text",
@@ -52,18 +40,6 @@
         },
         "installation_token_iv": {
           "name": "installation_token_iv",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "installation_token_auth_tag": {
-          "name": "installation_token_auth_tag",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "installation_token_salt": {
-          "name": "installation_token_salt",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -80,36 +56,31 @@
           "primaryKey": false,
           "notNull": false
         },
-        "session_token_auth_tag": {
-          "name": "session_token_auth_tag",
+        "private_key_encrypted": {
+          "name": "private_key_encrypted",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "session_token_salt": {
-          "name": "session_token_salt",
+        "private_key_iv": {
+          "name": "private_key_iv",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "api_key_updated_at": {
-          "name": "api_key_updated_at",
+        "created_at": {
+          "name": "created_at",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": "now()"
         },
-        "installation_token_updated_at": {
-          "name": "installation_token_updated_at",
+        "updated_at": {
+          "name": "updated_at",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": false
-        },
-        "session_token_updated_at": {
-          "name": "session_token_updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {},
@@ -143,13 +114,13 @@
         },
         "game_id": {
           "name": "game_id",
-          "type": "serial",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
         "user_id": {
           "name": "user_id",
-          "type": "serial",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
@@ -164,7 +135,7 @@
           "name": "created_at",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": "now()"
         }
       },
@@ -180,7 +151,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         },
         "game_registrations_user_id_users_id_fk": {
@@ -193,12 +164,21 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {
+        "game_registrations_game_id_user_id_unique": {
+          "name": "game_registrations_game_id_user_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "game_id",
+            "user_id"
+          ]
+        }
+      }
     },
     "games": {
       "name": "games",
@@ -216,24 +196,36 @@
           "primaryKey": false,
           "notNull": true
         },
+        "location": {
+          "name": "location",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "max_players": {
           "name": "max_players",
-          "type": "serial",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "price": {
+          "name": "price",
+          "type": "numeric(10,2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "registration_opens_at": {
+          "name": "registration_opens_at",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true
         },
         "unregister_deadline_hours": {
           "name": "unregister_deadline_hours",
-          "type": "serial",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 5
-        },
-        "payment_amount": {
-          "name": "payment_amount",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": 24
         },
         "fully_paid": {
           "name": "fully_paid",
@@ -246,32 +238,12 @@
           "name": "created_at",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": "now()"
-        },
-        "created_by_id": {
-          "name": "created_by_id",
-          "type": "serial",
-          "primaryKey": false,
-          "notNull": true
         }
       },
       "indexes": {},
-      "foreignKeys": {
-        "games_created_by_id_users_id_fk": {
-          "name": "games_created_by_id_users_id_fk",
-          "tableFrom": "games",
-          "tableTo": "users",
-          "columnsFrom": [
-            "created_by_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
@@ -285,21 +257,21 @@
           "primaryKey": true,
           "notNull": true
         },
-        "game_registration_id": {
-          "name": "game_registration_id",
-          "type": "serial",
+        "payment_request_id": {
+          "name": "payment_request_id",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "payment_request_id": {
-          "name": "payment_request_id",
-          "type": "varchar(255)",
+        "game_registration_id": {
+          "name": "game_registration_id",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
         "payment_link": {
           "name": "payment_link",
-          "type": "varchar(500)",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -308,6 +280,19 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true
+        },
+        "amount": {
+          "name": "amount",
+          "type": "numeric(10,2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "paid": {
+          "name": "paid",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         },
         "created_at": {
           "name": "created_at",
@@ -322,13 +307,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
-        },
-        "paid": {
-          "name": "paid",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
         }
       },
       "indexes": {},
@@ -362,19 +340,25 @@
         },
         "telegram_id": {
           "name": "telegram_id",
-          "type": "varchar(255)",
+          "type": "bigint",
           "primaryKey": false,
           "notNull": true
         },
         "username": {
           "name": "username",
-          "type": "varchar(255)",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "avatar_url": {
-          "name": "avatar_url",
-          "type": "varchar(500)",
+        "first_name": {
+          "name": "first_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_name": {
+          "name": "last_name",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -389,7 +373,7 @@
           "name": "created_at",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": "now()"
         }
       },

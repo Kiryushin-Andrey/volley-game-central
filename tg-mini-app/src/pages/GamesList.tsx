@@ -227,11 +227,31 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
     navigate('/create-game');
   };
 
+  const handleBunqSettings = () => {
+    navigate('/bunq-settings');
+  };
+
   return (
     <div className="games-list-container">
       <header className="games-header">
         {user.isAdmin && (
           <div className="admin-controls">
+            <div className="button-row">
+              <button 
+                onClick={handleBunqSettings} 
+                className="bunq-settings-button"
+                disabled={isLoadingRef.current}
+              >
+                💳 Bunq settings
+              </button>
+              <button 
+                onClick={handleCreateGame} 
+                className="create-game-button"
+                disabled={isLoadingRef.current}
+              >
+                + New Game
+              </button>
+            </div>
             <label className="past-games-toggle">
               <input
                 type="checkbox"
@@ -241,13 +261,6 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
               />
               Show inactive games
             </label>
-            <button 
-              onClick={handleCreateGame} 
-              className="create-game-button"
-              disabled={isLoadingRef.current}
-            >
-              + New Game
-            </button>
           </div>
         )}
       </header>

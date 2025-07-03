@@ -46,6 +46,12 @@ export const bunqCredentials = pgTable('bunq_credentials', {
   installationTokenAuthTag: text('installation_token_auth_tag'),
   installationTokenSalt: text('installation_token_salt'),
   
+  // Private Key (encrypted, can be null)
+  privateKeyEncrypted: text('private_key_encrypted'),
+  privateKeyIv: text('private_key_iv'),
+  privateKeyAuthTag: text('private_key_auth_tag'),
+  privateKeySalt: text('private_key_salt'),
+  
   // Session Token (encrypted, can be null)
   sessionTokenEncrypted: text('session_token_encrypted'),
   sessionTokenIv: text('session_token_iv'),
@@ -55,6 +61,7 @@ export const bunqCredentials = pgTable('bunq_credentials', {
   // Timestamps for each credential type
   apiKeyUpdatedAt: timestamp('api_key_updated_at').defaultNow(),
   installationTokenUpdatedAt: timestamp('installation_token_updated_at'),
+  privateKeyUpdatedAt: timestamp('private_key_updated_at'),
   sessionTokenUpdatedAt: timestamp('session_token_updated_at'),
 });
 

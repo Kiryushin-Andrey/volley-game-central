@@ -9,10 +9,75 @@
 
   .admin-controls {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
+    gap: 12px;
     width: 100%;
     margin: 10px 0 15px;
+    
+    .button-row {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+    }
+    
+    .bunq-settings-button {
+      background-color: var(--tg-theme-secondary-bg-color, #f1f3f4);
+      color: var(--tg-theme-text-color);
+      border: 1px solid var(--tg-theme-hint-color, #e1e8ed);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      flex: 1;
+
+      &:hover {
+        background-color: var(--tg-theme-hint-color, #e1e8ed);
+      }
+
+      &:active {
+        opacity: 0.7;
+      }
+      
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+    
+    .create-game-button {
+      background-color: var(--tg-theme-button-color);
+      color: var(--tg-theme-button-text-color);
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+
+      &:hover {
+        opacity: 0.9;
+      }
+
+      &:active {
+        opacity: 0.7;
+      }
+      
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
     
     .past-games-toggle {
       display: flex;
@@ -46,29 +111,6 @@
           font-size: 12px;
           text-align: center;
         }
-      }
-    }
-
-    .create-game-button {
-      background-color: var(--tg-theme-button-color);
-      color: var(--tg-theme-button-text-color);
-      border: none;
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity 0.2s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      &:hover {
-        opacity: 0.9;
-      }
-
-      &:active {
-        opacity: 0.7;
       }
     }
   }

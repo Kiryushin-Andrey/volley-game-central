@@ -1,0 +1,174 @@
+{
+  "id": "0007_add_private_key_to_bunq_credentials",
+  "prevId": "0006_add_payment_amount_column",
+  "version": "5",
+  "dialect": "pg",
+  "tables": {
+    "bunq_credentials": {
+      "name": "bunq_credentials",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "monetary_account_id": {
+          "name": "monetary_account_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "api_key_encrypted": {
+          "name": "api_key_encrypted",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "api_key_iv": {
+          "name": "api_key_iv",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "api_key_auth_tag": {
+          "name": "api_key_auth_tag",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "api_key_salt": {
+          "name": "api_key_salt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "installation_token_encrypted": {
+          "name": "installation_token_encrypted",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "installation_token_iv": {
+          "name": "installation_token_iv",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "installation_token_auth_tag": {
+          "name": "installation_token_auth_tag",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "installation_token_salt": {
+          "name": "installation_token_salt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "private_key_encrypted": {
+          "name": "private_key_encrypted",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "private_key_iv": {
+          "name": "private_key_iv",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "private_key_auth_tag": {
+          "name": "private_key_auth_tag",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "private_key_salt": {
+          "name": "private_key_salt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "session_token_encrypted": {
+          "name": "session_token_encrypted",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "session_token_iv": {
+          "name": "session_token_iv",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "session_token_auth_tag": {
+          "name": "session_token_auth_tag",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "session_token_salt": {
+          "name": "session_token_salt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "api_key_updated_at": {
+          "name": "api_key_updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "installation_token_updated_at": {
+          "name": "installation_token_updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "private_key_updated_at": {
+          "name": "private_key_updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "session_token_updated_at": {
+          "name": "session_token_updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "bunq_credentials_user_id_idx": {
+          "name": "bunq_credentials_user_id_idx",
+          "columns": ["user_id"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "bunq_credentials_user_id_users_id_fk": {
+          "name": "bunq_credentials_user_id_users_id_fk",
+          "tableFrom": "bunq_credentials",
+          "tableTo": "users",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
