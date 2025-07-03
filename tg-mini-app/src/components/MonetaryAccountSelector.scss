@@ -1,0 +1,189 @@
+// Monetary Account Selector Component Styles
+
+.error-message {
+  padding: 12px 16px;
+  background: #fee;
+  border: 1px solid #fcc;
+  border-radius: 8px;
+  color: #c33;
+  font-size: 14px;
+  line-height: 1.4;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-height: fit-content;
+  flex-shrink: 0;
+  margin-bottom: 16px;
+}
+
+.success-message {
+  padding: 12px 16px;
+  background: #efe;
+  border: 1px solid #cfc;
+  border-radius: 8px;
+  color: #363;
+  font-size: 14px;
+  line-height: 1.4;
+  margin-bottom: 16px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+
+  label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--tg-theme-text-color);
+    margin-bottom: 6px;
+  }
+
+  select {
+    width: 100%;
+    padding: 16px 20px;
+    font-size: 18px;
+    border: 2px solid var(--tg-theme-hint-color, #e1e8ed);
+    border-radius: 12px;
+    background: var(--tg-theme-bg-color);
+    color: var(--tg-theme-text-color);
+    box-sizing: border-box;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+
+    &:focus {
+      outline: none;
+      border-color: var(--tg-theme-button-color, #007aff);
+      border-width: 2px;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
+  .loading-text {
+    padding: 12px 16px;
+    font-size: 14px;
+    color: var(--tg-theme-hint-color);
+    font-style: italic;
+  }
+
+  .error-text {
+    padding: 12px 16px;
+    font-size: 14px;
+    color: #f44336;
+    font-style: italic;
+  }
+
+  .button-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+.password-prompt-form {
+  padding: 20px;
+  background: var(--tg-theme-bg-color);
+  border-radius: 12px;
+  margin-top: 20px;
+
+  h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--tg-theme-text-color);
+    margin-bottom: 8px;
+  }
+
+  .form-description {
+    font-size: 14px;
+    color: var(--tg-theme-hint-color);
+    line-height: 1.4;
+    margin-bottom: 20px;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--tg-theme-text-color);
+      margin-bottom: 6px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 16px;
+      border: 1px solid var(--tg-theme-hint-color, #e1e8ed);
+      border-radius: 8px;
+      background: var(--tg-theme-bg-color);
+      color: var(--tg-theme-text-color);
+      box-sizing: border-box;
+
+      &:focus {
+        outline: none;
+        border-color: var(--tg-theme-button-color, #007aff);
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      &::placeholder {
+        color: var(--tg-theme-hint-color);
+      }
+    }
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+
+    .btn {
+      font-size: 14px; // Smaller text for password form buttons
+    }
+  }
+}
+
+.btn {
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: 500;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  flex: 1;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &.btn-primary {
+    background: var(--tg-theme-button-color, #007aff);
+    color: var(--tg-theme-button-text-color, white);
+
+    &:hover:not(:disabled) {
+      opacity: 0.9;
+    }
+  }
+
+  &.btn-secondary {
+    background: var(--tg-theme-secondary-bg-color, #f8f9fa);
+    color: var(--tg-theme-text-color);
+    border: 1px solid var(--tg-theme-hint-color, #e1e8ed);
+
+    &:hover:not(:disabled) {
+      background: var(--tg-theme-hint-color, #e1e8ed);
+    }
+  }
+}

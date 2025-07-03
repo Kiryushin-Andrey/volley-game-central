@@ -147,6 +147,22 @@ export const bunqApi = {
     const response = await api.delete('/users/me/bunq/disable');
     return response.data;
   },
+
+  /**
+   * Get available monetary accounts for Bunq integration
+   */
+  getMonetaryAccounts: async (password: string): Promise<{ success: boolean; accounts: Array<{ id: number; description: string }> }> => {
+    const response = await api.post('/users/me/bunq/monetary-accounts', { password });
+    return response.data;
+  },
+
+  /**
+   * Update the selected monetary account ID
+   */
+  updateMonetaryAccount: async (monetaryAccountId: number): Promise<{ success: boolean; message: string }> => {
+    const response = await api.put('/users/me/bunq/monetary-account', { monetaryAccountId });
+    return response.data;
+  },
 };
 
 export default api;

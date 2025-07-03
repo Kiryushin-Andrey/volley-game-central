@@ -267,11 +267,10 @@ export async function fetchMonetaryAccounts(sessionToken: string): Promise<any[]
     // Extract monetary accounts from the response
     const accounts = [];
     for (const item of accountsResponse.data.Response) {
-      if (item.MonetaryAccountBank) {
+      if (item.MonetaryAccountBank && item.MonetaryAccountBank.status === 'ACTIVE') {
         accounts.push({
           id: item.MonetaryAccountBank.id,
-          description: item.MonetaryAccountBank.description,
-          status: item.MonetaryAccountBank.status
+          description: item.MonetaryAccountBank.description
         });
       }
     }

@@ -148,7 +148,7 @@ router.post('/me/bunq/enable', telegramAuthMiddleware, adminAuthMiddleware, asyn
       installationToken,
       privateKey,
       sessionToken,
-      null, // monetaryAccountId will be set later
+      monetaryAccounts.length > 0 ? monetaryAccounts[0].id : null,
       password
     );
 
@@ -189,6 +189,89 @@ router.delete('/me/bunq/disable', telegramAuthMiddleware, adminAuthMiddleware, a
   } catch (error) {
     console.error('Error disabling Bunq integration:', error);
     res.status(500).json({ error: 'Failed to disable Bunq integration' });
+  }
+});
+
+// Get monetary accounts for Bunq integration
+router.post('/me/bunq/monetary-accounts', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) => {
+  try {
+    const { password } = req.body;
+    
+    if (!password) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Password is required to decrypt credentials' 
+      });
+    }
+
+    // Get user's Bunq credentials to retrieve session token
+    const userCredentials = await bunqCredentialsService.getCredentials(req.user!.id, password);
+    
+    if (!userCredentials || !userCredentials.sessionToken) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Bunq integration not enabled or session token not available' 
+      });
+    }
+
+    // Fetch monetary accounts from Bunq API
+    const accounts = await fetchMonetaryAccounts(userCredentials.sessionToken);
+    
+    if (!accounts) {
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Failed to fetch monetary accounts from Bunq' 
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      accounts: accounts.map(account => ({
+        id: account.id,
+        description: account.description
+      }))
+    });
+  } catch (error: any) {
+    console.error('Error fetching monetary accounts:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Internal server error while fetching monetary accounts' 
+    });
+  }
+});
+
+// Update monetary account ID for Bunq integration
+router.put('/me/bunq/monetary-account', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) => {
+  try {
+    const { monetaryAccountId } = req.body;
+    
+    if (!monetaryAccountId || typeof monetaryAccountId !== 'number') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Valid monetary account ID is required' 
+      });
+    }
+
+    // Update monetary account ID in the database
+    const updated = await bunqCredentialsService.updateMonetaryAccountId(req.user!.id, monetaryAccountId);
+    
+    if (!updated) {
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Failed to update monetary account ID' 
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Monetary account updated successfully' 
+    });
+  } catch (error: any) {
+    console.error('Error updating monetary account:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Internal server error while updating monetary account' 
+    });
   }
 });
 
