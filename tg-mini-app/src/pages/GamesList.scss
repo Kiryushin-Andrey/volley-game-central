@@ -79,37 +79,120 @@
       }
     }
     
-    .past-games-toggle {
+    .game-filters {
       display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 14px;
-      color: var(--tg-theme-text-color);
-      cursor: pointer;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+      padding: 12px;
+      background-color: var(--tg-theme-secondary-bg-color, #f8f9fa);
+      border-radius: 8px;
       
-      input[type="checkbox"] {
-        appearance: none;
-        -webkit-appearance: none;
-        width: 18px;
-        height: 18px;
-        border: 1px solid var(--tg-theme-hint-color);
-        border-radius: 4px;
-        margin: 0;
-        display: grid;
-        place-content: center;
-        cursor: pointer;
-        background-color: var(--tg-theme-bg-color);
+      .radio-group {
+        display: flex;
+        gap: 12px;
         
-        &:checked {
-          background-color: var(--tg-theme-button-color);
-          border-color: var(--tg-theme-button-color);
+        .radio-label {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 14px;
+          color: var(--tg-theme-text-color);
+          cursor: pointer;
+          padding: 6px 12px;
+          border-radius: 6px;
+          transition: all 0.2s ease;
+          
+          &:hover {
+            background-color: var(--tg-theme-hint-color, #e9ecef);
+          }
+          
+          &.active {
+            background-color: var(--tg-theme-button-color, #007bff);
+            color: var(--tg-theme-button-text-color, #ffffff);
+          }
+          
+          input[type="radio"] {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--tg-theme-hint-color, #ced4da);
+            border-radius: 50%;
+            margin: 0;
+            display: grid;
+            place-content: center;
+            cursor: pointer;
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            
+            &::before {
+              content: "";
+              width: 8px;
+              height: 8px;
+              border-radius: 50%;
+              transform: scale(0);
+              transition: transform 0.2s ease;
+              background-color: var(--tg-theme-button-text-color, #ffffff);
+            }
+            
+            &:checked {
+              background-color: var(--tg-theme-button-color, #007bff);
+              border-color: var(--tg-theme-button-color, #007bff);
+              
+              &::before {
+                transform: scale(1);
+              }
+            }
+          }
+        }
+      }
+      
+      .show-all-toggle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--tg-theme-text-color);
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+        
+        &:hover {
+          background-color: var(--tg-theme-hint-color, #e9ecef);
         }
         
-        &:checked::before {
-          content: "✓";
-          color: var(--tg-theme-button-text-color);
-          font-size: 12px;
-          text-align: center;
+        input[type="checkbox"] {
+          appearance: none;
+          -webkit-appearance: none;
+          width: 16px;
+          height: 16px;
+          border: 2px solid var(--tg-theme-hint-color, #ced4da);
+          border-radius: 4px;
+          margin: 0;
+          display: grid;
+          place-content: center;
+          cursor: pointer;
+          background-color: var(--tg-theme-bg-color, #ffffff);
+          transition: all 0.2s ease;
+          
+          &:checked {
+            background-color: var(--tg-theme-button-color, #007bff);
+            border-color: var(--tg-theme-button-color, #007bff);
+          }
+          
+          &::before {
+            content: "✓";
+            color: var(--tg-theme-button-text-color, #ffffff);
+            font-size: 10px;
+            font-weight: bold;
+            transform: scale(0);
+            transition: transform 0.2s ease;
+          }
+          
+          &:checked::before {
+            transform: scale(1);
+          }
         }
       }
     }

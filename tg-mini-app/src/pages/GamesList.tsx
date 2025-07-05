@@ -6,6 +6,8 @@ import { GameWithStats, User } from '../types';
 import LoadingSpinner from '../components/LoadingSpinner';
 import './GamesList.scss';
 
+type GameFilter = 'upcoming' | 'past';
+
 interface GamesListProps {
   user: User;
 }
@@ -66,13 +68,11 @@ const GameItem = memo(({ game, onClick, formatDate }: {
 const GameItemsList = memo(({ 
   games, 
   isLoading, 
-  includeInactiveGames,
   formatDate,
   handleGameClick 
 }: { 
   games: GameWithStats[], 
   isLoading: boolean,
-  includeInactiveGames: boolean,
   formatDate: (date: string) => string,
   handleGameClick: (id: number) => void
 }) => {
@@ -90,7 +90,7 @@ const GameItemsList = memo(({
   if (games.length === 0) {
     return (
       <div className="no-games">
-        <p>No {includeInactiveGames ? '' : 'active '}games available</p>
+        <p>No games available</p>
       </div>
     );
   }
@@ -113,23 +113,18 @@ const GameItemsList = memo(({
 const GamesList: React.FC<GamesListProps> = ({ user }) => {
   const [games, setGames] = useState<GameWithStats[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [includeInactiveGames, setIncludeInactiveGames] = useState(false);
+  const [gameFilter, setGameFilter] = useState<GameFilter>('upcoming');
+  const [showAll, setShowAll] = useState(false);
   
   // Use a ref for loading state to avoid re-renders of the parent component
   const isLoadingRef = useRef(false);
   const [loadingIndicator, setLoadingIndicator] = useState(false);
   const navigate = useNavigate();
 
-  // Function to handle the checkbox change without triggering full re-render
-  const handleInactiveGamesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.checked;
-    setIncludeInactiveGames(newValue); // This will trigger the useEffect
-  };
-  
-  // Effect to re-load games when the inactive games checkbox state changes
+  // Effect to re-load games when filter or showAll state changes
   useEffect(() => {
     loadGames();
-  }, [includeInactiveGames]);
+  }, [gameFilter, showAll]);
   
   // Ensure main button is hidden on games list screen
   // It should only be visible on game details screen
@@ -149,21 +144,20 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
       
       // Use setTimeout to ensure loading indicator has time to appear
       // and to ensure DOM updates before the potentially expensive operation
-      const fetchedGames = await gamesApi.getAllGames(includeInactiveGames);
+      const showPast = gameFilter === 'past';
+      const fetchedGames = await gamesApi.getAllGames(showPast, showAll);
       
       // Process games to ensure they have all required properties with defaults
-      const gamesWithRequiredProps: GameWithStats[] = fetchedGames.map((game: any) => {
-        return {
-          ...game,
-          // Ensure required fields have defaults
-          totalRegisteredCount: game.totalRegisteredCount || 0,
-          paidCount: game.paidCount,
-          registeredCount: game.registeredCount,
-          // User registration status (already included by API for games within 5 days)
-          isUserRegistered: game.isUserRegistered || false,
-          userRegistration: game.userRegistration || undefined
-        };
-      });
+      const gamesWithRequiredProps: GameWithStats[] = fetchedGames.map((game: any) => ({
+        ...game,
+        // Ensure required fields have defaults
+        totalRegisteredCount: game.totalRegisteredCount || 0,
+        paidCount: game.paidCount,
+        registeredCount: game.registeredCount,
+        // User registration status (already included by API for games within 5 days)
+        isUserRegistered: game.isUserRegistered || false,
+        userRegistration: game.userRegistration || undefined
+      }));
       
       // Games are already filtered and sorted by the backend
       setGames(gamesWithRequiredProps);
@@ -207,8 +201,6 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
     navigate(`/game/${gameId}`);
   };
 
-  // Loading state is now handled inside the GameItemsList component
-
   if (error) {
     return (
       <div className="games-list-container">
@@ -223,62 +215,74 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
     );
   }
 
-  const handleCreateGame = () => {
-    navigate('/create-game');
-  };
-
-  const handleBunqSettings = () => {
-    navigate('/bunq-settings');
-  };
-
   return (
     <div className="games-list-container">
-      <header className="games-header">
+      <div className="games-header">
         {user.isAdmin && (
           <div className="admin-controls">
             <div className="button-row">
-              <button 
-                onClick={handleBunqSettings} 
+              <button
                 className="bunq-settings-button"
-                disabled={isLoadingRef.current}
+                onClick={() => navigate('/bunq-settings')}
               >
                 💳 Bunq settings
               </button>
-              <button 
-                onClick={handleCreateGame} 
+              <button
                 className="create-game-button"
-                disabled={isLoadingRef.current}
+                onClick={() => navigate('/games/new')}
               >
-                + New Game
+                Create New Game
               </button>
             </div>
-            <label className="past-games-toggle">
-              <input
-                type="checkbox"
-                checked={includeInactiveGames}
-                onChange={handleInactiveGamesChange}
-                disabled={isLoadingRef.current}
-              />
-              Show inactive games
-            </label>
+            
+            <div className="game-filters">
+              <div className="radio-group">
+                <label className={`radio-label ${gameFilter === 'upcoming' ? 'active' : ''}`}>
+                  <input
+                    type="radio"
+                    name="gameFilter"
+                    value="upcoming"
+                    checked={gameFilter === 'upcoming'}
+                    onChange={() => setGameFilter('upcoming')}
+                  />
+                  <span>Upcoming</span>
+                </label>
+                <label className={`radio-label ${gameFilter === 'past' ? 'active' : ''}`}>
+                  <input
+                    type="radio"
+                    name="gameFilter"
+                    value="past"
+                    checked={gameFilter === 'past'}
+                    onChange={() => setGameFilter('past')}
+                  />
+                  <span>Past</span>
+                </label>
+              </div>
+              
+              {user.isAdmin && (
+                <div className="show-all-toggle">
+                  <input
+                    type="checkbox"
+                    id="showAllGames"
+                    checked={showAll}
+                    onChange={(e) => setShowAll(e.target.checked)}
+                  />
+                  <label htmlFor="showAllGames">
+                    {gameFilter == 'upcoming' ? "Show all scheduled games" : "Show fully paid games"}
+                  </label>
+                </div>
+              )}
+            </div>
           </div>
         )}
-      </header>
+      </div>
 
-      {error ? (
-        <div className="error-message">
-          <p>{error}</p>
-          <button onClick={loadGames} className="retry-button">Retry</button>
-        </div>
-      ) : (
-        <GameItemsList 
-          games={games}
-          isLoading={loadingIndicator}
-          includeInactiveGames={includeInactiveGames}
-          formatDate={formatDate}
-          handleGameClick={handleGameClick}
-        />
-      )}
+      <GameItemsList 
+        games={games}
+        isLoading={loadingIndicator}
+        formatDate={formatDate}
+        handleGameClick={handleGameClick}
+      />
     </div>
   );
 };

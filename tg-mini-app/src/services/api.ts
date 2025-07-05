@@ -70,9 +70,13 @@ export const gamesApi = {
     return new Date(response.data.defaultDateTime);
   },
 
-  getAllGames: async (includeInactiveGames: boolean = false): Promise<GameWithStats[]> => {
-    const response = await api.get(`/games?includeInactiveGames=${includeInactiveGames}`);
-    return response.data;
+  getAllGames(showPast: boolean = false, showAll: boolean = false): Promise<GameWithStats[]> {
+    return api.get<GameWithStats[]>('/games', { 
+      params: { 
+        showPast,
+        showAll
+      } 
+    }).then(res => res.data);
   },
 
   getGame: async (gameId: number): Promise<Game> => {

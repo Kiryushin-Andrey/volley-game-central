@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { db } from '../db';
 import { games, gameRegistrations, users } from '../db/schema';
-import { gte, desc, inArray, eq, and, sql } from 'drizzle-orm';
+import { gte, desc, inArray, eq, and, sql, lt, lte, asc } from 'drizzle-orm';
 import { telegramAuthMiddleware } from '../middleware/telegramAuth';
 import { adminAuthMiddleware } from '../middleware/adminAuth';
 import { sendTelegramNotification } from '../services/telegramService';
@@ -330,36 +330,70 @@ router.get('/:gameId', async (req, res) => {
 // Get all games with optimized registration stats and user-specific registration info
 router.get('/', telegramAuthMiddleware, async (req, res) => {
   try {
-    // Parse the includeInactiveGames query parameter
-    const includeInactiveGames = req.query.includeInactiveGames === 'true';
+    // Parse query parameters
+    const showPast = req.query.showPast === 'true';
+    const showAll = req.query.showAll === 'true';
+    const isAdmin = req.user?.isAdmin;
     
     // Get current date for filtering
     const currentDate = new Date();
+    let filteredGames;
     
-    // Calculate date 5 days from now for timing threshold
-    const fiveDaysFromNow = new Date();
-    fiveDaysFromNow.setDate(fiveDaysFromNow.getDate() + 5);
-    
-    // Build a query that filters and sorts in SQL
-    let query;
-    
-    // Apply date filter in SQL if not including inactive games (past games or future games not available for registration)
-    if (!includeInactiveGames) {
-      // Only show active games: current date <= game date <= 5 days from now
-      query = db.select().from(games).where(and(
-        gte(games.dateTime, currentDate),
-        sql`${games.dateTime} <= ${fiveDaysFromNow}`
-      ));
+    if (showPast) {
+      // For past games: game date is before current date
+      if (showAll) {
+        // Show all past games
+        filteredGames = await db
+          .select()
+          .from(games)
+          .where(lt(games.dateTime, currentDate))
+          .orderBy(desc(games.dateTime));
+      } else {
+        // Only show past games with unpaid participants
+        const gamesWithUnpaid = await db
+          .selectDistinct({ gameId: gameRegistrations.gameId })
+          .from(gameRegistrations)
+          .where(eq(gameRegistrations.paid, false));
+          
+        const gameIdsWithUnpaid = gamesWithUnpaid.map(g => g.gameId);
+        if (gameIdsWithUnpaid.length === 0) {
+          return res.json([]);
+        }
+        
+        // Get past games with unpaid participants
+        filteredGames = await db
+          .select()
+          .from(games)
+          .where(and(
+            lt(games.dateTime, currentDate),
+            inArray(games.id, gameIdsWithUnpaid)
+          ))
+          .orderBy(desc(games.dateTime));
+      }
     } else {
-      query = db.select().from(games);
+      // For upcoming games: game date is on or after current date
+      if (showAll) {
+        // Show all upcoming games
+        filteredGames = await db
+          .select()
+          .from(games)
+          .where(gte(games.dateTime, currentDate))
+          .orderBy(asc(games.dateTime));
+      } else {
+        // Only show games within the next 5 days (open for registration)
+        const fiveDaysFromNow = new Date();
+        fiveDaysFromNow.setDate(fiveDaysFromNow.getDate() + 5);
+        
+        filteredGames = await db
+          .select()
+          .from(games)
+          .where(and(
+            gte(games.dateTime, currentDate),
+            lte(games.dateTime, fiveDaysFromNow)
+          ))
+          .orderBy(asc(games.dateTime));
+      }
     }
-    
-    // Sort by dateTime based on includeInactiveGames parameter
-    // When includeInactiveGames is false: sort ascending (nearest future games first)
-    // When includeInactiveGames is true: sort descending (most recent games first)
-    const filteredGames = await query.orderBy(
-      includeInactiveGames ? desc(games.dateTime) : games.dateTime
-    );
     
     if (filteredGames.length === 0) {
       return res.json([]);
@@ -393,7 +427,10 @@ router.get('/', telegramAuthMiddleware, async (req, res) => {
     const processGames = async () => {
       const gamesWithStats = [];
       const userId = req.user?.id; // Safely access user ID
-      
+
+      const fiveDaysFromNow = new Date();
+      fiveDaysFromNow.setDate(fiveDaysFromNow.getDate() + 5);
+
       // Process each game one by one to handle async operations properly
       for (const game of filteredGames) {
         // Find registration counts for this game
