@@ -627,7 +627,7 @@ router.post('/:gameId/payment-requests', telegramAuthMiddleware, adminAuthMiddle
       });
     } else {
       res.status(500).json({
-        error: 'Failed to create payment requests',
+        error: result.errors.length == 1 ? result.errors[0] : 'Failed to create payment requests',
         errors: result.errors
       });
     }

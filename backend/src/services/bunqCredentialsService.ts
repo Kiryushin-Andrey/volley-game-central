@@ -70,7 +70,7 @@ export const bunqCredentialsService = {
       .where(eq(users.id, userId))
       .then(rows => rows.length > 0);
   },
-  
+
   /**
    * Retrieve Bunq credentials for a user
    * @param userId User ID
@@ -78,19 +78,19 @@ export const bunqCredentialsService = {
    * @returns Decrypted Bunq credentials or null if not found
    */
   async getCredentials(userId: number, password: string): Promise<BunqCredentials | null> {
-    try {
-      // Get encrypted credentials from database
-      const encryptedCredentials = await db
-        .select()
-        .from(bunqCredentials)
-        .where(eq(bunqCredentials.userId, userId))
-        .then(rows => rows[0] as EncryptedBunqCredentials | undefined);
-      
-      if (!encryptedCredentials) {
+    // Get encrypted credentials from database
+    const encryptedCredentials = await db
+      .select()
+      .from(bunqCredentials)
+      .where(eq(bunqCredentials.userId, userId))
+      .then(rows => rows[0] as EncryptedBunqCredentials | undefined);
+
+    if (!encryptedCredentials) {
         console.error(`No Bunq credentials found for user ${userId}`);
         return null;
-      }
-      
+    }
+
+    try {
       // Decrypt API key
       const apiKeyKey = encryptionUtils.deriveKey(password, encryptedCredentials.apiKeySalt);
       const apiKey = encryptionUtils.decrypt(
@@ -99,7 +99,7 @@ export const bunqCredentialsService = {
         encryptedCredentials.apiKeyAuthTag,
         apiKeyKey
       );
-      
+
       // Decrypt installation token if available
       let installationToken: string | undefined;
       if (
@@ -112,70 +112,73 @@ export const bunqCredentialsService = {
           password,
           encryptedCredentials.installationTokenSalt
         );
-        
+
         installationToken = encryptionUtils.decrypt(
           encryptedCredentials.installationTokenEncrypted,
           encryptedCredentials.installationTokenIv,
           encryptedCredentials.installationTokenAuthTag,
           installationTokenKey
         );
-    }
-    
+      }
+
     // Decrypt private key if available
     let privateKey: string | undefined;
     if (
       encryptedCredentials.privateKeyEncrypted &&
-      encryptedCredentials.privateKeyIv &&
-      encryptedCredentials.privateKeyAuthTag &&
+        encryptedCredentials.privateKeyIv &&
+        encryptedCredentials.privateKeyAuthTag &&
       encryptedCredentials.privateKeySalt
     ) {
-      const privateKeyKey = encryptionUtils.deriveKey(
-        password,
-        encryptedCredentials.privateKeySalt
-      );
-      
-      privateKey = encryptionUtils.decrypt(
-        encryptedCredentials.privateKeyEncrypted,
-        encryptedCredentials.privateKeyIv,
-        encryptedCredentials.privateKeyAuthTag,
-        privateKeyKey
-      );
-    }
-    
+        const privateKeyKey = encryptionUtils.deriveKey(
+          password,
+          encryptedCredentials.privateKeySalt
+        );
+
+        privateKey = encryptionUtils.decrypt(
+          encryptedCredentials.privateKeyEncrypted,
+          encryptedCredentials.privateKeyIv,
+          encryptedCredentials.privateKeyAuthTag,
+          privateKeyKey
+        );
+      }
+
     // Decrypt session token if available
     let sessionToken: string | undefined;
     if (
       encryptedCredentials.sessionTokenEncrypted &&
-      encryptedCredentials.sessionTokenIv &&
-      encryptedCredentials.sessionTokenAuthTag &&
+        encryptedCredentials.sessionTokenIv &&
+        encryptedCredentials.sessionTokenAuthTag &&
       encryptedCredentials.sessionTokenSalt
     ) {
-      const sessionTokenKey = encryptionUtils.deriveKey(
-        password,
-        encryptedCredentials.sessionTokenSalt
-      );
-      
-      sessionToken = encryptionUtils.decrypt(
-        encryptedCredentials.sessionTokenEncrypted,
-        encryptedCredentials.sessionTokenIv,
-        encryptedCredentials.sessionTokenAuthTag,
-        sessionTokenKey
-      );
+        const sessionTokenKey = encryptionUtils.deriveKey(
+          password,
+          encryptedCredentials.sessionTokenSalt
+        );
+
+        sessionToken = encryptionUtils.decrypt(
+          encryptedCredentials.sessionTokenEncrypted,
+          encryptedCredentials.sessionTokenIv,
+          encryptedCredentials.sessionTokenAuthTag,
+          sessionTokenKey
+        );
+      }
+
+      return {
+        apiKey,
+        monetaryAccountId: encryptedCredentials.monetaryAccountId || undefined,
+        installationToken,
+        privateKey,
+        sessionToken
+      };
+    } catch (error: any) {
+      if (error.message == "Unsupported state or unable to authenticate data") {
+        throw new Error('Invalid password');
+      } else {
+        throw error;
+      }
     }
-    
-    return {
-      apiKey,
-      monetaryAccountId: encryptedCredentials.monetaryAccountId || undefined,
-      installationToken,
-      privateKey,
-      sessionToken
-    };
-  } catch (error: any) {
-    console.error('Error retrieving Bunq credentials:', error);
-    return null;
-  }
-},
-  
+  },
+
   /**
    * Update monetary account ID for a user
    * @param userId User ID

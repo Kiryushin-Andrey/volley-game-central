@@ -105,8 +105,8 @@ export const gamesApi = {
   /**
    * Create payment requests for all unpaid players in a game
    */
-  createPaymentRequests: async (gameId: number): Promise<{ message: string; requestsCreated: number; errors: string[] }> => {
-    const response = await api.post(`/games/${gameId}/payment-requests`);
+  createPaymentRequests: async (gameId: number, password: string): Promise<{ message: string; requestsCreated: number; errors: string[] }> => {
+    const response = await api.post(`/games/${gameId}/payment-requests`, { password });
     return response.data;
   },
 

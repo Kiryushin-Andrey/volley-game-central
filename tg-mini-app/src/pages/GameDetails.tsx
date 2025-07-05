@@ -2,13 +2,15 @@ import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { logDebug } from '../debug';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Game, User } from '../types';
-import { gamesApi } from '../services/api';
+import { gamesApi, bunqApi } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
+import PasswordDialog from '../components/PasswordDialog';
 import './GameDetails.scss';
 import WebApp from '@twa-dev/sdk';
 import { MainButton, BackButton } from '@twa-dev/sdk/react';
 import { FaCog, FaCheck, FaTimes } from 'react-icons/fa';
 import { formatEuros } from '../utils/currencyUtils';
+import { AxiosError } from 'axios';
 
 interface GameDetailsProps {
   user: User;
@@ -23,12 +25,35 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPaidUpdating, setIsPaidUpdating] = useState<number | null>(null); // Stores userId of player being updated
+  const [hasBunqIntegration, setHasBunqIntegration] = useState<boolean>(false);
+  const [isCheckingBunq, setIsCheckingBunq] = useState<boolean>(true);
+  const [isSendingPaymentRequests, setIsSendingPaymentRequests] = useState<boolean>(false);
+  const [showPasswordDialog, setShowPasswordDialog] = useState<boolean>(false);
+  const [passwordError, setPasswordError] = useState<string>('');
 
   useEffect(() => {
     if (gameId) {
       loadGame(parseInt(gameId));
     }
   }, [gameId]);
+
+  // Check Bunq integration status for admin users
+  useEffect(() => {
+    const checkBunqIntegration = async () => {
+      if (user.isAdmin) {
+        try {
+          const status = await bunqApi.getStatus();
+          setHasBunqIntegration(status.enabled);
+        } catch (error) {
+          logDebug('Error checking Bunq integration status: ' + error);
+          setHasBunqIntegration(false);
+        }
+      }
+      setIsCheckingBunq(false);
+    };
+
+    checkBunqIntegration();
+  }, [user.isAdmin]);
 
   // Track last action time to prevent duplicate clicks
   const lastActionTimeRef = useRef<number>(0);
@@ -181,7 +206,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
     
     // If user is registered, check if they can leave
     if (userRegistration) {
-      if (!canLeaveGame(game.dateTime, userRegistration.isWaitlist) && !userRegistration.isWaitlist) {
+      if (!isGamePast(game.dateTime) && !canLeaveGame(game.dateTime, userRegistration.isWaitlist) && !userRegistration.isWaitlist) {
         return `You can only leave the game up to ${deadlineHours} hours before it starts.`;
       }
     } else {
@@ -339,6 +364,62 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
     );
   };
   
+  // Handle sending payment requests
+  const handleSendPaymentRequests = async () => {
+    if (!game || !isActionAllowed()) return;
+    
+    // Clear any previous password error and show password dialog directly
+    setPasswordError('');
+    setShowPasswordDialog(true);
+  };
+
+  // Handle password dialog submission
+  const handlePasswordSubmit = async (password: string) => {
+    if (!game) return;
+    
+    try {
+      setIsSendingPaymentRequests(true);
+      setPasswordError('');
+      
+      const result = await gamesApi.createPaymentRequests(game.id, password);
+      
+      // Close password dialog
+      setShowPasswordDialog(false);
+      
+      // Show success message with details
+      WebApp.showPopup({
+        title: 'Payment requests sent',
+        message: `${result.requestsCreated} payment requests sent successfully.${result.errors.length > 0 ? ` ${result.errors.length} errors occurred.` : ''}`,
+        buttons: [{ type: 'ok' }]
+      });
+      
+      // Reload game data to get updated payment status
+      await loadGame(game.id);
+    } catch (error) {
+      logDebug('Error sending payment requests: ' + error);
+      if (error instanceof AxiosError && error.response?.data?.error == 'Invalid password') {
+        setPasswordError(error.response?.data?.error);
+      } else {
+        // Close dialog and show general error
+        setShowPasswordDialog(false);
+        WebApp.showPopup({
+          title: 'Error',
+          message: error instanceof Error ? error.message : 'Unknown error',
+          buttons: [{ type: 'ok' }]
+        });
+      }
+    } finally {
+      setIsSendingPaymentRequests(false);
+    }
+  };
+
+  // Handle password dialog cancellation
+  const handlePasswordCancel = () => {
+    setShowPasswordDialog(false);
+    setPasswordError('');
+    setIsSendingPaymentRequests(false);
+  };
+  
   // Handle game deletion with confirmation
   const handleDeleteGame = async () => {
     if (!isActionAllowed()) return;
@@ -401,44 +482,70 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
       {/* BackButton component */}
       <BackButton onClick={() => navigate('/')} />
       <div className="game-header">
-        <div className="game-date-container">
+        {/* First line: Game date and time */}
+        <div className="game-date-line">
           <div className="game-date">{formatDate(game.dateTime)}</div>
         </div>
-        <div className="game-info">
-          {game.paymentAmount > 0 && (
-            <div className="payment-amount">
-              Payment: {formatEuros(game.paymentAmount)}
+        
+        {/* Second line: Status information and actions */}
+        <div className="game-status-line">
+          <div className="status-info">
+            {userRegistration && (
+              <div className={`user-status ${userRegistration.isWaitlist ? 'waitlist' : 'registered'}`}>
+                {userRegistration.isWaitlist ? 'Waitlist' : "You're in"}
+              </div>
+            )}
+            
+            {game.paymentAmount > 0 && (
+              <div className="payment-amount">
+                Payment: {formatEuros(game.paymentAmount)}
+              </div>
+            )}
+          </div>
+          
+          {/* Admin-only: Game management buttons */}
+          {user.isAdmin && (
+            <div className="admin-actions">
+              <button
+                className="edit-game-button"
+                onClick={() => navigate(`/game/${gameId}/edit`)}
+                title="Edit Game Settings"
+              >
+                <FaCog />
+              </button>
+              {isGameUpcoming(game.dateTime) && (
+                <button
+                  className="delete-game-button"
+                  onClick={handleDeleteGame}
+                  title="Delete Game"
+                  disabled={isActionLoading}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                  </svg>
+                </button>
+              )}
+              
+              {/* Send payment requests icon button for past games with payment amount and Bunq integration */}
+              {isGamePast(game.dateTime) && game.paymentAmount > 0 && !game.fullyPaid && hasBunqIntegration && !isCheckingBunq && (
+                <button 
+                  className="send-payment-requests-button" 
+                  onClick={handleSendPaymentRequests}
+                  disabled={isSendingPaymentRequests || isActionLoading}
+                  title="Send payment requests to unpaid players"
+                >
+                  {isSendingPaymentRequests ? (
+                    <div className="mini-spinner"></div>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                      <path d="M15 18.5c-2.51 0-4.68-1.42-5.76-3.5H15v-2H8.58c-.05-.33-.08-.66-.08-1s.03-.67.08-1H15V9H9.24C10.32 6.92 12.5 5.5 15 5.5c1.61 0 3.09.59 4.23 1.57L21 5.3C19.41 3.87 17.3 3 15 3c-3.92 0-7.24 2.51-8.48 6H3v2h3.06c-.04.33-.06.66-.06 1s.02.67.06 1H3v2h3.52c1.24 3.49 4.56 6 8.48 6 2.31 0 4.41-.87 6-2.3l-1.78-1.77c-1.13.98-2.6 1.57-4.22 1.57z"/>
+                    </svg>
+                  )}
+                </button>
+              )}
             </div>
           )}
         </div>
-        {userRegistration && (
-          <div className={`user-status ${userRegistration.isWaitlist ? 'waitlist' : 'registered'}`}>
-            {userRegistration.isWaitlist ? 'Waitlist' : "You're in"}
-          </div>
-        )}
-        
-        {/* Admin-only: Game management buttons */}
-        {user.isAdmin && isGameUpcoming(game.dateTime) && (
-          <div className="admin-actions">
-            <button 
-              className="edit-game-button" 
-              onClick={() => navigate(`/game/${gameId}/edit`)}
-              title="Edit Game Settings"
-            >
-              <FaCog />
-            </button>
-            <button 
-              className="delete-game-button" 
-              onClick={handleDeleteGame}
-              aria-label="Delete game"
-              disabled={isActionLoading}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-              </svg>
-            </button>
-          </div>
-        )}
       </div>
 
       <div className="players-container">
@@ -563,6 +670,17 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
           disabled={isActionLoading}
         />
       )}
+      
+      {/* Password Dialog for Payment Requests */}
+      <PasswordDialog
+        isOpen={showPasswordDialog}
+        title="Enter Password"
+        message="Please enter your password to decrypt the session token and send payment requests."
+        onSubmit={handlePasswordSubmit}
+        onCancel={handlePasswordCancel}
+        isProcessing={isSendingPaymentRequests}
+        error={passwordError}
+      />
     </div>
   );
 };

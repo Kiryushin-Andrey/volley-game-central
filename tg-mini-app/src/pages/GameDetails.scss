@@ -7,72 +7,78 @@
 
 .game-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  flex-direction: column;
+  gap: 12px;
   margin-bottom: 24px;
-  min-height: 36px; /* Ensure consistent height */
   
-  .admin-actions {
+  .game-date-line {
     display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .game-date {
-    font-size: 18px;
-    color: var(--tg-theme-text-color);
-    font-weight: 500;
-    line-height: 1.2;
-    display: flex;
-    align-items: center;
-  }
-
-  .game-date-container {
-    display: flex;
-    align-items: center;
-    height: 100%;
-    gap: 16px;
-  }
-  
-  .game-info {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    
-    .payment-amount {
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--tg-theme-text-color);
-      background: rgba(40, 167, 69, 0.1);
-      padding: 4px 8px;
-      border-radius: 4px;
-      display: inline-block;
-    }
-  }
-
-  .user-status {
-    display: flex;
-    align-items: center;
     justify-content: center;
-    padding: 4px 10px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 500;
-    height: 24px;
-    box-sizing: border-box;
-    align-self: center;
-    white-space: nowrap;
-    min-width: max-content;
-
-    &.registered {
-      background: #28a745;
-      color: white;
+    
+    .game-date {
+      font-size: 18px;
+      color: var(--tg-theme-text-color);
+      font-weight: 500;
+      line-height: 1.2;
     }
+  }
+  
+  .game-status-line {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 32px;
+    width: 100%;
+    
+    .status-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+      
+      .user-status {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+        height: 24px;
+        box-sizing: border-box;
+        white-space: nowrap;
+        min-width: max-content;
 
-    &.waitlist {
-      background: #ff9500;
-      color: white;
+        &.registered {
+          background: #28a745;
+          color: white;
+        }
+
+        &.waitlist {
+          background: #ff9500;
+          color: white;
+        }
+      }
+      
+      .payment-amount {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--tg-theme-text-color);
+        background: rgba(40, 167, 69, 0.1);
+        padding: 4px 8px;
+        border-radius: 4px;
+        display: inline-block;
+      }
+    }
+    
+    .admin-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+      margin-left: auto;
     }
   }
   
@@ -135,6 +141,55 @@
       width: 18px;
       height: 18px;
       fill: var(--tg-theme-hint-color, #888888);
+    }
+  }
+  
+  .send-payment-requests-button {
+    background: transparent;
+    border: none;
+    padding: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    height: 32px;
+    width: 32px;
+    margin: 0;
+    flex-shrink: 0;
+    align-self: center;
+    
+    &:hover {
+      background-color: rgba(40, 167, 69, 0.1);
+    }
+    
+    &:active {
+      background-color: rgba(40, 167, 69, 0.2);
+    }
+    
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      
+      &:hover {
+        background-color: transparent;
+      }
+    }
+    
+    svg {
+      width: 18px;
+      height: 18px;
+      fill: var(--tg-theme-hint-color, #888888);
+    }
+    
+    .mini-spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid transparent;
+      border-top: 2px solid var(--tg-theme-hint-color, #888888);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
     }
   }
 }

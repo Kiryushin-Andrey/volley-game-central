@@ -457,6 +457,9 @@ async function createBunqClient(params: BunqClientParams): Promise<BunqClient | 
       privateKey: credentials.privateKey!
     };
   } catch (error) {
+    if (error instanceof Error && error.message == 'Invalid password')
+      throw error;
+
     console.error('Error creating Bunq client:', error);
     return null;
   }
@@ -494,20 +497,18 @@ export const bunqService = {
         };
       }
       
-      // Create payment request via Bunq API
       const paymentRequestData = {
         amount_inquired: {
           value: (game.paymentAmount / 100).toFixed(2), // Convert cents to euros
           currency: 'EUR'
         },
         counterparty_alias: {
-          type: 'PHONE_NUMBER',
-          value: user.telegramId, // Using telegramId as identifier
-          name: user.username
+          type: 'EMAIL',
+          value: `volley-${user.id}@${process.env.EMAIL_DOMAIN || 'volley-game-central.com'}`,
+          name: user.username || `Volleyball Player ${user.id}`
         },
         description: `Volleyball game payment for ${formattedDate}`,
-        allow_bunqme: true, // Allow payment via bunq.me
-        redirect_url: process.env.PAYMENT_REDIRECT_URL // Optional redirect URL after payment
+        allow_bunqme: true // Allow payment via bunq.me
       };
       
       const formattedAmount = `€${(game.paymentAmount / 100).toFixed(2)}`;
@@ -536,32 +537,97 @@ export const bunqService = {
       const signature = crypto.sign('sha256', Buffer.from(dataToSign), privateKey);
       const base64Signature = signature.toString('base64');
       
-      // Add signature header to the client for this request
-      const response = await bunqClient.post(
-        `/user/id/monetary-account/${monetaryAccountId}/request-inquiry`,
-        paymentRequestData,
-        {
-          headers: {
-            'X-Bunq-Client-Signature': base64Signature
-          }
+      console.log('Creating payment request with data:', {
+        endpoint: '/user/.../monetary-account/.../request-inquiry',
+        data: paymentRequestData,
+        monetaryAccountId,
+        headers: {
+          'X-Bunq-Client-Signature': '*****' // Don't log the actual signature
         }
-      );
+      });
+      
+      try {
+        // Add signature header to the client for this request
+        // Get the user ID from the session or credentials
+        const userResponse = await bunqClient.get('/user');
+        const userId = userResponse.data?.Response?.[0]?.UserPerson?.id || userResponse.data?.Response?.[0]?.UserCompany?.id;
+        
+        if (!userId) {
+          throw new Error('Could not determine user ID from Bunq API');
+        }
+        
+        const response = await bunqClient.post(
+          `/user/${userId}/monetary-account/${monetaryAccountId}/request-inquiry`,
+          paymentRequestData,
+          {
+            headers: {
+              'X-Bunq-Client-Signature': base64Signature
+            }
+          }
+        );
+        
+        console.log('Payment request response status:', response.status);
+        console.log('Payment request response data:', JSON.stringify(response.data, null, 2));
 
-      if (response.status === 200 || response.status === 201) {
-        if (response.data && response.data.Response &&
-          response.data.Response[0] &&
-          response.data.Response[0].RequestInquiry) {
-          const requestInquiry = response.data.Response[0].RequestInquiry;
-          if (requestInquiry.bunqme_share_url) {
-            paymentRequestUrl = requestInquiry.bunqme_share_url;
-            paymentRequestId = requestInquiry.id ? requestInquiry.id.toString() : '';
+        if (response.status === 200 || response.status === 201) {
+          const requestId = response.data?.Response?.[0]?.Id?.id;
+          if (!requestId) {
+            throw new Error('No request ID in response');
           }
+          
+          console.log('Request Inquiry ID:', requestId);
+          paymentRequestId = requestId.toString();
+          
+          // Fetch the request details to get the payment URL
+          const detailsResponse = await bunqClient.get(
+            `/user/${userId}/monetary-account/${monetaryAccountId}/request-inquiry/${requestId}`
+          );
+          
+          console.log('Request details response:', JSON.stringify(detailsResponse.data, null, 2));
+          
+          // Extract the payment URL from the details
+          const requestInquiry = detailsResponse.data?.Response?.[0]?.RequestInquiry;
+          if (requestInquiry) {
+            paymentRequestUrl = requestInquiry.bunqme_share_url || 
+                              requestInquiry.request_reference_split_the_bill?.bunq_me_share_link ||
+                              '';
+            
+            console.log('Extracted payment URL:', paymentRequestUrl);
+            
+            if (!paymentRequestUrl) {
+              console.error('No payment URL found in details. Available keys:', Object.keys(requestInquiry));
+            }
+          } else {
+            console.error('No request inquiry in details response');
+          }
+        } else {
+          return {
+            success: false,
+            paymentRequestUrl: '',
+            error: `Failed to create payment request: API returned status ${response.status}`
+          };
         }
-      } else {
+      } catch (error: any) {
+        console.error('Error in payment request API call:', {
+          message: error.message,
+          response: error.response ? {
+            status: error.response.status,
+            statusText: error.response.statusText,
+            data: error.response.data,
+            headers: error.response.headers ? Object.keys(error.response.headers) : 'No headers'
+          } : 'No response',
+          responseErrors: error.response?.data?.Error,
+          config: {
+            url: error.config?.url,
+            method: error.config?.method,
+            headers: error.config?.headers ? Object.keys(error.config.headers) : 'No headers'
+          }
+        });
+        
         return {
           success: false,
           paymentRequestUrl: '',
-          error: `Failed to create payment request: API returned status ${response.status}`
+          error: `Failed to create payment request: ${error.response?.data?.Error?.[0]?.error_description || error.message || 'Unknown error'}`
         };
       }
 
@@ -577,11 +643,7 @@ export const bunqService = {
 
       // Send Telegram notification to the player
       try {
-        const notificationMessage = `🏐 Payment Request: ${formattedAmount} for volleyball game on ${formattedDate}\n\n` +
-          `Please complete your payment using the following link:\n` +
-          (paymentRequestUrl ? `${paymentRequestUrl}\n\n` : '') +
-          `If you have any questions, please contact the game organizer.`;
-        
+        const notificationMessage = `💰 Please pay ${formattedAmount} for the volleyball game on ${formattedDate}: ${paymentRequestUrl}`;
         await sendTelegramNotification(user.telegramId, notificationMessage);
         console.log(`Payment notification sent to ${user.username} via Telegram`);
       } catch (notifyError) {
@@ -622,28 +684,28 @@ export const bunqService = {
     try {
       // Get game details
       const gameDetails = await db.select().from(games).where(eq(games.id, gameId));
-      
+
       if (!gameDetails.length) {
-        return { 
-          success: false, 
+        return {
+          success: false,
           requestsCreated: 0,
           errors: ['Game not found']
         };
       }
-      
+
       const game = gameDetails[0];
       
       // Get all registrations for this game that are not on waitlist and haven't paid
       // We determine waitlist status based on registration order
       const allRegistrations = await db.select({
-        id: gameRegistrations.id,
-        userId: gameRegistrations.userId,
-        paid: gameRegistrations.paid,
-        createdAt: gameRegistrations.createdAt
-      })
-      .from(gameRegistrations)
-      .where(eq(gameRegistrations.gameId, gameId))
-      .orderBy(gameRegistrations.createdAt);
+          id: gameRegistrations.id,
+          userId: gameRegistrations.userId,
+          paid: gameRegistrations.paid,
+          createdAt: gameRegistrations.createdAt
+        })
+        .from(gameRegistrations)
+        .where(eq(gameRegistrations.gameId, gameId))
+        .orderBy(gameRegistrations.createdAt);
       
       // Filter out waitlisted players (those beyond maxPlayers)
       const activeRegistrations = allRegistrations.slice(0, game.maxPlayers);
@@ -708,12 +770,12 @@ export const bunqService = {
       };
     } catch (error: any) {
       console.error('Error creating payment requests:', error);
-        return {
-          success: false,
-          requestsCreated: 0,
-          errors: [error.message || 'Unknown error']
-        };
-      }
+      return {
+        success: false,
+        requestsCreated: 0,
+        errors: [error.message || 'Unknown error']
+      };
+    }
   },
   
   /**
@@ -842,20 +904,20 @@ export const bunqService = {
       
       const { client: bunqClient } = bunqClientResult;
       
-      // Get the payment request status from Bunq API
-      const response = await bunqClient.get(
-        `/user/id/monetary-account/${monetaryAccountId}/request-inquiry/${paymentRequestId}`
-      );
-      
-      if (response.status === 200) {
+        // Get the payment request status from Bunq API
+        const response = await bunqClient.get(
+          `/user/id/monetary-account/${monetaryAccountId}/request-inquiry/${paymentRequestId}`
+        );
+        
+        if (response.status === 200) {
         if (response.data && 
             response.data.Response && 
             response.data.Response[0] && 
             response.data.Response[0].RequestInquiry) {
-          const requestInquiry = response.data.Response[0].RequestInquiry;
-          // Check if the status is ACCEPTED or PAID
-          return ['ACCEPTED', 'PAID'].includes(requestInquiry.status);
-        }
+            const requestInquiry = response.data.Response[0].RequestInquiry;
+            // Check if the status is ACCEPTED or PAID
+            return ['ACCEPTED', 'PAID'].includes(requestInquiry.status);
+          }
       }
       
       return false;
@@ -926,21 +988,21 @@ export const bunqService = {
               .where(eq(gameRegistrations.id, paymentRequest.gameRegistrationId))
               .limit(1)
               .then(rows => rows[0]);
-            
+
             if (!registration) {
               errors.push(`Registration not found for payment request ${paymentRequest.id}`);
               continue;
             }
-            
+              
             // Update the payment request and registration as paid
             await db
-              .update(paymentRequests)
+                .update(paymentRequests)
               .set({ paid: true })
-              .where(eq(paymentRequests.id, paymentRequest.id));
+                .where(eq(paymentRequests.id, paymentRequest.id));
               
             await bunqService.updatePaidStatus(registration.gameId, registration.userId, true);
             
-            updatedCount++;
+              updatedCount++;
           }
         } catch (error: any) {
           console.error('Error updating payment request status:', error);
