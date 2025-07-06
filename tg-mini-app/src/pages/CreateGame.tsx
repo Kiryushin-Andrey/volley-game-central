@@ -32,22 +32,18 @@ const CreateGame: React.FC = () => {
       try {
         setIsInitialLoading(true);
         
-        // Call the API to get the default date and time
         const defaultDate = await gamesApi.getDefaultDateTime();
         
-        // Set time to 17:00 (5:00 PM) if not already set by the server
         if (defaultDate.getHours() === 0 && defaultDate.getMinutes() === 0) {
           defaultDate.setHours(17, 0, 0, 0);
         }
         
-        // Set the selected date
         setSelectedDate(defaultDate);
       } catch (err) {
         logDebug('Error fetching default date and time:');
         logDebug(err);
         setError('Failed to fetch default date and time');
         
-        // Fallback to next Sunday if there's an error
         const defaultDate = new Date();
         defaultDate.setDate(defaultDate.getDate() + 7); // Add 1 week
         defaultDate.setHours(17, 0, 0, 0); // Set to 5:00 PM
@@ -76,10 +72,9 @@ const CreateGame: React.FC = () => {
         dateTime: selectedDate.toISOString(),
         maxPlayers,
         unregisterDeadlineHours,
-        paymentAmount: paymentAmount, // Already in cents
+        paymentAmount,
       });
       
-      // Navigate back to the games list
       navigate('/');
     } catch (err) {
       logDebug('Error creating game:');
@@ -94,12 +89,9 @@ const CreateGame: React.FC = () => {
     navigate('/');
   }, [navigate]);
   
-  // Handle payment amount input changes, converting from euros to cents
   const handlePaymentAmountChange = (value: string) => {
-    // Store the display value (with comma or dot as decimal separator)
     setPaymentAmountDisplay(value);
     
-    // Use the utility function to convert euros to cents
     setPaymentAmount(eurosToCents(value));
   };
 
