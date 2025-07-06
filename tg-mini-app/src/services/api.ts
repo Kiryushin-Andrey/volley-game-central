@@ -120,9 +120,20 @@ export const gamesApi = {
    * @param userId The user ID
    * @param paid Whether the player has paid (true) or not (false)
    */
-  updatePlayerPaidStatus: async (gameId: number, userId: number, paid: boolean = true): Promise<{ message: string }> => {
-    const response = await api.put(`/games/${gameId}/registrations/${userId}/paid`, { paid });
-    return response.data;
+  updatePlayerPaidStatus(gameId: number, userId: number, paid: boolean = true): Promise<{ message: string }> {
+    return api
+      .put(`/games/${gameId}/players/${userId}/paid`, { paid })
+      .then((res) => res.data);
+  },
+  
+  /**
+   * Check payment status of all unpaid games and update the database
+   * @param password The Bunq API password
+   */
+  checkPayments(password: string): Promise<{ message: string; updatedGames: number; updatedPlayers: number }> {
+    return api
+      .post('/games/check-payments', { password })
+      .then((res) => res.data);
   },
 };
 

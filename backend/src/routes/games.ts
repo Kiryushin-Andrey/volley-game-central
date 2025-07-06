@@ -1,7 +1,10 @@
 import { Router } from 'express';
 import { db } from '../db';
-import { games, gameRegistrations, users } from '../db/schema';
+import { games, gameRegistrations, users, paymentRequests } from '../db/schema';
 import { gte, desc, inArray, eq, and, sql, lt, lte, asc } from 'drizzle-orm';
+import type { InferSelectModel } from 'drizzle-orm';
+
+type PaymentRequest = InferSelectModel<typeof paymentRequests>;
 import { telegramAuthMiddleware } from '../middleware/telegramAuth';
 import { adminAuthMiddleware } from '../middleware/adminAuth';
 import { sendTelegramNotification } from '../services/telegramService';
@@ -349,24 +352,13 @@ router.get('/', telegramAuthMiddleware, async (req, res) => {
           .where(lt(games.dateTime, currentDate))
           .orderBy(desc(games.dateTime));
       } else {
-        // Only show past games with unpaid participants
-        const gamesWithUnpaid = await db
-          .selectDistinct({ gameId: gameRegistrations.gameId })
-          .from(gameRegistrations)
-          .where(eq(gameRegistrations.paid, false));
-          
-        const gameIdsWithUnpaid = gamesWithUnpaid.map(g => g.gameId);
-        if (gameIdsWithUnpaid.length === 0) {
-          return res.json([]);
-        }
-        
         // Get past games with unpaid participants
         filteredGames = await db
           .select()
           .from(games)
           .where(and(
             lt(games.dateTime, currentDate),
-            inArray(games.id, gameIdsWithUnpaid)
+            eq(games.fullyPaid, false)
           ))
           .orderBy(desc(games.dateTime));
       }
@@ -675,7 +667,7 @@ router.post('/:gameId/payment-requests', telegramAuthMiddleware, adminAuthMiddle
 });
 
 // Update a player's paid status for a game (admin only)
-router.put('/:gameId/registrations/:userId/paid', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) => {
+router.put('/:gameId/players/:userId/paid', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) => {
   try {
     const gameId = parseInt(req.params.gameId);
     const userId = parseInt(req.params.userId);
@@ -712,6 +704,167 @@ router.put('/:gameId/registrations/:userId/paid', telegramAuthMiddleware, adminA
   } catch (error) {
     console.error('Error updating registration paid status:', error);
     res.status(500).json({ error: 'Failed to update registration paid status' });
+  }
+});
+
+// Check payment statuses for all unpaid games
+router.post('/check-payments', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const { password } = req.body;
+    if (!password) {
+      return res.status(400).json({ error: 'Password is required' });
+    }
+
+    // 1. Get up to 10 unpaid past games
+    const unpaidGames = await db
+      .select()
+      .from(games)
+      .where(
+        and(
+          eq(games.fullyPaid, false),
+          lt(games.dateTime, new Date())
+        )
+      )
+      .orderBy(desc(games.dateTime))
+      .limit(10);
+
+    if (unpaidGames.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No unpaid past games found',
+        updatedPlayers: 0,
+        updatedGames: 0,
+        processedGames: 0
+      });
+    }
+
+    const gameIds = unpaidGames.map(g => g.id);
+    let totalUpdatedPlayers = 0;
+    let totalUpdatedGames = 0;
+    const errors: string[] = [];
+
+    // 2. Get all unpaid registrations for these games with payment requests
+    const unpaidRegistrations = await db
+      .select({
+        id: gameRegistrations.id,
+        gameId: gameRegistrations.gameId,
+        userId: gameRegistrations.userId,
+        paid: gameRegistrations.paid,
+        createdAt: gameRegistrations.createdAt,
+        user: {
+          id: users.id,
+          telegramId: users.telegramId,
+          username: users.username,
+          avatarUrl: users.avatarUrl,
+          isAdmin: users.isAdmin,
+          createdAt: users.createdAt
+        },
+        paymentRequest: {
+          id: paymentRequests.id,
+          paymentRequestId: paymentRequests.paymentRequestId,
+          monetaryAccountId: paymentRequests.monetaryAccountId,
+          paid: paymentRequests.paid,
+          gameRegistrationId: paymentRequests.gameRegistrationId,
+          paymentLink: paymentRequests.paymentLink,
+          createdAt: paymentRequests.createdAt,
+          lastCheckedAt: paymentRequests.lastCheckedAt
+        }
+      })
+      .from(gameRegistrations)
+      .innerJoin(users, eq(users.id, gameRegistrations.userId))
+      .leftJoin(paymentRequests, eq(paymentRequests.gameRegistrationId, gameRegistrations.id))
+      .where(
+        and(
+          inArray(gameRegistrations.gameId, gameIds),
+          eq(gameRegistrations.paid, false)
+        )
+      );
+
+    // 3. Process each registration with a payment request
+    for (const registration of unpaidRegistrations) {
+      if (!registration.paymentRequest) continue;
+
+        const isPaid = await bunqService.checkPaymentRequestStatus(
+          registration.paymentRequest.paymentRequestId,
+          registration.paymentRequest.monetaryAccountId,
+          req.user.id, // admin user ID
+          password
+        );
+
+        if (isPaid) {
+          await db
+            .update(gameRegistrations)
+            .set({ paid: true })
+            .where(eq(gameRegistrations.id, registration.id));
+
+          totalUpdatedPlayers++;
+
+          // Check if all registrations for this game are now paid
+          const unpaidCount = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(gameRegistrations)
+            .where(
+              and(
+                eq(gameRegistrations.gameId, registration.gameId),
+                eq(gameRegistrations.paid, false)
+              )
+            )
+            .then(rows => rows[0]?.count ?? 0);
+
+          if (unpaidCount === 0) {
+            await db
+              .update(games)
+              .set({ fullyPaid: true })
+              .where(eq(games.id, registration.gameId));
+            totalUpdatedGames++;
+          }
+      }
+    }
+
+    // 4. Check each game to see if all registrations are now paid
+    for (const game of unpaidGames) {
+      // Get all registrations ordered by creation time
+      const allRegistrations = await db.select({
+          id: gameRegistrations.id,
+          paid: gameRegistrations.paid
+        })
+        .from(gameRegistrations)
+        .where(eq(gameRegistrations.gameId, game.id))
+        .orderBy(gameRegistrations.createdAt);
+      
+      // Only consider the first maxPlayers registrations as non-waitlist
+      const activeRegistrations = allRegistrations.slice(0, game.maxPlayers);
+      
+      // Count unpaid active registrations
+      const unpaidCount = activeRegistrations.filter(reg => !reg.paid).length;
+
+      if (unpaidCount === 0) {
+        await db.update(games)
+          .set({ fullyPaid: true })
+          .where(eq(games.id, game.id));
+        totalUpdatedGames++;
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Payment check completed. Updated ${totalUpdatedPlayers} players and marked ${totalUpdatedGames} games as fully paid.`,
+      updatedPlayers: totalUpdatedPlayers,
+      updatedGames: totalUpdatedGames,
+      processedGames: unpaidGames.length,
+      errors: errors.length > 0 ? errors : undefined
+    });
+
+  } catch (error) {
+    console.error('Error checking payments:', error);
+    res.status(500).json({ 
+      error: 'Failed to check payments',
+      message: error instanceof Error ? error.message : 'Unknown error occurred'
+    });
   }
 });
 

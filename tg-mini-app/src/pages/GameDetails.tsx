@@ -675,7 +675,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
       <PasswordDialog
         isOpen={showPasswordDialog}
         title="Enter Password"
-        message="Please enter your password to decrypt the session token and send payment requests."
+        message="Please enter your password to send payment requests."
         onSubmit={handlePasswordSubmit}
         onCancel={handlePasswordCancel}
         isProcessing={isSendingPaymentRequests}

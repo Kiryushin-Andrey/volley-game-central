@@ -228,6 +228,12 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
                 💳 Bunq settings
               </button>
               <button
+                className="check-payments-button"
+                onClick={() => navigate('/check-payments')}
+              >
+                🔄 Check Payments
+              </button>
+              <button
                 className="create-game-button"
                 onClick={() => navigate('/games/new')}
               >

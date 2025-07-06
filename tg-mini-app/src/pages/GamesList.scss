@@ -20,7 +20,8 @@
       width: 100%;
     }
     
-    .bunq-settings-button {
+    .bunq-settings-button,
+    .check-payments-button {
       background-color: var(--tg-theme-secondary-bg-color, #f1f3f4);
       color: var(--tg-theme-text-color);
       border: 1px solid var(--tg-theme-hint-color, #e1e8ed);

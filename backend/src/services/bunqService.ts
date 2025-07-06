@@ -887,46 +887,68 @@ export const bunqService = {
     adminUserId: number,
     password: string
   ): Promise<boolean> => {
-    try {
-      if (!paymentRequestId) {
-        return false;
-      }
-      
-      // Create Bunq client with admin credentials
-      const bunqClientResult = await createBunqClient({
-        userId: adminUserId,
-        password
-      });
-      
-      if (!bunqClientResult) {
-        return false;
-      }
-      
-      const { client: bunqClient } = bunqClientResult;
-      
-        // Get the payment request status from Bunq API
-        const response = await bunqClient.get(
-          `/user/id/monetary-account/${monetaryAccountId}/request-inquiry/${paymentRequestId}`
-        );
-        
-        if (response.status === 200) {
-        if (response.data && 
-            response.data.Response && 
-            response.data.Response[0] && 
-            response.data.Response[0].RequestInquiry) {
-            const requestInquiry = response.data.Response[0].RequestInquiry;
-            // Check if the status is ACCEPTED or PAID
-            return ['ACCEPTED', 'PAID'].includes(requestInquiry.status);
-          }
-      }
-      
-      return false;
-    } catch (error) {
-      console.error('Error checking payment request status:', error);
+    if (!paymentRequestId) {
       return false;
     }
+
+    // Create Bunq client with admin credentials
+    const bunqClientResult = await createBunqClient({
+      userId: adminUserId,
+      password
+    });
+
+    if (!bunqClientResult) {
+      console.log("No Bunq client")
+      return false;
+    }
+
+    const { client: bunqClient } = bunqClientResult;
+
+    // Get the payment request status from Bunq API
+    try {
+      // Get the user ID from the session
+      const userResponse = await bunqClient.get('/user');
+      const userId = userResponse.data?.Response?.[0]?.UserPerson?.id || userResponse.data?.Response?.[0]?.UserCompany?.id;
+      
+      if (!userId) {
+        throw new Error('Could not determine user ID from Bunq API');
+      }
+      
+      const response = await bunqClient.get(
+        `/user/${userId}/monetary-account/${monetaryAccountId}/request-inquiry/${paymentRequestId}`
+      );
+
+      if (response.status === 200) {
+        if (response.data &&
+          response.data.Response &&
+          response.data.Response[0] &&
+          response.data.Response[0].RequestInquiry) {
+          const requestInquiry = response.data.Response[0].RequestInquiry;
+          // Check if the status is ACCEPTED or PAID
+          return ['ACCEPTED', 'PAID'].includes(requestInquiry.status);
+        }
+      }
+    } catch (error: any) {
+      console.error('Error in check payment request status API call:', {
+        message: error.message,
+        response: error.response ? {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data,
+          headers: error.response.headers ? Object.keys(error.response.headers) : 'No headers'
+        } : 'No response',
+        responseErrors: error.response?.data?.Error,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          headers: error.config?.headers ? Object.keys(error.config.headers) : 'No headers'
+        }
+      });
+    }
+
+    return false;
   },
-  
+
   /**
    * Update the status of all pending payment requests
    * @param adminUserId User ID of the admin updating the payment statuses

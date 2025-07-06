@@ -5,7 +5,7 @@
 
 # Configuration
 IMAGE_NAME="andreykir/volleybot"
-TAG="1.2.1"
+TAG="1.3.0"
 
 # Colors for terminal output
 GREEN='\033[0;32m'

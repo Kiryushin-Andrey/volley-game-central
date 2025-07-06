@@ -1,0 +1,119 @@
+.check-payments {
+  padding: 1rem;
+  max-width: 600px;
+  margin: 0 auto;
+  color: var(--tg-theme-text-color);
+  background-color: var(--tg-theme-bg-color);
+  min-height: 100vh;
+  box-sizing: border-box;
+
+  h1 {
+    font-size: 1.5rem;
+    margin: 0 0 1.5rem 0;
+    color: var(--tg-theme-text-color);
+    text-align: center;
+  }
+
+  p {
+    color: var(--tg-theme-hint-color);
+    margin-bottom: 2rem;
+    line-height: 1.5;
+    font-size: 0.95rem;
+    text-align: center;
+  }
+
+  .password-form {
+    .form-group {
+      margin-bottom: 1.5rem;
+
+      label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: var(--tg-theme-text-color);
+        font-weight: 500;
+      }
+
+      input[type="password"] {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid var(--tg-theme-hint-color);
+        border-radius: 8px;
+        background-color: var(--tg-theme-bg-color);
+        color: var(--tg-theme-text-color);
+        font-size: 1rem;
+        transition: border-color 0.2s;
+
+        &:focus {
+          outline: none;
+          border-color: var(--accent-color, #4caf50);
+        }
+
+        &:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+      }
+    }
+
+    .button-group {
+      display: flex;
+      gap: 1rem;
+      margin-top: 2rem;
+
+      button {
+        flex: 1;
+        padding: 0.75rem 1rem;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: opacity 0.2s, transform 0.1s;
+
+        &:active {
+          transform: scale(0.98);
+        }
+
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+          transform: none;
+        }
+      }
+
+      .primary-button {
+        background-color: var(--accent-color, #4caf50);
+        color: white;
+      }
+
+      .secondary-button {
+        background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
+        color: var(--tg-theme-text-color);
+      }
+    }
+  }
+
+  .error-message {
+    color: #f44336;
+    margin: 1rem 0;
+    padding: 0.75rem;
+    background-color: rgba(244, 67, 54, 0.1);
+    border-radius: 8px;
+    font-size: 0.9rem;
+  }
+
+  .status-message {
+    color: var(--accent-color, #4caf50);
+    margin: 1rem 0;
+    padding: 0.75rem;
+    background-color: rgba(76, 175, 80, 0.1);
+    border-radius: 8px;
+    font-size: 0.9rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    input[type="password"] {
+      background-color: var(--tg-theme-secondary-bg-color, #1e1e1e);
+    }
+  }
+}
