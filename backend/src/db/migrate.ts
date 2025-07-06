@@ -1,7 +1,8 @@
-import { drizzle } from 'drizzle-orm/node-postgres';
-import { migrate } from 'drizzle-orm/node-postgres/migrator';
-import { Pool } from 'pg';
-import 'dotenv/config';
+require('dotenv').config();
+const { drizzle } = require('drizzle-orm/node-postgres');
+const { migrate } = require('drizzle-orm/node-postgres/migrator');
+const { Pool } = require('pg');
+const path = require('path');
 
 const pool = new Pool({
   host: process.env.POSTGRES_HOST,
@@ -15,7 +16,11 @@ const db = drizzle(pool);
 
 async function main() {
   console.log('Running migrations...');
-  await migrate(db, { migrationsFolder: 'drizzle' });
+  // Use absolute path for migrations folder
+  const migrationsPath = path.join(process.cwd(), 'drizzle');
+  console.log(`Looking for migrations in: ${migrationsPath}`);
+  
+  await migrate(db, { migrationsFolder: migrationsPath });
   console.log('Migrations complete!');
   await pool.end();
 }

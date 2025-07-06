@@ -8,7 +8,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "generate": "drizzle-kit generate:pg --config=drizzle.config.ts",
-    "migrate": "ts-node src/db/migrate.ts",
+    "migrate": "node dist/db/migrate.js",
     "wait-for-db": "ts-node scripts/wait-for-db.ts"
   },
   "dependencies": {

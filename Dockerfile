@@ -47,7 +47,7 @@ WORKDIR /app
 # Copy backend build artifacts
 COPY --from=backend-builder /app/backend/dist ./backend/dist
 COPY --from=backend-builder /app/backend/package*.json ./backend/
-COPY --from=backend-builder /app/backend/.env.example ./backend/.env.example
+COPY --from=backend-builder /app/backend/.env.example ./backend/.env
 COPY --from=backend-builder /app/backend/drizzle ./backend/drizzle
 COPY --from=backend-builder /app/backend/scripts ./backend/scripts
 
@@ -119,7 +119,7 @@ stderr_logfile=/dev/stderr
 stderr_logfile_maxbytes=0
 
 [program:backend]
-command=npm run start
+command=sh -c 'npm run migrate && npm run start'
 directory=/app/backend
 autostart=true
 autorestart=true

@@ -152,7 +152,7 @@ const EditGameSettings: React.FC = () => {
             value={maxPlayers}
             onChange={(e) => setMaxPlayers(parseInt(e.target.value))}
             min="2"
-            max="30"
+            max="100"
             required
           />
         </div>
