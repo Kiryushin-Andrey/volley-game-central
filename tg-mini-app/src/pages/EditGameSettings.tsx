@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { logDebug } from '../debug';
 import { gamesApi } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { BackButton } from '@twa-dev/sdk/react';
 import DatePicker from 'react-datepicker';
 import { registerLocale } from 'react-datepicker';
 import { enGB } from 'date-fns/locale/en-GB';
@@ -102,9 +103,13 @@ const EditGameSettings: React.FC = () => {
     }
   };
 
-  const handleCancel = () => {
-    navigate(`/game/${gameId}`);
-  };
+  const handleCancel = useCallback(() => {
+    if (gameId) {
+      navigate(`/game/${gameId}`);
+    } else {
+      navigate('/');
+    }
+  }, [navigate, gameId]);
 
   if (isLoading) {
     return <LoadingSpinner />;
@@ -112,6 +117,7 @@ const EditGameSettings: React.FC = () => {
 
   return (
     <div className="edit-game-settings-container">
+      <BackButton onClick={handleCancel} />
       <h1>Edit Game Settings</h1>
       
       {error && <div className="error-message">{error}</div>}

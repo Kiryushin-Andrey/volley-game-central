@@ -45,7 +45,7 @@ function App() {
         <Routes>
           <Route path="/" element={<GamesList user={user} />} />
           <Route path="/game/:gameId" element={<GameDetails user={user} />} />
-          <Route path="/create-game" element={<CreateGame />} />
+          <Route path="/games/new" element={<CreateGame />} />
           <Route path="/game/:gameId/edit" element={<EditGameSettings />} />
           <Route path="/bunq-settings" element={<BunqSettings />} />
         </Routes>

@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { logDebug } from '../debug';
 import { useNavigate } from 'react-router-dom';
 import { gamesApi } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { BackButton } from '@twa-dev/sdk/react';
 import DatePicker from 'react-datepicker';
 import { registerLocale } from 'react-datepicker';
 import { enGB } from 'date-fns/locale/en-GB';
@@ -75,10 +76,10 @@ const CreateGame: React.FC = () => {
         dateTime: selectedDate.toISOString(),
         maxPlayers,
         unregisterDeadlineHours,
-        paymentAmount
+        paymentAmount: paymentAmount, // Already in cents
       });
       
-      // Navigate back to the games list after successful creation
+      // Navigate back to the games list
       navigate('/');
     } catch (err) {
       logDebug('Error creating game:');
@@ -88,10 +89,10 @@ const CreateGame: React.FC = () => {
       setIsLoading(false);
     }
   };
-
-  const handleCancel = () => {
+  
+  const handleCancel = useCallback(() => {
     navigate('/');
-  };
+  }, [navigate]);
   
   // Handle payment amount input changes, converting from euros to cents
   const handlePaymentAmountChange = (value: string) => {
@@ -108,6 +109,7 @@ const CreateGame: React.FC = () => {
 
   return (
     <div className="create-game-container">
+      <BackButton onClick={handleCancel} />
       <h1>Create New Game</h1>
       
       {error && <div className="error-message">{error}</div>}
