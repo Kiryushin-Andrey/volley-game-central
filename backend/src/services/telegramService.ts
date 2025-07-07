@@ -80,7 +80,7 @@ export async function sendGroupAnnouncement(message: string, topicId?: number): 
     // Get bot info to create a proper Telegram URL
     const botInfo = await bot.telegram.getMe();
     const botUsername = botInfo.username;
-    const telegramAppUrl = `https://t.me/${botUsername}?startapp=games`;
+    const botUrl = `https://t.me/${botUsername}`;
     
     await bot.telegram.sendMessage(TELEGRAM_GROUP_ID, message, {
       parse_mode: 'HTML',
@@ -90,7 +90,7 @@ export async function sendGroupAnnouncement(message: string, topicId?: number): 
         inline_keyboard: [[
           {
             text: '🏐 Join Game',
-            url: telegramAppUrl
+            url: botUrl
           }
         ]]
       }
