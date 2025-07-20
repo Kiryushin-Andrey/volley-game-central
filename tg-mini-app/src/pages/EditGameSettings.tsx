@@ -74,13 +74,6 @@ const EditGameSettings: React.FC = () => {
       return;
     }
     
-    // Validate that the date is not in the past
-    const now = new Date();
-    if (selectedDate < now) {
-      setError('Game date cannot be in the past');
-      return;
-    }
-    
     try {
       setIsSaving(true);
       setError(null);
@@ -137,8 +130,7 @@ const EditGameSettings: React.FC = () => {
               placeholderText="Select date and time"
               className="datepicker-input"
               calendarClassName="datepicker-calendar"
-              locale="en-GB" // Use locale with Monday as first day of week
-              minDate={new Date()} // Cannot select dates in the past
+              locale="en-GB" // Use locale with Monday as first day of week              // minDate removed to allow selecting past dates
               required
             />
           </div>

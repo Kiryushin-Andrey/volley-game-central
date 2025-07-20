@@ -125,6 +125,60 @@ export const gamesApi = {
       .put(`/games/${gameId}/players/${userId}/paid`, { paid })
       .then((res) => res.data);
   },
+
+  /**
+   * Add a participant to a game (admin only)
+   */
+  addParticipant: async (gameId: number, userId: number): Promise<{ message: string }> => {
+    const response = await api.post(`/games/${gameId}/participants`, { userId });
+    return response.data;
+  },
+
+  /**
+   * Remove a participant from a game (admin only)
+   */
+  removeParticipant: async (gameId: number, userId: number): Promise<{ message: string }> => {
+    const response = await api.delete(`/games/${gameId}/participants/${userId}`);
+    return response.data;
+  },
+
+  /**
+   * Search users by query (for admin participant management)
+   */
+  searchUsers: async (query: string): Promise<Array<{ id: number; username: string; telegramId: string | null }>> => {
+    const logData = (data: unknown) => logDebug(JSON.stringify(data, null, 2));
+    
+    logData(`Searching users with query: "${query}"`);
+    try {
+      const response = await api.get('/users/search', { 
+        params: { q: query },
+        paramsSerializer: (params: Record<string, string>) => {
+          const serialized = new URLSearchParams(params).toString();
+          logData(`Serialized search params: ${serialized}`);
+          return serialized;
+        }
+      });
+      logData(`Search results for "${query}": ${JSON.stringify(response.data)}`);
+      return response.data;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logData(`Search API error: ${errorMessage}`);
+      
+      if (axios.isAxiosError(error)) {
+        if (error.response) {
+          logData(`Error response: ${JSON.stringify({
+            status: error.response.status,
+            data: error.response.data,
+            headers: error.response.headers
+          }, null, 2)}`);
+        } else if (error.request) {
+          logData(`No response received: ${JSON.stringify(error.request, null, 2)}`);
+        }
+      }
+      
+      throw error;
+    }
+  },
   
   /**
    * Check payment status of all unpaid games and update the database

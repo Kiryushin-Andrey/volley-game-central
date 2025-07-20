@@ -18,6 +18,7 @@ services:
       MINI_APP_URL: ${MINI_APP_URL:?MINI_APP_URL is required}
       # Application settings
       NODE_ENV: production
+      TZ: Europe/Amsterdam
     ports:
       - "80:80"  # Map container's port 80 to host port 80
     networks:

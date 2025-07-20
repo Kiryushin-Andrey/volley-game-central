@@ -5,6 +5,115 @@
   padding-bottom: 80px; // Account for Telegram's main button
 }
 
+.game-details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.admin-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.add-participant-button {
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  height: 32px;
+  width: 32px;
+  padding: 0;
+  margin: 0;
+  flex-shrink: 0;
+  align-self: center;
+  color: var(--tg-theme-hint-color, #888888);
+  
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+  
+  &:active {
+    background-color: rgba(0, 0, 0, 0.1);
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: transparent;
+  }
+  
+  svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+  }
+  
+  .cancel-icon {
+    color: #ff3b30;
+  }
+}
+
+.user-search-container {
+  margin: 1rem 0;
+  position: relative;
+  z-index: 10;
+  width: 100%;
+}
+
+.user-search-container input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  background: var(--tg-theme-bg-color);
+  color: var(--tg-theme-text-color);
+}
+
+.user-search-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  background: var(--tg-theme-bg-color);
+  border: 1px solid var(--tg-theme-hint-color, #ddd);
+  border-radius: 0 0 4px 4px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.user-option {
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  color: var(--tg-theme-text-color);
+  border-bottom: 1px solid var(--tg-theme-hint-color, #eee);
+}
+
+.user-option:last-child {
+  border-bottom: none;
+}
+
+.user-option:hover {
+  background-color: var(--tg-theme-secondary-bg-color, #f5f5f5);
+}
+
+.user-option.selected {
+  background-color: var(--tg-theme-link-color, #e3f2fd);
+  color: var(--tg-theme-button-text-color, #000);
+}
+
 .game-header {
   display: flex;
   flex-direction: column;
@@ -278,10 +387,39 @@
 .player-item {
   display: flex;
   align-items: center;
-  padding: 8px 12px;
+  padding: 10px 15px;
+  border-bottom: 1px solid var(--tg-theme-hint-color, #eee);
+  background-color: var(--tg-theme-bg-color, #fff);
+  transition: background-color 0.2s;
 
-  &.waitlist {
-    background-color: var(--tg-theme-bg-color);
+  .remove-player-button {
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    margin-left: 8px;
+    color: var(--tg-theme-hint-color, #999);
+    transition: all 0.2s;
+
+    &:hover:not(:disabled) {
+      background-color: var(--tg-theme-destructive-color, #ff4d4f);
+      color: white;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
   }
 }
 
@@ -291,6 +429,7 @@
   justify-content: space-between;
   width: 100%;
   gap: 12px;
+  position: relative;
 
   .player-avatar {
     width: 32px;
@@ -348,7 +487,7 @@
   }
   
   .paid-status {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 6px;
     padding: 4px 8px;
@@ -358,6 +497,8 @@
     cursor: pointer;
     transition: background-color 0.2s;
     flex-shrink: 0;
+    border: 1px solid var(--tg-theme-hint-color, #ddd);
+    background: var(--tg-theme-bg-color);
     
     &.paid {
       background-color: rgba(40, 167, 69, 0.1);
@@ -390,6 +531,14 @@
       animation: spin 1s linear infinite;
     }
   }
+}
+
+.admin-player-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  padding-left: 8px;
 }
 
 .no-players {

@@ -529,6 +529,7 @@ router.put('/:gameId', telegramAuthMiddleware, adminAuthMiddleware, async (req, 
     const originalDateTime = new Date(existingGame[0].dateTime);
     const originalMaxPlayers = existingGame[0].maxPlayers;
     const originalDeadlineHours = existingGame[0].unregisterDeadlineHours || 5;
+    const originalPaymentAmount = existingGame[0].paymentAmount;
     const newDateTime = new Date(dateTime);
 
     // Update the game with new settings
@@ -571,16 +572,34 @@ router.put('/:gameId', telegramAuthMiddleware, adminAuthMiddleware, async (req, 
       // Determine what changed for the notification message
       const dateTimeChanged = originalDateTime.getTime() !== newDateTime.getTime();
       const maxPlayersChanged = originalMaxPlayers !== maxPlayers;
+      const paymentAmountChanged = originalPaymentAmount !== paymentAmount;
       
       // Create notification message based on what changed
       let notificationMessage = '🔄 Game Update: ';
+      const changes = [];
       
-      if (dateTimeChanged && maxPlayersChanged) {
-        notificationMessage += `The volleyball game has been rescheduled from ${formattedOldDate} to ${formattedNewDate} and the player limit has been changed to ${maxPlayers} players (was ${originalMaxPlayers}).`;
-      } else if (dateTimeChanged) {
-        notificationMessage += `The volleyball game has been rescheduled from ${formattedOldDate} to ${formattedNewDate}.`;
-      } else if (maxPlayersChanged) {
-        notificationMessage += `The player limit for the volleyball game on ${formattedNewDate} has been changed to ${maxPlayers} players (was ${originalMaxPlayers}).`;
+      if (dateTimeChanged) {
+        changes.push(`rescheduled from ${formattedOldDate} to ${formattedNewDate}`);
+      }
+      
+      if (maxPlayersChanged) {
+        changes.push(`player limit changed to ${maxPlayers} (was ${originalMaxPlayers})`);
+      }
+      
+      if (paymentAmountChanged) {
+        const paymentAmountEuros = (paymentAmount / 100).toFixed(2);
+        const originalPaymentAmountEuros = (originalPaymentAmount / 100).toFixed(2);
+        changes.push(`payment amount updated to €${paymentAmountEuros} (was €${originalPaymentAmountEuros})`);
+      }
+      
+      // Join all changes with commas and 'and' for the last item if there are multiple
+      if (changes.length > 0) {
+        if (changes.length === 1) {
+          notificationMessage += `The volleyball game has been ${changes[0]}.`;
+        } else {
+          const lastChange = changes.pop();
+          notificationMessage += `The volleyball game has been ${changes.join(', ')} and ${lastChange}.`;
+        }
       }
       
       // Get user details for all registered users
@@ -663,6 +682,133 @@ router.post('/:gameId/payment-requests', telegramAuthMiddleware, adminAuthMiddle
   } catch (error) {
     console.error('Error creating payment requests:', error);
     res.status(500).json({ error: 'Failed to create payment requests' });
+  }
+});
+
+// Admin: Add a participant to a game (admin only)
+router.post('/:gameId/participants', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) => {
+  try {
+    const gameId = parseInt(req.params.gameId);
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+
+    // Check if game exists
+    const game = await db.select().from(games).where(eq(games.id, gameId));
+    if (!game.length) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+
+    // Check if game is in the past
+    const gameDateTime = new Date(game[0].dateTime);
+    const now = new Date();
+    if (gameDateTime > now) {
+      return res.status(400).json({ error: 'Cannot modify participants for future games' });
+    }
+
+    // Check if payment requests exist for this game
+    const paymentRequestsExist = await db
+      .select()
+      .from(paymentRequests)
+      .innerJoin(gameRegistrations, eq(paymentRequests.gameRegistrationId, gameRegistrations.id))
+      .where(eq(gameRegistrations.gameId, gameId))
+      .limit(1);
+
+    if (paymentRequestsExist.length > 0) {
+      return res.status(400).json({ error: 'Cannot modify participants after payment requests have been sent' });
+    }
+
+    // Check if user exists
+    const user = await db.select().from(users).where(eq(users.id, userId));
+    if (!user.length) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Check if user is already registered
+    const existingRegistration = await db.select().from(gameRegistrations)
+      .where(and(
+        eq(gameRegistrations.gameId, gameId),
+        eq(gameRegistrations.userId, userId)
+      ));
+
+    if (existingRegistration.length > 0) {
+      return res.status(400).json({ error: 'User already registered for this game' });
+    }
+
+    // Add user to the game with timestamp set to 5 days before the game date
+    const fiveDaysBeforeGame = new Date(gameDateTime);
+    fiveDaysBeforeGame.setDate(fiveDaysBeforeGame.getDate() - 5);
+    
+    const registration = await db.insert(gameRegistrations).values({
+      gameId,
+      userId,
+      paid: false,
+      createdAt: fiveDaysBeforeGame // Set to 5 days before game date
+    }).returning();
+
+    res.status(201).json(registration[0]);
+  } catch (error) {
+    console.error('Error adding participant:', error);
+    res.status(500).json({ error: 'Failed to add participant' });
+  }
+});
+
+// Admin: Remove a participant from a game (admin only)
+router.delete('/:gameId/participants/:userId', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) => {
+  try {
+    const gameId = parseInt(req.params.gameId);
+    const userId = parseInt(req.params.userId);
+
+    // Check if game exists
+    const game = await db.select().from(games).where(eq(games.id, gameId));
+    if (!game.length) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+
+    // Check if game is in the past
+    const gameDateTime = new Date(game[0].dateTime);
+    const now = new Date();
+    if (gameDateTime > now) {
+      return res.status(400).json({ error: 'Cannot modify participants for future games' });
+    }
+
+    // Check if payment requests exist for this game
+    const paymentRequestsExist = await db
+      .select()
+      .from(paymentRequests)
+      .innerJoin(gameRegistrations, eq(paymentRequests.gameRegistrationId, gameRegistrations.id))
+      .where(eq(gameRegistrations.gameId, gameId))
+      .limit(1);
+
+    if (paymentRequestsExist.length > 0) {
+      return res.status(400).json({ error: 'Cannot modify participants after payment requests have been sent' });
+    }
+
+    // Check if registration exists
+    const registration = await db.select()
+      .from(gameRegistrations)
+      .where(and(
+        eq(gameRegistrations.gameId, gameId),
+        eq(gameRegistrations.userId, userId)
+      ));
+
+    if (!registration.length) {
+      return res.status(404).json({ error: 'Registration not found' });
+    }
+
+    // Delete the registration
+    await db.delete(gameRegistrations)
+      .where(and(
+        eq(gameRegistrations.gameId, gameId),
+        eq(gameRegistrations.userId, userId)
+      ));
+
+    res.json({ message: 'Participant removed successfully' });
+  } catch (error) {
+    console.error('Error removing participant:', error);
+    res.status(500).json({ error: 'Failed to remove participant' });
   }
 });
 

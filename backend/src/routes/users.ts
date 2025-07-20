@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { db } from '../db';
 import { users, bunqCredentials } from '../db/schema';
-import { eq, and, ne } from 'drizzle-orm';
+import { eq, and, ne, or, ilike, sql } from 'drizzle-orm';
 import { telegramAuthMiddleware } from '../middleware/telegramAuth';
 import { adminAuthMiddleware } from '../middleware/adminAuth';
 import { bunqCredentialsService } from '../services/bunqCredentialsService';
@@ -34,6 +34,44 @@ router.get('/', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) =>
   } catch (error) {
     console.error('Error fetching users:', error);
     res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// Search users by query (username) - Must come before :telegramId route
+router.get('/search', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) => {
+  try {
+    const { q: query } = req.query;
+    console.log('Search request received:', { query, user: req.user?.id });
+    
+    if (!query || typeof query !== 'string' || query.trim().length < 2) {
+      const error = 'Search query must be at least 2 characters long';
+      console.log('Search validation failed:', error);
+      return res.status(400).json({ error });
+    }
+
+    const searchTerm = `%${query.toLowerCase()}%`;
+    console.log('Searching users with term:', searchTerm);
+    
+    // Search for users where username contains the query (case-insensitive)
+    const results = await db
+      .select({
+        id: users.id,
+        username: users.username,
+        telegramId: users.telegramId,
+        avatarUrl: users.avatarUrl
+      })
+      .from(users)
+      .where(
+        ilike(users.username, searchTerm)
+      )
+      .execute();
+    
+    console.log('Search results:', { query, resultCount: results.length, results });
+    // Results are already in the correct format from the Drizzle query
+    res.json(results);
+  } catch (error) {
+    console.error('Error searching users:', error);
+    res.status(500).json({ error: 'Failed to search users' });
   }
 });
 
@@ -70,8 +108,6 @@ router.get('/id/:userId', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch user' });
   }
 });
-
-
 
 // Bunq Integration Management Routes (Admin only)
 

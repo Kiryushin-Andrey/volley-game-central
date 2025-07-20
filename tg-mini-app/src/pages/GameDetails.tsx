@@ -5,6 +5,7 @@ import { Game, User } from '../types';
 import { gamesApi, bunqApi } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import PasswordDialog from '../components/PasswordDialog';
+import { UserSearchInput } from '../components/UserSearchInput';
 import './GameDetails.scss';
 import WebApp from '@twa-dev/sdk';
 import { MainButton, BackButton } from '@twa-dev/sdk/react';
@@ -30,6 +31,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
   const [isSendingPaymentRequests, setIsSendingPaymentRequests] = useState<boolean>(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState<boolean>(false);
   const [passwordError, setPasswordError] = useState<string>('');
+  const [showUserSearch, setShowUserSearch] = useState<boolean>(false);
 
   useEffect(() => {
     if (gameId) {
@@ -222,6 +224,24 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
     return null;
   };
 
+  const handleAddParticipant = async (userId: number) => {
+    if (!game || isActionLoading) return;
+
+    try {
+      setIsActionLoading(true);
+      await gamesApi.addParticipant(game.id, userId);
+      // Reload the game to get updated registration status
+      await loadGame(game.id);
+      setShowUserSearch(false);
+    } catch (err: any) {
+      logDebug('Error adding participant:');
+      logDebug(err);
+      alert('Failed to add participant. Please try again.');
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
   const handleRegister = async () => {
     if (!game || isActionLoading) return;
 
@@ -318,6 +338,54 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
     } finally {
       setIsActionLoading(false);
     }
+  };
+  
+  // Handle removing a player from the game (admin only)
+  const handleRemovePlayer = (userId: number) => {
+    if (!game) return;
+    
+    const player = game.registrations.find(reg => reg.userId === userId);
+    const username = player?.user?.username || `Player ${userId}`;
+    
+    // Show confirmation dialog
+    WebApp.showConfirm(
+      `Remove ${username} from this game?`,
+      async (confirmed) => {
+        if (confirmed) {
+          try {
+            setIsActionLoading(true);
+            await gamesApi.removeParticipant(game.id, userId);
+            
+            // Update local state to reflect the removal
+            setGame(prevGame => {
+              if (!prevGame) return null;
+              
+              return {
+                ...prevGame,
+                registrations: prevGame.registrations.filter(reg => reg.userId !== userId)
+              };
+            });
+            
+            WebApp.showPopup({
+              title: 'Success',
+              message: `${username} has been removed from the game`,
+              buttons: [{ type: 'ok' }]
+            });
+          } catch (err) {
+            logDebug('Error removing player:');
+            logDebug(err);
+            
+            WebApp.showPopup({
+              title: 'Error',
+              message: 'Failed to remove player from the game',
+              buttons: [{ type: 'ok' }]
+            });
+          } finally {
+            setIsActionLoading(false);
+          }
+        }
+      }
+    );
   };
   
   // Handle toggling paid status for a player
@@ -474,6 +542,11 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
   const waitlistRegistrations = game.registrations.filter(reg => reg.isWaitlist);
   const userRegistration = game.registrations.find(reg => reg.userId === user.id);
 
+  // Check if the game is in the past and has no payment requests
+  const isPastGame = isGamePast(game.dateTime);
+  const hasPaymentRequests = game.registrations.some(reg => reg.paid);
+  const showAddParticipantButton = user.isAdmin && isPastGame && !hasPaymentRequests;
+
   // Get the current main button properties
   const { show: showMainButton, text: mainButtonText, onClick: mainButtonClick } = mainButtonProps();
 
@@ -482,6 +555,18 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
       {/* BackButton component */}
       <BackButton onClick={() => navigate('/')} />
       <div className="game-header">
+        
+        {showAddParticipantButton && showUserSearch && (
+          <div className="user-search-container">
+            <UserSearchInput
+              onSelectUser={handleAddParticipant}
+              onCancel={() => setShowUserSearch(false)}
+              disabled={isActionLoading}
+              placeholder="Search users to add..."
+            />
+          </div>
+        )}
+        
         {/* First line: Game date and time */}
         <div className="game-date-line">
           <div className="game-date">{formatDate(game.dateTime)}</div>
@@ -506,6 +591,18 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
           {/* Admin-only: Game management buttons */}
           {user.isAdmin && (
             <div className="admin-actions">
+              {showAddParticipantButton && !showUserSearch && (
+                <button 
+                  className="add-participant-button"
+                  onClick={() => setShowUserSearch(!showUserSearch)}
+                  disabled={isActionLoading}
+                  title={showUserSearch ? 'Cancel' : 'Add Participant'}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                  </svg>
+                </button>
+              )}
               <button
                 className="edit-game-button"
                 onClick={() => navigate(`/game/${gameId}/edit`)}
@@ -585,21 +682,41 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
                     {registration.userId === user.id && (
                       <div className="player-badge">You</div>
                     )}
-                    {/* Paid status checkbox for admins on past games (not for waitlist) */}
+                    {/* Admin actions for past games */}
                     {user.isAdmin && isGamePast(game.dateTime) && !registration.isWaitlist && (
-                      <div 
-                        className={`paid-status ${registration.paid ? 'paid' : 'unpaid'}`}
-                        onClick={() => handleTogglePaidStatus(registration.userId, registration.paid)}
-                        aria-label={registration.paid ? 'Paid' : 'Not paid'}
-                      >
-                        {isPaidUpdating === registration.userId ? (
-                          <div className="mini-spinner"></div>
-                        ) : registration.paid ? (
-                          <FaCheck className="paid-icon" />
-                        ) : (
-                          <FaTimes className="unpaid-icon" />
+                      <div className="admin-player-actions">
+                        {/* Remove player button */}
+                        {!game.fullyPaid && !registration.paid && (
+                          <button 
+                            className="remove-player-button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemovePlayer(registration.userId);
+                            }}
+                            title="Remove player"
+                            disabled={isActionLoading}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                              <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                            </svg>
+                          </button>
                         )}
-                        <span>{registration.paid ? 'Paid' : 'Unpaid'}</span>
+                        
+                        {/* Paid status checkbox */}
+                        <div 
+                          className={`paid-status ${registration.paid ? 'paid' : 'unpaid'}`}
+                          onClick={() => handleTogglePaidStatus(registration.userId, registration.paid)}
+                          aria-label={registration.paid ? 'Paid' : 'Not paid'}
+                        >
+                          {isPaidUpdating === registration.userId ? (
+                            <div className="mini-spinner"></div>
+                          ) : registration.paid ? (
+                            <FaCheck className="paid-icon" />
+                          ) : (
+                            <FaTimes className="unpaid-icon" />
+                          )}
+                          <span>{registration.paid ? 'Paid' : 'Unpaid'}</span>
+                        </div>
                       </div>
                     )}
                   </div>
