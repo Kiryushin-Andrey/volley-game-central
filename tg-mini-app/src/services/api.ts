@@ -145,7 +145,7 @@ export const gamesApi = {
   /**
    * Search users by query (for admin participant management)
    */
-  searchUsers: async (query: string): Promise<Array<{ id: number; username: string; telegramId: string | null }>> => {
+  searchUsers: async (query: string): Promise<Array<{ id: number; username: string; telegramId: string | null; avatarUrl?: string | null }>> => {
     const logData = (data: unknown) => logDebug(JSON.stringify(data, null, 2));
     
     logData(`Searching users with query: "${query}"`);

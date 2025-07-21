@@ -4,32 +4,26 @@
   margin-bottom: 12px;
 }
 
-.user-search-input-container {
-  position: relative;
-  width: 100%;
-}
-
 .search-input-wrapper {
   display: flex;
   align-items: center;
+  gap: 8px;
   width: 100%;
-  border: 1px solid #e1e8ed;
-  border-radius: 8px;
-  overflow: hidden;
-  background-color: var(--tg-theme-bg-color);
 }
 
-.user-search-input {
+.search-input {
   flex: 1;
   padding: 10px 16px;
-  border: none;
+  border: 1px solid #e1e8ed;
+  border-radius: 8px;
   font-size: 14px;
   color: var(--tg-theme-text-color);
-  background: transparent;
-  transition: box-shadow 0.2s;
+  background-color: var(--tg-theme-bg-color);
+  transition: border-color 0.2s, box-shadow 0.2s;
   
   &:focus {
     outline: none;
+    border-color: var(--tg-theme-link-color, #2aabee);
     box-shadow: 0 0 0 2px rgba(42, 171, 238, 0.2);
   }
   
@@ -39,28 +33,39 @@
   }
 }
 
-.cancel-search-button {
-  background: none;
-  border: none;
-  color: var(--tg-theme-link-color, #2aabee);
+.cancel-button {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid #e1e8ed;
+  border-radius: 8px;
+  background-color: var(--tg-theme-bg-color);
+  color: var(--tg-theme-hint-color, #888);
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  padding: 10px 12px;
-  white-space: nowrap;
-  transition: opacity 0.2s, background-color 0.2s;
+  transition: all 0.2s;
   
-  &:hover {
-    background-color: rgba(0, 0, 0, 0.03);
+  &:hover:not(:disabled) {
+    color: var(--tg-theme-link-color, #2aabee);
+    border-color: var(--tg-theme-link-color, #2aabee);
+    background-color: rgba(42, 171, 238, 0.1);
   }
   
-  &:active {
-    opacity: 0.8;
+  &:active:not(:disabled) {
+    transform: scale(0.95);
   }
   
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+  
+  svg {
+    width: 16px;
+    height: 16px;
   }
 }
 
@@ -90,51 +95,78 @@
 .user-search-results {
   list-style: none;
   margin: 0;
-  padding: 8px 0;
+  padding: 0;
   
   .user-search-item {
     display: flex;
     align-items: center;
-    padding: 10px 16px;
+    padding: 10px 15px;
     cursor: pointer;
     transition: background-color 0.2s;
+    border-bottom: 1px solid var(--tg-theme-secondary-bg-color, #f5f5f5);
+    
+    &:last-child {
+      border-bottom: none;
+    }
     
     &:hover,
     &.selected {
       background-color: var(--tg-theme-secondary-bg-color, #f5f5f5);
     }
     
-    .user-avatar {
-      width: 32px;
-      height: 32px;
+    .player-info {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      gap: 12px;
+    }
+    
+    .player-avatar {
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
-      background-color: var(--tg-theme-link-color, #2aabee);
-      color: white;
+      background-color: rgba(42, 171, 238, 0.1);
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-right: 12px;
-      font-weight: 500;
-      flex-shrink: 0;
+      color: var(--tg-theme-link-color, #2aabee);
+      font-weight: 600;
+      font-size: 18px;
+      
+      .avatar-placeholder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+      }
+      
+      .avatar-image {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+      }
     }
     
-    .username {
+    .player-name {
       flex: 1;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      color: var(--tg-theme-text-color);
+      font-size: 15px;
       font-weight: 500;
-    }
-    
-    .telegram-id {
-      color: var(--tg-theme-hint-color);
-      font-size: 13px;
-      margin-left: 8px;
+      color: var(--tg-theme-text-color);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 120px;
+      
+      .telegram-handle {
+        display: block;
+        font-size: 13px;
+        color: var(--tg-theme-hint-color, #888);
+        margin-top: 2px;
+        font-weight: normal;
+      }
     }
   }
 }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { gamesApi } from '../services/api';
 import { logDebug } from '../debug';
+import { FaTimes } from 'react-icons/fa';
 
 interface UserSearchInputProps {
   onSelectUser: (userId: number) => void;
@@ -13,6 +14,7 @@ interface UserOption {
   id: number;
   username: string;
   telegramId: string | null;
+  avatarUrl?: string | null;
 }
 
 export const UserSearchInput: React.FC<UserSearchInputProps> = ({
@@ -101,29 +103,27 @@ export const UserSearchInput: React.FC<UserSearchInputProps> = ({
 
   return (
     <div className="user-search-container" ref={dropdownRef}>
-      <div className="user-search-input-container">
-        <div className="search-input-wrapper">
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={placeholder}
-            disabled={disabled}
-            className="user-search-input"
-            autoFocus
-          />
-          <button 
-            className="cancel-search-button" 
-            onClick={onCancel}
-            type="button"
-            disabled={disabled}
-            title="Cancel search"
-          >
-            Cancel
-          </button>
-        </div>
+      <div className="search-input-wrapper">
+        <input
+          ref={inputRef}
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          disabled={disabled}
+          className="search-input"
+          autoFocus
+        />
+        <button 
+          className="cancel-button" 
+          onClick={onCancel}
+          type="button"
+          disabled={disabled}
+          aria-label="Cancel search"
+        >
+          <FaTimes />
+        </button>
       </div>
       
       {showDropdown && (
@@ -138,13 +138,24 @@ export const UserSearchInput: React.FC<UserSearchInputProps> = ({
                   className={`user-search-item ${selectedIndex === index ? 'selected' : ''}`}
                   onClick={() => handleSelectUser(user)}
                 >
-                  <div className="user-avatar">
-                    {user.username.charAt(0).toUpperCase()}
+                  <div className="player-info">
+                    <div className="player-avatar">
+                    {user.avatarUrl ? (
+                      <img 
+                        src={user.avatarUrl} 
+                        alt={`${user.username}'s avatar`}
+                        className="avatar-image"
+                      />
+                    ) : (
+                      <div className="avatar-placeholder">
+                        {user.username.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    </div>
+                    <div className="player-name">
+                      {user.username}
+                    </div>
                   </div>
-                  <span className="username">{user.username}</span>
-                  {user.telegramId && (
-                    <span className="telegram-id">@{user.telegramId}</span>
-                  )}
                 </li>
               ))}
             </ul>
