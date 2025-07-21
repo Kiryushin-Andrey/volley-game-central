@@ -15,6 +15,7 @@ services:
       # Telegram configuration
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:?TELEGRAM_BOT_TOKEN is required}
       TELEGRAM_GROUP_ID: ${TELEGRAM_GROUP_ID:?TELEGRAM_GROUP_ID is required}
+      TELEGRAM_TOPIC_ID: ${TELEGRAM_TOPIC_ID}
       MINI_APP_URL: ${MINI_APP_URL:?MINI_APP_URL is required}
       # Application settings
       NODE_ENV: production

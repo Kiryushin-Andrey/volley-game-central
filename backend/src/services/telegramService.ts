@@ -74,10 +74,10 @@ export async function sendGroupAnnouncement(message: string, topicId?: number): 
   }
   
   try {
-    // Use the provided topicId, or fall back to the environment variable, or undefined if neither exists
     const messageThreadId = topicId || TELEGRAM_TOPIC_ID;
+    const logSuffix = messageThreadId ? ` (topic: ${messageThreadId})` : '';
+    console.log(`Sending announcement to group ${TELEGRAM_GROUP_ID}${logSuffix}`);
     
-    // Get bot info to create a proper Telegram URL
     const botInfo = await bot.telegram.getMe();
     const botUsername = botInfo.username;
     const botUrl = `https://t.me/${botUsername}`;
@@ -97,7 +97,8 @@ export async function sendGroupAnnouncement(message: string, topicId?: number): 
     });
     console.log(`Announcement sent to group ${TELEGRAM_GROUP_ID}`);
   } catch (error) {
-    console.error(`Failed to send announcement to group ${TELEGRAM_GROUP_ID}:`, error);
+    const logSuffix = (topicId || TELEGRAM_TOPIC_ID) ? ` (topic: ${topicId || TELEGRAM_TOPIC_ID})` : '';
+    console.error(`Failed to send announcement to group ${TELEGRAM_GROUP_ID}${logSuffix}:`, error);
     // Don't throw the error as this is a non-critical operation
   }
 }
@@ -113,8 +114,6 @@ export async function checkAndAnnounceGameRegistrations(): Promise<void> {
     // Calculate the date range for games whose registration opened in the last hour
     // Registration opens exactly 5 days before the game
     // So we're looking for games that are between 5 days and 4 days 23 hours from now
-    
-    // Exactly 5 days from now - this is when registration opens
     const fiveDaysFromNow = new Date(now);
     fiveDaysFromNow.setDate(fiveDaysFromNow.getDate() + 5);
     
