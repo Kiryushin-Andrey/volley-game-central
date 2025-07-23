@@ -123,6 +123,7 @@ export async function checkAndAnnounceGameRegistrations(): Promise<void> {
     fourDays23HoursFromNow.setHours(fourDays23HoursFromNow.getHours() + 23);
     
     // Find games whose registration opened in the last hour
+    // Skip games with withPositions flag set to true
     const upcomingGames = await db.select()
       .from(games)
       .where(
@@ -130,7 +131,8 @@ export async function checkAndAnnounceGameRegistrations(): Promise<void> {
         // (registration opened within the last hour)
         and(
           lte(games.dateTime, fiveDaysFromNow),  // Less than or equal to 5 days from now
-          gt(games.dateTime, fourDays23HoursFromNow)  // Greater than 4 days 23 hours from now
+          gt(games.dateTime, fourDays23HoursFromNow),  // Greater than 4 days 23 hours from now
+          eq(games.withPositions, false)  // Skip games with withPositions = true
         )
       );
     

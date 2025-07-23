@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, memo } from 'react';
+import React, { useState, useEffect, useRef, memo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { logDebug } from '../debug';
 import { gamesApi } from '../services/api';
@@ -69,12 +69,14 @@ const GameItemsList = memo(({
   games, 
   isLoading, 
   formatDate,
-  handleGameClick 
+  handleGameClick,
+  showPositions 
 }: { 
   games: GameWithStats[], 
   isLoading: boolean,
   formatDate: (date: string) => string,
-  handleGameClick: (id: number) => void
+  handleGameClick: (id: number) => void,
+  showPositions: boolean
 }) => {
   // Show loading indicator when loading
   if (isLoading) {
@@ -99,12 +101,16 @@ const GameItemsList = memo(({
   return (
     <div className="games-list">
       {games.map((game) => (
-        <GameItem 
+        <div 
           key={game.id} 
-          game={game} 
-          onClick={handleGameClick}
-          formatDate={formatDate}
-        />
+          className={`game-card-wrapper ${showPositions ? (game.withPositions ? 'with-positions' : 'without-positions') : ''}`}
+        >
+          <GameItem 
+            game={game} 
+            onClick={handleGameClick}
+            formatDate={formatDate}
+          />
+        </div>
       ))}
     </div>
   );
@@ -112,31 +118,31 @@ const GameItemsList = memo(({
 
 const GamesList: React.FC<GamesListProps> = ({ user }) => {
   const [games, setGames] = useState<GameWithStats[]>([]);
+  const [allGames, setAllGames] = useState<GameWithStats[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [gameFilter, setGameFilter] = useState<GameFilter>('upcoming');
   const [showAll, setShowAll] = useState(false);
+  const [showPositions, setShowPositions] = useState(false);
   
   // Use a ref for loading state to avoid re-renders of the parent component
   const isLoadingRef = useRef(false);
   const [loadingIndicator, setLoadingIndicator] = useState(false);
   const navigate = useNavigate();
 
-  // Effect to re-load games when filter or showAll state changes
   useEffect(() => {
-    loadGames();
-  }, [gameFilter, showAll]);
+    if (allGames.length > 0) {
+      let filteredGames = [...allGames];
+      
+      if (!showPositions) {
+        filteredGames = filteredGames.filter(game => !game.withPositions);
+      }
+      
+      setGames(filteredGames);
+    }
+  }, [showPositions, allGames]);
   
-  // Ensure main button is hidden on games list screen
-  // It should only be visible on game details screen
-  useEffect(() => {
-    // Load games when component mounts
-    loadGames();
-
-    // No cleanup needed
-    return () => {};
-  }, []);
-
-  const loadGames = async () => {
+  // Load games function with useCallback to prevent infinite loops
+  const loadGames = useCallback(async () => {
     if (isLoadingRef.current) return;
     try {
       isLoadingRef.current = true;
@@ -159,9 +165,19 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
         userRegistration: game.userRegistration || undefined
       }));
       
-      // Games are already filtered and sorted by the backend
-      setGames(gamesWithRequiredProps);
+      // Store all games and apply filters
+      setAllGames(gamesWithRequiredProps);
       setError(null);
+      
+      // Apply current filters
+      let filteredGames = [...gamesWithRequiredProps];
+      
+      // Filter by positions toggle if enabled
+      if (showPositions) {
+        filteredGames = filteredGames.filter(game => game.withPositions);
+      }
+      
+      setGames(filteredGames);
     } catch (err) {
       setError('Failed to load games');
       logDebug('Error loading games:');
@@ -170,7 +186,24 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
       isLoadingRef.current = false;
       setLoadingIndicator(false);
     }
-  };
+  }, [gameFilter, showAll, showPositions]);
+  
+  // Effect to re-load games when filter or showAll state changes
+  useEffect(() => {
+    loadGames();
+  }, [loadGames]);
+  
+  // Ensure main button is hidden on games list screen
+  // It should only be visible on game details screen
+  useEffect(() => {
+    // Load games when component mounts
+    loadGames();
+
+    // No cleanup needed
+    return () => {};
+  }, []);
+
+
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -218,54 +251,73 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
   return (
     <div className="games-list-container">
       <div className="games-header">
-        {user.isAdmin && (
-          <div className="admin-controls">
-            <div className="button-row">
-              <button
-                className="bunq-settings-button"
-                onClick={() => navigate('/bunq-settings')}
-              >
-                💳 Bunq settings
-              </button>
-              <button
-                className="check-payments-button"
-                onClick={() => navigate('/check-payments')}
-              >
-                🔄 Check Payments
-              </button>
-              <button
-                className="create-game-button"
-                onClick={() => navigate('/games/new')}
-              >
-                Create New Game
-              </button>
+        <div className="filters-container">
+          <div className="toggle-container">
+            <label className="toggle-switch">
+              <input 
+                type="checkbox" 
+                checked={showPositions}
+                onChange={(e) => setShowPositions(e.target.checked)}
+              />
+              <span className="slider round"></span>
+            </label>
+            <span className="toggle-label">Show games with 5-1 positions</span>
+          </div>
+          
+          {showPositions && (
+            <div className="positions-note">
+              <p>🔶 Games marked with yellow are played with 5-1 positions. Knowledge of the 5-1 scheme is expected of all participants.</p>
             </div>
-            
-            <div className="game-filters">
-              <div className="radio-group">
-                <label className={`radio-label ${gameFilter === 'upcoming' ? 'active' : ''}`}>
-                  <input
-                    type="radio"
-                    name="gameFilter"
-                    value="upcoming"
-                    checked={gameFilter === 'upcoming'}
-                    onChange={() => setGameFilter('upcoming')}
-                  />
-                  <span>Upcoming</span>
-                </label>
-                <label className={`radio-label ${gameFilter === 'past' ? 'active' : ''}`}>
-                  <input
-                    type="radio"
-                    name="gameFilter"
-                    value="past"
-                    checked={gameFilter === 'past'}
-                    onChange={() => setGameFilter('past')}
-                  />
-                  <span>Past</span>
-                </label>
+          )}
+          
+          {/* Admin controls */}
+          {user.isAdmin && (
+            <div className="admin-controls">
+              <div className="button-row">
+                <button
+                  className="bunq-settings-button"
+                  onClick={() => navigate('/bunq-settings')}
+                >
+                  💳 Bunq settings
+                </button>
+                <button
+                  className="check-payments-button"
+                  onClick={() => navigate('/check-payments')}
+                >
+                  🔄 Check Payments
+                </button>
+                <button
+                  className="create-game-button"
+                  onClick={() => navigate('/games/new')}
+                >
+                  Create New Game
+                </button>
               </div>
               
-              {user.isAdmin && (
+              <div className="game-filters">
+                <div className="radio-group">
+                  <label className={`radio-label ${gameFilter === 'upcoming' ? 'active' : ''}`}>
+                    <input
+                      type="radio"
+                      name="gameFilter"
+                      value="upcoming"
+                      checked={gameFilter === 'upcoming'}
+                      onChange={() => setGameFilter('upcoming')}
+                    />
+                    <span>Upcoming</span>
+                  </label>
+                  <label className={`radio-label ${gameFilter === 'past' ? 'active' : ''}`}>
+                    <input
+                      type="radio"
+                      name="gameFilter"
+                      value="past"
+                      checked={gameFilter === 'past'}
+                      onChange={() => setGameFilter('past')}
+                    />
+                    <span>Past</span>
+                  </label>
+                </div>
+                
                 <div className="show-all-toggle">
                   <input
                     type="checkbox"
@@ -277,10 +329,10 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
                     {gameFilter == 'upcoming' ? "Show all scheduled games" : "Show fully paid games"}
                   </label>
                 </div>
-              )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       <GameItemsList 
@@ -288,6 +340,7 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
         isLoading={loadingIndicator}
         formatDate={formatDate}
         handleGameClick={handleGameClick}
+        showPositions={showPositions}
       />
     </div>
   );

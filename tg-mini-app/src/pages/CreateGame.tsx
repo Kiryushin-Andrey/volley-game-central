@@ -21,6 +21,7 @@ const CreateGame: React.FC = () => {
   const [unregisterDeadlineHours, setUnregisterDeadlineHours] = useState<number>(5);
   const [paymentAmount, setPaymentAmount] = useState<number>(500); // Stored in cents
   const [paymentAmountDisplay, setPaymentAmountDisplay] = useState<string>(centsToEuroString(500)); // Display value in euros
+  const [withPositions, setWithPositions] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -73,6 +74,7 @@ const CreateGame: React.FC = () => {
         maxPlayers,
         unregisterDeadlineHours,
         paymentAmount,
+        withPositions,
       });
       
       navigate('/');
@@ -89,10 +91,17 @@ const CreateGame: React.FC = () => {
     navigate('/');
   }, [navigate]);
   
-  const handlePaymentAmountChange = (value: string) => {
-    setPaymentAmountDisplay(value);
+  const handlePaymentAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Remove all non-digit and non-decimal point characters
+    const numericValue = value.replace(/[^\d.]/g, '');
     
-    setPaymentAmount(eurosToCents(value));
+    // Only update if the value is a valid number or empty string
+    if (numericValue === '' || !isNaN(Number(numericValue))) {
+      setPaymentAmountDisplay(numericValue);
+      // Convert the numeric value to a string with proper decimal separator
+      setPaymentAmount(eurosToCents(numericValue || '0'));
+    }
   };
 
   if (isInitialLoading) {
@@ -159,17 +168,30 @@ const CreateGame: React.FC = () => {
         <div className="form-group">
           <label htmlFor="paymentAmount">Payment Amount (€):</label>
           <input
-            type="text"
+            type="number"
             id="paymentAmount"
             value={paymentAmountDisplay}
-            onChange={(e) => handlePaymentAmountChange(e.target.value)}
+            onChange={handlePaymentAmountChange}
+            step="0.01"
+            min="0"
             required
           />
-          <div className="field-description">
-            Payment amount in euros.
+        </div>
+
+        <div className="form-group">
+          <div className="toggle-container">
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={withPositions}
+                onChange={(e) => setWithPositions(e.target.checked)}
+              />
+              <span className="slider round"></span>
+            </label>
+            <span className="toggle-label">Playing 5-1</span>
           </div>
         </div>
-        
+
         <div className="button-group">
           <button 
             type="button" 

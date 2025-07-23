@@ -645,6 +645,12 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
         </div>
       </div>
 
+      {game.withPositions && (
+        <div className="positions-note">
+          <p>🔶 This game will be played with positions according to the 5-1 scheme. Knowledge of the 5-1 scheme is expected of all participants.</p>
+        </div>
+      )}
+
       <div className="players-container">
         <div className="players-stats-header">
           <div className="stats-row">

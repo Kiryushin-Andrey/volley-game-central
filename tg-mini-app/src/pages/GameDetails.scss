@@ -180,6 +180,16 @@
         border-radius: 4px;
         display: inline-block;
       }
+      
+      .game-positions {
+        font-size: 14px;
+        font-weight: 500;
+        color: #ffffff;
+        background: #6c5ce7; // Purple color for 5-1 positions
+        padding: 4px 8px;
+        border-radius: 4px;
+        display: inline-block;
+      }
     }
     
     .admin-actions {
@@ -300,6 +310,22 @@
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
+  }
+}
+
+/* Positions note */
+.positions-note {
+  background-color: #fff8e1; // Light yellow background
+  border-left: 4px solid #ffc107; // Yellow border
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border-radius: 0 4px 4px 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #5d4037; // Dark brown text
+  
+  p {
+    margin: 0;
   }
 }
 

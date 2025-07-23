@@ -57,6 +57,13 @@
       "when": 1751600000000,
       "tag": "0007_add_private_key_to_bunq_credentials",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1753273186105,
+      "tag": "0008_add_with_positions_to_games",
+      "breakpoints": true
     }
   ]
 }

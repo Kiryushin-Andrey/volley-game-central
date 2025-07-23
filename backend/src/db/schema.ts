@@ -16,6 +16,7 @@ export const games = pgTable('games', {
   unregisterDeadlineHours: serial('unregister_deadline_hours').notNull().default(5),
   paymentAmount: integer('payment_amount').notNull(),
   fullyPaid: boolean('fully_paid').notNull().default(false),
+  withPositions: boolean('with_positions').notNull().default(false),
   createdAt: timestamp('created_at').defaultNow(),
   createdById: serial('created_by_id').references(() => users.id),
 });

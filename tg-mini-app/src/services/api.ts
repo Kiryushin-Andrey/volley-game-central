@@ -84,9 +84,8 @@ export const gamesApi = {
     return response.data;
   },
 
-  createGame: async (gameData: { dateTime: string; maxPlayers: number; unregisterDeadlineHours: number; paymentAmount: number }): Promise<Game> => {
-    const response = await api.post('/games', gameData);
-    return response.data;
+  createGame(gameData: { dateTime: string; maxPlayers: number; unregisterDeadlineHours: number; paymentAmount: number; withPositions: boolean }): Promise<Game> {
+    return api.post('/games', gameData).then(res => res.data);
   },
 
   registerForGame: async (gameId: number): Promise<void> => {
@@ -101,9 +100,8 @@ export const gamesApi = {
     await api.delete(`/games/${gameId}`);
   },
 
-  updateGame: async (gameId: number, gameData: { dateTime: string; maxPlayers: number; unregisterDeadlineHours: number; paymentAmount: number }): Promise<Game> => {
-    const response = await api.put(`/games/${gameId}`, gameData);
-    return response.data;
+  updateGame(gameId: number, gameData: { dateTime: string; maxPlayers: number; unregisterDeadlineHours: number; paymentAmount: number; withPositions: boolean }): Promise<Game> {
+    return api.put(`/games/${gameId}`, gameData).then(res => res.data);
   },
 
   /**

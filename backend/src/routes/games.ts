@@ -27,7 +27,7 @@ router.get('/default-datetime', telegramAuthMiddleware, async (req, res) => {
 // Create a new game
 router.post('/', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) => {
   try {
-    const { dateTime, maxPlayers, unregisterDeadlineHours = 5, paymentAmount } = req.body;
+    const { dateTime, maxPlayers, unregisterDeadlineHours = 5, paymentAmount, withPositions = false } = req.body;
     
     if (!dateTime || !maxPlayers) {
       return res.status(400).json({ error: 'dateTime and maxPlayers are required' });
@@ -45,6 +45,7 @@ router.post('/', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) =
       maxPlayers,
       unregisterDeadlineHours,
       paymentAmount,
+      withPositions,
       createdById
     }).returning();
 
@@ -512,7 +513,7 @@ router.get('/', telegramAuthMiddleware, async (req, res) => {
 router.put('/:gameId', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) => {
   try {
     const gameId = parseInt(req.params.gameId);
-    const { dateTime, maxPlayers, unregisterDeadlineHours, paymentAmount } = req.body;
+    const { dateTime, maxPlayers, unregisterDeadlineHours, paymentAmount, withPositions } = req.body;
 
     // Validate required fields
     if (!dateTime || !maxPlayers) {
@@ -530,6 +531,7 @@ router.put('/:gameId', telegramAuthMiddleware, adminAuthMiddleware, async (req, 
     const originalMaxPlayers = existingGame[0].maxPlayers;
     const originalDeadlineHours = existingGame[0].unregisterDeadlineHours || 5;
     const originalPaymentAmount = existingGame[0].paymentAmount;
+    const originalWithPositions = existingGame[0].withPositions || false;
     const newDateTime = new Date(dateTime);
 
     // Update the game with new settings
@@ -539,6 +541,7 @@ router.put('/:gameId', telegramAuthMiddleware, adminAuthMiddleware, async (req, 
         maxPlayers,
         unregisterDeadlineHours,
         paymentAmount,
+        withPositions,
       })
       .where(eq(games.id, gameId))
       .returning();
@@ -573,6 +576,7 @@ router.put('/:gameId', telegramAuthMiddleware, adminAuthMiddleware, async (req, 
       const dateTimeChanged = originalDateTime.getTime() !== newDateTime.getTime();
       const maxPlayersChanged = originalMaxPlayers !== maxPlayers;
       const paymentAmountChanged = originalPaymentAmount !== paymentAmount;
+      const withPositionsChanged = originalWithPositions !== withPositions;
       
       // Create notification message based on what changed
       let notificationMessage = '🔄 Game Update: ';
@@ -590,6 +594,13 @@ router.put('/:gameId', telegramAuthMiddleware, adminAuthMiddleware, async (req, 
         const paymentAmountEuros = (paymentAmount / 100).toFixed(2);
         const originalPaymentAmountEuros = (originalPaymentAmount / 100).toFixed(2);
         changes.push(`The payment amount is now €${paymentAmountEuros} (was €${originalPaymentAmountEuros})`);
+      }
+      
+      if (withPositionsChanged) {
+        if (withPositions)
+          changes.push("The game will be played with positions according to the 5-1 system")
+        else
+          changes.push("The game will be played without positions")
       }
       
       // Format the notification message with changes as a bullet list

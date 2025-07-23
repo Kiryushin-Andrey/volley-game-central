@@ -24,17 +24,23 @@ const EditGameSettings: React.FC = () => {
   const [unregisterDeadlineHours, setUnregisterDeadlineHours] = useState<number>(5);
   const [paymentAmount, setPaymentAmount] = useState<number>(0); // Stored in cents
   const [paymentAmountDisplay, setPaymentAmountDisplay] = useState<string>('0.00'); // Display value in euros
+  const [withPositions, setWithPositions] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   // Handle payment amount input changes, converting from euros to cents
-  const handlePaymentAmountChange = (value: string) => {
-    // Store the display value (with comma or dot as decimal separator)
-    setPaymentAmountDisplay(value);
+  const handlePaymentAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Remove all non-digit and non-decimal point characters
+    const numericValue = value.replace(/[^\d.]/g, '');
     
-    // Use the utility function to convert euros to cents
-    setPaymentAmount(eurosToCents(value));
+    // Only update if the value is a valid number or empty string
+    if (numericValue === '' || !isNaN(Number(numericValue))) {
+      setPaymentAmountDisplay(numericValue);
+      // Convert the numeric value to a string with proper decimal separator
+      setPaymentAmount(eurosToCents(numericValue || '0'));
+    }
   };
 
   // Load game data on component mount
@@ -54,6 +60,9 @@ const EditGameSettings: React.FC = () => {
         // Set payment amount and display value
         setPaymentAmount(game.paymentAmount || 0);
         setPaymentAmountDisplay(centsToEuroString(game.paymentAmount || 0));
+        
+        // Set withPositions flag
+        setWithPositions(!!game.withPositions);
       } catch (err) {
         logDebug('Error loading game:');
         logDebug(err);
@@ -82,7 +91,8 @@ const EditGameSettings: React.FC = () => {
         dateTime: selectedDate.toISOString(),
         maxPlayers,
         unregisterDeadlineHours,
-        paymentAmount
+        paymentAmount,
+        withPositions
       });
       
       // Navigate back to the game details page after successful update
@@ -160,9 +170,6 @@ const EditGameSettings: React.FC = () => {
             max="48"
             required
           />
-          <div className="field-description">
-            Players can unregister up until this many hours before the game starts.
-          </div>
         </div>
         
         <div className="form-group">
@@ -171,11 +178,22 @@ const EditGameSettings: React.FC = () => {
             type="text"
             id="paymentAmount"
             value={paymentAmountDisplay}
-            onChange={(e) => handlePaymentAmountChange(e.target.value)}
+            onChange={handlePaymentAmountChange}
             required
           />
-          <div className="field-description">
-            Payment amount in euros.
+        </div>
+
+        <div className="form-group">
+          <div className="toggle-container">
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={withPositions}
+                onChange={(e) => setWithPositions(e.target.checked)}
+              />
+              <span className="slider round"></span>
+            </label>
+            <span className="toggle-label">Playing 5-1</span>
           </div>
         </div>
         
