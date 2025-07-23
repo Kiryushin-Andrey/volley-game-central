@@ -579,27 +579,23 @@ router.put('/:gameId', telegramAuthMiddleware, adminAuthMiddleware, async (req, 
       const changes = [];
       
       if (dateTimeChanged) {
-        changes.push(`rescheduled from ${formattedOldDate} to ${formattedNewDate}`);
+        changes.push(`The game has been rescheduled from ${formattedOldDate} to ${formattedNewDate}`);
       }
       
       if (maxPlayersChanged) {
-        changes.push(`player limit changed to ${maxPlayers} (was ${originalMaxPlayers})`);
+        changes.push(`The player limit has changed to ${maxPlayers} (was ${originalMaxPlayers})`);
       }
       
       if (paymentAmountChanged) {
         const paymentAmountEuros = (paymentAmount / 100).toFixed(2);
         const originalPaymentAmountEuros = (originalPaymentAmount / 100).toFixed(2);
-        changes.push(`payment amount updated to €${paymentAmountEuros} (was €${originalPaymentAmountEuros})`);
+        changes.push(`The payment amount is now €${paymentAmountEuros} (was €${originalPaymentAmountEuros})`);
       }
       
-      // Join all changes with commas and 'and' for the last item if there are multiple
+      // Format the notification message with changes as a bullet list
       if (changes.length > 0) {
-        if (changes.length === 1) {
-          notificationMessage += `The volleyball game has been ${changes[0]}.`;
-        } else {
-          const lastChange = changes.pop();
-          notificationMessage += `The volleyball game has been ${changes.join(', ')} and ${lastChange}.`;
-        }
+        notificationMessage = '🔄 Game Update:\n\n';
+        notificationMessage += changes.map(change => `• ${change}`).join('\n');
       }
       
       // Get user details for all registered users
