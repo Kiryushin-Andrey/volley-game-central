@@ -22,6 +22,7 @@ const CreateGame: React.FC = () => {
   const [paymentAmount, setPaymentAmount] = useState<number>(500); // Stored in cents
   const [paymentAmountDisplay, setPaymentAmountDisplay] = useState<string>(centsToEuroString(500)); // Display value in euros
   const [withPositions, setWithPositions] = useState<boolean>(false);
+  const [locationAddress, setLocationAddress] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -75,6 +76,7 @@ const CreateGame: React.FC = () => {
         unregisterDeadlineHours,
         paymentAmount,
         withPositions,
+        locationAddress,
       });
       
       navigate('/');
@@ -176,6 +178,21 @@ const CreateGame: React.FC = () => {
             min="0"
             required
           />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="locationAddress">Location (address or map link):</label>
+          <input
+            type="text"
+            id="locationAddress"
+            value={locationAddress}
+            onChange={(e) => setLocationAddress(e.target.value)}
+            placeholder="e.g. Victoria Park, Amsterdam or paste Maps link"
+            required
+          />
+          <div className="field-description">
+            Tip: open Google Maps, search the venue, tap Share &gt; Copy link and paste it here.
+          </div>
         </div>
 
         <div className="form-group">

@@ -14,6 +14,7 @@ export interface Game {
   paymentAmount: number;
   fullyPaid: boolean;
   withPositions: boolean;
+  locationAddress?: string | null;
   createdAt: Date | null;
   createdById: number;
   registrations: GameRegistration[];
