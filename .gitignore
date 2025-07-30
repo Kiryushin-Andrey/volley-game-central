@@ -6,27 +6,72 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+.eslintcache
 
-node_modules
+# Dependency directories
+node_modules/
+
+# Build output directories
+# Covers builds from Vite, TypeScript, Next.js and plain JS builds
+# Matches at any depth (e.g. backend/dist, tg-mini-app/dist, etc.)
 dist
 dist-ssr
-*.local
+build
+out
+coverage/
+.vite/
+.next/
 
+# TypeScript incremental build files
+*.tsbuildinfo
+
+# Environment variable files (keep examples)
 .env
-.env.prod
+.env.*
+!.env.example
+!.env.*.example
 
-# Vite
-.vite
-
+# Local secret bunq credentials
 .bunq/*
 
-# Editor directories and files
+# Temporary files & folders
+*.tmp
+*.temp
+tmp/
+.temp/
+
+# Editor & IDE settings
 .vscode/*
 !.vscode/extensions.json
-.idea
-.DS_Store
+.idea/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# OS generated files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Docker / database artifacts
+*.sqlite
+*.sqlite3
+*.db
+docker-data/
+
+# Test & coverage outputs
+.nyc_output/
+
+# Yarn Plug'n'Play files (even if project uses npm, these sometimes show up)
+.pnp
+.pnp.js
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# Package archives
+*.tgz
+*.zip
