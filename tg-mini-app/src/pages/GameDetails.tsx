@@ -33,6 +33,36 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
   const [passwordError, setPasswordError] = useState<string>('');
   const [showUserSearch, setShowUserSearch] = useState<boolean>(false);
 
+  // Build a Google Maps search link if the address is not already a URL
+  const getMapsLink = (address: string) => {
+    if (!address) return '#';
+    if (address.startsWith('http://') || address.startsWith('https://')) {
+      return address;
+    }
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+  };
+
+  const getDisplayAddress = (address: string) => {
+    if (!address) return '';
+    if (!address.startsWith('http')) return address;
+    try {
+      const url = new URL(address);
+      // Prioritise ?q= or ?query= parameter
+      const qParam = url.searchParams.get('q') || url.searchParams.get('query');
+      if (qParam) return decodeURIComponent(qParam).replace(/\+/g, ' ');
+      // Else take last pathname segment and replace hyphens/plus with space
+      const segments = url.pathname.split('/').filter(Boolean);
+      if (segments.length > 0) {
+        const last = segments[segments.length - 1];
+        return decodeURIComponent(last).replace(/[-+]/g, ' ');
+      }
+    } catch (e) {
+      /* ignore */
+    }
+    // Fallback: strip protocol
+    return address.replace(/^https?:\/\//, '');
+  };
+
   useEffect(() => {
     if (gameId) {
       loadGame(parseInt(gameId));
@@ -570,6 +600,17 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
         {/* First line: Game date and time */}
         <div className="game-date-line">
           <div className="game-date">{formatDate(game.dateTime)}</div>
+          {game.locationAddress && (
+            <div className="game-location">
+              <a
+                href={getMapsLink(game.locationAddress)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {getDisplayAddress(game.locationAddress)}
+              </a>
+            </div>
+          )}
         </div>
         
         {/* Second line: Status information and actions */}

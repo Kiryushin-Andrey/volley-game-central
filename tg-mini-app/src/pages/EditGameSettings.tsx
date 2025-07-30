@@ -25,6 +25,7 @@ const EditGameSettings: React.FC = () => {
   const [paymentAmount, setPaymentAmount] = useState<number>(0); // Stored in cents
   const [paymentAmountDisplay, setPaymentAmountDisplay] = useState<string>('0.00'); // Display value in euros
   const [withPositions, setWithPositions] = useState<boolean>(false);
+  const [locationAddress, setLocationAddress] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,6 +64,7 @@ const EditGameSettings: React.FC = () => {
         
         // Set withPositions flag
         setWithPositions(!!game.withPositions);
+        setLocationAddress(game.locationAddress || '');
       } catch (err) {
         logDebug('Error loading game:');
         logDebug(err);
@@ -92,7 +94,8 @@ const EditGameSettings: React.FC = () => {
         maxPlayers,
         unregisterDeadlineHours,
         paymentAmount,
-        withPositions
+        withPositions,
+        locationAddress
       });
       
       // Navigate back to the game details page after successful update
@@ -181,6 +184,21 @@ const EditGameSettings: React.FC = () => {
             onChange={handlePaymentAmountChange}
             required
           />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="locationAddress">Location (address or map link):</label>
+          <input
+            type="text"
+            id="locationAddress"
+            value={locationAddress}
+            onChange={(e) => setLocationAddress(e.target.value)}
+            placeholder="e.g. Victoria Park, Amsterdam or paste Maps link"
+            required
+          />
+          <div className="field-description">
+            Tip: open Google Maps, search the venue, tap Share &gt; Copy link and paste it here.
+          </div>
         </div>
 
         <div className="form-group">

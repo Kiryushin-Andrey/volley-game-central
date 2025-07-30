@@ -2,6 +2,7 @@ import { Telegraf } from 'telegraf';
 import { db } from '../db';
 import { games, gameRegistrations } from '../db/schema';
 import { gt, lte, and, eq, count } from 'drizzle-orm';
+import { REGISTRATION_OPEN_DAYS } from '../constants';
 
 // Get mini app URL from environment
 const MINI_APP_URL = process.env.MINI_APP_URL || 'http://localhost:3001';
@@ -52,7 +53,7 @@ bot.on('text', (ctx) => {
  */
 export async function sendTelegramNotification(telegramId: string, message: string): Promise<void> {
   try {
-    await bot.telegram.sendMessage(telegramId, message);
+    await bot.telegram.sendMessage(telegramId, message, { parse_mode: 'HTML' });
     console.log(`Notification sent to user ${telegramId}`);
   } catch (error) {
     console.error(`Failed to send notification to user ${telegramId}:`, error);
@@ -114,13 +115,13 @@ export async function checkAndAnnounceGameRegistrations(): Promise<void> {
     // Calculate the date range for games whose registration opened in the last hour
     // Registration opens exactly 5 days before the game
     // So we're looking for games that are between 5 days and 4 days 23 hours from now
-    const fiveDaysFromNow = new Date(now);
-    fiveDaysFromNow.setDate(fiveDaysFromNow.getDate() + 5);
+    const registrationWindowEnd = new Date(now);
+    registrationWindowEnd.setDate(registrationWindowEnd.getDate() + REGISTRATION_OPEN_DAYS);
     
     // 4 days 23 hours from now - games that opened registration 1 hour ago
-    const fourDays23HoursFromNow = new Date(now);
-    fourDays23HoursFromNow.setDate(fourDays23HoursFromNow.getDate() + 4);
-    fourDays23HoursFromNow.setHours(fourDays23HoursFromNow.getHours() + 23);
+    const registrationWindowStart = new Date(now);
+    registrationWindowStart.setDate(registrationWindowStart.getDate() + (REGISTRATION_OPEN_DAYS - 1));
+    registrationWindowStart.setHours(registrationWindowStart.getHours() + 23);
     
     // Find games whose registration opened in the last hour
     // Skip games with withPositions flag set to true
@@ -130,8 +131,8 @@ export async function checkAndAnnounceGameRegistrations(): Promise<void> {
         // Games that are between 5 days and 4 days 23 hours from now
         // (registration opened within the last hour)
         and(
-          lte(games.dateTime, fiveDaysFromNow),  // Less than or equal to 5 days from now
-          gt(games.dateTime, fourDays23HoursFromNow),  // Greater than 4 days 23 hours from now
+          lte(games.dateTime, registrationWindowEnd),  // Less than or equal to 5 days from now
+          gt(games.dateTime, registrationWindowStart),  // Greater than 4 days 23 hours from now
           eq(games.withPositions, false)  // Skip games with withPositions = true
         )
       );
@@ -184,7 +185,7 @@ async function debugPostAllOpenRegistrations(): Promise<void> {
     const openRegistrationGames = upcomingGames.filter(game => {
       const gameDate = new Date(game.dateTime);
       const registrationOpensAt = new Date(gameDate);
-      registrationOpensAt.setDate(registrationOpensAt.getDate() - 5);
+      registrationOpensAt.setDate(registrationOpensAt.getDate() - REGISTRATION_OPEN_DAYS);
       return now >= registrationOpensAt;
     });
     
