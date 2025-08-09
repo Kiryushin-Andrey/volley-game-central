@@ -1,4 +1,5 @@
 import { Telegraf } from 'telegraf';
+import { formatLocationSection } from '../utils/telegramMessageUtils';
 import { db } from '../db';
 import { games, gameRegistrations } from '../db/schema';
 import { gt, lte, and, eq, count } from 'drizzle-orm';
@@ -15,14 +16,6 @@ const TELEGRAM_TOPIC_ID = process.env.TELEGRAM_TOPIC_ID ? parseInt(process.env.T
 
 // Initialize Telegram bot
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN || '');
-
-// Minimal HTML escape for Telegram HTML parse_mode
-function escapeHtml(input: string): string {
-  return input
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}
 
 
 // Handle any text message - show the mini-app
@@ -156,16 +149,7 @@ export async function checkAndAnnounceGameRegistrations(): Promise<void> {
         minute: '2-digit'
       });
       
-      let locationText = '';
-      const hasLocationName = typeof (game as any).locationName === 'string' && (game as any).locationName.trim().length > 0;
-      const hasLocationLink = typeof (game as any).locationLink === 'string' && (game as any).locationLink.trim().length > 0;
-      if (hasLocationName && hasLocationLink) {
-        locationText = `\n\n📍 Location: <a href="${(game as any).locationLink}">${escapeHtml((game as any).locationName)}</a>`;
-      } else if (hasLocationName) {
-        locationText = `\n\n📍 Location: ${escapeHtml((game as any).locationName)}`;
-      } else if (hasLocationLink) {
-        locationText = `\n\n📍 Location: <a href="${(game as any).locationLink}">Check on Maps</a>`;
-      }
+      const locationText = formatLocationSection((game as any).locationName, (game as any).locationLink);
 
       const message = `<b>🏐 New Volleyball Game Registration Open!</b>\n\nRegistration is now open for the game on <b>${formattedDate}</b>${locationText}\n\nSpots are limited to ${game.maxPlayers} players. First come, first served!\n\nClick the button below to join:`;
       
@@ -200,7 +184,7 @@ async function debugPostAllOpenRegistrations(): Promise<void> {
       .groupBy(games.id)
       .orderBy(games.dateTime);
     
-    // Filter games that are open for registration (less than X days awayX
+    // Filter games that are open for registration (less than X days away)
     const openRegistrationGames = upcomingGames.filter(game => {
       const gameDate = new Date(game.dateTime);
       const registrationOpensAt = new Date(gameDate);

@@ -17,16 +17,12 @@ A Telegram Mini App for managing volleyball game registrations, built with React
    npm install
    ```
 
-2. **Configure environment:**
-   Copy `.env.example` to `.env` and update the values:
-   ```bash
-   cp .env.example .env
-   ```
-   
-   Update the API URL to match your backend:
-   ```
-   VITE_API_BASE_URL=http://localhost:3000
-   ```
+2. **Environment (dev vs prod):**
+   - Dev: No env is required. The app uses Vite proxy to `http://localhost:3000` via the `/api` prefix.
+   - Prod/preview builds: Optionally set `VITE_API_BASE_URL` to your backend URL.
+     ```
+     VITE_API_BASE_URL=https://your-backend.example.com
+     ```
 
 3. **Start development server:**
    ```bash
@@ -35,28 +31,25 @@ A Telegram Mini App for managing volleyball game registrations, built with React
 
 ## Backend Integration
 
-This app connects to the existing backend API with the following endpoints:
+Key API calls (the frontend automatically adds Telegram WebApp initData in `Authorization: TelegramWebApp ...` header):
 
-- `GET /games` - Get all games with registrations
-- `GET /games/:id` - Get specific game details
-- `POST /games/:id/register` - Register for a game
-- `DELETE /games/:id/register/:userId` - Unregister from a game
-- `POST /auth/telegram/complete` - Authenticate Telegram user
+- `GET /users/me` – Current user (auth via Telegram WebApp initData)
+- `GET /games/default-datetime` – Suggested date/location for creation
+- `GET /games` – Games list (supports `showPast`, `showAll`)
+- `GET /games/:id` – Game details with registrations
+- `POST /games` – Create new game (admin only)
+- `PUT /games/:id` – Update game (admin only)
+- `POST /games/:id/register` – Register for a game
+- `DELETE /games/:id/register` – Unregister from a game
 
-## Telegram Bot Setup
+## Telegram Bot Setup (local)
 
-To use this mini app with Telegram:
-
-1. Create a bot with [@BotFather](https://t.me/botfather)
-2. Set up the menu button to open your mini app:
-   ```
-   /setmenubutton
-   @your_bot_name
-   Volleyball Games
-   https://your-app-domain.com
-   ```
-3. Configure your backend with the bot token
-4. Deploy the mini app to a public URL
+1. Create a bot with [@BotFather](https://t.me/botfather) and copy the token.
+2. Run this app on port 3001: `npm run dev`.
+3. Expose port 3001 via HTTPS (ngrok or Pinggy) and get the public URL.
+4. In BotFather, set the Web App URL and Domain to your public URL/domain.
+5. Configure the backend with your bot token and the same Mini App URL.
+   See the root `README.md` for step-by-step instructions.
 
 ## Development
 
@@ -81,6 +74,10 @@ src/
 - **GamesList**: Main screen showing all upcoming games
 - **GameDetails**: Individual game screen with player lists and join/leave actions
 - **useTelegramWebApp**: Hook for Telegram WebApp integration and authentication
+
+## Creating a game
+
+- Game creation is admin-only. If you don't see the "Create New Game" button on the Games screen, promote your user to admin in the DB. See the root `README.md` → "Creating a game (admin only)" for details.
 
 ## Telegram WebApp Features Used
 
