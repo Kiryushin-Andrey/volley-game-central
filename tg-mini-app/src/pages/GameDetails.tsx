@@ -33,6 +33,13 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
   const [passwordError, setPasswordError] = useState<string>('');
   const [showUserSearch, setShowUserSearch] = useState<boolean>(false);
 
+  // Determine the link to open for the location
+  const resolveLocationLink = (name?: string | null, link?: string | null) => {
+    if (link && (link.startsWith('http://') || link.startsWith('https://'))) return link;
+    if (name) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name)}`;
+    return '#';
+  };
+
   useEffect(() => {
     if (gameId) {
       loadGame(parseInt(gameId));
@@ -96,7 +103,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
         };
       }
     } else {
-      // Check if user can join the game (starting 5 days before)
+      // Check if user can join the game (starting X days before)
       if (canJoinGame(game.dateTime)) {
         return {
           show: true,
@@ -133,11 +140,11 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
     const gameDateTime = new Date(gameDate);
     const now = new Date();
     
-    // Can join starting 5 days before the game (same as server)
-    const fiveDaysBeforeGame = new Date(gameDateTime.getTime());
-    fiveDaysBeforeGame.setDate(fiveDaysBeforeGame.getDate() - 5);
+    // Can join starting X days before the game (same as server)
+    const daysBeforeGame = new Date(gameDateTime.getTime());
+    daysBeforeGame.setDate(daysBeforeGame.getDate() - 5);
     
-    return now >= fiveDaysBeforeGame;
+    return now >= daysBeforeGame;
   };
   
   // Check if game is upcoming (for delete button visibility)
@@ -215,9 +222,9 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
       // If user is not registered, check if they can join
       if (!canJoinGame(game.dateTime)) {
         const gameDateTime = new Date(game.dateTime);
-        const fiveDaysBeforeGame = new Date(gameDateTime.getTime());
-        fiveDaysBeforeGame.setDate(fiveDaysBeforeGame.getDate() - 5);
-        return `Registration opens ${fiveDaysBeforeGame.toLocaleDateString()} (5 days before the game).`;
+        const daysBeforeGame = new Date(gameDateTime.getTime());
+        daysBeforeGame.setDate(daysBeforeGame.getDate() - 5);
+        return `Registration opens ${daysBeforeGame.toLocaleDateString()} (X days before the game).`;
       }
     }
     
@@ -259,7 +266,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
         const errData = err.response?.data;
         if (errData?.registrationOpensAt) {
           const openDate = new Date(errData.registrationOpensAt);
-          alert(`Registration is only possible starting ${openDate.toLocaleDateString()} (5 days before the game).`);
+          alert(`Registration is only possible starting ${openDate.toLocaleDateString()} (X days before the game).`);
         } else {
           alert('You cannot register for this game yet due to timing restrictions.');
         }
@@ -570,6 +577,17 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
         {/* First line: Game date and time */}
         <div className="game-date-line">
           <div className="game-date">{formatDate(game.dateTime)}</div>
+          {(game.locationName || game.locationLink) && (
+            <div className="game-location">
+              <a
+                href={resolveLocationLink(game.locationName, game.locationLink)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {game.locationName || 'Open in Maps'}
+              </a>
+            </div>
+          )}
         </div>
         
         {/* Second line: Status information and actions */}

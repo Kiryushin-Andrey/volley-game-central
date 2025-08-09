@@ -1,7 +1,9 @@
 import { Telegraf } from 'telegraf';
+import { formatLocationSection } from '../utils/telegramMessageUtils';
 import { db } from '../db';
 import { games, gameRegistrations } from '../db/schema';
 import { gt, lte, and, eq, count } from 'drizzle-orm';
+import { REGISTRATION_OPEN_DAYS } from '../constants';
 
 // Get mini app URL from environment
 const MINI_APP_URL = process.env.MINI_APP_URL || 'http://localhost:3001';
@@ -52,7 +54,7 @@ bot.on('text', (ctx) => {
  */
 export async function sendTelegramNotification(telegramId: string, message: string): Promise<void> {
   try {
-    await bot.telegram.sendMessage(telegramId, message);
+    await bot.telegram.sendMessage(telegramId, message, { parse_mode: 'HTML' });
     console.log(`Notification sent to user ${telegramId}`);
   } catch (error) {
     console.error(`Failed to send notification to user ${telegramId}:`, error);
@@ -104,7 +106,7 @@ export async function sendGroupAnnouncement(message: string, topicId?: number): 
 }
 
 /**
- * Check for games that are opening for registration soon (5 days before the game)
+ * Check for games that are opening for registration soon (X days befoXe the game)
  * and send announcements to the configured Telegram group
  */
 export async function checkAndAnnounceGameRegistrations(): Promise<void> {
@@ -112,26 +114,26 @@ export async function checkAndAnnounceGameRegistrations(): Promise<void> {
     const now = new Date();
     
     // Calculate the date range for games whose registration opened in the last hour
-    // Registration opens exactly 5 days before the game
-    // So we're looking for games that are between 5 days and 4 days 23 hours from now
-    const fiveDaysFromNow = new Date(now);
-    fiveDaysFromNow.setDate(fiveDaysFromNow.getDate() + 5);
+    // Registration opens exactly X days befoXe the game
+    // So we're looking for games that are between X days and X days 23 hours from now
+    const registrationWindowEnd = new Date(now);
+    registrationWindowEnd.setDate(registrationWindowEnd.getDate() + REGISTRATION_OPEN_DAYS);
     
-    // 4 days 23 hours from now - games that opened registration 1 hour ago
-    const fourDays23HoursFromNow = new Date(now);
-    fourDays23HoursFromNow.setDate(fourDays23HoursFromNow.getDate() + 4);
-    fourDays23HoursFromNow.setHours(fourDays23HoursFromNow.getHours() + 23);
+    // X days 23 hours from now - games that opened registration 1 hour ago
+    const registrationWindowStart = new Date(now);
+    registrationWindowStart.setDate(registrationWindowStart.getDate() + (REGISTRATION_OPEN_DAYS - 1));
+    registrationWindowStart.setHours(registrationWindowStart.getHours() + 23);
     
     // Find games whose registration opened in the last hour
     // Skip games with withPositions flag set to true
     const upcomingGames = await db.select()
       .from(games)
       .where(
-        // Games that are between 5 days and 4 days 23 hours from now
+        // Games that are between X days and X days 23 hours from now
         // (registration opened within the last hour)
         and(
-          lte(games.dateTime, fiveDaysFromNow),  // Less than or equal to 5 days from now
-          gt(games.dateTime, fourDays23HoursFromNow),  // Greater than 4 days 23 hours from now
+          lte(games.dateTime, registrationWindowEnd),  // Less than or equal to X days fromXnow
+          gt(games.dateTime, registrationWindowStart),  // Greater than 4 days 23 hours from now
           eq(games.withPositions, false)  // Skip games with withPositions = true
         )
       );
@@ -147,7 +149,9 @@ export async function checkAndAnnounceGameRegistrations(): Promise<void> {
         minute: '2-digit'
       });
       
-      const message = `<b>🏐 New Volleyball Game Registration Open!</b>\n\nRegistration is now open for the game on <b>${formattedDate}</b>\n\nSpots are limited to ${game.maxPlayers} players. First come, first served!\n\nClick the button below to join:`;
+      const locationText = formatLocationSection((game as any).locationName, (game as any).locationLink);
+
+      const message = `<b>🏐 New Volleyball Game Registration Open!</b>\n\nRegistration is now open for the game on <b>${formattedDate}</b>${locationText}\n\nSpots are limited to ${game.maxPlayers} players. First come, first served!\n\nClick the button below to join:`;
       
       await sendGroupAnnouncement(message);
     }
@@ -180,11 +184,11 @@ async function debugPostAllOpenRegistrations(): Promise<void> {
       .groupBy(games.id)
       .orderBy(games.dateTime);
     
-    // Filter games that are open for registration (less than 5 days away)
+    // Filter games that are open for registration (less than X days away)
     const openRegistrationGames = upcomingGames.filter(game => {
       const gameDate = new Date(game.dateTime);
       const registrationOpensAt = new Date(gameDate);
-      registrationOpensAt.setDate(registrationOpensAt.getDate() - 5);
+      registrationOpensAt.setDate(registrationOpensAt.getDate() - REGISTRATION_OPEN_DAYS);
       return now >= registrationOpensAt;
     });
     

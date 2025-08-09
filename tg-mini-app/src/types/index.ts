@@ -14,6 +14,8 @@ export interface Game {
   paymentAmount: number;
   fullyPaid: boolean;
   withPositions: boolean;
+  locationName?: string | null;
+  locationLink?: string | null;
   createdAt: Date | null;
   createdById: number;
   registrations: GameRegistration[];
@@ -38,9 +40,9 @@ export interface GameWithStats extends Game {
   // Fields from optimized API
   totalRegisteredCount: number;
   paidCount?: number;         // For past games
-  registeredCount?: number;   // For upcoming games within 5 days
+  registeredCount?: number;   // For upcoming games within X days
   
-  // User registration status (for upcoming games within 5 days)
+  // User registration status (for upcoming games within X days)
   isUserRegistered: boolean;
   userRegistration?: GameRegistration;
 }

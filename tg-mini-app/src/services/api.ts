@@ -65,9 +65,13 @@ export const userApi = {
 };
 
 export const gamesApi = {
-  getDefaultDateTime: async (): Promise<Date> => {
+  getDefaultDateTime: async (): Promise<{ date: Date; suggestedLocationName?: string | null; suggestedLocationLink?: string | null }> => {
     const response = await api.get('/games/default-datetime');
-    return new Date(response.data.defaultDateTime);
+    return {
+      date: new Date(response.data.defaultDateTime),
+      suggestedLocationName: response.data.defaultLocationName ?? null,
+      suggestedLocationLink: response.data.defaultLocationLink ?? null,
+    };
   },
 
   getAllGames(showPast: boolean = false, showAll: boolean = false): Promise<GameWithStats[]> {
@@ -84,7 +88,7 @@ export const gamesApi = {
     return response.data;
   },
 
-  createGame(gameData: { dateTime: string; maxPlayers: number; unregisterDeadlineHours: number; paymentAmount: number; withPositions: boolean }): Promise<Game> {
+  createGame(gameData: { dateTime: string; maxPlayers: number; unregisterDeadlineHours: number; paymentAmount: number; withPositions: boolean; locationName?: string | null; locationLink?: string | null }): Promise<Game> {
     return api.post('/games', gameData).then(res => res.data);
   },
 
@@ -100,7 +104,7 @@ export const gamesApi = {
     await api.delete(`/games/${gameId}`);
   },
 
-  updateGame(gameId: number, gameData: { dateTime: string; maxPlayers: number; unregisterDeadlineHours: number; paymentAmount: number; withPositions: boolean }): Promise<Game> {
+  updateGame(gameId: number, gameData: { dateTime: string; maxPlayers: number; unregisterDeadlineHours: number; paymentAmount: number; withPositions: boolean; locationName?: string | null; locationLink?: string | null }): Promise<Game> {
     return api.put(`/games/${gameId}`, gameData).then(res => res.data);
   },
 

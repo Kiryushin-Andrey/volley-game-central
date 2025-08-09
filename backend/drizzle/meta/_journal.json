@@ -65,5 +65,13 @@
       "tag": "0008_add_with_positions_to_games",
       "breakpoints": true
     }
+    ,
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1753273186106,
+      "tag": "0009_add_location_to_games",
+      "breakpoints": true
+    }
   ]
 }

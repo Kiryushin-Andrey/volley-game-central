@@ -22,6 +22,8 @@ const CreateGame: React.FC = () => {
   const [paymentAmount, setPaymentAmount] = useState<number>(500); // Stored in cents
   const [paymentAmountDisplay, setPaymentAmountDisplay] = useState<string>(centsToEuroString(500)); // Display value in euros
   const [withPositions, setWithPositions] = useState<boolean>(false);
+  const [locationName, setLocationName] = useState<string>('');
+  const [locationLink, setLocationLink] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,13 +35,16 @@ const CreateGame: React.FC = () => {
       try {
         setIsInitialLoading(true);
         
-        const defaultDate = await gamesApi.getDefaultDateTime();
+        const defaults = await gamesApi.getDefaultDateTime();
+        const defaultDate = defaults.date;
         
         if (defaultDate.getHours() === 0 && defaultDate.getMinutes() === 0) {
           defaultDate.setHours(17, 0, 0, 0);
         }
         
         setSelectedDate(defaultDate);
+        if (defaults.suggestedLocationName) setLocationName(defaults.suggestedLocationName);
+        if (defaults.suggestedLocationLink) setLocationLink(defaults.suggestedLocationLink);
       } catch (err) {
         logDebug('Error fetching default date and time:');
         logDebug(err);
@@ -75,6 +80,8 @@ const CreateGame: React.FC = () => {
         unregisterDeadlineHours,
         paymentAmount,
         withPositions,
+        locationName: locationName || null,
+        locationLink: locationLink || null,
       });
       
       navigate('/');
@@ -176,6 +183,32 @@ const CreateGame: React.FC = () => {
             min="0"
             required
           />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="locationName">Location name:</label>
+          <input
+            type="text"
+            id="locationName"
+            value={locationName}
+            onChange={(e) => setLocationName(e.target.value)}
+            placeholder="e.g. Victoria Park, Amsterdam"
+            required
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="locationLink">Location link (Maps URL):</label>
+          <input
+            type="url"
+            id="locationLink"
+            value={locationLink}
+            onChange={(e) => setLocationLink(e.target.value)}
+            placeholder="Paste a Google/Apple Maps link (optional)"
+          />
+          <div className="field-description">
+            Optional: open Google/Apple Maps, share the place and paste the link here.
+          </div>
         </div>
 
         <div className="form-group">

@@ -17,6 +17,8 @@ export const games = pgTable('games', {
   paymentAmount: integer('payment_amount').notNull(),
   fullyPaid: boolean('fully_paid').notNull().default(false),
   withPositions: boolean('with_positions').notNull().default(false),
+  locationName: varchar('location_name', { length: 255 }),
+  locationLink: varchar('location_link', { length: 1000 }),
   createdAt: timestamp('created_at').defaultNow(),
   createdById: serial('created_by_id').references(() => users.id),
 });

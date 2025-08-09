@@ -4,7 +4,6 @@ import cors from 'cors';
 import { telegramAuthMiddleware } from './middleware/telegramAuth';
 import userRoutes from './routes/users';
 import gameRoutes from './routes/games';
-import { db } from './db';
 import './services/telegramService'; // Import to ensure the bot is initialized
 
 // Initialize Express app

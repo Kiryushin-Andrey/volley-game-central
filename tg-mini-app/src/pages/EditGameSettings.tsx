@@ -25,6 +25,8 @@ const EditGameSettings: React.FC = () => {
   const [paymentAmount, setPaymentAmount] = useState<number>(0); // Stored in cents
   const [paymentAmountDisplay, setPaymentAmountDisplay] = useState<string>('0.00'); // Display value in euros
   const [withPositions, setWithPositions] = useState<boolean>(false);
+  const [locationName, setLocationName] = useState<string>('');
+  const [locationLink, setLocationLink] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,6 +65,8 @@ const EditGameSettings: React.FC = () => {
         
         // Set withPositions flag
         setWithPositions(!!game.withPositions);
+        setLocationName(game.locationName || '');
+        setLocationLink(game.locationLink || '');
       } catch (err) {
         logDebug('Error loading game:');
         logDebug(err);
@@ -92,7 +96,9 @@ const EditGameSettings: React.FC = () => {
         maxPlayers,
         unregisterDeadlineHours,
         paymentAmount,
-        withPositions
+        withPositions,
+        locationName: locationName || null,
+        locationLink: locationLink || null
       });
       
       // Navigate back to the game details page after successful update
@@ -181,6 +187,32 @@ const EditGameSettings: React.FC = () => {
             onChange={handlePaymentAmountChange}
             required
           />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="locationName">Location name:</label>
+          <input
+            type="text"
+            id="locationName"
+            value={locationName}
+            onChange={(e) => setLocationName(e.target.value)}
+            placeholder="e.g. Victoria Park, Amsterdam"
+            required
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="locationLink">Location link (Maps URL):</label>
+          <input
+            type="url"
+            id="locationLink"
+            value={locationLink}
+            onChange={(e) => setLocationLink(e.target.value)}
+            placeholder="Paste a Google/Apple Maps link (optional)"
+          />
+          <div className="field-description">
+            Optional: open Google/Apple Maps, share the place and paste the link here.
+          </div>
         </div>
 
         <div className="form-group">
