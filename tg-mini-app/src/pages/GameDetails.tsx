@@ -10,7 +10,8 @@ import './GameDetails.scss';
 import WebApp from '@twa-dev/sdk';
 import { MainButton, BackButton } from '@twa-dev/sdk/react';
 import { FaCog, FaCheck, FaTimes } from 'react-icons/fa';
-import { formatEuros } from '../utils/currencyUtils';
+import { formatDisplayPricingInfo } from '../utils/pricingUtils';
+import { PricingMode } from '../types';
 import { AxiosError } from 'axios';
 
 interface GameDetailsProps {
@@ -601,7 +602,17 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
             
             {game.paymentAmount > 0 && (
               <div className="payment-amount">
-                Payment: {formatEuros(game.paymentAmount)}
+                {(() => {
+                  const isUpcomingGame = new Date(game.dateTime) > new Date();
+                  const pricingInfo = formatDisplayPricingInfo(
+                    game.paymentAmount,
+                    game.pricingMode || PricingMode.PER_PARTICIPANT,
+                    game.maxPlayers,
+                    activeRegistrations.length,
+                    isUpcomingGame
+                  );
+                  return `Payment: ${pricingInfo.displayText}`;
+                })()}
               </div>
             )}
           </div>

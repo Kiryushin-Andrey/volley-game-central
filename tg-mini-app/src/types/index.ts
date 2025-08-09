@@ -1,3 +1,8 @@
+export enum PricingMode {
+  PER_PARTICIPANT = 'per_participant',
+  TOTAL_COST = 'total_cost'
+}
+
 export interface User {
   id: number;
   telegramId: string;
@@ -12,6 +17,7 @@ export interface Game {
   maxPlayers: number;
   unregisterDeadlineHours: number;
   paymentAmount: number;
+  pricingMode: PricingMode;
   fullyPaid: boolean;
   withPositions: boolean;
   locationName?: string | null;

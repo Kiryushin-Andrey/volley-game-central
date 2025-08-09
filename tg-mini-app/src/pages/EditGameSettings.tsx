@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { logDebug } from '../debug';
 import { gamesApi } from '../services/api';
+import { PricingMode } from '../types';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { BackButton } from '@twa-dev/sdk/react';
 import DatePicker from 'react-datepicker';
@@ -24,6 +25,7 @@ const EditGameSettings: React.FC = () => {
   const [unregisterDeadlineHours, setUnregisterDeadlineHours] = useState<number>(5);
   const [paymentAmount, setPaymentAmount] = useState<number>(0); // Stored in cents
   const [paymentAmountDisplay, setPaymentAmountDisplay] = useState<string>('0.00'); // Display value in euros
+  const [pricingMode, setPricingMode] = useState<PricingMode>(PricingMode.PER_PARTICIPANT);
   const [withPositions, setWithPositions] = useState<boolean>(false);
   const [locationName, setLocationName] = useState<string>('');
   const [locationLink, setLocationLink] = useState<string>('');
@@ -63,6 +65,9 @@ const EditGameSettings: React.FC = () => {
         setPaymentAmount(game.paymentAmount || 0);
         setPaymentAmountDisplay(centsToEuroString(game.paymentAmount || 0));
         
+        // Set pricing mode
+        setPricingMode(game.pricingMode || PricingMode.PER_PARTICIPANT);
+        
         // Set withPositions flag
         setWithPositions(!!game.withPositions);
         setLocationName(game.locationName || '');
@@ -96,6 +101,7 @@ const EditGameSettings: React.FC = () => {
         maxPlayers,
         unregisterDeadlineHours,
         paymentAmount,
+        pricingMode,
         withPositions,
         locationName: locationName || null,
         locationLink: locationLink || null
@@ -179,7 +185,28 @@ const EditGameSettings: React.FC = () => {
         </div>
         
         <div className="form-group">
-          <label htmlFor="paymentAmount">Payment Amount (€):</label>
+          <div className="toggle-container">
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={pricingMode === PricingMode.TOTAL_COST}
+                onChange={(e) => setPricingMode(e.target.checked ? PricingMode.TOTAL_COST : PricingMode.PER_PARTICIPANT)}
+              />
+              <span className="slider round"></span>
+            </label>
+            <span className="toggle-label">Total cost mode</span>
+          </div>
+          <div className="field-description">
+            {pricingMode === PricingMode.PER_PARTICIPANT 
+              ? 'Set the cost per participant. Each player pays this amount.'
+              : 'Set the total cost of the game. Cost per participant will be calculated automatically based on the number of registered players.'}
+          </div>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="paymentAmount">
+            {pricingMode === PricingMode.PER_PARTICIPANT ? 'Cost per Participant (€):' : 'Total Game Cost (€):'}
+          </label>
           <input
             type="text"
             id="paymentAmount"
@@ -187,6 +214,11 @@ const EditGameSettings: React.FC = () => {
             onChange={handlePaymentAmountChange}
             required
           />
+          {pricingMode === PricingMode.TOTAL_COST && (
+            <div className="field-description">
+              Cost per participant will be calculated as: €{paymentAmountDisplay} ÷ {maxPlayers} players = €{(parseFloat(paymentAmountDisplay || '0') / maxPlayers).toFixed(2)} per player
+            </div>
+          )}
         </div>
 
         <div className="form-group">

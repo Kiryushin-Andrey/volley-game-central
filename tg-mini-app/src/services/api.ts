@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Game, User, GameWithStats } from '../types';
+import { Game, User, GameWithStats, PricingMode } from '../types';
 import { logDebug } from '../debug';
 
 // Use /api prefix for proxy, fallback to environment variable for production
@@ -88,7 +88,7 @@ export const gamesApi = {
     return response.data;
   },
 
-  createGame(gameData: { dateTime: string; maxPlayers: number; unregisterDeadlineHours: number; paymentAmount: number; withPositions: boolean; locationName?: string | null; locationLink?: string | null }): Promise<Game> {
+  createGame(gameData: { dateTime: string; maxPlayers: number; unregisterDeadlineHours: number; paymentAmount: number; pricingMode?: PricingMode; withPositions: boolean; locationName?: string | null; locationLink?: string | null }): Promise<Game> {
     return api.post('/games', gameData).then(res => res.data);
   },
 
@@ -104,7 +104,7 @@ export const gamesApi = {
     await api.delete(`/games/${gameId}`);
   },
 
-  updateGame(gameId: number, gameData: { dateTime: string; maxPlayers: number; unregisterDeadlineHours: number; paymentAmount: number; withPositions: boolean; locationName?: string | null; locationLink?: string | null }): Promise<Game> {
+  updateGame(gameId: number, gameData: { dateTime: string; maxPlayers: number; unregisterDeadlineHours: number; paymentAmount: number; pricingMode?: PricingMode; withPositions: boolean; locationName?: string | null; locationLink?: string | null }): Promise<Game> {
     return api.put(`/games/${gameId}`, gameData).then(res => res.data);
   },
 

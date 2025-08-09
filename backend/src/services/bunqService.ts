@@ -4,7 +4,9 @@ import { games, gameRegistrations, users, paymentRequests } from '../db/schema';
 import { eq, and, not } from 'drizzle-orm';
 import { sendTelegramNotification } from './telegramService';
 import { bunqCredentialsService, type BunqCredentials } from './bunqCredentialsService';
-import * as crypto from 'crypto';
+import { calculatePerParticipantCost } from '../utils/pricingUtils';
+import { PricingMode } from '../types/PricingMode';
+import crypto from 'crypto';
 
 interface User {
   id: number;
@@ -21,6 +23,7 @@ interface Game {
   maxPlayers: number;
   unregisterDeadlineHours: number;
   paymentAmount: number;
+  pricingMode: PricingMode;
   fullyPaid: boolean;
   createdAt: Date | null;
   createdById: number;
@@ -497,9 +500,26 @@ export const bunqService = {
         };
       }
       
+      // Get the actual number of registered players for this game
+      const registrations = await db
+        .select()
+        .from(gameRegistrations)
+        .where(eq(gameRegistrations.gameId, game.id));
+      
+      // Calculate the actual number of non-waitlist players
+      const actualPlayers = Math.min(registrations.length, game.maxPlayers);
+      
+      // Calculate the per-participant cost based on pricing mode
+      const perParticipantCost = calculatePerParticipantCost(
+        game.paymentAmount,
+        game.pricingMode,
+        game.maxPlayers,
+        actualPlayers
+      );
+      
       const paymentRequestData = {
         amount_inquired: {
-          value: (game.paymentAmount / 100).toFixed(2), // Convert cents to euros
+          value: (perParticipantCost / 100).toFixed(2), // Convert cents to euros
           currency: 'EUR'
         },
         counterparty_alias: {
@@ -746,7 +766,7 @@ export const bunqService = {
           
           const result = await bunqService.createSinglePaymentRequest(
             user,
-            game,
+            game as Game,
             formattedDate,
             registration.id,
             adminUserId,

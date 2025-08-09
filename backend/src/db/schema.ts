@@ -15,6 +15,7 @@ export const games = pgTable('games', {
   maxPlayers: serial('max_players').notNull(),
   unregisterDeadlineHours: serial('unregister_deadline_hours').notNull().default(5),
   paymentAmount: integer('payment_amount').notNull(),
+  pricingMode: varchar('pricing_mode', { length: 20 }).notNull().default('per_participant'), // 'per_participant' or 'total_cost'
   fullyPaid: boolean('fully_paid').notNull().default(false),
   withPositions: boolean('with_positions').notNull().default(false),
   locationName: varchar('location_name', { length: 255 }),

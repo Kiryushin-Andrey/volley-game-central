@@ -3,6 +3,7 @@ import { db } from '../db';
 import { games, gameRegistrations, users, paymentRequests } from '../db/schema';
 import { gte, desc, inArray, eq, and, sql, lt, lte, asc } from 'drizzle-orm';
 import type { InferSelectModel } from 'drizzle-orm';
+import { PricingMode } from '../types/PricingMode';
 
 type PaymentRequest = InferSelectModel<typeof paymentRequests>;
 import { telegramAuthMiddleware } from '../middleware/telegramAuth';
@@ -38,6 +39,7 @@ router.post(
         maxPlayers,
         unregisterDeadlineHours = 5,
         paymentAmount,
+        pricingMode = PricingMode.PER_PARTICIPANT,
         withPositions = false,
         locationName,
         locationLink,
@@ -65,6 +67,7 @@ router.post(
           maxPlayers,
           unregisterDeadlineHours,
           paymentAmount,
+          pricingMode,
           withPositions,
           locationName,
           locationLink,
@@ -611,6 +614,7 @@ router.put(
         maxPlayers,
         unregisterDeadlineHours,
         paymentAmount,
+        pricingMode,
         withPositions,
         locationName,
         locationLink,
@@ -649,6 +653,7 @@ router.put(
           maxPlayers,
           unregisterDeadlineHours,
           paymentAmount,
+          pricingMode,
           withPositions,
           locationName,
           locationLink,

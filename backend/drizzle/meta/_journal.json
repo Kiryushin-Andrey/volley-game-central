@@ -72,6 +72,13 @@
       "when": 1753273186106,
       "tag": "0009_add_location_to_games",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1753273186108,
+      "tag": "0010_add_pricing_mode_to_games",
+      "breakpoints": true
     }
   ]
 }
