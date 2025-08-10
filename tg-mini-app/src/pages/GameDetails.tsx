@@ -1,17 +1,17 @@
-import React, { useCallback, useEffect, useState, useRef } from 'react';
-import { logDebug } from '../debug';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Game, User } from '../types';
+import { logDebug } from '../debug';
 import { gamesApi, bunqApi } from '../services/api';
+import { Game, User, PricingMode } from '../types';
 import LoadingSpinner from '../components/LoadingSpinner';
 import PasswordDialog from '../components/PasswordDialog';
 import { UserSearchInput } from '../components/UserSearchInput';
+import { formatDisplayPricingInfo } from '../utils/pricingUtils';
+import { resolveLocationLink } from '../utils/locationUtils';
 import './GameDetails.scss';
 import WebApp from '@twa-dev/sdk';
 import { MainButton, BackButton } from '@twa-dev/sdk/react';
 import { FaCog, FaCheck, FaTimes } from 'react-icons/fa';
-import { formatDisplayPricingInfo } from '../utils/pricingUtils';
-import { PricingMode } from '../types';
 import { AxiosError } from 'axios';
 
 interface GameDetailsProps {
@@ -34,12 +34,6 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
   const [passwordError, setPasswordError] = useState<string>('');
   const [showUserSearch, setShowUserSearch] = useState<boolean>(false);
 
-  // Determine the link to open for the location
-  const resolveLocationLink = (name?: string | null, link?: string | null) => {
-    if (link && (link.startsWith('http://') || link.startsWith('https://'))) return link;
-    if (name) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name)}`;
-    return '#';
-  };
 
   useEffect(() => {
     if (gameId) {

@@ -4,6 +4,7 @@ import { logDebug } from '../debug';
 import { gamesApi } from '../services/api';
 import { GameWithStats, User } from '../types';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { resolveLocationLink } from '../utils/locationUtils';
 import './GamesList.scss';
 
 type GameFilter = 'upcoming' | 'past';
@@ -26,6 +27,18 @@ const GameItem = memo(({ game, onClick, formatDate }: {
       <div className="game-date">
         {formatDate(game.dateTime)}
       </div>
+      {(game.locationName || game.locationLink) && (
+        <div className="game-location">
+          <a
+            href={resolveLocationLink(game.locationName, game.locationLink)}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()} // Prevent card click when clicking location
+          >
+            📍 {game.locationName || 'Location'}
+          </a>
+        </div>
+      )}
       {game.isUserRegistered && (
         <div className={`registration-badge ${game.userRegistration?.isWaitlist ? 'waitlist' : 'active'}`}>
           {game.userRegistration?.isWaitlist ? 'Waitlist' : 'You\'re in'}

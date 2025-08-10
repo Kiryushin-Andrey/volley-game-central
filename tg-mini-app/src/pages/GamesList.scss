@@ -392,12 +392,41 @@
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
 
   .game-date {
     font-size: 18px;
     font-weight: 600;
     color: var(--tg-theme-text-color);
     flex: 1;
+    min-width: 0;
+  }
+
+  .game-location {
+    flex-shrink: 0;
+    
+    a {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 14px;
+      color: var(--tg-theme-link-color, #007bff);
+      text-decoration: none;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background-color: rgba(0, 123, 255, 0.1);
+      transition: all 0.2s ease;
+      
+      &:hover {
+        background-color: rgba(0, 123, 255, 0.2);
+        transform: translateY(-1px);
+      }
+      
+      &:active {
+        transform: translateY(0);
+      }
+    }
   }
 
   .registration-badge {
@@ -407,6 +436,7 @@
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    flex-shrink: 0;
 
     &.active {
       background: #28a745;
