@@ -4,6 +4,7 @@ import { games, gameRegistrations, users, paymentRequests } from '../db/schema';
 import { gte, desc, inArray, eq, and, sql, lt, lte, asc } from 'drizzle-orm';
 import type { InferSelectModel } from 'drizzle-orm';
 import { PricingMode } from '../types/PricingMode';
+import { calculatePerParticipantCost } from '../utils/pricingUtils';
 
 type PaymentRequest = InferSelectModel<typeof paymentRequests>;
 import { telegramAuthMiddleware } from '../middleware/telegramAuth';
@@ -642,6 +643,7 @@ router.put(
       const originalDeadlineHours =
         existingGame[0].unregisterDeadlineHours || 5;
       const originalPaymentAmount = existingGame[0].paymentAmount;
+      const originalPricingMode = (existingGame[0].pricingMode as PricingMode) || PricingMode.PER_PARTICIPANT;
       const originalWithPositions = existingGame[0].withPositions || false;
       const newDateTime = new Date(dateTime);
 
@@ -712,12 +714,28 @@ router.put(
         }
 
         if (paymentAmountChanged) {
-          const paymentAmountEuros = (paymentAmount / 100).toFixed(2);
-          const originalPaymentAmountEuros = (
-            originalPaymentAmount / 100
-          ).toFixed(2);
+          // Calculate per-participant costs for both original and new amounts
+          const actualPlayers = Math.max(1, registrations.length); // Use at least 1 to avoid division by zero
+          
+          const originalPerParticipantCost = calculatePerParticipantCost(
+            originalPaymentAmount,
+            originalPricingMode,
+            originalMaxPlayers,
+            actualPlayers
+          );
+          
+          const newPerParticipantCost = calculatePerParticipantCost(
+            paymentAmount,
+            pricingMode,
+            maxPlayers,
+            actualPlayers
+          );
+          
+          const originalPerParticipantEuros = (originalPerParticipantCost / 100).toFixed(2);
+          const newPerParticipantEuros = (newPerParticipantCost / 100).toFixed(2);
+          
           changes.push(
-            `The payment amount is now €${paymentAmountEuros} (was €${originalPaymentAmountEuros})`,
+            `The cost per participant is now €${newPerParticipantEuros} (was €${originalPerParticipantEuros})`,
           );
         }
 
