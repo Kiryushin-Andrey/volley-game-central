@@ -139,6 +139,15 @@
     }
   }
 
+  .field-description {
+    font-size: 0.875rem;
+    color: var(--tg-theme-hint-color, #888);
+    margin-top: 0.5rem;
+    margin-left: 1rem;
+    line-height: 1.4;
+    font-style: italic;
+  }
+
   .button-group {
     display: flex;
     justify-content: space-between;

@@ -185,12 +185,14 @@ const CreateGame: React.FC = () => {
               />
               <span className="slider round"></span>
             </label>
-            <span className="toggle-label">Total cost mode</span>
+            <span className="toggle-label">
+              {pricingMode === PricingMode.TOTAL_COST ? 'Specify total game cost' : 'Specify game cost per participant'}
+            </span>
           </div>
           <div className="field-description">
             {pricingMode === PricingMode.PER_PARTICIPANT 
-              ? 'Set the cost per participant. Each player pays this amount.'
-              : 'Set the total cost of the game. Cost per participant will be calculated automatically based on the number of registered players.'}
+              ? 'Each player pays this amount.'
+              : 'Cost per participant will be calculated automatically based on the number of registered players.'}
           </div>
         </div>
 
@@ -209,7 +211,7 @@ const CreateGame: React.FC = () => {
           />
           {pricingMode === PricingMode.TOTAL_COST && (
             <div className="field-description">
-              Cost per participant will be calculated as: €{paymentAmountDisplay} / {maxPlayers} players = €{(parseFloat(paymentAmountDisplay || '0') / maxPlayers).toFixed(2)} per player
+              Cost per participant will be calculated based on the number of registered players. Preview (if full): €{paymentAmountDisplay} ÷ {maxPlayers} players = €{(parseFloat(paymentAmountDisplay || '0') / maxPlayers).toFixed(2)} per player
             </div>
           )}
         </div>

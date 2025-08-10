@@ -194,7 +194,9 @@ const EditGameSettings: React.FC = () => {
               />
               <span className="slider round"></span>
             </label>
-            <span className="toggle-label">Total cost mode</span>
+            <span className="toggle-label">
+              {pricingMode === PricingMode.TOTAL_COST ? 'Specify total game cost' : 'Specify game cost per participant'}
+            </span>
           </div>
           <div className="field-description">
             {pricingMode === PricingMode.PER_PARTICIPANT 
@@ -214,11 +216,6 @@ const EditGameSettings: React.FC = () => {
             onChange={handlePaymentAmountChange}
             required
           />
-          {pricingMode === PricingMode.TOTAL_COST && (
-            <div className="field-description">
-              Cost per participant will be calculated as: €{paymentAmountDisplay} ÷ {maxPlayers} players = €{(parseFloat(paymentAmountDisplay || '0') / maxPlayers).toFixed(2)} per player
-            </div>
-          )}
         </div>
 
         <div className="form-group">

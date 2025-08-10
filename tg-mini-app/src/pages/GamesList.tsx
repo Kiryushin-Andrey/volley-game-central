@@ -18,27 +18,30 @@ const GameItem = memo(({ game, onClick, formatDate }: {
   game: GameWithStats, 
   onClick: (id: number) => void,
   formatDate: (date: string) => string 
-}) => (
-  <div
-    className={`game-card ${game.isUserRegistered ? 'registered' : ''}`}
-    onClick={() => onClick(game.id)}
-  >
-    <div className="game-header">
-      <div className="game-date">
-        {formatDate(game.dateTime)}
+}) => {
+  const isUpcomingGame = new Date(game.dateTime) > new Date();
+  
+  return (
+    <div
+      className={`game-card ${game.isUserRegistered ? 'registered' : ''}`}
+      onClick={() => onClick(game.id)}
+    >
+      <div className="game-header">
+        <div className="game-date-location">
+          <span className="game-date">{formatDate(game.dateTime)}</span>
+          {isUpcomingGame && (game.locationName || game.locationLink) && (
+            <span className="game-location">
+              <a
+                href={resolveLocationLink(game.locationName, game.locationLink)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()} // Prevent card click when clicking location
+              >
+                📍 {game.locationName || 'Location'}
+              </a>
+            </span>
+          )}
       </div>
-      {(game.locationName || game.locationLink) && (
-        <div className="game-location">
-          <a
-            href={resolveLocationLink(game.locationName, game.locationLink)}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()} // Prevent card click when clicking location
-          >
-            📍 {game.locationName || 'Location'}
-          </a>
-        </div>
-      )}
       {game.isUserRegistered && (
         <div className={`registration-badge ${game.userRegistration?.isWaitlist ? 'waitlist' : 'active'}`}>
           {game.userRegistration?.isWaitlist ? 'Waitlist' : 'You\'re in'}
@@ -75,7 +78,8 @@ const GameItem = memo(({ game, onClick, formatDate }: {
       )}
     </div>
   </div>
-));
+  );
+});
 
 // Games List component to contain all game items
 const GameItemsList = memo(({ 

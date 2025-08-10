@@ -395,12 +395,19 @@
   flex-wrap: wrap;
   gap: 8px;
 
+  .game-date-location {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+  }
+
   .game-date {
     font-size: 18px;
     font-weight: 600;
     color: var(--tg-theme-text-color);
-    flex: 1;
-    min-width: 0;
+    flex-shrink: 0;
   }
 
   .game-location {
