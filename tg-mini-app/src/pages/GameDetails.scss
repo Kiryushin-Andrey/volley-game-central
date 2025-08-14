@@ -126,18 +126,32 @@
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
+      
+      > * {
+        min-width: 0; // Allow flex children to shrink so they can wrap
+      }
 
     .game-date {
       font-size: 18px;
       color: var(--tg-theme-text-color);
       font-weight: 500;
       line-height: 1.2;
+        white-space: nowrap; // Keep date on one line
     }
 
-    .game-location a {
+      .game-location {
+        max-width: 100%;
+      }
+
+      .game-location a {
       color: var(--tg-theme-link_color, var(--tg-theme-link-color, #2481cc));
       text-decoration: underline;
       font-weight: 600;
+        display: inline-block;
+        max-width: 100%;
+        white-space: normal;
+        word-break: break-word;
+        overflow-wrap: anywhere;
     }
   }
 

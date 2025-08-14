@@ -400,21 +400,28 @@
     align-items: center;
     gap: 12px;
     flex: 1;
-    min-width: 0;
+      min-width: 0;
+      flex-wrap: wrap; // allow location to move to next line on overflow
+
+      > * {
+        min-width: 0; // allow children to shrink
+      }
   }
 
   .game-date {
     font-size: 18px;
     font-weight: 600;
     color: var(--tg-theme-text-color);
-    flex-shrink: 0;
+      flex-shrink: 0;
+      white-space: nowrap; // keep date on one line
   }
 
   .game-location {
-    flex-shrink: 0;
+      flex-shrink: 1;
+      max-width: 100%;
     
     a {
-      display: inline-flex;
+      display: inline-block; // permit wrapping
       align-items: center;
       gap: 4px;
       font-size: 14px;
@@ -424,6 +431,10 @@
       border-radius: 6px;
       background-color: rgba(0, 123, 255, 0.1);
       transition: all 0.2s ease;
+      max-width: 100%;
+      white-space: normal;
+      word-break: break-word;
+      overflow-wrap: anywhere;
       
       &:hover {
         background-color: rgba(0, 123, 255, 0.2);
