@@ -20,6 +20,7 @@ interface User {
   telegramId: string;
   username: string;
   avatarUrl?: string | null;
+  blockReason?: string | null;
   isAdmin: boolean;
   createdAt?: Date | null;
 }

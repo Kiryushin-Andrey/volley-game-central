@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { gamesApi } from '../services/api';
 import { logDebug } from '../debug';
 import { FaTimes } from 'react-icons/fa';
+import './UserSearchInput.scss';
 
 interface UserSearchInputProps {
   onSelectUser: (userId: number) => void;
@@ -28,6 +29,7 @@ export const UserSearchInput: React.FC<UserSearchInputProps> = ({
   const [users, setUsers] = useState<UserOption[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserOption | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -75,15 +77,30 @@ export const UserSearchInput: React.FC<UserSearchInputProps> = ({
   }, []);
 
   const handleSelectUser = (user: UserOption) => {
+    setSelectedUser(user);
     setQuery('');
     setShowDropdown(false);
     onSelectUser(user.id);
   };
 
+  const clearSelection = () => {
+    setSelectedUser(null);
+    setQuery('');
+    setUsers([]);
+    setShowDropdown(false);
+    onCancel();
+    // focus back to input on next paint
+    requestAnimationFrame(() => inputRef.current?.focus());
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
-      setShowDropdown(false);
-      onCancel();
+      if (selectedUser) {
+        clearSelection();
+      } else {
+        setShowDropdown(false);
+        onCancel();
+      }
       return;
     }
 
@@ -104,26 +121,54 @@ export const UserSearchInput: React.FC<UserSearchInputProps> = ({
   return (
     <div className="user-search-container" ref={dropdownRef}>
       <div className="search-input-wrapper">
-        <input
-          ref={inputRef}
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          disabled={disabled}
-          className="search-input"
-          autoFocus
-        />
-        <button 
-          className="cancel-button" 
-          onClick={onCancel}
-          type="button"
-          disabled={disabled}
-          aria-label="Cancel search"
-        >
-          <FaTimes />
-        </button>
+        {selectedUser ? (
+          <div className="selected-user-chip">
+            <div className="chip-avatar">
+              {selectedUser.avatarUrl ? (
+                <img src={selectedUser.avatarUrl} alt={`${selectedUser.username}'s avatar`} />
+              ) : (
+                <span>{selectedUser.username.charAt(0).toUpperCase()}</span>
+              )}
+            </div>
+            <div className="chip-name" title={selectedUser.username}>{selectedUser.username}</div>
+            <button
+              className="chip-remove"
+              onClick={clearSelection}
+              type="button"
+              disabled={disabled}
+              aria-label="Clear selection"
+            >
+              <FaTimes />
+            </button>
+          </div>
+        ) : (
+          <>
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={placeholder}
+              disabled={disabled}
+              className="search-input"
+              autoFocus
+            />
+            {isLoading ? (
+              <div className="input-spinner" aria-label="Loading" />
+            ) : (
+              <button 
+                className="cancel-button" 
+                onClick={onCancel}
+                type="button"
+                disabled={disabled}
+                aria-label="Cancel search"
+              >
+                <FaTimes />
+              </button>
+            )}
+          </>
+        )}
       </div>
       
       {showDropdown && (

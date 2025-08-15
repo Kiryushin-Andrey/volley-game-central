@@ -3,12 +3,22 @@ export enum PricingMode {
   TOTAL_COST = 'total_cost'
 }
 
+// Minimal user info used across UI for player dialogs and click handlers
+export interface UserPublicInfo {
+  id: number;
+  username: string;
+  telegramId: string;
+  avatarUrl?: string | null;
+  blockReason?: string | null;
+}
+
 export interface User {
   id: number;
   telegramId: string;
   username: string;
   isAdmin: boolean;
   createdAt: Date | null;
+  blockReason?: string | null;
 }
 
 export interface Game {
@@ -34,12 +44,8 @@ export interface GameRegistration {
   paid: boolean;
   isWaitlist: boolean;
   createdAt: Date | null;
-  user?: {
-    id: number;
-    telegramId: string;
-    username: string;
-    avatarUrl?: string | null;
-  };
+  guestName?: string | null;
+  user?: UserPublicInfo;
 }
 
 export interface GameWithStats extends Game {

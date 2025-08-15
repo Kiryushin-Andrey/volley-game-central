@@ -76,8 +76,29 @@
     {
       "idx": 10,
       "version": "5",
-      "when": 1753273186108,
+      "when": 1753273186106,
       "tag": "0010_add_pricing_mode_to_games",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1753273186109,
+      "tag": "0011_add_guest_name_to_game_registrations",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "5",
+      "when": 1753283186109,
+      "tag": "0012_add_user_and_amount_to_payment_requests",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "5",
+      "when": 1753293186109,
+      "tag": "0013_add_block_reason_to_users",
       "breakpoints": true
     }
   ]

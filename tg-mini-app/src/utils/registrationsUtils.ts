@@ -9,7 +9,8 @@ export const getWaitlistRegistrations = (game: Game): GameRegistration[] => {
 };
 
 export const getUserRegistration = (game: Game, userId: number): GameRegistration | undefined => {
-  return game.registrations.find(reg => reg.userId === userId);
+  // Only consider the user's own registration (exclude their guests)
+  return game.registrations.find(reg => reg.userId === userId && (reg.guestName === null || reg.guestName === undefined));
 };
 
 export const hasAnyPaid = (game: Game): boolean => {

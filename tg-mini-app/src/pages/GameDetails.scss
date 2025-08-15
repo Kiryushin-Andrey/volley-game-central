@@ -63,6 +63,18 @@
   }
 }
 
+// Keep the "You" badge and its remove button next to each other with a small gap
+.player-info .self-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.player-info .self-actions .admin-player-actions {
+  margin-left: 0; // override global auto push
+  padding-left: 0;
+}
+
 .user-search-container {
   margin: 1rem 0;
   position: relative;
@@ -359,54 +371,114 @@
   margin-bottom: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   overflow: hidden;
+}
 
-  .players-stats-header {
-    padding: 16px;
-    border-bottom: 1px solid #e1e8ed;
+.players-stats-header {
+  padding: 16px;
+  border-bottom: 1px solid #e1e8ed;
 
-    .stats-row {
-      display: flex;
-      align-items: center;
-      justify-content: center;
+  .stats-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .compact-stats {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1;
+
+    .registered-count {
+      color: #28a745; // Green for registered players
+      // Use a color that works in both light and dark themes
+      @media (prefers-color-scheme: dark) {
+        color: #4cd964; // Brighter green for dark theme
+      }
     }
 
-    .compact-stats {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      font-weight: 700;
-      line-height: 1;
+    .stats-divider {
+      margin: 0 6px;
+      font-weight: 300;
+      color: var(--tg-theme-hint-color);
+    }
 
-      .registered-count {
-        color: #28a745; // Green for registered players
-        // Use a color that works in both light and dark themes
-        @media (prefers-color-scheme: dark) {
-          color: #4cd964; // Brighter green for dark theme
-        }
-      }
+    .max-count {
+      color: var(--tg-theme-text-color); // Default text color for max players
+    }
 
-      .stats-divider {
-        margin: 0 6px;
-        font-weight: 300;
-        color: var(--tg-theme-hint-color);
-      }
-
-      .max-count {
-        color: var(--tg-theme-text-color); // Default text color for max players
-      }
-
-      .waitlist-indicator {
-        margin-left: 8px;
-        color: #ff9500; // Yellow/orange for waitlist
-        // Use a color that works in both light and dark themes
-        @media (prefers-color-scheme: dark) {
-          color: #ffcc00; // Brighter yellow for dark theme
-        }
+    .waitlist-indicator {
+      margin-left: 8px;
+      color: #ff9500; // Yellow/orange for waitlist
+      // Use a color that works in both light and dark themes
+      @media (prefers-color-scheme: dark) {
+        color: #ffcc00; // Brighter yellow for dark theme
       }
     }
   }
-}
+
+  .header-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .add-guest-button {
+    -webkit-appearance: none;
+    appearance: none;
+    border: 1px solid var(--tg-theme-hint-color, #e1e8ed);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--tg-theme-secondary-bg-color, #f1f3f4);
+    color: var(--tg-theme-text-color, #000000);
+    height: 32px;
+    padding: 0 14px;
+    border-radius: 9999px; // pill shape
+    font-size: 14px;
+    line-height: 30px; // for vertical alignment inside 32px height
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.05s ease;
+
+    &:hover:not(:disabled) {
+      filter: brightness(0.97);
+      border-color: rgba(0,0,0,0.15);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.25);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      background-color: var(--tg-theme-secondary-bg-color, #2c2c2e);
+      border-color: var(--tg-theme-hint-color, #48484a);
+
+      &:hover:not(:disabled) {
+        filter: brightness(1.05);
+        border-color: rgba(255,255,255,0.2);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      }
+    }
+  }
+} 
 
 .players-section {
   padding: 8px;
@@ -490,6 +562,12 @@
     align-items: center;
     justify-content: center;
 
+    &.clickable {
+      cursor: pointer;
+      transition: transform 0.05s ease;
+      &:active { transform: scale(0.98); }
+    }
+
     .avatar-image {
       width: 100%;
       height: 100%;
@@ -508,6 +586,26 @@
       font-size: 16px;
       font-weight: 600;
       border-radius: 50%;
+      
+      &.guest-avatar {
+        background: var(--tg-theme-hint-color, #999999);
+        color: var(--tg-theme-bg-color, #ffffff);
+        
+        .guest-icon {
+          font-size: 14px;
+        }
+      }
+    }
+  }
+
+  .player-details {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    &.clickable {
+      cursor: pointer;
     }
   }
 
@@ -515,7 +613,55 @@
     font-size: 16px;
     color: var(--tg-theme-text-color);
     font-weight: 500;
-    flex-grow: 1;
+
+    &.clickable {
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+  }
+
+  .invited-by {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--tg-theme-hint-color, #999999);
+
+    .inviter-avatar {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      overflow: hidden;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      .inviter-avatar-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
+      }
+
+      .inviter-avatar-placeholder {
+        width: 100%;
+        height: 100%;
+        background: var(--tg-theme-hint-color, #999999);
+        color: var(--tg-theme-bg-color, #ffffff);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 8px;
+        font-weight: 600;
+        border-radius: 50%;
+      }
+    }
+
+    .invited-by-text {
+      font-weight: 400;
+    }
   }
 
   .player-badge {

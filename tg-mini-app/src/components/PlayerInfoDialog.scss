@@ -1,0 +1,116 @@
+.player-info-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.player-info-dialog {
+  background: var(--tg-theme-bg-color, #1c1c1e);
+  color: var(--tg-theme-text-color, #fff);
+  width: 90%;
+  max-width: 420px;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  overflow: hidden;
+}
+
+.player-info-dialog .dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.player-info-dialog .close-btn {
+  background: transparent;
+  color: inherit;
+  border: none;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.player-info-dialog .dialog-content {
+  padding: 16px;
+}
+
+.player-info-dialog .avatar-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.player-info-dialog .avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.player-info-dialog .avatar.placeholder {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.1);
+  font-size: 36px;
+}
+
+.player-info-dialog .info-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.player-info-dialog .row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.player-info-dialog .label {
+  opacity: 0.7;
+}
+
+.player-info-dialog .value {
+  font-weight: 600;
+}
+
+.player-info-dialog .link {
+  color: var(--tg-theme-link-color, #5ea3ff);
+  text-decoration: none;
+}
+
+.player-info-dialog .link:active,
+.player-info-dialog .link:focus,
+.player-info-dialog .link:hover {
+  text-decoration: underline;
+}
+
+/* Buttons */
+.player-info-dialog .primary-btn {
+  background: var(--tg-theme-button_color, #2ea6ff);
+  color: var(--tg-theme-button_text_color, #fff);
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-weight: 600;
+}
+
+.player-info-dialog .danger-btn {
+  background: #e05252;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-weight: 600;
+}

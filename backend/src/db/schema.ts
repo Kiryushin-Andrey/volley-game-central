@@ -5,6 +5,7 @@ export const users = pgTable('users', {
   telegramId: varchar('telegram_id', { length: 255 }).notNull().unique(),
   username: varchar('username', { length: 255 }).notNull(),
   avatarUrl: varchar('avatar_url', { length: 500 }),
+  blockReason: text('block_reason'),
   isAdmin: boolean('is_admin').notNull().default(false),
   createdAt: timestamp('created_at').defaultNow(),
 });
@@ -28,6 +29,7 @@ export const gameRegistrations = pgTable('game_registrations', {
   id: serial('id').primaryKey(),
   gameId: serial('game_id').references(() => games.id),
   userId: serial('user_id').references(() => users.id),
+  guestName: varchar('guest_name', { length: 255 }),
   paid: boolean('paid').notNull().default(false),
   createdAt: timestamp('created_at').defaultNow(),
 });
@@ -72,6 +74,8 @@ export const bunqCredentials = pgTable('bunq_credentials', {
 export const paymentRequests = pgTable('payment_requests', {
   id: serial('id').primaryKey(),
   gameRegistrationId: serial('game_registration_id').references(() => gameRegistrations.id, { onDelete: 'cascade' }),
+  userId: integer('user_id'),
+  amountCents: integer('amount_cents'),
   paymentRequestId: varchar('payment_request_id', { length: 255 }).notNull(),
   paymentLink: varchar('payment_link', { length: 500 }).notNull(),
   monetaryAccountId: integer('monetary_account_id').notNull(),

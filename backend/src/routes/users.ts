@@ -1,11 +1,13 @@
 import { Router } from 'express';
 import { db } from '../db';
-import { users, bunqCredentials } from '../db/schema';
-import { eq, and, ne, or, ilike, sql } from 'drizzle-orm';
+import { users, bunqCredentials, games, gameRegistrations, paymentRequests } from '../db/schema';
+import { eq, and, ne, or, ilike, sql, inArray } from 'drizzle-orm';
 import { telegramAuthMiddleware } from '../middleware/telegramAuth';
 import { adminAuthMiddleware } from '../middleware/adminAuth';
 import { bunqCredentialsService } from '../services/bunqCredentialsService';
 import { createInstallation, registerDevice, createSession, fetchMonetaryAccounts } from '../services/bunqService';
+import { getUserUnpaidItems } from '../services/unpaidService';
+import { sendTelegramNotification } from '../services/telegramService';
 
 const router = Router();
 
@@ -41,16 +43,13 @@ router.get('/', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) =>
 router.get('/search', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) => {
   try {
     const { q: query } = req.query;
-    console.log('Search request received:', { query, user: req.user?.id });
     
     if (!query || typeof query !== 'string' || query.trim().length < 2) {
       const error = 'Search query must be at least 2 characters long';
-      console.log('Search validation failed:', error);
       return res.status(400).json({ error });
     }
 
     const searchTerm = `%${query.toLowerCase()}%`;
-    console.log('Searching users with term:', searchTerm);
     
     // Search for users where username contains the query (case-insensitive)
     const results = await db
@@ -58,7 +57,8 @@ router.get('/search', telegramAuthMiddleware, adminAuthMiddleware, async (req, r
         id: users.id,
         username: users.username,
         telegramId: users.telegramId,
-        avatarUrl: users.avatarUrl
+        avatarUrl: users.avatarUrl,
+        blockReason: users.blockReason,
       })
       .from(users)
       .where(
@@ -66,12 +66,59 @@ router.get('/search', telegramAuthMiddleware, adminAuthMiddleware, async (req, r
       )
       .execute();
     
-    console.log('Search results:', { query, resultCount: results.length, results });
-    // Results are already in the correct format from the Drizzle query
     res.json(results);
   } catch (error) {
     console.error('Error searching users:', error);
     res.status(500).json({ error: 'Failed to search users' });
+  }
+});
+
+// Block a user by telegramId with reason (admin only)
+router.post('/:telegramId/block', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) => {
+  try {
+    const { telegramId } = req.params;
+    const { reason } = req.body as { reason?: string };
+
+    if (!reason || typeof reason !== 'string' || reason.trim().length === 0) {
+      return res.status(400).json({ error: 'Reason is required' });
+    }
+
+    const [updated] = await db
+      .update(users)
+      .set({ blockReason: reason.trim() })
+      .where(eq(users.telegramId, telegramId))
+      .returning();
+
+    if (!updated) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    return res.json({ success: true, message: 'User blocked', user: updated });
+  } catch (error) {
+    console.error('Error blocking user:', error);
+    res.status(500).json({ error: 'Failed to block user' });
+  }
+});
+
+// Unblock a user by telegramId (admin only)
+router.delete('/:telegramId/block', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) => {
+  try {
+    const { telegramId } = req.params;
+
+    const [updated] = await db
+      .update(users)
+      .set({ blockReason: null })
+      .where(eq(users.telegramId, telegramId))
+      .returning();
+
+    if (!updated) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    return res.json({ success: true, message: 'User unblocked', user: updated });
+  } catch (error) {
+    console.error('Error unblocking user:', error);
+    res.status(500).json({ error: 'Failed to unblock user' });
   }
 });
 
@@ -308,6 +355,64 @@ router.put('/me/bunq/monetary-account', telegramAuthMiddleware, adminAuthMiddlew
       success: false, 
       message: 'Internal server error while updating monetary account' 
     });
+  }
+});
+
+// Admin-only: Get unpaid games (grouped per game) for a specific user
+// Returns one entry per game with total amount and paymentLink (if exists), excluding waitlist
+router.get('/id/:userId/unpaid-games', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId);
+    if (Number.isNaN(userId)) {
+      return res.status(400).json({ error: 'Invalid userId' });
+    }
+    const result = await getUserUnpaidItems(userId);
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching unpaid games for user:', error);
+    res.status(500).json({ error: 'Failed to fetch unpaid games' });
+  }
+});
+
+// Admin-only: Send a payment reminder to a specific user for their unpaid games
+router.post('/id/:userId/payment-reminder', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId);
+    if (Number.isNaN(userId)) {
+      return res.status(400).json({ error: 'Invalid userId' });
+    }
+
+    // Load the user to get telegramId
+    const targetUsers = await db.select().from(users).where(eq(users.id, userId));
+    if (targetUsers.length === 0 || !targetUsers[0].telegramId) {
+      return res.status(404).json({ error: 'User not found or missing Telegram ID' });
+    }
+
+    const items = await getUserUnpaidItems(userId);
+    if (items.length === 0) {
+      return res.json({ success: true, message: 'No unpaid payment requests found for this user', remindersSent: 0 });
+    }
+
+    const lines: string[] = [];
+    lines.push('💰 <b>Payment reminder</b>');
+    lines.push('You still have unpaid registrations:');
+    for (const it of items) {
+      const formattedDate = it.dateTime.toLocaleDateString('en-GB', {
+        weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+      });
+      const location = it.locationName ? ` • ${it.locationName}` : '';
+      const amountPart = it.totalAmountCents != null ? ` — €${(it.totalAmountCents / 100).toFixed(2)}` : '';
+      const linkPart = it.paymentLink ? ` — <a href="${it.paymentLink}">pay link</a>` : '';
+      lines.push(`• ${formattedDate}${location}${amountPart}${linkPart}`);
+    }
+
+    const message = lines.join('\n');
+    await sendTelegramNotification(targetUsers[0].telegramId!, message);
+
+    return res.json({ success: true, message: 'Reminder sent', remindersSent: 1, items: items.length });
+  } catch (error) {
+    console.error('Error sending payment reminder:', error);
+    res.status(500).json({ error: 'Failed to send payment reminder' });
   }
 });
 

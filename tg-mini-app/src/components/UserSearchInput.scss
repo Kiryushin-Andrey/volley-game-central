@@ -5,26 +5,101 @@
 }
 
 .search-input-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  position: relative;
   width: 100%;
 }
 
+// Selected user chip
+.selected-user-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px 8px 8px;
+  border: 1px solid var(--tg-theme-secondary-bg-color, #e1e8ed);
+  border-radius: 10px;
+  background-color: var(--tg-theme-bg-color);
+
+  .chip-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: rgba(42, 171, 238, 0.12);
+    color: var(--tg-theme-link-color, #2aabee);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    overflow: hidden;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+      display: block;
+    }
+  }
+
+  .chip-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--tg-theme-text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .chip-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.08);
+    color: var(--tg-theme-hint-color, #888);
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+
+    &:hover:not(:disabled) {
+      background-color: rgba(0, 0, 0, 0.15);
+      color: var(--tg-theme-text-color);
+    }
+
+    &:active:not(:disabled) {
+      transform: scale(0.95);
+    }
+
+    svg {
+      width: 14px;
+      height: 14px;
+    }
+  }
+}
+
 .search-input {
-  flex: 1;
-  padding: 10px 16px;
-  border: 1px solid #e1e8ed;
-  border-radius: 8px;
-  font-size: 14px;
+  width: 100%;
+  padding: 12px 40px 12px 14px; // leave space for clear button
+  border: 1px solid var(--tg-theme-secondary-bg-color, #e1e8ed);
+  border-radius: 10px;
+  font-size: 15px;
   color: var(--tg-theme-text-color);
   background-color: var(--tg-theme-bg-color);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+  
+  &::placeholder {
+    color: var(--tg-theme-hint-color, #8899a6);
+    opacity: 0.9;
+  }
   
   &:focus {
     outline: none;
     border-color: var(--tg-theme-link-color, #2aabee);
-    box-shadow: 0 0 0 2px rgba(42, 171, 238, 0.2);
+    box-shadow: 0 0 0 3px rgba(42, 171, 238, 0.15);
   }
   
   &:disabled {
@@ -34,39 +109,60 @@
 }
 
 .cancel-button {
-  flex-shrink: 0;
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   padding: 0;
-  border: 1px solid #e1e8ed;
-  border-radius: 8px;
-  background-color: var(--tg-theme-bg-color);
+  border: none;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.08);
   color: var(--tg-theme-hint-color, #888);
   cursor: pointer;
   transition: all 0.2s;
   
   &:hover:not(:disabled) {
-    color: var(--tg-theme-link-color, #2aabee);
-    border-color: var(--tg-theme-link-color, #2aabee);
-    background-color: rgba(42, 171, 238, 0.1);
+    color: var(--tg-theme-text-color);
+    background-color: rgba(0, 0, 0, 0.15);
   }
   
   &:active:not(:disabled) {
-    transform: scale(0.95);
+    transform: translateY(-50%) scale(0.95);
   }
   
   &:disabled {
-    opacity: 0.5;
+    opacity: 0.4;
     cursor: not-allowed;
   }
   
   svg {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
   }
+}
+
+// Inline loading spinner inside the input (replaces cancel button while loading)
+.input-spinner {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(0, 0, 0, 0.15);
+  border-top-color: var(--tg-theme-link-color, #2aabee);
+  border-radius: 50%;
+  animation: usersearch-spin 0.8s linear infinite;
+}
+
+@keyframes usersearch-spin {
+  from { transform: translateY(-50%) rotate(0deg); }
+  to { transform: translateY(-50%) rotate(360deg); }
 }
 
 .user-search-dropdown {
@@ -77,9 +173,9 @@
   max-height: 300px;
   overflow-y: auto;
   background: var(--tg-theme-bg-color);
-  border: 1px solid #e1e8ed;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--tg-theme-secondary-bg-color, #e1e8ed);
+  border-radius: 10px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
   z-index: 1000;
   margin-top: 4px;
   
@@ -103,7 +199,7 @@
     padding: 10px 15px;
     cursor: pointer;
     transition: background-color 0.2s;
-    border-bottom: 1px solid var(--tg-theme-secondary-bg-color, #f5f5f5);
+    border-bottom: 1px solid var(--tg-theme-secondary-bg-color, #f0f0f0);
     
     &:last-child {
       border-bottom: none;
@@ -126,7 +222,7 @@
       width: 40px;
       height: 40px;
       border-radius: 50%;
-      background-color: rgba(42, 171, 238, 0.1);
+      background-color: rgba(42, 171, 238, 0.12);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -173,19 +269,34 @@
 
 // Dark theme adjustments
 @media (prefers-color-scheme: dark) {
-  .user-search-input {
+  .search-input {
     border-color: #2f3336;
+    background-color: #1e2327;
   }
-  
+
+  .cancel-button {
+    background-color: rgba(255, 255, 255, 0.08);
+  }
+
   .user-search-dropdown {
     border-color: #2f3336;
-    background-color: var(--tg-theme-bg-color);
+    background-color: #151a1e;
   }
-  
-  .user-search-item {
-    &:hover,
-    &.selected {
-      background-color: rgba(255, 255, 255, 0.05) !important;
+
+  .selected-user-chip {
+    border-color: #2f3336;
+    background-color: #1e2327;
+
+    .chip-remove {
+      background-color: rgba(255, 255, 255, 0.08);
+      &:hover:not(:disabled) {
+        background-color: rgba(255, 255, 255, 0.14);
+      }
     }
+  }
+
+  .input-spinner {
+    border-color: rgba(255, 255, 255, 0.15);
+    border-top-color: var(--tg-theme-link-color, #2aabee);
   }
 }

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Game, User, GameWithStats, PricingMode } from '../types';
+import { Game, User, GameWithStats, PricingMode, UserPublicInfo } from '../types';
 import { logDebug } from '../debug';
 
 // Use /api prefix for proxy, fallback to environment variable for production
@@ -62,6 +62,38 @@ export const userApi = {
     const response = await api.put('/users/me', userData);
     return response.data;
   },
+  
+  /**
+   * Admin: Get unpaid games for a specific user by ID
+   */
+  getUserUnpaidGames: async (userId: number): Promise<UnpaidRegistration[]> => {
+    const response = await api.get(`/users/id/${userId}/unpaid-games`);
+    return response.data;
+  },
+
+  /**
+   * Admin: Block a user by telegramId with a reason
+   */
+  blockUser: async (telegramId: string, reason: string): Promise<{ success: boolean; message: string; user: User }> => {
+    const response = await api.post(`/users/${encodeURIComponent(telegramId)}/block`, { reason });
+    return response.data;
+  },
+
+  /**
+   * Admin: Unblock a user by telegramId
+   */
+  unblockUser: async (telegramId: string): Promise<{ success: boolean; message: string; user: User }> => {
+    const response = await api.delete(`/users/${encodeURIComponent(telegramId)}/block`);
+    return response.data;
+  },
+
+  /**
+   * Admin: Send a payment reminder to a user with unpaid requests
+   */
+  sendPaymentReminder: async (userId: number): Promise<{ success: boolean; message: string }> => {
+    const response = await api.post(`/users/id/${userId}/payment-reminder`);
+    return response.data;
+  },
 };
 
 export const gamesApi = {
@@ -92,12 +124,31 @@ export const gamesApi = {
     return api.post('/games', gameData).then(res => res.data);
   },
 
-  registerForGame: async (gameId: number): Promise<void> => {
-    await api.post(`/games/${gameId}/register`);
+  registerForGame: async (gameId: number, guestName?: string): Promise<void> => {
+    await api.post(`/games/${gameId}/register`, guestName ? { guestName } : {});
   },
 
-  unregisterFromGame: async (gameId: number): Promise<void> => {
-    await api.delete(`/games/${gameId}/register`);
+  /**
+   * Register a guest for a game
+   */
+  registerGuestForGame: async (gameId: number, guestName: string): Promise<void> => {
+    await api.post(`/games/${gameId}/register`, { guestName });
+  },
+
+  /**
+   * Get the last used guest name for a user (excluding current game)
+   */
+  getLastGuestName: async (gameId: number): Promise<{ lastGuestName: string | null }> => {
+    const response = await api.get(`/games/${gameId}/last-guest-name`);
+    return response.data;
+  },
+
+  unregisterFromGame: async (gameId: number, guestName?: string): Promise<void> => {
+    if (guestName && guestName.trim()) {
+      await api.delete(`/games/${gameId}/register`, { data: { guestName } });
+    } else {
+      await api.delete(`/games/${gameId}/register`);
+    }
   },
 
   deleteGame: async (gameId: number): Promise<void> => {
@@ -130,24 +181,37 @@ export const gamesApi = {
 
   /**
    * Add a participant to a game (admin only)
+   * Optionally specify guestName to add a guest under the given user
    */
-  addParticipant: async (gameId: number, userId: number): Promise<{ message: string }> => {
-    const response = await api.post(`/games/${gameId}/participants`, { userId });
+  addParticipant: async (
+    gameId: number,
+    userId: number,
+    guestName?: string
+  ): Promise<{ message: string }> => {
+    const payload = guestName && guestName.trim()
+      ? { userId, guestName }
+      : { userId };
+    const response = await api.post(`/games/${gameId}/participants`, payload);
     return response.data;
   },
 
   /**
    * Remove a participant from a game (admin only)
+   * If guestName is provided, only that guest registration will be removed.
+   * Otherwise, removes the user's own registration (guestName null).
    */
-  removeParticipant: async (gameId: number, userId: number): Promise<{ message: string }> => {
-    const response = await api.delete(`/games/${gameId}/participants/${userId}`);
+  removeParticipant: async (gameId: number, userId: number, guestName?: string): Promise<{ message: string }> => {
+    const config = guestName && guestName.trim()
+      ? { data: { guestName } }
+      : undefined;
+    const response = await api.delete(`/games/${gameId}/participants/${userId}`, config);
     return response.data;
   },
 
   /**
    * Search users by query (for admin participant management)
    */
-  searchUsers: async (query: string): Promise<Array<{ id: number; username: string; telegramId: string | null; avatarUrl?: string | null }>> => {
+  searchUsers: async (query: string): Promise<UserPublicInfo[]> => {
     const logData = (data: unknown) => logDebug(JSON.stringify(data, null, 2));
     
     logData(`Searching users with query: "${query}"`);
@@ -237,3 +301,12 @@ export const bunqApi = {
 };
 
 export default api;
+
+// Types
+export interface UnpaidRegistration {
+  gameId: number;
+  dateTime: string; // ISO string from backend
+  locationName: string | null;
+  totalAmountCents: number | null;
+  paymentLink: string | null;
+}

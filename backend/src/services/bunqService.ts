@@ -1,8 +1,9 @@
 import axios, { AxiosInstance } from 'axios';
 import { db } from '../db';
 import { games, gameRegistrations, users, paymentRequests } from '../db/schema';
-import { eq, and, not } from 'drizzle-orm';
+import { eq, and, not, inArray } from 'drizzle-orm';
 import { sendTelegramNotification } from './telegramService';
+import { getNotificationSubjectLowercase } from '../utils/notificationUtils';
 import { bunqCredentialsService, type BunqCredentials } from './bunqCredentialsService';
 import { calculatePerParticipantCost } from '../utils/pricingUtils';
 import { PricingMode } from '../types/PricingMode';
@@ -654,6 +655,8 @@ export const bunqService = {
       await db.insert(paymentRequests).values({
         paymentRequestId: paymentRequestId,
         gameRegistrationId: gameRegistrationId,
+        userId: user.id,
+        amountCents: perParticipantCost,
         paymentLink: paymentRequestUrl,
         monetaryAccountId: monetaryAccountId,
         createdAt: new Date(),
@@ -663,7 +666,17 @@ export const bunqService = {
 
       // Send Telegram notification to the player
       try {
-        const notificationMessage = `💰 Please pay ${formattedPerParticipantAmount} for the volleyball game on ${formattedDate}: ${paymentRequestUrl}`;
+        // Get the guest name from the registration for the notification
+        const registration = await db
+          .select()
+          .from(gameRegistrations)
+          .where(eq(gameRegistrations.id, gameRegistrationId))
+          .limit(1);
+        
+        const guestName = registration.length > 0 ? registration[0].guestName : null;
+        const subject = getNotificationSubjectLowercase(guestName);
+        
+        const notificationMessage = `💰 Please pay ${formattedPerParticipantAmount} for ${subject} for the volleyball game on ${formattedDate}: ${paymentRequestUrl}`;
         await sendTelegramNotification(user.telegramId, notificationMessage);
         console.log(`Payment notification sent to ${user.username} via Telegram`);
       } catch (notifyError) {
@@ -677,6 +690,155 @@ export const bunqService = {
       };
     } catch (error) {
       console.error('Error creating payment request:', error);
+      return {
+        success: false,
+        paymentRequestUrl: '',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  },
+
+  /**
+   * Create a consolidated payment request for a user covering multiple participants (user + guests)
+   * @param user The user to create the payment request for
+   * @param game The game details
+   * @param formattedDate Formatted date string for the game
+   * @param userRegistrations All registrations for this user (including guests)
+   * @param totalAmount Total amount to charge for all participants
+   * @param adminUserId User ID of the admin creating the payment request
+   * @param password Password for decrypting admin's Bunq credentials
+   * @returns Object with success status and payment URL
+   */
+  createConsolidatedPaymentRequest: async (
+    user: User,
+    game: Game,
+    formattedDate: string,
+    userRegistrations: Array<{
+      id: number;
+      userId: number;
+      guestName: string | null;
+      paid: boolean;
+      createdAt: Date | null;
+    }>,
+    totalAmount: number,
+    adminUserId: number,
+    password: string
+  ): Promise<PaymentRequestResult> => {
+    try {
+      // Create Bunq client with admin credentials
+      const bunqClientResult = await createBunqClient({
+        userId: adminUserId,
+        password
+      });
+
+      if (!bunqClientResult) {
+        return {
+          success: false,
+          paymentRequestUrl: '',
+          error: 'Failed to create Bunq client'
+        };
+      }
+
+      const { client: bunqClient, monetaryAccountId, privateKey } = bunqClientResult;
+      const formattedAmount = `€${(totalAmount / 100).toFixed(2)}`;
+      
+      // Create description for consolidated payment
+      const participantDescriptions: string[] = [];
+      
+      for (const registration of userRegistrations) {
+        if (registration.guestName) {
+          participantDescriptions.push(`guest ${registration.guestName}`);
+        } else {
+          participantDescriptions.push('yourself');
+        }
+      }
+      
+      const participantsText = participantDescriptions.length === 1 
+        ? participantDescriptions[0]
+        : participantDescriptions.slice(0, -1).join(', ') + ' and ' + participantDescriptions.slice(-1)[0];
+      
+      const description = `Volleyball game on ${formattedDate} for ${participantsText}`;
+
+      // Get the user ID from the session
+      const userResponse = await bunqClient.get('/user');
+      const userId = userResponse.data?.Response?.[0]?.UserPerson?.id || userResponse.data?.Response?.[0]?.UserCompany?.id;
+      
+      if (!userId) {
+        throw new Error('Could not determine user ID from Bunq API');
+      }
+
+      // Create payment request data
+      const paymentRequestData = {
+        amount_inquired: {
+          value: (totalAmount / 100).toFixed(2),
+          currency: 'EUR'
+        },
+        counterparty_alias: {
+          type: 'EMAIL',
+          value: user.username // Using username as email placeholder
+        },
+        description: description,
+        allow_bunqme: true
+      };
+
+      // Sign the request body
+      const dataToSign = JSON.stringify(paymentRequestData);
+      const signature = crypto.sign('sha256', Buffer.from(dataToSign), privateKey);
+      const base64Signature = signature.toString('base64');
+
+      // Create the payment request
+      const response = await bunqClient.post(
+        `/user/${userId}/monetary-account/${monetaryAccountId}/request-inquiry`,
+        paymentRequestData,
+        {
+          headers: {
+            'X-Bunq-Client-Signature': base64Signature
+          }
+        }
+      );
+
+      if (response.status !== 200) {
+        throw new Error(`Bunq API returned status ${response.status}`);
+      }
+
+      const paymentRequestId = response.data?.Response?.[0]?.RequestInquiry?.id;
+      const paymentRequestUrl = response.data?.Response?.[0]?.RequestInquiry?.bunqme_share_url;
+
+      if (!paymentRequestId || !paymentRequestUrl) {
+        throw new Error('Failed to get payment request details from Bunq response');
+      }
+
+      // Store payment request records for all registrations
+      for (const registration of userRegistrations) {
+        await db.insert(paymentRequests).values({
+          paymentRequestId: paymentRequestId,
+          gameRegistrationId: registration.id,
+          userId: user.id,
+          amountCents: totalAmount,
+          paymentLink: paymentRequestUrl,
+          monetaryAccountId: monetaryAccountId,
+          createdAt: new Date(),
+          lastCheckedAt: new Date(),
+          paid: false
+        });
+      }
+
+      // Send Telegram notification to the user
+      try {
+        const notificationMessage = `💰 Please pay ${formattedAmount} for ${participantsText} for the volleyball game on ${formattedDate}: ${paymentRequestUrl}`;
+        await sendTelegramNotification(user.telegramId, notificationMessage);
+        console.log(`Consolidated payment notification sent to ${user.username} via Telegram`);
+      } catch (notifyError) {
+        console.error(`Failed to send payment notification to ${user.username}:`, notifyError);
+        // Don't fail the whole process if notification fails
+      }
+      
+      return {
+        success: true,
+        paymentRequestUrl
+      };
+    } catch (error) {
+      console.error('Error creating consolidated payment request:', error);
       return {
         success: false,
         paymentRequestUrl: '',
@@ -720,6 +882,7 @@ export const bunqService = {
       const allRegistrations = await db.select({
           id: gameRegistrations.id,
           userId: gameRegistrations.userId,
+          guestName: gameRegistrations.guestName,
           paid: gameRegistrations.paid,
           createdAt: gameRegistrations.createdAt
         })
@@ -730,10 +893,23 @@ export const bunqService = {
       // Filter out waitlisted players (those beyond maxPlayers)
       const activeRegistrations = allRegistrations.slice(0, game.maxPlayers);
       
-      // Filter out players who have already paid
-      const unpaidRegistrations = activeRegistrations.filter(reg => !reg.paid);
+      // Group active registrations by userId
+      const registrationsByUser = new Map<number, typeof activeRegistrations>();
+      for (const registration of activeRegistrations) {
+        const userId = registration.userId;
+        if (!registrationsByUser.has(userId)) {
+          registrationsByUser.set(userId, []);
+        }
+        registrationsByUser.get(userId)!.push(registration);
+      }
       
-      if (unpaidRegistrations.length === 0) {
+      // Filter out users who have already paid for all their registrations
+      const unpaidUserGroups = Array.from(registrationsByUser.entries())
+        .filter(([userId, userRegistrations]) => 
+          userRegistrations.some(reg => !reg.paid)
+        );
+      
+      if (unpaidUserGroups.length === 0) {
         return { 
           success: true, 
           requestsCreated: 0,
@@ -753,25 +929,38 @@ export const bunqService = {
         minute: '2-digit'
       });
       
-      for (const registration of unpaidRegistrations) {
+      for (const [userId, userRegistrations] of unpaidUserGroups) {
         try {
-          const userDetails = await db.select().from(users).where(eq(users.id, registration.userId));
+          const userDetails = await db.select().from(users).where(eq(users.id, userId));
           
           if (!userDetails.length) {
-            errors.push(`User not found for registration ${registration.id}`);
+            errors.push(`User not found for user ID ${userId}`);
             continue;
           }
           
           const user = userDetails[0];
           
-          const result = await bunqService.createSinglePaymentRequest(
+          // Calculate total amount for this user (themselves + all their guests)
+          const participantCount = userRegistrations.length;
+          const perParticipantCost = calculatePerParticipantCost(
+            game.paymentAmount,
+            game.pricingMode as PricingMode,
+            game.maxPlayers,
+            activeRegistrations.length // Use actual number of active registrations
+          );
+          const totalAmount = perParticipantCost * participantCount;
+          
+          // Create consolidated payment request for this user
+          const result = await bunqService.createConsolidatedPaymentRequest(
             user,
             game as Game,
             formattedDate,
-            registration.id,
+            userRegistrations,
+            totalAmount,
             adminUserId,
             password
-          );          
+          );
+          
           if (result.success) {
             requestsCreated++;
           } else if (result.error) {
@@ -779,10 +968,28 @@ export const bunqService = {
           }
         } catch (error: any) {
           console.error('Error creating payment request:', error);
-          errors.push(`Failed to create payment request for user ${registration.userId}: ${error.message || 'Unknown error'}`);
+          errors.push(`Failed to create payment request for user ${userId}: ${error.message || 'Unknown error'}`);
         }
       }
       
+      // If there were no errors, remove all waitlisted registrations (those beyond maxPlayers)
+      if (errors.length === 0) {
+        try {
+          const waitlistIds = allRegistrations
+            .slice(game.maxPlayers)
+            .map(r => r.id);
+          if (waitlistIds.length > 0) {
+            await db
+              .delete(gameRegistrations)
+              .where(inArray(gameRegistrations.id, waitlistIds));
+            console.log(`Deleted ${waitlistIds.length} waitlisted registrations for game ${gameId}`);
+          }
+        } catch (cleanupError) {
+          console.error('Failed to delete waitlisted registrations:', cleanupError);
+          // Do not flip success due to cleanup; just log the error
+        }
+      }
+
       return {
         success: requestsCreated > 0,
         requestsCreated,
