@@ -1,18 +1,33 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { logDebug } from '../debug';
-import { gamesApi, bunqApi } from '../services/api';
-import { Game, User, PricingMode } from '../types';
-import LoadingSpinner from '../components/LoadingSpinner';
-import PasswordDialog from '../components/PasswordDialog';
-import { UserSearchInput } from '../components/UserSearchInput';
-import { formatDisplayPricingInfo } from '../utils/pricingUtils';
-import { resolveLocationLink } from '../utils/locationUtils';
-import './GameDetails.scss';
-import WebApp from '@twa-dev/sdk';
-import { MainButton, BackButton } from '@twa-dev/sdk/react';
-import { FaCog, FaCheck, FaTimes } from 'react-icons/fa';
-import { AxiosError } from 'axios';
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Game, User, PricingMode } from "../types";
+import LoadingSpinner from "../components/LoadingSpinner";
+import PasswordDialog from "../components/PasswordDialog";
+import { UserSearchInput } from "../components/UserSearchInput";
+import { formatDisplayPricingInfo } from "../utils/pricingUtils";
+import { resolveLocationLink } from "../utils/locationUtils";
+import "./GameDetails.scss";
+import { MainButton, BackButton } from "@twa-dev/sdk/react";
+import {
+  formatDate,
+  isGameUpcoming,
+  isGamePast,
+  canJoinGame,
+  canLeaveGame,
+} from "../utils/gameDateUtils";
+import {
+  getActiveRegistrations,
+  getWaitlistRegistrations,
+  getUserRegistration,
+  hasAnyPaid,
+} from "../utils/registrationsUtils";
+import { GameDetailsViewModel } from "../viewmodels/GameDetailsViewModel";
+import { PlayersList } from "../components/game-details/PlayersList";
+import { WaitlistList } from "../components/game-details/WaitlistList";
+import { InfoText } from "../components/game-details/InfoText";
+import { ActionLoadingOverlay } from "../components/game-details/ActionLoadingOverlay";
+import { AdminActions } from "../components/game-details/AdminActions";
+import { ActionGuard } from "../utils/actionGuard";
 
 interface GameDetailsProps {
   user: User;
@@ -21,7 +36,7 @@ interface GameDetailsProps {
 const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
   const { gameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
-    
+
   const [game, setGame] = useState<Game | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
@@ -29,50 +44,45 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
   const [isPaidUpdating, setIsPaidUpdating] = useState<number | null>(null); // Stores userId of player being updated
   const [hasBunqIntegration, setHasBunqIntegration] = useState<boolean>(false);
   const [isCheckingBunq, setIsCheckingBunq] = useState<boolean>(true);
-  const [isSendingPaymentRequests, setIsSendingPaymentRequests] = useState<boolean>(false);
+  const [isSendingPaymentRequests, setIsSendingPaymentRequests] =
+    useState<boolean>(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState<boolean>(false);
-  const [passwordError, setPasswordError] = useState<string>('');
+  const [passwordError, setPasswordError] = useState<string>("");
   const [showUserSearch, setShowUserSearch] = useState<boolean>(false);
 
+  // ViewModel setup
+  const vmRef = useRef<GameDetailsViewModel | null>(null);
+  if (!vmRef.current) {
+    vmRef.current = new GameDetailsViewModel({
+      setGame,
+      setIsLoading,
+      setIsActionLoading,
+      setError,
+      setHasBunqIntegration,
+      setIsCheckingBunq,
+      setIsPaidUpdating,
+      setShowUserSearch,
+      setIsSendingPaymentRequests,
+      setShowPasswordDialog,
+      setPasswordError,
+      navigate,
+    });
+  }
 
   useEffect(() => {
     if (gameId) {
-      loadGame(parseInt(gameId));
+      vmRef.current!.loadGame(parseInt(gameId));
     }
   }, [gameId]);
 
   // Check Bunq integration status for admin users
   useEffect(() => {
-    const checkBunqIntegration = async () => {
-      if (user.isAdmin) {
-        try {
-          const status = await bunqApi.getStatus();
-          setHasBunqIntegration(status.enabled);
-        } catch (error) {
-          logDebug('Error checking Bunq integration status: ' + error);
-          setHasBunqIntegration(false);
-        }
-      }
-      setIsCheckingBunq(false);
-    };
-
-    checkBunqIntegration();
+    vmRef.current!.checkBunqIntegration(user.isAdmin);
   }, [user.isAdmin]);
 
-  // Track last action time to prevent duplicate clicks
-  const lastActionTimeRef = useRef<number>(0);
-  const ACTION_DEBOUNCE_MS = 1000; // 1 second debounce
-  
-  // Debounce function to prevent multiple rapid calls
-  const isActionAllowed = () => {
-    const now = Date.now();
-    if (now - lastActionTimeRef.current < ACTION_DEBOUNCE_MS) {
-      logDebug('Action debounced - ignoring duplicate click');
-      return false;
-    }
-    lastActionTimeRef.current = now;
-    return true;
-  };
+  // Debounce actions to prevent rapid duplicate calls
+  const actionGuardRef = useRef(new ActionGuard(1000));
+  const isActionAllowed = () => actionGuardRef.current.isAllowed();
 
   // Determine if the main button should be shown and what text/action it should have
   const mainButtonProps = useCallback(() => {
@@ -82,19 +92,27 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
     }
 
     // Find user's registration if any
-    const userRegistration = game.registrations.find(reg => reg.userId === user.id);
-    
+    const userRegistration = game.registrations.find(
+      (reg) => reg.userId === user.id
+    );
+
     if (userRegistration) {
-      // Check if user can leave the game (up to 5 hours before or anytime if waitlisted)
-      if (canLeaveGame(game.dateTime, userRegistration.isWaitlist)) {
+      // Check if user can leave the game (up to X hours before or anytime if waitlisted)
+      if (
+        canLeaveGame(
+          game.dateTime,
+          userRegistration.isWaitlist,
+          game.unregisterDeadlineHours || 5
+        )
+      ) {
         return {
           show: true,
-          text: 'Leave Game',
+          text: "Leave Game",
           onClick: () => {
             if (isActionAllowed()) {
               handleUnregister();
             }
-          }
+          },
         };
       }
     } else {
@@ -102,115 +120,44 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
       if (canJoinGame(game.dateTime)) {
         return {
           show: true,
-          text: 'Join Game',
+          text: "Join Game",
           onClick: () => {
             if (isActionAllowed()) {
               handleRegister();
             }
-          }
+          },
         };
       }
     }
-    
+
     // Default: don't show button
     return { show: false };
   }, [game, user, isLoading, isActionLoading, error]);
 
-  const loadGame = async (id: number) => {
-    try {
-      setIsLoading(true);
-      const fetchedGame = await gamesApi.getGame(id);
-      setGame(fetchedGame);
-    } catch (err) {
-      setError('Failed to load game details');
-      logDebug('Error loading game:');
-      logDebug(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // ViewModel handles loading; no local wrapper needed
 
-  // Match timing restrictions with the server
-  const canJoinGame = (gameDate: string): boolean => {
-    const gameDateTime = new Date(gameDate);
-    const now = new Date();
-    
-    // Can join starting X days before the game (same as server)
-    const daysBeforeGame = new Date(gameDateTime.getTime());
-    daysBeforeGame.setDate(daysBeforeGame.getDate() - 5);
-    
-    return now >= daysBeforeGame;
-  };
-  
-  // Check if game is upcoming (for delete button visibility)
-  const isGameUpcoming = (gameDate: string): boolean => {
-    const gameDateTime = new Date(gameDate);
-    const now = new Date();
-    return gameDateTime > now;
-  };
-  
-  // Check if game is in the past
-  const isGamePast = (gameDate: string): boolean => {
-    const gameDateTime = new Date(gameDate);
-    const now = new Date();
-    return gameDateTime < now;
-  };
-  
-  const canLeaveGame = (gameDate: string, isWaitlist: boolean): boolean => {
-    // Waitlist players can leave at any time
-    if (isWaitlist) {
-      return true;
-    }
-    
-    const gameDateTime = new Date(gameDate);
-    const now = new Date();
-    
-    // Get the configurable deadline hours from the game, default to 5 if not set
-    const deadlineHours = game?.unregisterDeadlineHours || 5;
-    
-    // Active players can leave up to the configured deadline hours before the game
-    const deadlineTime = new Date(gameDateTime.getTime());
-    deadlineTime.setHours(deadlineTime.getHours() - deadlineHours);
-    
-    return now <= deadlineTime;
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    
-    // Check if the date is today or tomorrow
-    const isToday = date.toDateString() === today.toDateString();
-    const isTomorrow = date.toDateString() === tomorrow.toDateString();
-    
-    const timeString = date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
-    
-    if (isToday) {
-      return `Today, ${timeString}`;
-    } else if (isTomorrow) {
-      return `Tomorrow, ${timeString}`;
-    } else {
-      // Format as "8 June, Sunday, 17:00"
-      const day = date.getDate();
-      const month = date.toLocaleString('en-US', { month: 'long' });
-      const weekday = date.toLocaleString('en-US', { weekday: 'long' });
-      
-      return `${day} ${month}, ${weekday}, ${timeString}`;
-    }
-  };
+  // date/time helpers moved to utils/gameDateUtils
 
   // Get info text for timing restrictions
   const getInfoText = () => {
     if (!game) return null;
 
-    const userRegistration = game.registrations.find(reg => reg.userId === user.id);
+    const userRegistration = game.registrations.find(
+      (reg) => reg.userId === user.id
+    );
     const deadlineHours = game.unregisterDeadlineHours || 5;
-    
+
     // If user is registered, check if they can leave
     if (userRegistration) {
-      if (!isGamePast(game.dateTime) && !canLeaveGame(game.dateTime, userRegistration.isWaitlist) && !userRegistration.isWaitlist) {
+      if (
+        !isGamePast(game.dateTime) &&
+        !canLeaveGame(
+          game.dateTime,
+          userRegistration.isWaitlist,
+          deadlineHours
+        ) &&
+        !userRegistration.isWaitlist
+      ) {
         return `You can only leave the game up to ${deadlineHours} hours before it starts.`;
       }
     } else {
@@ -222,304 +169,61 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
         return `Registration opens ${daysBeforeGame.toLocaleDateString()} (X days before the game).`;
       }
     }
-    
+
     return null;
   };
 
   const handleAddParticipant = async (userId: number) => {
     if (!game || isActionLoading) return;
-
-    try {
-      setIsActionLoading(true);
-      await gamesApi.addParticipant(game.id, userId);
-      // Reload the game to get updated registration status
-      await loadGame(game.id);
-      setShowUserSearch(false);
-    } catch (err: any) {
-      logDebug('Error adding participant:');
-      logDebug(err);
-      alert('Failed to add participant. Please try again.');
-    } finally {
-      setIsActionLoading(false);
-    }
+    await vmRef.current!.addParticipant(game, userId);
   };
 
   const handleRegister = async () => {
     if (!game || isActionLoading) return;
-
-    try {
-      setIsActionLoading(true);
-      await gamesApi.registerForGame(game.id);
-      // Reload the game to get updated registration status
-      await loadGame(game.id);
-    } catch (err: any) {
-      logDebug('Error registering for game:');
-      logDebug(err);
-      
-      // Handle specific timing restriction errors from server
-      if (err.response?.status === 403) {
-        const errData = err.response?.data;
-        if (errData?.registrationOpensAt) {
-          const openDate = new Date(errData.registrationOpensAt);
-          alert(`Registration is only possible starting ${openDate.toLocaleDateString()} (X days before the game).`);
-        } else {
-          alert('You cannot register for this game yet due to timing restrictions.');
-        }
-      } else {
-        alert('Failed to register for game. Please try again.');
-      }
-    } finally {
-      setIsActionLoading(false);
-    }
+    await vmRef.current!.register(game);
   };
 
   const handleUnregister = () => {
     if (!game || isActionLoading) return;
-  
-    WebApp.showPopup({
-      title: 'Leave Game',
-      message: 'Are you sure you want to leave this game?',
-      buttons: [
-        {
-          id: 'cancel',
-          type: 'cancel'
-        },
-        {
-          id: 'leave',
-          type: 'destructive',
-          text: 'Leave Game'
-        }
-      ]
-    }, (buttonId) => {
-      if (buttonId === 'leave') {
-        // User confirmed leaving the game
-        performUnregistration();
-      } 
-    });
+    vmRef.current!.confirmAndUnregister(game);
   };
-  
-  const performUnregistration = async () => {
-    if (!game) return;
-    
-    try {
-      setIsActionLoading(true);
-      await gamesApi.unregisterFromGame(game.id);
-      // Reload game data to get updated registrations
-      await loadGame(game.id);
-    } catch (err: any) {
-      logDebug('Error unregistering from game:');
-      logDebug(err);
-      
-      // Handle specific timing restriction errors from server
-      if (err.response?.status === 403) {
-        const errData = err.response?.data;
-        if (errData?.error?.includes('unregister')) {
-          const gameTime = new Date(game.dateTime);
-          const deadlineHours = game.unregisterDeadlineHours || 5; // Default to 5 if not set
-          const deadline = new Date(gameTime.getTime() - deadlineHours * 60 * 60 * 1000);
-          
-          WebApp.showPopup({
-            title: 'Cannot Leave Game',
-            message: `You can only unregister up to ${deadline.toLocaleTimeString()} (${deadlineHours} hours before the game starts).`,
-            buttons: [{ type: 'ok' }]
-          });
-        } else {
-          WebApp.showPopup({
-            title: 'Error',
-            message: typeof err === 'string' ? err : err.message || 'Failed to leave the game',
-            buttons: [{ type: 'ok' }]
-          });
-        }
-      } else {
-        WebApp.showPopup({
-          title: 'Error',
-          message: typeof err === 'string' ? err : err.message || 'Failed to leave the game',
-          buttons: [{ type: 'ok' }]
-        });
-      }
-    } finally {
-      setIsActionLoading(false);
-    }
-  };
-  
+
   // Handle removing a player from the game (admin only)
   const handleRemovePlayer = (userId: number) => {
     if (!game) return;
-    
-    const player = game.registrations.find(reg => reg.userId === userId);
-    const username = player?.user?.username || `Player ${userId}`;
-    
-    // Show confirmation dialog
-    WebApp.showConfirm(
-      `Remove ${username} from this game?`,
-      async (confirmed) => {
-        if (confirmed) {
-          try {
-            setIsActionLoading(true);
-            await gamesApi.removeParticipant(game.id, userId);
-            
-            // Update local state to reflect the removal
-            setGame(prevGame => {
-              if (!prevGame) return null;
-              
-              return {
-                ...prevGame,
-                registrations: prevGame.registrations.filter(reg => reg.userId !== userId)
-              };
-            });
-            
-            WebApp.showPopup({
-              title: 'Success',
-              message: `${username} has been removed from the game`,
-              buttons: [{ type: 'ok' }]
-            });
-          } catch (err) {
-            logDebug('Error removing player:');
-            logDebug(err);
-            
-            WebApp.showPopup({
-              title: 'Error',
-              message: 'Failed to remove player from the game',
-              buttons: [{ type: 'ok' }]
-            });
-          } finally {
-            setIsActionLoading(false);
-          }
-        }
-      }
-    );
+    vmRef.current!.removePlayer(game, userId);
   };
-  
+
   // Handle toggling paid status for a player
-  const handleTogglePaidStatus = (userId: number, currentPaidStatus: boolean) => {
+  const handleTogglePaidStatus = (
+    userId: number,
+    currentPaidStatus: boolean
+  ) => {
     if (!game) return;
-    
-    const newPaidStatus = !currentPaidStatus;
-    const username = game.registrations.find(reg => reg.userId === userId)?.user?.username || `Player ${userId}`;
-    
-    // Show confirmation dialog
-    WebApp.showConfirm(
-      `${newPaidStatus ? 'Mark' : 'Unmark'} ${username} as ${newPaidStatus ? 'paid' : 'unpaid'}?`,
-      async (confirmed) => {
-        if (confirmed) {
-          try {
-            setIsPaidUpdating(userId);
-            await gamesApi.updatePlayerPaidStatus(game.id, userId, newPaidStatus);
-            
-            // Update local state to reflect the change
-            setGame(prevGame => {
-              if (!prevGame) return null;
-              
-              return {
-                ...prevGame,
-                registrations: prevGame.registrations.map(reg => 
-                  reg.userId === userId ? { ...reg, paid: newPaidStatus } : reg
-                )
-              };
-            });
-          } catch (err) {
-            logDebug('Error updating paid status:');
-            logDebug(err);
-            
-            WebApp.showPopup({
-              title: 'Error',
-              message: 'Failed to update payment status',
-              buttons: [{ type: 'ok' }]
-            });
-          } finally {
-            setIsPaidUpdating(null);
-          }
-        }
-      }
-    );
+    vmRef.current!.togglePaidStatus(game, userId, currentPaidStatus);
   };
-  
+
   // Handle sending payment requests
   const handleSendPaymentRequests = async () => {
     if (!game || !isActionAllowed()) return;
-    
-    // Clear any previous password error and show password dialog directly
-    setPasswordError('');
-    setShowPasswordDialog(true);
+    vmRef.current!.startPaymentRequestsFlow();
   };
 
   // Handle password dialog submission
   const handlePasswordSubmit = async (password: string) => {
     if (!game) return;
-    
-    try {
-      setIsSendingPaymentRequests(true);
-      setPasswordError('');
-      
-      const result = await gamesApi.createPaymentRequests(game.id, password);
-      
-      // Close password dialog
-      setShowPasswordDialog(false);
-      
-      // Show success message with details
-      WebApp.showPopup({
-        title: 'Payment requests sent',
-        message: `${result.requestsCreated} payment requests sent successfully.${result.errors.length > 0 ? ` ${result.errors.length} errors occurred.` : ''}`,
-        buttons: [{ type: 'ok' }]
-      });
-      
-      // Reload game data to get updated payment status
-      await loadGame(game.id);
-    } catch (error) {
-      logDebug('Error sending payment requests: ' + error);
-      if (error instanceof AxiosError && error.response?.data?.error == 'Invalid password') {
-        setPasswordError(error.response?.data?.error);
-      } else {
-        // Close dialog and show general error
-        setShowPasswordDialog(false);
-        WebApp.showPopup({
-          title: 'Error',
-          message: error instanceof Error ? error.message : 'Unknown error',
-          buttons: [{ type: 'ok' }]
-        });
-      }
-    } finally {
-      setIsSendingPaymentRequests(false);
-    }
+    await vmRef.current!.submitPassword(game.id, password);
   };
 
   // Handle password dialog cancellation
   const handlePasswordCancel = () => {
-    setShowPasswordDialog(false);
-    setPasswordError('');
-    setIsSendingPaymentRequests(false);
+    vmRef.current!.cancelPasswordFlow();
   };
-  
+
   // Handle game deletion with confirmation
   const handleDeleteGame = async () => {
     if (!isActionAllowed()) return;
-    
-    // Show confirmation dialog
-    WebApp.showConfirm(
-      'Are you sure you want to delete this game? This action cannot be undone.',
-      async (confirmed) => {
-        if (confirmed) {
-          try {
-            setIsActionLoading(true);
-            await gamesApi.deleteGame(parseInt(gameId!));
-            
-            // Navigate back to games list after popup is closed
-            navigate('/');
-          } catch (error) {
-            logDebug('Error deleting game:');
-            logDebug(error);
-            
-            // Show error message
-            WebApp.showPopup({
-              title: 'Error',
-              message: 'Failed to delete the game. Please try again.',
-              buttons: [{ type: 'ok' }]
-            });
-            setIsActionLoading(false);
-          }
-        }
-      }
-    );
+    await vmRef.current!.deleteGame(parseInt(gameId!));
   };
 
   if (isLoading) {
@@ -531,8 +235,8 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
       <div className="game-details-container">
         <div className="error-message">
           <h2>Error</h2>
-          <p>{error || 'Game not found'}</p>
-          <button onClick={() => navigate('/')} className="back-button">
+          <p>{error || "Game not found"}</p>
+          <button onClick={() => navigate("/")} className="back-button">
             Back to Games
           </button>
         </div>
@@ -540,24 +244,28 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
     );
   }
 
-  const activeRegistrations = game.registrations.filter(reg => !reg.isWaitlist);
-  const waitlistRegistrations = game.registrations.filter(reg => reg.isWaitlist);
-  const userRegistration = game.registrations.find(reg => reg.userId === user.id);
+  const activeRegistrations = getActiveRegistrations(game);
+  const waitlistRegistrations = getWaitlistRegistrations(game);
+  const userRegistration = getUserRegistration(game, user.id);
 
   // Check if the game is in the past and has no payment requests
   const isPastGame = isGamePast(game.dateTime);
-  const hasPaymentRequests = game.registrations.some(reg => reg.paid);
-  const showAddParticipantButton = user.isAdmin && isPastGame && !hasPaymentRequests;
+  const hasPaymentRequests = hasAnyPaid(game);
+  const showAddParticipantButton =
+    user.isAdmin && isPastGame && !hasPaymentRequests;
 
   // Get the current main button properties
-  const { show: showMainButton, text: mainButtonText, onClick: mainButtonClick } = mainButtonProps();
+  const {
+    show: showMainButton,
+    text: mainButtonText,
+    onClick: mainButtonClick,
+  } = mainButtonProps();
 
   return (
     <div className="game-details-container">
       {/* BackButton component */}
-      <BackButton onClick={() => navigate('/')} />
+      <BackButton onClick={() => navigate("/")} />
       <div className="game-header">
-        
         {showAddParticipantButton && showUserSearch && (
           <div className="user-search-container">
             <UserSearchInput
@@ -568,7 +276,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
             />
           </div>
         )}
-        
+
         {/* First line: Game date and time */}
         <div className="game-date-line">
           <div className="game-date">{formatDate(game.dateTime)}</div>
@@ -579,25 +287,29 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                {game.locationName || 'Open in Maps'}
+                {game.locationName || "Open in Maps"}
               </a>
             </div>
           )}
         </div>
-        
+
         {/* Second line: Status information and actions */}
         <div className="game-status-line">
           <div className="status-info">
             {userRegistration && (
-              <div className={`user-status ${userRegistration.isWaitlist ? 'waitlist' : 'registered'}`}>
-                {userRegistration.isWaitlist ? 'Waitlist' : "You're in"}
+              <div
+                className={`user-status ${
+                  userRegistration.isWaitlist ? "waitlist" : "registered"
+                }`}
+              >
+                {userRegistration.isWaitlist ? "Waitlist" : "You're in"}
               </div>
             )}
-            
+
             {game.paymentAmount > 0 && (
               <div className="payment-amount">
                 {(() => {
-                  const isUpcomingGame = new Date(game.dateTime) > new Date();
+                  const isUpcomingGame = isGameUpcoming(game.dateTime);
                   const pricingInfo = formatDisplayPricingInfo(
                     game.paymentAmount,
                     game.pricingMode || PricingMode.PER_PARTICIPANT,
@@ -610,67 +322,37 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
               </div>
             )}
           </div>
-          
+
           {/* Admin-only: Game management buttons */}
           {user.isAdmin && (
-            <div className="admin-actions">
-              {showAddParticipantButton && !showUserSearch && (
-                <button 
-                  className="add-participant-button"
-                  onClick={() => setShowUserSearch(!showUserSearch)}
-                  disabled={isActionLoading}
-                  title={showUserSearch ? 'Cancel' : 'Add Participant'}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                  </svg>
-                </button>
-              )}
-              <button
-                className="edit-game-button"
-                onClick={() => navigate(`/game/${gameId}/edit`)}
-                title="Edit Game Settings"
-              >
-                <FaCog />
-              </button>
-              {isGameUpcoming(game.dateTime) && (
-                <button
-                  className="delete-game-button"
-                  onClick={handleDeleteGame}
-                  title="Delete Game"
-                  disabled={isActionLoading}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
-                  </svg>
-                </button>
-              )}
-              
-              {/* Send payment requests icon button for past games with payment amount and Bunq integration */}
-              {isGamePast(game.dateTime) && game.paymentAmount > 0 && !game.fullyPaid && hasBunqIntegration && !isCheckingBunq && (
-                <button 
-                  className="send-payment-requests-button" 
-                  onClick={handleSendPaymentRequests}
-                  disabled={isSendingPaymentRequests || isActionLoading}
-                  title="Send payment requests to unpaid players"
-                >
-                  {isSendingPaymentRequests ? (
-                    <div className="mini-spinner"></div>
-                  ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                      <path d="M15 18.5c-2.51 0-4.68-1.42-5.76-3.5H15v-2H8.58c-.05-.33-.08-.66-.08-1s.03-.67.08-1H15V9H9.24C10.32 6.92 12.5 5.5 15 5.5c1.61 0 3.09.59 4.23 1.57L21 5.3C19.41 3.87 17.3 3 15 3c-3.92 0-7.24 2.51-8.48 6H3v2h3.06c-.04.33-.06.66-.06 1s.02.67.06 1H3v2h3.52c1.24 3.49 4.56 6 8.48 6 2.31 0 4.41-.87 6-2.3l-1.78-1.77c-1.13.98-2.6 1.57-4.22 1.57z"/>
-                    </svg>
-                  )}
-                </button>
-              )}
-            </div>
+            <AdminActions
+              showAddParticipantButton={showAddParticipantButton}
+              showUserSearch={showUserSearch}
+              setShowUserSearch={setShowUserSearch}
+              isActionLoading={isActionLoading}
+              canDelete={isGameUpcoming(game.dateTime)}
+              onDelete={handleDeleteGame}
+              onEdit={() => navigate(`/game/${gameId}/edit`)}
+              canSendPaymentRequests={
+                isGamePast(game.dateTime) &&
+                game.paymentAmount > 0 &&
+                !game.fullyPaid &&
+                hasBunqIntegration &&
+                !isCheckingBunq
+              }
+              onSendPaymentRequests={handleSendPaymentRequests}
+              isSendingPaymentRequests={isSendingPaymentRequests}
+            />
           )}
         </div>
       </div>
 
       {game.withPositions && (
         <div className="positions-note">
-          <p>🔶 This game will be played with positions according to the 5-1 scheme. Knowledge of the 5-1 scheme is expected of all participants.</p>
+          <p>
+            🔶 This game will be played with positions according to the 5-1
+            scheme. Knowledge of the 5-1 scheme is expected of all participants.
+          </p>
         </div>
       )}
 
@@ -678,11 +360,15 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
         <div className="players-stats-header">
           <div className="stats-row">
             <div className="compact-stats">
-              <span className="registered-count">{activeRegistrations.length}</span>
+              <span className="registered-count">
+                {activeRegistrations.length}
+              </span>
               <span className="stats-divider">/</span>
               <span className="max-count">{game.maxPlayers}</span>
               {waitlistRegistrations.length > 0 && (
-                <span className="waitlist-indicator">(+{waitlistRegistrations.length})</span>
+                <span className="waitlist-indicator">
+                  (+{waitlistRegistrations.length})
+                </span>
               )}
             </div>
           </div>
@@ -690,133 +376,50 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
 
         {activeRegistrations.length > 0 ? (
           <div className="players-section">
-            <div className="players-list">
-              {activeRegistrations.map((registration) => (
-                <div key={registration.id} className="player-item">
-                  <div className="player-info">
-                    <div className="player-avatar">
-                      {registration.user?.avatarUrl ? (
-                        <img 
-                          src={registration.user.avatarUrl} 
-                          alt={`${registration.user.username}'s avatar`}
-                          className="avatar-image"
-                        />
-                      ) : (
-                        <div className="avatar-placeholder">
-                          {(registration.user?.username || `Player ${registration.userId}`).charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                    </div>
-                    <div className="player-name">{registration.user?.username || `Player ${registration.userId}`}</div>
-                    {registration.userId === user.id && (
-                      <div className="player-badge">You</div>
-                    )}
-                    {/* Admin actions for past games */}
-                    {user.isAdmin && isGamePast(game.dateTime) && !registration.isWaitlist && (
-                      <div className="admin-player-actions">
-                        {/* Remove player button */}
-                        {!game.fullyPaid && !registration.paid && (
-                          <button 
-                            className="remove-player-button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRemovePlayer(registration.userId);
-                            }}
-                            title="Remove player"
-                            disabled={isActionLoading}
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                              <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
-                            </svg>
-                          </button>
-                        )}
-                        
-                        {/* Paid status checkbox */}
-                        <div 
-                          className={`paid-status ${registration.paid ? 'paid' : 'unpaid'}`}
-                          onClick={() => handleTogglePaidStatus(registration.userId, registration.paid)}
-                          aria-label={registration.paid ? 'Paid' : 'Not paid'}
-                        >
-                          {isPaidUpdating === registration.userId ? (
-                            <div className="mini-spinner"></div>
-                          ) : registration.paid ? (
-                            <FaCheck className="paid-icon" />
-                          ) : (
-                            <FaTimes className="unpaid-icon" />
-                          )}
-                          <span>{registration.paid ? 'Paid' : 'Unpaid'}</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <PlayersList
+              registrations={activeRegistrations}
+              currentUserId={user.id}
+              isAdmin={user.isAdmin}
+              isPastGame={isGamePast(game.dateTime)}
+              isActionLoading={isActionLoading}
+              fullyPaid={game.fullyPaid}
+              isPaidUpdating={isPaidUpdating}
+              onRemovePlayer={handleRemovePlayer}
+              onTogglePaidStatus={handleTogglePaidStatus}
+            />
           </div>
         ) : null}
 
         {waitlistRegistrations.length > 0 && (
           <div className="players-section waitlist-section">
             <h2>Waiting List</h2>
-            <div className="players-list">
-              {waitlistRegistrations.map((registration) => (
-                <div key={registration.id} className="player-item waitlist">
-                  <div className="player-info">
-                    <div className="player-avatar">
-                      {registration.user?.avatarUrl ? (
-                        <img 
-                          src={registration.user.avatarUrl} 
-                          alt={`${registration.user.username}'s avatar`}
-                          className="avatar-image"
-                        />
-                      ) : (
-                        <div className="avatar-placeholder">
-                          {(registration.user?.username || `Player ${registration.userId}`).charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                    </div>
-                    <div className="player-name">{registration.user?.username || `Player ${registration.userId}`}</div>
-                    {registration.userId === user.id && (
-                      <div className="player-badge waitlist">You</div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <WaitlistList registrations={waitlistRegistrations} currentUserId={user.id} />
           </div>
         )}
 
-        {activeRegistrations.length === 0 && waitlistRegistrations.length === 0 && (
-          <div className="no-players">
-            <h2>No players registered yet</h2>
-            <p>Be the first to join this game!</p>
-          </div>
-        )}
+        {activeRegistrations.length === 0 &&
+          waitlistRegistrations.length === 0 && (
+            <div className="no-players">
+              <h2>No players registered yet</h2>
+              <p>Be the first to join this game!</p>
+            </div>
+          )}
       </div>
 
-      {getInfoText() && (
-        <div className="info-text">
-          {getInfoText()}
-        </div>
-      )}
+      <InfoText text={getInfoText()} />
 
-      {isActionLoading && (
-        <div className="action-loading">
-          <div className="spinner"></div>
-          <span>Processing...</span>
-        </div>
-      )}
-      
+      <ActionLoadingOverlay visible={isActionLoading} />
+
       {/* MainButton component */}
       {showMainButton && (
         <MainButton
-          text={mainButtonText || ''}
+          text={mainButtonText || ""}
           onClick={mainButtonClick}
           progress={isActionLoading}
           disabled={isActionLoading}
         />
       )}
-      
+
       {/* Password Dialog for Payment Requests */}
       <PasswordDialog
         isOpen={showPasswordDialog}
