@@ -92,12 +92,31 @@ export const gamesApi = {
     return api.post('/games', gameData).then(res => res.data);
   },
 
-  registerForGame: async (gameId: number): Promise<void> => {
-    await api.post(`/games/${gameId}/register`);
+  registerForGame: async (gameId: number, guestName?: string): Promise<void> => {
+    await api.post(`/games/${gameId}/register`, guestName ? { guestName } : {});
   },
 
-  unregisterFromGame: async (gameId: number): Promise<void> => {
-    await api.delete(`/games/${gameId}/register`);
+  /**
+   * Register a guest for a game
+   */
+  registerGuestForGame: async (gameId: number, guestName: string): Promise<void> => {
+    await api.post(`/games/${gameId}/register`, { guestName });
+  },
+
+  /**
+   * Get the last used guest name for a user (excluding current game)
+   */
+  getLastGuestName: async (gameId: number): Promise<{ lastGuestName: string | null }> => {
+    const response = await api.get(`/games/${gameId}/last-guest-name`);
+    return response.data;
+  },
+
+  unregisterFromGame: async (gameId: number, guestName?: string): Promise<void> => {
+    if (guestName && guestName.trim()) {
+      await api.delete(`/games/${gameId}/register`, { data: { guestName } });
+    } else {
+      await api.delete(`/games/${gameId}/register`);
+    }
   },
 
   deleteGame: async (gameId: number): Promise<void> => {
@@ -138,9 +157,14 @@ export const gamesApi = {
 
   /**
    * Remove a participant from a game (admin only)
+   * If guestName is provided, only that guest registration will be removed.
+   * Otherwise, removes the user's own registration (guestName null).
    */
-  removeParticipant: async (gameId: number, userId: number): Promise<{ message: string }> => {
-    const response = await api.delete(`/games/${gameId}/participants/${userId}`);
+  removeParticipant: async (gameId: number, userId: number, guestName?: string): Promise<{ message: string }> => {
+    const config = guestName && guestName.trim()
+      ? { data: { guestName } }
+      : undefined;
+    const response = await api.delete(`/games/${gameId}/participants/${userId}`, config);
     return response.data;
   },
 

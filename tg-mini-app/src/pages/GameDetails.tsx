@@ -3,9 +3,11 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Game, User, PricingMode } from "../types";
 import LoadingSpinner from "../components/LoadingSpinner";
 import PasswordDialog from "../components/PasswordDialog";
+import GuestRegistrationDialog from "../components/GuestRegistrationDialog";
 import { UserSearchInput } from "../components/UserSearchInput";
 import { formatDisplayPricingInfo } from "../utils/pricingUtils";
 import { resolveLocationLink } from "../utils/locationUtils";
+import { gamesApi } from "../services/api";
 import "./GameDetails.scss";
 import { MainButton, BackButton } from "@twa-dev/sdk/react";
 import {
@@ -49,6 +51,10 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
   const [showPasswordDialog, setShowPasswordDialog] = useState<boolean>(false);
   const [passwordError, setPasswordError] = useState<string>("");
   const [showUserSearch, setShowUserSearch] = useState<boolean>(false);
+  const [showGuestDialog, setShowGuestDialog] = useState<boolean>(false);
+  const [guestError, setGuestError] = useState<string>("");
+  const [isGuestRegistering, setIsGuestRegistering] = useState<boolean>(false);
+  const [defaultGuestName, setDefaultGuestName] = useState<string>("");
 
   // ViewModel setup
   const vmRef = useRef<GameDetailsViewModel | null>(null);
@@ -91,10 +97,8 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
       return { show: false };
     }
 
-    // Find user's registration if any
-    const userRegistration = game.registrations.find(
-      (reg) => reg.userId === user.id
-    );
+    // Find user's own registration (exclude their guests)
+    const userRegistration = getUserRegistration(game, user.id);
 
     if (userRegistration) {
       // Check if user can leave the game (up to X hours before or anytime if waitlisted)
@@ -173,6 +177,13 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
     return null;
   };
 
+  const canUnregister = (): boolean => {
+    if (!game) return false;
+    if (isGamePast(game.dateTime)) return false;
+    const deadlineHours = game.unregisterDeadlineHours || 5;
+    return canLeaveGame(game.dateTime, false, deadlineHours);
+  };
+
   const handleAddParticipant = async (userId: number) => {
     if (!game || isActionLoading) return;
     await vmRef.current!.addParticipant(game, userId);
@@ -188,10 +199,28 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
     vmRef.current!.confirmAndUnregister(game);
   };
 
-  // Handle removing a player from the game (admin only)
-  const handleRemovePlayer = (userId: number) => {
-    if (!game) return;
-    vmRef.current!.removePlayer(game, userId);
+  // Handle removing a player or unregistering a guest
+  const handleRemovePlayer = async (userId: number, guestName?: string) => {
+    if (!game || isActionLoading) return;
+
+    if (user.isAdmin && (userId != user.id || !canUnregister())) {
+      vmRef.current!.removePlayer(game, userId, guestName);
+      return;
+    }
+
+    vmRef.current!.confirmAndUnregister(game, guestName);
+  };
+
+  // Handle removing a player or unregistering a guest from the waitlist
+  const handleRemovePlayerFromWaitingList = async (userId: number, guestName?: string) => {
+    if (!game || isActionLoading) return;
+
+    if (user.isAdmin && userId != user.id) {
+      vmRef.current!.removePlayer(game, userId, guestName);
+      return;
+    }
+
+    vmRef.current!.confirmAndUnregister(game, guestName);
   };
 
   // Handle toggling paid status for a player
@@ -217,14 +246,70 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
 
   // Handle password dialog cancellation
   const handlePasswordCancel = () => {
-    vmRef.current!.cancelPasswordFlow();
+    setShowPasswordDialog(false);
+    setPasswordError("");
+  };
+
+  // Handle guest registration button click
+  const handleGuestRegister = async () => {
+    if (!game || isActionLoading) return;
+    
+    try {
+      // Fetch the last used guest name as default
+      const { lastGuestName } = await gamesApi.getLastGuestName(game.id);
+      setDefaultGuestName(lastGuestName || "");
+      setShowGuestDialog(true);
+      setGuestError("");
+    } catch (error) {
+      console.error('Error fetching last guest name:', error);
+      setDefaultGuestName("");
+      setShowGuestDialog(true);
+      setGuestError("");
+    }
+  };
+
+  // Handle guest registration dialog submission
+  const handleGuestSubmit = async (guestName: string) => {
+    if (!game || isGuestRegistering) return;
+    
+    setIsGuestRegistering(true);
+    setGuestError("");
+    
+    try {
+      await gamesApi.registerGuestForGame(game.id, guestName);
+      vmRef.current!.loadGame(game.id);      
+      setShowGuestDialog(false);
+    } catch (error: any) {
+      console.error('Error registering guest:', error);
+      const errorMessage = error.response?.data?.error || 'Failed to register guest';
+      setGuestError(errorMessage);
+    } finally {
+      setIsGuestRegistering(false);
+    }
+  };
+
+  // Handle guest registration dialog cancellation
+  const handleGuestCancel = () => {
+    setShowGuestDialog(false);
+    setGuestError("");
+    setDefaultGuestName("");
   };
 
   // Handle game deletion with confirmation
-  const handleDeleteGame = async () => {
-    if (!isActionAllowed()) return;
-    await vmRef.current!.deleteGame(parseInt(gameId!));
+  const handleDeleteGame = () => {
+    if (!game) return;
+    vmRef.current!.deleteGame(game.id);
   };
+
+  // Check if guest registration should be shown
+  const shouldShowGuestButton = useCallback(() => {
+    if (!game || isLoading || isActionLoading || error) {
+      return false;
+    }
+    
+    // Only show for upcoming games with open registration
+    return canJoinGame(game.dateTime);
+  }, [game, isLoading, isActionLoading, error]);
 
   if (isLoading) {
     return <LoadingSpinner />;
@@ -247,6 +332,9 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
   const activeRegistrations = getActiveRegistrations(game);
   const waitlistRegistrations = getWaitlistRegistrations(game);
   const userRegistration = getUserRegistration(game, user.id);
+  // Counts for past games header (exclude waitlist)
+  const totalActiveCount = activeRegistrations.length;
+  const paidActiveCount = activeRegistrations.filter((reg) => reg.paid).length;
 
   // Check if the game is in the past and has no payment requests
   const isPastGame = isGamePast(game.dateTime);
@@ -317,7 +405,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
                     activeRegistrations.length,
                     isUpcomingGame
                   );
-                  return `Payment: ${pricingInfo.displayText}`;
+                  return pricingInfo.displayText;
                 })()}
               </div>
             )}
@@ -361,16 +449,30 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
           <div className="stats-row">
             <div className="compact-stats">
               <span className="registered-count">
-                {activeRegistrations.length}
+                {isPastGame ? paidActiveCount : activeRegistrations.length}
               </span>
               <span className="stats-divider">/</span>
-              <span className="max-count">{game.maxPlayers}</span>
-              {waitlistRegistrations.length > 0 && (
+              <span className="max-count">
+                {isPastGame ? totalActiveCount : game.maxPlayers}
+              </span>
+              {!isPastGame && waitlistRegistrations.length > 0 && (
                 <span className="waitlist-indicator">
                   (+{waitlistRegistrations.length})
                 </span>
               )}
             </div>
+
+            {shouldShowGuestButton() && (
+              <div className="header-actions">
+                <button
+                  className="add-guest-button"
+                  onClick={handleGuestRegister}
+                  disabled={isActionLoading || isGuestRegistering}
+                >
+                  {isGuestRegistering ? "Registering..." : "Add guest"}
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -386,6 +488,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
               isPaidUpdating={isPaidUpdating}
               onRemovePlayer={handleRemovePlayer}
               onTogglePaidStatus={handleTogglePaidStatus}
+              canUnregister={canUnregister}
             />
           </div>
         ) : null}
@@ -393,7 +496,11 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
         {waitlistRegistrations.length > 0 && (
           <div className="players-section waitlist-section">
             <h2>Waiting List</h2>
-            <WaitlistList registrations={waitlistRegistrations} currentUserId={user.id} />
+            <WaitlistList
+              registrations={waitlistRegistrations}
+              currentUserId={user.id}
+              onRemovePlayer={handleRemovePlayerFromWaitingList}
+            />
           </div>
         )}
 
@@ -429,6 +536,16 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
         onCancel={handlePasswordCancel}
         isProcessing={isSendingPaymentRequests}
         error={passwordError}
+      />
+
+      {/* Guest Registration Dialog */}
+      <GuestRegistrationDialog
+        isOpen={showGuestDialog}
+        defaultGuestName={defaultGuestName}
+        onSubmit={handleGuestSubmit}
+        onCancel={handleGuestCancel}
+        isProcessing={isGuestRegistering}
+        error={guestError}
       />
     </div>
   );

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { db } from '../db';
 import { games, gameRegistrations, users, paymentRequests } from '../db/schema';
-import { gte, desc, inArray, eq, and, sql, lt, lte, asc } from 'drizzle-orm';
+import { gte, desc, inArray, eq, and, sql, lt, lte, asc, isNull } from 'drizzle-orm';
 import type { InferSelectModel } from 'drizzle-orm';
 import { PricingMode } from '../types/PricingMode';
 
@@ -12,6 +12,7 @@ import { sendTelegramNotification } from '../services/telegramService';
 import { gameService } from '../services/gameService';
 import { bunqService } from '../services/bunqService';
 import { REGISTRATION_OPEN_DAYS } from '../constants';
+import { getNotificationSubjectWithVerb, getNotificationSubjectLowercase } from '../utils/notificationUtils';
 
 const router = Router();
 
@@ -87,6 +88,7 @@ router.post(
 router.post('/:gameId/register', telegramAuthMiddleware, async (req, res) => {
   try {
     const { gameId } = req.params;
+    const { guestName } = req.body; // Optional guest name from request body
 
     // Get user ID from authenticated user
     if (!req.user) {
@@ -131,6 +133,9 @@ router.post('/:gameId/register', telegramAuthMiddleware, async (req, res) => {
     // No need to store isWaitlist - it's computed based on registration order
 
     // Check if user is already registered
+    // Allow both a self-registration (guestName IS NULL) and guest registrations (guestName NOT NULL)
+    // Block duplicate self-registration, or duplicate guest registration with the same guestName
+    const isSelfRegistration = !guestName;
     const existingRegistration = await db
       .select()
       .from(gameRegistrations)
@@ -138,13 +143,18 @@ router.post('/:gameId/register', telegramAuthMiddleware, async (req, res) => {
         and(
           eq(gameRegistrations.gameId, parseInt(gameId)),
           eq(gameRegistrations.userId, userId),
+          isSelfRegistration
+            ? isNull(gameRegistrations.guestName)
+            : eq(gameRegistrations.guestName, guestName),
         ),
       );
 
     if (existingRegistration.length > 0) {
-      return res
-        .status(400)
-        .json({ error: 'User already registered for this game' });
+      return res.status(400).json({
+        error: isSelfRegistration
+          ? 'User already registered for this game'
+          : 'This guest is already registered for this game',
+      });
     }
 
     // Insert new registration - isWaitlist is now computed, not stored
@@ -153,6 +163,7 @@ router.post('/:gameId/register', telegramAuthMiddleware, async (req, res) => {
       .values({
         gameId: parseInt(gameId),
         userId,
+        guestName: guestName || null
       })
       .returning();
 
@@ -163,8 +174,8 @@ router.post('/:gameId/register', telegramAuthMiddleware, async (req, res) => {
       .where(eq(gameRegistrations.gameId, parseInt(gameId)))
       .orderBy(gameRegistrations.createdAt);
 
-    // Find position in registrations list
-    const position = allRegistrations.findIndex((reg) => reg.userId === userId);
+    // Find position in registrations list for the newly inserted row
+    const position = allRegistrations.findIndex((reg) => reg.id === registration[0].id);
     const isWaitlist = position >= game[0].maxPlayers;
 
     // Get user details to send notification
@@ -184,20 +195,25 @@ router.post('/:gameId/register', telegramAuthMiddleware, async (req, res) => {
         minute: '2-digit',
       });
 
+      // Get the guest name from the registration for notifications
+      const guestName = registration[0].guestName;
+      
       // Send different notifications based on waitlist status
       if (isWaitlist) {
         // User is on waitlist
+        const subject = getNotificationSubjectWithVerb(guestName, 'have');
         await sendTelegramNotification(
           userDetails[0].telegramId,
-          `⏳ You've been added to the waiting list for the volleyball game on ${formattedDate}. We'll notify you if a spot becomes available! Position on waitlist: ${
+          `⏳ ${subject} been added to the waiting list for the volleyball game on ${formattedDate}. We'll notify you if a spot becomes available! Position on waitlist: ${
             position - game[0].maxPlayers + 1
           }`,
         );
       } else {
         // User is a direct participant
+        const subject = getNotificationSubjectWithVerb(guestName, 'are');
         await sendTelegramNotification(
           userDetails[0].telegramId,
-          `✅ You're registered for the volleyball game on ${formattedDate}. See you there! 🏐`,
+          `✅ ${subject} registered for the volleyball game on ${formattedDate}. See you there! 🏐`,
         );
       }
     }
@@ -213,6 +229,7 @@ router.post('/:gameId/register', telegramAuthMiddleware, async (req, res) => {
 router.delete('/:gameId/register', telegramAuthMiddleware, async (req, res) => {
   try {
     const { gameId } = req.params;
+    const { guestName } = req.body as { guestName?: string };
 
     // Get user ID from authenticated user
     if (!req.user) {
@@ -237,22 +254,25 @@ router.delete('/:gameId/register', telegramAuthMiddleware, async (req, res) => {
       .where(eq(gameRegistrations.gameId, parseInt(gameId)))
       .orderBy(gameRegistrations.createdAt);
 
-    // Check if user is registered
-    const userRegIndex = allRegistrations.findIndex(
-      (reg) => reg.userId === userId,
+    // Find target registration index: self if no guestName, otherwise specific guest
+    const targetIndex = allRegistrations.findIndex(
+      (reg) =>
+        reg.userId === userId && (guestName
+          ? reg.guestName === guestName
+          : reg.guestName === null || reg.guestName === undefined),
     );
-    if (userRegIndex === -1) {
+    if (targetIndex === -1) {
       return res.status(404).json({ error: 'Registration not found' });
     }
 
-    // Determine if the user is on the waitlist based on registration order
-    const isWaitlist = userRegIndex >= game[0].maxPlayers;
+    // Determine if the target registration is on the waitlist based on order
+    const isWaitlist = targetIndex >= game[0].maxPlayers;
 
     // If not on waitlist, enforce timing restriction: can only leave up to unregisterDeadlineHours before the game
     if (!isWaitlist) {
       const gameDateTime = new Date(game[0].dateTime);
       const now = new Date();
-      const deadlineHours = game[0].unregisterDeadlineHours || 5; // Default to 6 hours if not set
+      const deadlineHours = game[0].unregisterDeadlineHours || 5; // Default to 5 hours if not set
       const deadlineBeforeGame = new Date(gameDateTime);
       deadlineBeforeGame.setHours(
         deadlineBeforeGame.getHours() - deadlineHours,
@@ -268,11 +288,24 @@ router.delete('/:gameId/register', telegramAuthMiddleware, async (req, res) => {
     }
     // Note: If user is on waitlist, they can leave at any time (no timing restriction)
 
-    // Get user details to send notification before deleting registration
+    // Get user details and registration details (including guest name) before deleting
     const userDetails = await db
       .select()
       .from(users)
       .where(eq(users.id, userId));
+
+    const registrationDetails = await db
+      .select()
+      .from(gameRegistrations)
+      .where(
+        and(
+          eq(gameRegistrations.gameId, parseInt(gameId)),
+          eq(gameRegistrations.userId, userId),
+          guestName
+            ? eq(gameRegistrations.guestName, guestName)
+            : isNull(gameRegistrations.guestName),
+        ),
+      );
 
     // Format date for the notification
     const gameDate = new Date(game[0].dateTime);
@@ -291,14 +324,19 @@ router.delete('/:gameId/register', telegramAuthMiddleware, async (req, res) => {
         and(
           eq(gameRegistrations.gameId, parseInt(gameId)),
           eq(gameRegistrations.userId, userId),
+          guestName
+            ? eq(gameRegistrations.guestName, guestName)
+            : isNull(gameRegistrations.guestName),
         ),
       );
 
     // Send notification to the user who left
-    if (userDetails.length > 0) {
+    if (userDetails.length > 0 && registrationDetails.length > 0) {
+      const guestName = registrationDetails[0].guestName;
+      const subject = getNotificationSubjectWithVerb(guestName, 'have');
       await sendTelegramNotification(
         userDetails[0].telegramId,
-        `❌ You've been unregistered from the volleyball game on ${formattedDate}. Hope to see you at another game soon! 🏐`,
+        `❌ ${subject} been unregistered from the volleyball game on ${formattedDate}. Hope to see you at another game soon! 🏐`,
       );
     }
 
@@ -308,6 +346,7 @@ router.delete('/:gameId/register', telegramAuthMiddleware, async (req, res) => {
       const updatedRegistrations = await db
         .select({
           userId: gameRegistrations.userId,
+          guestName: gameRegistrations.guestName,
           createdAt: gameRegistrations.createdAt,
         })
         .from(gameRegistrations)
@@ -317,8 +356,9 @@ router.delete('/:gameId/register', telegramAuthMiddleware, async (req, res) => {
       // If there are more registrations than maxPlayers, someone is being promoted
       if (updatedRegistrations.length >= game[0].maxPlayers) {
         // The user at position maxPlayers - 1 is now the last non-waitlisted player
-        const promotedUserId =
-          updatedRegistrations[game[0].maxPlayers - 1].userId;
+        const promotedRegistration = updatedRegistrations[game[0].maxPlayers - 1];
+        const promotedUserId = promotedRegistration.userId;
+        const promotedGuestName = promotedRegistration.guestName;
 
         // Get the promoted user's details to send notification
         const promotedUser = await db
@@ -338,9 +378,10 @@ router.delete('/:gameId/register', telegramAuthMiddleware, async (req, res) => {
           });
 
           // Send notification to the promoted user
+          const subject = getNotificationSubjectWithVerb(promotedGuestName, 'have');
           await sendTelegramNotification(
             promotedUser[0].telegramId,
-            `🎉 Good news! You've been moved from the waiting list to the participants list for the volleyball game on ${formattedDate}. See you there! 🏐`,
+            `🎉 Good news! ${subject} been moved from the waiting list to the participants list for the volleyball game on ${formattedDate}. See you there! 🏐`,
           );
         }
       }
@@ -374,6 +415,7 @@ router.get('/:gameId', async (req, res) => {
         id: gameRegistrations.id,
         gameId: gameRegistrations.gameId,
         userId: gameRegistrations.userId,
+        guestName: gameRegistrations.guestName,
         paid: gameRegistrations.paid,
         createdAt: gameRegistrations.createdAt,
         user: {
@@ -412,7 +454,6 @@ router.get('/', telegramAuthMiddleware, async (req, res) => {
     // Parse query parameters
     const showPast = req.query.showPast === 'true';
     const showAll = req.query.showAll === 'true';
-    const isAdmin = req.user?.isAdmin;
 
     // Get current date for filtering
     const currentDate = new Date();
@@ -548,21 +589,25 @@ router.get('/', telegramAuthMiddleware, async (req, res) => {
 
           // Get user registration status for upcoming games within X days
           if (userId !== undefined) {
-            // Find if the current user is registered for this game
-            const registration = await db
+            // Load only the user's own registration (exclude their guests) using SQL filter
+            const selfRegistrationRow = await db
               .select()
               .from(gameRegistrations)
               .where(
                 and(
                   eq(gameRegistrations.gameId, game.id),
                   eq(gameRegistrations.userId, userId),
+                  isNull(gameRegistrations.guestName),
                 ),
-              );
+              )
+              .limit(1);
 
-            const isUserRegistered = registration.length > 0;
-            let userRegistration = null;
+            const selfRegistration = selfRegistrationRow[0];
 
-            if (isUserRegistered) {
+            const isUserRegistered = !!selfRegistration;
+            let userRegistration: (InferSelectModel<typeof gameRegistrations> & { isWaitlist: boolean }) | null = null;
+
+            if (selfRegistration) {
               // Get all registrations to determine waitlist status
               const allRegistrations = await db
                 .select()
@@ -570,15 +615,14 @@ router.get('/', telegramAuthMiddleware, async (req, res) => {
                 .where(eq(gameRegistrations.gameId, game.id))
                 .orderBy(gameRegistrations.createdAt);
 
-              // Find position in registrations list
+              // Find position for the self-registration only (exclude guests)
               const position = allRegistrations.findIndex(
-                (reg) => reg.userId === userId,
+                (reg) => reg.userId === userId && (reg.guestName === null || reg.guestName === undefined),
               );
               const isWaitlist = position >= game.maxPlayers;
 
-              // Add waitlist status to the registration
               userRegistration = {
-                ...registration[0],
+                ...selfRegistration,
                 isWaitlist,
               };
             }
@@ -920,6 +964,7 @@ router.delete(
     try {
       const gameId = parseInt(req.params.gameId);
       const userId = parseInt(req.params.userId);
+      const { guestName } = req.body;
 
       // Check if game exists
       const game = await db.select().from(games).where(eq(games.id, gameId));
@@ -954,7 +999,6 @@ router.delete(
         });
       }
 
-      // Check if registration exists
       const registration = await db
         .select()
         .from(gameRegistrations)
@@ -962,6 +1006,9 @@ router.delete(
           and(
             eq(gameRegistrations.gameId, gameId),
             eq(gameRegistrations.userId, userId),
+            guestName
+              ? eq(gameRegistrations.guestName, guestName)
+              : isNull(gameRegistrations.guestName),
           ),
         );
 
@@ -972,12 +1019,7 @@ router.delete(
       // Delete the registration
       await db
         .delete(gameRegistrations)
-        .where(
-          and(
-            eq(gameRegistrations.gameId, gameId),
-            eq(gameRegistrations.userId, userId),
-          ),
-        );
+        .where(eq(gameRegistrations.id, registration[0].id));
 
       res.json({ message: 'Participant removed successfully' });
     } catch (error) {
@@ -1207,6 +1249,69 @@ router.post(
         message:
           error instanceof Error ? error.message : 'Unknown error occurred',
       });
+    }
+  },
+);
+
+// Get last used guest name for a user (excluding current game)
+router.get(
+  '/:gameId/last-guest-name',
+  telegramAuthMiddleware,
+  async (req, res) => {
+    try {
+      const { gameId } = req.params;
+      
+      if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      
+      const userId = req.user.id;
+      const currentGameId = parseInt(gameId);
+      
+      // Get user's existing guest names for current game to exclude them
+      const currentGameGuests = await db
+        .select({ guestName: gameRegistrations.guestName })
+        .from(gameRegistrations)
+        .where(
+          and(
+            eq(gameRegistrations.gameId, currentGameId),
+            eq(gameRegistrations.userId, userId),
+            sql`${gameRegistrations.guestName} IS NOT NULL`
+          )
+        );
+      
+      const existingGuestNames = currentGameGuests
+        .map(reg => reg.guestName)
+        .filter(name => name !== null) as string[];
+      
+      // Find the most recent guest name from other games that's not already used in current game
+      const lastGuestQuery = db
+        .select({ 
+          guestName: gameRegistrations.guestName,
+          createdAt: gameRegistrations.createdAt 
+        })
+        .from(gameRegistrations)
+        .where(
+          and(
+            eq(gameRegistrations.userId, userId),
+            sql`${gameRegistrations.gameId} != ${currentGameId}`,
+            sql`${gameRegistrations.guestName} IS NOT NULL`
+          )
+        )
+        .orderBy(desc(gameRegistrations.createdAt))
+        .limit(10); // Get last 10 to filter through
+      
+      const recentGuests = await lastGuestQuery;
+      
+      // Find first guest name that's not already used in current game
+      const lastGuestName = recentGuests.find(guest => 
+        guest.guestName && !existingGuestNames.includes(guest.guestName)
+      )?.guestName || null;
+      
+      res.json({ lastGuestName });
+    } catch (error) {
+      console.error('Error fetching last guest name:', error);
+      res.status(500).json({ error: 'Failed to fetch last guest name' });
     }
   },
 );

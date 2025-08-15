@@ -117,25 +117,36 @@ export class GameDetailsViewModel {
     }
   }
 
-  confirmAndUnregister(game: Game): void {
+  confirmAndUnregister(game: Game, guestName?: string): void {
+    const isGuest = !!guestName;
+    const title = isGuest ? 'Unregister Guest' : 'Leave Game';
+    const message = isGuest
+      ? `Are you sure you want to unregister guest "${guestName}" from this game?`
+      : 'Are you sure you want to leave this game?';
+    const actionId = isGuest ? 'unregister' : 'leave';
+    const actionText = isGuest ? 'Unregister Guest' : 'Leave Game';
     showPopup({
-      title: 'Leave Game',
-      message: 'Are you sure you want to leave this game?',
+      title,
+      message,
       buttons: [
         { id: 'cancel', type: 'cancel' },
-        { id: 'leave', type: 'destructive', text: 'Leave Game' }
+        { id: actionId, type: 'destructive', text: actionText }
       ]
     }, (buttonId?: string) => {
-      if (buttonId === 'leave') {
-        this.performUnregistration(game);
+      if (buttonId === actionId) {
+        this.performUnregistration(game, guestName);
       }
     });
   }
 
-  private async performUnregistration(game: Game): Promise<void> {
+  private async performUnregistration(game: Game, guestName?: string): Promise<void> {
     try {
       this.setIsActionLoading(true);
-      await gamesApi.unregisterFromGame(game.id);
+      if (guestName) {
+        await gamesApi.unregisterFromGame(game.id, guestName);
+      } else {
+        await gamesApi.unregisterFromGame(game.id);
+      }
       await this.loadGame(game.id);
     } catch (err: any) {
       logDebug('Error unregistering from game:');
@@ -147,21 +158,21 @@ export class GameDetailsViewModel {
           const deadlineHours = game.unregisterDeadlineHours || 5;
           const deadline = new Date(gameTime.getTime() - deadlineHours * 60 * 60 * 1000);
           showPopup({
-            title: 'Cannot Leave Game',
+            title: guestName ? 'Cannot Unregister Guest' : 'Cannot Leave Game',
             message: `You can only unregister up to ${deadline.toLocaleTimeString()} (${deadlineHours} hours before the game starts).`,
             buttons: [{ type: 'ok' }]
           });
         } else {
           showPopup({
             title: 'Error',
-            message: typeof err === 'string' ? err : err.message || 'Failed to leave the game',
+            message: typeof err === 'string' ? err : err.message || (guestName ? 'Failed to unregister guest' : 'Failed to leave the game'),
             buttons: [{ type: 'ok' }]
           });
         }
       } else {
         showPopup({
           title: 'Error',
-          message: typeof err === 'string' ? err : err.message || 'Failed to leave the game',
+          message: typeof err === 'string' ? err : err.message || (guestName ? 'Failed to unregister guest' : 'Failed to leave the game'),
           buttons: [{ type: 'ok' }]
         });
       }
@@ -170,22 +181,17 @@ export class GameDetailsViewModel {
     }
   }
 
-  removePlayer(game: Game, userId: number): void {
-    const player = game.registrations.find(reg => reg.userId === userId);
-    const username = player?.user?.username || `Player ${userId}`;
-    showConfirm(`Remove ${username} from this game?`, async (confirmed) => {
+  removePlayer(game: Game, userId: number, guestName?: string): void {
+    const player = game.registrations.find(reg => reg.userId === userId && (!guestName ? !reg.guestName : reg.guestName === guestName));
+    const displayName = guestName || player?.user?.username || `Player ${userId}`;
+    showConfirm(`Remove ${displayName} from this game?`, async (confirmed) => {
       if (!confirmed) return;
       try {
         this.setIsActionLoading(true);
-        await gamesApi.removeParticipant(game.id, userId);
-        this.setGame(prevGame => {
-          if (!prevGame) return null;
-          return {
-            ...prevGame,
-            registrations: prevGame.registrations.filter(reg => reg.userId !== userId)
-          } as Game;
-        });
-        showPopup({ title: 'Success', message: `${username} has been removed from the game`, buttons: [{ type: 'ok' }] });
+        await gamesApi.removeParticipant(game.id, userId, guestName);
+        // Reload game to ensure only the targeted registration is removed
+        await this.loadGame(game.id);
+        showPopup({ title: 'Success', message: `${displayName} has been removed from the game`, buttons: [{ type: 'ok' }] });
       } catch (err) {
         logDebug('Error removing player:');
         logDebug(err);

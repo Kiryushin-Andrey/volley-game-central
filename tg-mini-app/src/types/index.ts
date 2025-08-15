@@ -34,6 +34,7 @@ export interface GameRegistration {
   paid: boolean;
   isWaitlist: boolean;
   createdAt: Date | null;
+  guestName?: string | null;
   user?: {
     id: number;
     telegramId: string;
