@@ -4,7 +4,6 @@ import { games, gameRegistrations, users, paymentRequests } from '../db/schema';
 import { gte, desc, inArray, eq, and, sql, lt, lte, asc } from 'drizzle-orm';
 import type { InferSelectModel } from 'drizzle-orm';
 import { PricingMode } from '../types/PricingMode';
-import { calculatePerParticipantCost } from '../utils/pricingUtils';
 
 type PaymentRequest = InferSelectModel<typeof paymentRequests>;
 import { telegramAuthMiddleware } from '../middleware/telegramAuth';
@@ -644,12 +643,6 @@ router.put(
 
       // Store original values for comparison to determine what changed
       const originalDateTime = new Date(existingGame[0].dateTime);
-      const originalMaxPlayers = existingGame[0].maxPlayers;
-      const originalDeadlineHours =
-        existingGame[0].unregisterDeadlineHours || 5;
-      const originalPaymentAmount = existingGame[0].paymentAmount;
-      const originalPricingMode = (existingGame[0].pricingMode as PricingMode) || PricingMode.PER_PARTICIPANT;
-      const originalWithPositions = existingGame[0].withPositions || false;
       const newDateTime = new Date(dateTime);
 
       // Update the game with new settings
@@ -698,9 +691,6 @@ router.put(
         // Determine what changed for the notification message
         const dateTimeChanged =
           originalDateTime.getTime() !== newDateTime.getTime();
-        const maxPlayersChanged = originalMaxPlayers !== maxPlayers;
-        const paymentAmountChanged = originalPaymentAmount !== paymentAmount;
-        const withPositionsChanged = originalWithPositions !== withPositions;
 
         // Create notification message based on what changed
         let notificationMessage = '🔄 <b>Game Update:</b>\n';
@@ -710,46 +700,6 @@ router.put(
           changes.push(
             `The game has been rescheduled from ${formattedOldDate} to ${formattedNewDate}`,
           );
-        }
-
-        if (maxPlayersChanged) {
-          changes.push(
-            `The player limit has changed to ${maxPlayers} (was ${originalMaxPlayers})`,
-          );
-        }
-
-        if (paymentAmountChanged) {
-          // Calculate per-participant costs for both original and new amounts
-          const actualPlayers = Math.max(1, registrations.length); // Use at least 1 to avoid division by zero
-          
-          const originalPerParticipantCost = calculatePerParticipantCost(
-            originalPaymentAmount,
-            originalPricingMode,
-            originalMaxPlayers,
-            actualPlayers
-          );
-          
-          const newPerParticipantCost = calculatePerParticipantCost(
-            paymentAmount,
-            pricingMode,
-            maxPlayers,
-            actualPlayers
-          );
-          
-          const originalPerParticipantEuros = (originalPerParticipantCost / 100).toFixed(2);
-          const newPerParticipantEuros = (newPerParticipantCost / 100).toFixed(2);
-          
-          changes.push(
-            `The cost per participant is now €${newPerParticipantEuros} (was €${originalPerParticipantEuros})`,
-          );
-        }
-
-        if (withPositionsChanged) {
-          if (withPositions)
-            changes.push(
-              'The game will be played with positions according to the 5-1 system',
-            );
-          else changes.push('The game will be played without positions');
         }
 
         // Only send notification if there are actual changes
