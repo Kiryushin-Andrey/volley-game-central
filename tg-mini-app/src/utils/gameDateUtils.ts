@@ -27,13 +27,17 @@ export const formatDate = (dateString: string): string => {
 export const isGameUpcoming = (gameDate: string): boolean => {
   const gameDateTime = new Date(gameDate);
   const now = new Date();
-  return gameDateTime > now;
+  // Consider the game as "upcoming" until 6 hours after it starts
+  const sixHoursAfterStart = new Date(gameDateTime.getTime() + 6 * 60 * 60 * 1000);
+  return sixHoursAfterStart > now;
 };
 
 export const isGamePast = (gameDate: string): boolean => {
   const gameDateTime = new Date(gameDate);
   const now = new Date();
-  return gameDateTime < now;
+  // Consider the game as "past" only after 6 hours have passed since it started
+  const sixHoursAfterStart = new Date(gameDateTime.getTime() + 6 * 60 * 60 * 1000);
+  return sixHoursAfterStart <= now;
 };
 
 export const canJoinGame = (gameDate: string): boolean => {

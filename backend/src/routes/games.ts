@@ -417,35 +417,38 @@ router.get('/', telegramAuthMiddleware, async (req, res) => {
 
     // Get current date for filtering
     const currentDate = new Date();
+    // Consider a game as past only after 6 hours from its start time
+    const sixHoursMs = 6 * 60 * 60 * 1000;
+    const nowMinusSixHours = new Date(currentDate.getTime() - sixHoursMs);
     let filteredGames;
 
     if (showPast) {
       // For past games: game date is before current date
       if (showAll) {
-        // Show all past games
+        // Show all past games (started more than 6 hours ago)
         filteredGames = await db
           .select()
           .from(games)
-          .where(lt(games.dateTime, currentDate))
+          .where(lt(games.dateTime, nowMinusSixHours))
           .orderBy(desc(games.dateTime));
       } else {
-        // Get past games with unpaid participants
+        // Get past games (older than 6 hours) with unpaid participants
         filteredGames = await db
           .select()
           .from(games)
           .where(
-            and(lt(games.dateTime, currentDate), eq(games.fullyPaid, false)),
+            and(lt(games.dateTime, nowMinusSixHours), eq(games.fullyPaid, false)),
           )
           .orderBy(desc(games.dateTime));
       }
     } else {
       // For upcoming games: game date is on or after current date
       if (showAll) {
-        // Show all upcoming games
+        // Show all upcoming games (from 6 hours before now and into the future)
         filteredGames = await db
           .select()
           .from(games)
-          .where(gte(games.dateTime, currentDate))
+          .where(gte(games.dateTime, nowMinusSixHours))
           .orderBy(asc(games.dateTime));
       } else {
         // Only show games within the next REGISTRATION_OPEN_DAYS days (open for registration)
@@ -459,7 +462,8 @@ router.get('/', telegramAuthMiddleware, async (req, res) => {
           .from(games)
           .where(
             and(
-              gte(games.dateTime, currentDate),
+              // Include games that started within the last 6 hours as upcoming
+              gte(games.dateTime, nowMinusSixHours),
               lte(games.dateTime, registrationWindowEnd),
             ),
           )
@@ -516,7 +520,8 @@ router.get('/', telegramAuthMiddleware, async (req, res) => {
         const paidCount = paidCounts.find((pc) => pc.gameId === game.id);
         const totalCount = regCount?.totalCount || 0;
 
-        const isGameInPast = new Date(game.dateTime) < currentDate;
+        // A game is in the past only after 6 hours since it started
+        const isGameInPast = new Date(game.dateTime) < nowMinusSixHours;
         const isWithinRegistrationWindow =
           new Date(game.dateTime) < registrationWindowEnd;
 
@@ -881,13 +886,14 @@ router.post(
         return res.status(404).json({ error: 'Game not found' });
       }
 
-      // Check if game is in the past
+      // Allow modifications only when the game is considered past (6 hours after start)
       const gameDateTime = new Date(game[0].dateTime);
       const now = new Date();
-      if (gameDateTime > now) {
+      const sixHoursAfterStart = new Date(gameDateTime.getTime() + 6 * 60 * 60 * 1000);
+      if (now < sixHoursAfterStart) {
         return res
           .status(400)
-          .json({ error: 'Cannot modify participants for future games' });
+          .json({ error: 'Cannot modify participants for future or ongoing games' });
       }
 
       // Check if payment requests exist for this game

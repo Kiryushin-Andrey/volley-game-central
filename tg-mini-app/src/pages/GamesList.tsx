@@ -5,6 +5,7 @@ import { gamesApi } from '../services/api';
 import { GameWithStats, User } from '../types';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { resolveLocationLink } from '../utils/locationUtils';
+import { isGameUpcoming } from '../utils/gameDateUtils';
 import './GamesList.scss';
 
 type GameFilter = 'upcoming' | 'past';
@@ -19,7 +20,7 @@ const GameItem = memo(({ game, onClick, formatDate }: {
   onClick: (id: number) => void,
   formatDate: (date: string) => string 
 }) => {
-  const isUpcomingGame = new Date(game.dateTime) > new Date();
+  const isUpcomingGame = isGameUpcoming(game.dateTime);
   
   return (
     <div
