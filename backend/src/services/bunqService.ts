@@ -531,7 +531,7 @@ export const bunqService = {
         allow_bunqme: true // Allow payment via bunq.me
       };
       
-      const formattedAmount = `€${(game.paymentAmount / 100).toFixed(2)}`;
+      const formattedPerParticipantAmount = `€${(perParticipantCost / 100).toFixed(2)}`;
       
       let paymentRequestUrl = '';
       let paymentRequestId = '';
@@ -663,7 +663,7 @@ export const bunqService = {
 
       // Send Telegram notification to the player
       try {
-        const notificationMessage = `💰 Please pay ${formattedAmount} for the volleyball game on ${formattedDate}: ${paymentRequestUrl}`;
+        const notificationMessage = `💰 Please pay ${formattedPerParticipantAmount} for the volleyball game on ${formattedDate}: ${paymentRequestUrl}`;
         await sendTelegramNotification(user.telegramId, notificationMessage);
         console.log(`Payment notification sent to ${user.username} via Telegram`);
       } catch (notifyError) {

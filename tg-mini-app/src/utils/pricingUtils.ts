@@ -78,33 +78,6 @@ export function calculateDisplayPerParticipantCost(
   return perParticipantCost;
 }
 
-export function formatPricingInfo(
-  paymentAmount: number,
-  pricingMode: PricingMode,
-  maxPlayers: number,
-  actualPlayers?: number
-): {
-  perParticipantCost: number;
-  totalCost: number;
-  displayText: string;
-} {
-  const perParticipantCost = calculatePerParticipantCost(paymentAmount, pricingMode, maxPlayers, actualPlayers);
-  const playerCount = actualPlayers || maxPlayers;
-  const totalCost = calculateTotalCost(paymentAmount, pricingMode, playerCount);
-  
-  let displayText: string;
-  if (pricingMode === PricingMode.PER_PARTICIPANT) {
-    displayText = `€${(paymentAmount / 100).toFixed(2)} per participant`;
-  } else {
-    displayText = `€${(paymentAmount / 100).toFixed(2)} total (€${(perParticipantCost / 100).toFixed(2)} per participant)`;
-  }
-  
-  return {
-    perParticipantCost,
-    totalCost,
-    displayText
-  };
-}
 
 /**
  * Format pricing information for display with 15 euro cap for upcoming games in total cost mode
