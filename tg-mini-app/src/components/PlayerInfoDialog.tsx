@@ -182,63 +182,62 @@ const PlayerInfoDialog: React.FC<PlayerInfoDialogProps> = ({ isOpen, onClose, us
             )}
           </div>
 
-          <div className="unpaid-section" style={{ marginTop: 16 }}>
-            <div className="row" style={{ justifyContent: 'flex-start' }}>
-              <span className="label">Unpaid games</span>
-            </div>
-            {loading && <div className="hint">Loading…</div>}
-            {!loading && error && <div className="error">{error}</div>}
-            {!loading && !error && unpaidGames && unpaidGames.length === 0 && (
-              <div className="hint">No unpaid registrations</div>
-            )}
-            {!loading && !error && unpaidGames && unpaidGames.length > 0 && (
-              <ul className="unpaid-list" style={{ listStyle: 'none', padding: 0, margin: '8px 0 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {unpaidGames.map((item, idx) => {
-                  const dt = new Date(item.dateTime);
-                  const hasAmount = item.totalAmountCents != null;
-                  const amount = hasAmount ? (item.totalAmountCents! / 100).toFixed(2) : null;
-                  return (
-                    <li key={idx} className="unpaid-item" style={{ padding: '8px 10px', background: 'rgba(255,255,255,0.06)', borderRadius: 8 }}>
-                      <div className="unpaid-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          {hasAmount && <div style={{ fontWeight: 600 }}>€{amount}</div>}
-                          <div className="unpaid-sub" style={{ opacity: 0.8, fontSize: 12, marginTop: 2 }}>
-                            {formatGameDate(dt)} {item.locationName ? `• ${item.locationName}` : ''}
+          {(loading || error || (unpaidGames && unpaidGames.length > 0)) && (
+            <div className="unpaid-section" style={{ marginTop: 16 }}>
+              <div className="row" style={{ justifyContent: 'flex-start' }}>
+                <span className="label">Unpaid games</span>
+              </div>
+              {loading && <div className="hint">Loading…</div>}
+              {!loading && error && <div className="error">{error}</div>}
+              {!loading && !error && unpaidGames && unpaidGames.length > 0 && (
+                <ul className="unpaid-list" style={{ listStyle: 'none', padding: 0, margin: '8px 0 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {unpaidGames.map((item, idx) => {
+                    const dt = new Date(item.dateTime);
+                    const hasAmount = item.totalAmountCents != null;
+                    const amount = hasAmount ? (item.totalAmountCents! / 100).toFixed(2) : null;
+                    return (
+                      <li key={idx} className="unpaid-item" style={{ padding: '8px 10px', background: 'rgba(255,255,255,0.06)', borderRadius: 8 }}>
+                        <div className="unpaid-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            {hasAmount && <div style={{ fontWeight: 600 }}>€{amount}</div>}
+                            <div className="unpaid-sub" style={{ opacity: 0.8, fontSize: 12, marginTop: 2 }}>
+                              {formatGameDate(dt)} {item.locationName ? `• ${item.locationName}` : ''}
+                            </div>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            {item.paymentLink && (
+                              <a
+                                className="link"
+                                href={item.paymentLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ display: 'inline-block', marginTop: 4 }}
+                              >
+                                Pay now →
+                              </a>
+                            )}
                           </div>
                         </div>
-                        <div style={{ textAlign: 'right' }}>
-                          {item.paymentLink && (
-                            <a
-                              className="link"
-                              href={item.paymentLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={{ display: 'inline-block', marginTop: 4 }}
-                            >
-                              Pay now →
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-            {!loading && !error && unpaidGames && unpaidGames.length > 0 && (
-              <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {reminderError && <div className="error">{reminderError}</div>}
-                <button
-                  className="primary-btn"
-                  onClick={handleSendReminder}
-                  disabled={sendingReminder}
-                  style={{ alignSelf: 'flex-start' }}
-                >
-                  {sendingReminder ? 'Sending…' : 'Send payment reminder'}
-                </button>
-              </div>
-            )}
-          </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+              {!loading && !error && unpaidGames && unpaidGames.length > 0 && (
+                <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {reminderError && <div className="error">{reminderError}</div>}
+                  <button
+                    className="primary-btn"
+                    onClick={handleSendReminder}
+                    disabled={sendingReminder}
+                    style={{ alignSelf: 'flex-start' }}
+                  >
+                    {sendingReminder ? 'Sending…' : 'Send payment reminder'}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Moderation section: Block / Unblock */}
           <div className="moderation-section" style={{ marginTop: 20 }}>
