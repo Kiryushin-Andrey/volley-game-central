@@ -358,6 +358,21 @@ router.put('/me/bunq/monetary-account', telegramAuthMiddleware, adminAuthMiddlew
   }
 });
 
+// Current user: Get unpaid games (grouped per game)
+// Returns one entry per game with total amount and paymentLink (if exists), excluding waitlist
+router.get('/me/unpaid-games', telegramAuthMiddleware, async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+    const result = await getUserUnpaidItems(req.user.id);
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching unpaid games for current user:', error);
+    res.status(500).json({ error: 'Failed to fetch unpaid games' });
+  }
+});
+
 // Admin-only: Get unpaid games (grouped per game) for a specific user
 // Returns one entry per game with total amount and paymentLink (if exists), excluding waitlist
 router.get('/id/:userId/unpaid-games', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) => {
