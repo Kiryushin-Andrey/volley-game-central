@@ -525,8 +525,8 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
               isAdmin={user.isAdmin}
               isPastGame={isGamePast(game.dateTime)}
               isActionLoading={isActionLoading}
-              fullyPaid={game.fullyPaid}
               isPaidUpdating={isPaidUpdating}
+              hasPaymentRequests={hasPaymentRequests}
               onRemovePlayer={handleRemovePlayer}
               onTogglePaidStatus={handleTogglePaidStatus}
               canUnregister={canUnregister}

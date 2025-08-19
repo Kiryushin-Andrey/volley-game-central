@@ -9,8 +9,8 @@ interface Props {
   isAdmin: boolean;
   isPastGame: boolean;
   isActionLoading: boolean;
-  fullyPaid: boolean;
   isPaidUpdating: number | null;
+  hasPaymentRequests?: boolean;
   onRemovePlayer: (userId: number, guestName?: string) => void | Promise<void>;
   onTogglePaidStatus: (userId: number, paid: boolean) => void;
   canUnregister: () => boolean;
@@ -23,8 +23,8 @@ export const PlayersList: React.FC<Props> = ({
   isAdmin,
   isPastGame,
   isActionLoading,
-  fullyPaid,
   isPaidUpdating,
+  hasPaymentRequests,
   onRemovePlayer,
   onTogglePaidStatus,
   canUnregister: canUnregister,
@@ -127,7 +127,7 @@ export const PlayersList: React.FC<Props> = ({
 
             {isAdmin && isPastGame && !registration.isWaitlist && (
               <div className="admin-player-actions">
-                {!fullyPaid && !registration.paid && (
+                {!hasPaymentRequests && (
                   <RemovePlayerButton
                     onClick={(e) => {
                       e.stopPropagation();
