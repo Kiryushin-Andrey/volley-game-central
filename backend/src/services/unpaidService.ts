@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { games, gameRegistrations, paymentRequests } from '../db/schema';
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, desc } from 'drizzle-orm';
 
 export interface UnpaidItem {
   gameId: number;
@@ -15,7 +15,6 @@ export async function getUserUnpaidItems(userId: number): Promise<UnpaidItem[]> 
   // Source of truth: unpaid payment requests filtered by userId
   const prRows = await db
     .select({
-      gameRegistrationId: paymentRequests.gameRegistrationId,
       paymentLink: paymentRequests.paymentLink,
       createdAt: paymentRequests.createdAt,
       amountCents: paymentRequests.amountCents,
@@ -27,8 +26,14 @@ export async function getUserUnpaidItems(userId: number): Promise<UnpaidItem[]> 
       gameRegistrations,
       eq(paymentRequests.gameRegistrationId, gameRegistrations.id)
     )
-    .where(and(eq(paymentRequests.paid, false), eq(paymentRequests.userId, userId)))
-    .orderBy(sql`${paymentRequests.createdAt} desc`);
+    .where(
+      and(
+        eq(paymentRequests.paid, false),
+        eq(paymentRequests.userId, userId),
+        eq(gameRegistrations.paid, false)
+      )
+    )
+    .orderBy(desc(paymentRequests.createdAt));
 
   if (prRows.length === 0) return [];
 
