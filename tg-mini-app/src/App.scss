@@ -74,3 +74,240 @@ body {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+// Landing page for unauthenticated/non-Telegram users
+.landing-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  text-align: center;
+}
+
+.landing-title {
+  font-size: 24px;
+}
+
+.landing-subtitle {
+  color: var(--tg-theme-hint-color);
+}
+
+.landing-buttons {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  max-width: 420px;
+}
+
+.landing-button {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.08);
+  text-decoration: none;
+  color: var(--tg-theme-button-text-color);
+  background: var(--tg-theme-button-color);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.landing-button .icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.landing-button .icon svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.landing-button.telegram {
+  background: var(--tg-theme-button-color);
+}
+
+.landing-button.whatsapp {
+  background: #25D366; // WhatsApp brand color
+  color: #fff;
+}
+
+.landing-button.disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.landing-hint {
+  font-size: 12px;
+  color: var(--tg-theme-hint-color);
+}
+
+// How it works expandable section
+.how-it-works {
+  width: 100%;
+  max-width: 420px;
+  margin-top: 8px;
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 10px;
+  overflow: hidden;
+
+  &[open] .chevron {
+    transform: rotate(180deg);
+  }
+}
+
+.how-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.how-title {
+  font-weight: 700;
+}
+
+.chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+
+  svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+  }
+}
+
+.how-content {
+  padding: 0 12px 12px 12px;
+  text-align: left;
+
+  p {
+    margin: 4px 0 8px 0;
+    color: var(--tg-theme-text-color);
+  }
+
+  // Secondary note text (smaller, grey)
+  .how-secondary {
+    color: var(--tg-theme-hint-color);
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .how-secondary a {
+    color: inherit; // keep links grey too
+    text-decoration: none; // remove underline
+    display: inline-flex; // keep icon + text on one line
+    align-items: center;
+    gap: 6px;
+  }
+
+  .how-secondary a:hover,
+  .how-secondary a:focus,
+  .how-secondary a:visited {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .how-secondary .icon svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+  }
+
+  ul {
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  li {
+    color: var(--tg-theme-text-color);
+  }
+}
+
+// WhatsApp auth section beneath buttons
+.landing-auth {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 8px;
+  text-align: left;
+}
+
+.wa-section {
+  background: rgba(0,0,0,0.03);
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wa-label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.wa-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid rgba(0,0,0,0.12);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--tg-theme-text-color);
+  font-size: 14px;
+  outline: none;
+}
+
+.wa-input:focus {
+  border-color: var(--tg-theme-button-color);
+  box-shadow: 0 0 0 3px rgba(36, 129, 204, 0.15);
+}
+
+.wa-note {
+  font-size: 12px;
+  color: var(--tg-theme-hint-color);
+}
+
+.wa-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.wa-button {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(0,0,0,0.08);
+  background: var(--tg-theme-button-color);
+  color: var(--tg-theme-button-text-color);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.wa-button.secondary {
+  background: #25D366;
+  color: #fff;
+}
