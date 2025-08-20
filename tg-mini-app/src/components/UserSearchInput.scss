@@ -7,6 +7,59 @@
 .search-input-wrapper {
   position: relative;
   width: 100%;
+  
+  // Cancel button inside the search input
+  .cancel-button {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.08);
+    color: var(--tg-theme-hint-color, #888);
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover:not(:disabled) {
+      color: var(--tg-theme-text-color);
+      background-color: rgba(0, 0, 0, 0.15);
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(-50%) scale(0.95);
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    svg {
+      width: 14px;
+      height: 14px;
+    }
+  }
+
+  // Inline loading spinner inside the input (replaces cancel button while loading)
+  .input-spinner {
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(0, 0, 0, 0.15);
+    border-top-color: var(--tg-theme-link-color, #2aabee);
+    border-radius: 50%;
+    animation: usersearch-spin 0.8s linear infinite;
+  }
 }
 
 // Selected user chip
@@ -106,58 +159,6 @@
     opacity: 0.7;
     cursor: not-allowed;
   }
-}
-
-.cancel-button {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: none;
-  border-radius: 50%;
-  background-color: rgba(0, 0, 0, 0.08);
-  color: var(--tg-theme-hint-color, #888);
-  cursor: pointer;
-  transition: all 0.2s;
-  
-  &:hover:not(:disabled) {
-    color: var(--tg-theme-text-color);
-    background-color: rgba(0, 0, 0, 0.15);
-  }
-  
-  &:active:not(:disabled) {
-    transform: translateY(-50%) scale(0.95);
-  }
-  
-  &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-  
-  svg {
-    width: 14px;
-    height: 14px;
-  }
-}
-
-// Inline loading spinner inside the input (replaces cancel button while loading)
-.input-spinner {
-  position: absolute;
-  top: 50%;
-  right: 8px;
-  transform: translateY(-50%);
-  width: 20px;
-  height: 20px;
-  border: 2px solid rgba(0, 0, 0, 0.15);
-  border-top-color: var(--tg-theme-link-color, #2aabee);
-  border-radius: 50%;
-  animation: usersearch-spin 0.8s linear infinite;
 }
 
 @keyframes usersearch-spin {
@@ -274,7 +275,7 @@
     background-color: #1e2327;
   }
 
-  .cancel-button {
+  .search-input-wrapper .cancel-button {
     background-color: rgba(255, 255, 255, 0.08);
   }
 

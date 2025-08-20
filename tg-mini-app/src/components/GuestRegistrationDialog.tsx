@@ -58,6 +58,17 @@ const GuestRegistrationDialog: React.FC<GuestRegistrationDialogProps> = ({
   return (
     <div className="guest-dialog-overlay" onKeyDown={handleKeyDown}>
       <div className="guest-dialog">
+        <div className="dialog-header">
+          <h3>Register guest</h3>
+          <button
+            type="button"
+            className="close-btn"
+            onClick={onCancel}
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
         <form onSubmit={handleSubmit} className="guest-form">
           {allowInviterSelection && (
             <div className="form-group">
@@ -123,14 +134,6 @@ const GuestRegistrationDialog: React.FC<GuestRegistrationDialogProps> = ({
           )}
 
           <div className="dialog-buttons">
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={isProcessing}
-              className="cancel-button"
-            >
-              Cancel
-            </button>
             <button
               type="submit"
               disabled={
