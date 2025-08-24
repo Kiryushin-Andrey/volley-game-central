@@ -1,4 +1,4 @@
-import axios, { AxiosInstance } from 'axios';
+import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { db } from '../db';
 import { games, gameRegistrations, users, paymentRequests } from '../db/schema';
 import { eq, and, not, inArray } from 'drizzle-orm';
@@ -50,6 +50,67 @@ interface BunqClient {
   client: AxiosInstance;
   monetaryAccountId: number;
   privateKey: string;
+}
+
+/**
+ * Creates a safe email local-part from a username.
+ * - Lowercases and trims
+ * - Removes diacritics (NFKD) for Latin-based scripts
+ * - Replaces spaces with underscore
+ * - Replaces all characters outside [a-z0-9._-] with underscore
+ * - Collapses repeated separators and trims from ends
+ * - Falls back to `user{fallbackId}` if empty
+ * - Truncates to 64 characters to satisfy common email local-part limits
+ */
+function toEmailLocalPart(username: string, fallbackId: number): string {
+  if (!username) return `user${fallbackId}`;
+  let local = username.trim().toLowerCase();
+
+  // Transliterate Cyrillic to Latin equivalents (basic Russian/Ukrainian set)
+  local = transliterateCyrillic(local);
+
+  // Remove diacritics for Latin characters (e.g., é -> e). Non-Latin letters become underscores below.
+  try {
+    local = local.normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
+  } catch {
+    // If normalize is not supported, skip gracefully
+  }
+
+  // Replace spaces with underscore
+  local = local.replace(/\s+/g, '_');
+
+  // Keep only allowed characters in a conservative set
+  local = local.replace(/[^a-z0-9._-]/g, '_');
+
+  // Collapse multiple separators into a single underscore
+  local = local.replace(/[._-]{2,}/g, '_');
+
+  // Trim leading/trailing separators
+  local = local.replace(/^[._-]+|[._-]+$/g, '');
+
+  if (!local) local = `user${fallbackId}`;
+
+  // Enforce typical local-part max length
+  if (local.length > 64) local = local.slice(0, 64);
+
+  return local;
+}
+
+// Basic Cyrillic -> Latin transliteration covering Russian + common Ukrainian letters
+function transliterateCyrillic(input: string): string {
+  const map: Record<string, string> = {
+    'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'e', 'ж': 'zh', 'з': 'z', 'и': 'i',
+    'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't',
+    'у': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'shch', 'ъ': '', 'ы': 'y', 'ь': '',
+    'э': 'e', 'ю': 'yu', 'я': 'ya',
+    // Ukrainian/Belarusian
+    'і': 'i', 'ї': 'yi', 'є': 'ye', 'ґ': 'g'
+  };
+  let out = '';
+  for (const ch of input) {
+    out += map[ch] !== undefined ? map[ch] : ch;
+  }
+  return out;
 }
 
 /**
@@ -473,230 +534,6 @@ async function createBunqClient(params: BunqClientParams): Promise<BunqClient | 
  * Bunq service functions for payment requests
  */
 export const bunqService = {
-  /**
-   * Create a payment request for a single game participant
-   * @param user The user to create the payment request for
-   * @param game The game details
-   * @param formattedDate Formatted date string for the game
-   * @param gameRegistrationId Game registration ID to associate with the payment request
-   * @param adminUserId User ID of the admin creating the payment request
-   * @param password Password for decrypting admin's Bunq credentials
-   * @returns Object with success status and payment URL
-   */
-  createSinglePaymentRequest: async (
-    user: User, 
-    game: Game, 
-    formattedDate: string, 
-    gameRegistrationId: number,
-    adminUserId: number,
-    password: string
-  ): Promise<PaymentRequestResult> => {
-    try {
-      // Skip if no contact information is available
-      if (!user.telegramId) {
-        return {
-          success: false,
-          paymentRequestUrl: '',
-          error: `No contact information available for user ${user.id}`
-        };
-      }
-      
-      // Get the actual number of registered players for this game
-      const registrations = await db
-        .select()
-        .from(gameRegistrations)
-        .where(eq(gameRegistrations.gameId, game.id));
-      
-      // Calculate the actual number of non-waitlist players
-      const actualPlayers = Math.min(registrations.length, game.maxPlayers);
-      
-      // Calculate the per-participant cost based on pricing mode
-      const perParticipantCost = calculatePerParticipantCost(
-        game.paymentAmount,
-        game.pricingMode,
-        game.maxPlayers,
-        actualPlayers
-      );
-      
-      const paymentRequestData = {
-        amount_inquired: {
-          value: (perParticipantCost / 100).toFixed(2), // Convert cents to euros
-          currency: 'EUR'
-        },
-        counterparty_alias: {
-          type: 'EMAIL',
-          value: `volley-${user.id}@${process.env.EMAIL_DOMAIN || 'volley-game-central.com'}`,
-          name: user.username || `Volleyball Player ${user.id}`
-        },
-        description: `Volleyball game payment for ${formattedDate}`,
-        allow_bunqme: true // Allow payment via bunq.me
-      };
-      
-      const formattedPerParticipantAmount = `€${(perParticipantCost / 100).toFixed(2)}`;
-      
-      let paymentRequestUrl = '';
-      let paymentRequestId = '';
-      
-      // Create Bunq client with admin credentials
-      const bunqClientResult = await createBunqClient({
-        userId: adminUserId,
-        password
-      });
-      
-      if (!bunqClientResult) {
-        return {
-          success: false,
-          paymentRequestUrl: '',
-          error: 'Failed to create Bunq client'
-        };
-      }
-      
-      const { client: bunqClient, monetaryAccountId, privateKey } = bunqClientResult;
-      
-      // Sign the request body for payment request creation
-      const dataToSign = JSON.stringify(paymentRequestData);
-      const signature = crypto.sign('sha256', Buffer.from(dataToSign), privateKey);
-      const base64Signature = signature.toString('base64');
-      
-      console.log('Creating payment request with data:', {
-        endpoint: '/user/.../monetary-account/.../request-inquiry',
-        data: paymentRequestData,
-        monetaryAccountId,
-        headers: {
-          'X-Bunq-Client-Signature': '*****' // Don't log the actual signature
-        }
-      });
-      
-      try {
-        // Add signature header to the client for this request
-        // Get the user ID from the session or credentials
-        const userResponse = await bunqClient.get('/user');
-        const userId = userResponse.data?.Response?.[0]?.UserPerson?.id || userResponse.data?.Response?.[0]?.UserCompany?.id;
-        
-        if (!userId) {
-          throw new Error('Could not determine user ID from Bunq API');
-        }
-        
-        const response = await bunqClient.post(
-          `/user/${userId}/monetary-account/${monetaryAccountId}/request-inquiry`,
-          paymentRequestData,
-          {
-            headers: {
-              'X-Bunq-Client-Signature': base64Signature
-            }
-          }
-        );
-        
-        console.log('Payment request response status:', response.status);
-        console.log('Payment request response data:', JSON.stringify(response.data, null, 2));
-
-        if (response.status === 200 || response.status === 201) {
-          const requestId = response.data?.Response?.[0]?.Id?.id;
-          if (!requestId) {
-            throw new Error('No request ID in response');
-          }
-          
-          console.log('Request Inquiry ID:', requestId);
-          paymentRequestId = requestId.toString();
-          
-          // Fetch the request details to get the payment URL
-          const detailsResponse = await bunqClient.get(
-            `/user/${userId}/monetary-account/${monetaryAccountId}/request-inquiry/${requestId}`
-          );
-          
-          console.log('Request details response:', JSON.stringify(detailsResponse.data, null, 2));
-          
-          // Extract the payment URL from the details
-          const requestInquiry = detailsResponse.data?.Response?.[0]?.RequestInquiry;
-          if (requestInquiry) {
-            paymentRequestUrl = requestInquiry.bunqme_share_url || 
-                              requestInquiry.request_reference_split_the_bill?.bunq_me_share_link ||
-                              '';
-            
-            console.log('Extracted payment URL:', paymentRequestUrl);
-            
-            if (!paymentRequestUrl) {
-              console.error('No payment URL found in details. Available keys:', Object.keys(requestInquiry));
-            }
-          } else {
-            console.error('No request inquiry in details response');
-          }
-        } else {
-          return {
-            success: false,
-            paymentRequestUrl: '',
-            error: `Failed to create payment request: API returned status ${response.status}`
-          };
-        }
-      } catch (error: any) {
-        console.error('Error in payment request API call:', {
-          message: error.message,
-          response: error.response ? {
-            status: error.response.status,
-            statusText: error.response.statusText,
-            data: error.response.data,
-            headers: error.response.headers ? Object.keys(error.response.headers) : 'No headers'
-          } : 'No response',
-          responseErrors: error.response?.data?.Error,
-          config: {
-            url: error.config?.url,
-            method: error.config?.method,
-            headers: error.config?.headers ? Object.keys(error.config.headers) : 'No headers'
-          }
-        });
-        
-        return {
-          success: false,
-          paymentRequestUrl: '',
-          error: `Failed to create payment request: ${error.response?.data?.Error?.[0]?.error_description || error.message || 'Unknown error'}`
-        };
-      }
-
-      await db.insert(paymentRequests).values({
-        paymentRequestId: paymentRequestId,
-        gameRegistrationId: gameRegistrationId,
-        userId: user.id,
-        amountCents: perParticipantCost,
-        paymentLink: paymentRequestUrl,
-        monetaryAccountId: monetaryAccountId,
-        createdAt: new Date(),
-        lastCheckedAt: new Date(),
-        paid: false
-      });
-
-      // Send Telegram notification to the player
-      try {
-        // Get the guest name from the registration for the notification
-        const registration = await db
-          .select()
-          .from(gameRegistrations)
-          .where(eq(gameRegistrations.id, gameRegistrationId))
-          .limit(1);
-        
-        const guestName = registration.length > 0 ? registration[0].guestName : null;
-        const subject = getNotificationSubjectLowercase(guestName);
-        
-        const notificationMessage = `💰 Please pay ${formattedPerParticipantAmount} for ${subject} for the volleyball game on ${formattedDate}: ${paymentRequestUrl}`;
-        await sendTelegramNotification(user.telegramId, notificationMessage);
-        console.log(`Payment notification sent to ${user.username} via Telegram`);
-      } catch (notifyError) {
-        console.error(`Failed to send payment notification to ${user.username}:`, notifyError);
-        // Don't fail the whole process if notification fails
-      }
-      
-      return {
-        success: true,
-        paymentRequestUrl
-      };
-    } catch (error) {
-      console.error('Error creating payment request:', error);
-      return {
-        success: false,
-        paymentRequestUrl: '',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      };
-    }
-  },
 
   /**
    * Create a consolidated payment request for a user covering multiple participants (user + guests)
@@ -775,7 +612,7 @@ export const bunqService = {
         },
         counterparty_alias: {
           type: 'EMAIL',
-          value: user.username // Using username as email placeholder
+          value: `${toEmailLocalPart(user.username, user.id)}@volleyfun.nl` // Using sanitized username as email placeholder
         },
         description: description,
         allow_bunqme: true
@@ -787,31 +624,85 @@ export const bunqService = {
       const base64Signature = signature.toString('base64');
 
       // Create the payment request
-      const response = await bunqClient.post(
-        `/user/${userId}/monetary-account/${monetaryAccountId}/request-inquiry`,
-        paymentRequestData,
-        {
-          headers: {
-            'X-Bunq-Client-Signature': base64Signature
+      let response: AxiosResponse<any, any>;
+      try {
+        response = await bunqClient.post(
+          `/user/${userId}/monetary-account/${monetaryAccountId}/request-inquiry`,
+          paymentRequestData,
+          {
+            headers: {
+              'X-Bunq-Client-Signature': base64Signature
+            }
           }
-        }
-      );
+        );
+      } catch (error: any) {
+        console.error('Error creating payment request:', {
+          message: error?.message,
+          response: error.response ? {
+            status: error.response.status,
+            statusText: error.response.statusText,
+            data: error.response.data
+          } : 'No response',
+          responseErrors: error.response?.data?.Error,
+        });
+        return {
+          success: false,
+          paymentRequestUrl: '',
+          error: error instanceof Error
+            ? error.message
+            : (error.response?.statusText ?? 'Unknown error')
+        };
+      }
 
       if (response.status !== 200) {
         throw new Error(`Bunq API returned status ${response.status}`);
       }
 
-      const paymentRequestId = response.data?.Response?.[0]?.RequestInquiry?.id;
-      const paymentRequestUrl = response.data?.Response?.[0]?.RequestInquiry?.bunqme_share_url;
+      console.log('Sent payment request for ' + user.username, response.data?.Response?.[0]);
+      console.log('Id = ', response.data?.Response?.[0]?.Id);
 
-      if (!paymentRequestId || !paymentRequestUrl) {
-        throw new Error('Failed to get payment request details from Bunq response');
+      // Prefer RequestInquiry.id; fallback to Id.id depending on Bunq response shape
+      const paymentRequestId: string | number | undefined =
+        response.data?.Response?.[0]?.RequestInquiry?.id ??
+        response.data?.Response?.[0]?.Id?.id;
+
+      if (!paymentRequestId) {
+        throw new Error('Failed to obtain payment request id from Bunq response');
+      }
+
+      // Ensure string type for downstream usage and DB schema
+      const paymentRequestIdStr: string = String(paymentRequestId);
+
+      // Fetch the created payment request to obtain full details including bunqme_share_url
+      let paymentRequestUrl: string | undefined = response.data?.Response?.[0]?.RequestInquiry?.bunqme_share_url;
+      try {
+        if (!paymentRequestUrl) {
+          const detailsResponse = await bunqClient.get(
+            `/user/${userId}/monetary-account/${monetaryAccountId}/request-inquiry/${paymentRequestIdStr}`
+          );
+          const requestInquiry = detailsResponse.data?.Response?.[0]?.RequestInquiry;
+          paymentRequestUrl = requestInquiry?.bunqme_share_url;
+        }
+      } catch (detailsErr: any) {
+        console.error('Error fetching payment request details:', {
+          message: detailsErr?.message,
+          response: detailsErr?.response ? {
+            status: detailsErr.response.status,
+            statusText: detailsErr.response.statusText,
+            data: detailsErr.response.data
+          } : 'No response',
+          responseErrors: detailsErr.response?.data?.Error,
+        });
+      }
+
+      if (!paymentRequestUrl) {
+        throw new Error('Failed to obtain payment request URL from Bunq API');
       }
 
       // Store payment request records for all registrations
       for (const registration of userRegistrations) {
         await db.insert(paymentRequests).values({
-          paymentRequestId: paymentRequestId,
+          paymentRequestId: paymentRequestIdStr,
           gameRegistrationId: registration.id,
           userId: user.id,
           amountCents: totalAmount,
@@ -824,14 +715,9 @@ export const bunqService = {
       }
 
       // Send Telegram notification to the user
-      try {
-        const notificationMessage = `💰 Please pay ${formattedAmount} for ${participantsText} for the volleyball game on ${formattedDate}: ${paymentRequestUrl}`;
-        await sendTelegramNotification(user.telegramId, notificationMessage);
-        console.log(`Consolidated payment notification sent to ${user.username} via Telegram`);
-      } catch (notifyError) {
-        console.error(`Failed to send payment notification to ${user.username}:`, notifyError);
-        // Don't fail the whole process if notification fails
-      }
+      const notificationMessage = `💰 Please pay ${formattedAmount} for ${participantsText} for the volleyball game on ${formattedDate}: ${paymentRequestUrl}`;
+      await sendTelegramNotification(user.telegramId, notificationMessage);
+      console.log(`Consolidated payment notification sent to ${user.username} via Telegram`);
       
       return {
         success: true,
