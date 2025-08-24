@@ -14,8 +14,16 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
-    "types": ["node"]
+    "types": ["node"],
+    "typeRoots": [
+      "./src/@types",
+      "./src/types",
+      "./node_modules/@types"
+    ]
   },
   "include": ["src/**/*"],
+  "ts-node": {
+    "files": true
+  },
   "exclude": ["node_modules"]
 }

@@ -90,8 +90,12 @@
 }
 
 /* Ensure the input field is fully visible */
+.react-datepicker-wrapper,
+.react-datepicker__input-container,
 .datepicker-input {
-  width: 100%;
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
 }
 
 /* Ensure the datepicker doesn't get cut off at the bottom of the screen */

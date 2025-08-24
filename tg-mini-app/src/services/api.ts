@@ -67,23 +67,23 @@ export const userApi = {
    * Admin: Get unpaid games for a specific user by ID
    */
   getUserUnpaidGames: async (userId: number): Promise<UnpaidRegistration[]> => {
-    const response = await api.get(`/users/id/${userId}/unpaid-games`);
+    const response = await api.get(`/users/admin/id/${userId}/unpaid-games`);
     return response.data;
   },
 
   /**
-   * Admin: Block a user by telegramId with a reason
+   * Admin: Block a user by ID with a reason
    */
-  blockUser: async (telegramId: string, reason: string): Promise<{ success: boolean; message: string; user: User }> => {
-    const response = await api.post(`/users/${encodeURIComponent(telegramId)}/block`, { reason });
+  blockUser: async (userId: number, reason: string): Promise<{ success: boolean; message: string; user: User }> => {
+    const response = await api.post(`/users/admin/id/${userId}/block`, { reason });
     return response.data;
   },
 
   /**
-   * Admin: Unblock a user by telegramId
+   * Admin: Unblock a user by ID
    */
-  unblockUser: async (telegramId: string): Promise<{ success: boolean; message: string; user: User }> => {
-    const response = await api.delete(`/users/${encodeURIComponent(telegramId)}/block`);
+  unblockUser: async (userId: number): Promise<{ success: boolean; message: string; user: User }> => {
+    const response = await api.delete(`/users/admin/id/${userId}/block`);
     return response.data;
   },
 
@@ -91,7 +91,7 @@ export const userApi = {
    * Admin: Send a payment reminder to a user with unpaid requests
    */
   sendPaymentReminder: async (userId: number): Promise<{ success: boolean; message: string }> => {
-    const response = await api.post(`/users/id/${userId}/payment-reminder`);
+    const response = await api.post(`/users/admin/id/${userId}/payment-reminder`);
     return response.data;
   },
 };
@@ -105,7 +105,7 @@ export const gamesApi = {
     pricingMode?: PricingMode | null;
     withPositions?: boolean | null;
   }> => {
-    const response = await api.get('/games/defaults');
+    const response = await api.get('/games/admin/defaults');
     return {
       date: new Date(response.data.defaultDateTime),
       locationName: response.data.defaultLocationName ?? null,
@@ -131,7 +131,7 @@ export const gamesApi = {
   },
 
   createGame(gameData: { dateTime: string; maxPlayers: number; unregisterDeadlineHours: number; paymentAmount: number; pricingMode?: PricingMode; withPositions: boolean; locationName?: string | null; locationLink?: string | null }): Promise<Game> {
-    return api.post('/games', gameData).then(res => res.data);
+    return api.post('/games/admin', gameData).then(res => res.data);
   },
 
   registerForGame: async (gameId: number, guestName?: string): Promise<void> => {
@@ -162,18 +162,18 @@ export const gamesApi = {
   },
 
   deleteGame: async (gameId: number): Promise<void> => {
-    await api.delete(`/games/${gameId}`);
+    await api.delete(`/games/admin/${gameId}`);
   },
 
   updateGame(gameId: number, gameData: { dateTime: string; maxPlayers: number; unregisterDeadlineHours: number; paymentAmount: number; pricingMode?: PricingMode; withPositions: boolean; locationName?: string | null; locationLink?: string | null }): Promise<Game> {
-    return api.put(`/games/${gameId}`, gameData).then(res => res.data);
+    return api.put(`/games/admin/${gameId}`, gameData).then(res => res.data);
   },
 
   /**
    * Create payment requests for all unpaid players in a game
    */
   createPaymentRequests: async (gameId: number, password: string): Promise<{ message: string; requestsCreated: number; errors: string[] }> => {
-    const response = await api.post(`/games/${gameId}/payment-requests`, { password });
+    const response = await api.post(`/games/admin/${gameId}/payment-requests`, { password });
     return response.data;
   },
 
@@ -185,7 +185,7 @@ export const gamesApi = {
    */
   updatePlayerPaidStatus(gameId: number, userId: number, paid: boolean = true): Promise<{ message: string }> {
     return api
-      .put(`/games/${gameId}/players/${userId}/paid`, { paid })
+      .put(`/games/admin/${gameId}/players/${userId}/paid`, { paid })
       .then((res) => res.data);
   },
 
@@ -201,7 +201,7 @@ export const gamesApi = {
     const payload = guestName && guestName.trim()
       ? { userId, guestName }
       : { userId };
-    const response = await api.post(`/games/${gameId}/participants`, payload);
+    const response = await api.post(`/games/admin/${gameId}/participants`, payload);
     return response.data;
   },
 
@@ -214,7 +214,7 @@ export const gamesApi = {
     const config = guestName && guestName.trim()
       ? { data: { guestName } }
       : undefined;
-    const response = await api.delete(`/games/${gameId}/participants/${userId}`, config);
+    const response = await api.delete(`/games/admin/${gameId}/participants/${userId}`, config);
     return response.data;
   },
 
@@ -226,7 +226,7 @@ export const gamesApi = {
     
     logData(`Searching users with query: "${query}"`);
     try {
-      const response = await api.get('/users/search', { 
+      const response = await api.get('/users/admin/search', { 
         params: { q: query },
         paramsSerializer: (params: Record<string, string>) => {
           const serialized = new URLSearchParams(params).toString();
@@ -262,7 +262,7 @@ export const gamesApi = {
    */
   checkPayments(password: string): Promise<{ message: string; updatedGames: number; updatedPlayers: number }> {
     return api
-      .post('/games/check-payments', { password })
+      .post('/games/admin/check-payments', { password })
       .then((res) => res.data);
   },
 };
@@ -306,6 +306,58 @@ export const bunqApi = {
    */
   updateMonetaryAccount: async (monetaryAccountId: number): Promise<{ success: boolean; message: string }> => {
     const response = await api.put('/users/me/bunq/monetary-account', { monetaryAccountId });
+    return response.data;
+  },
+};
+
+// Phone authentication API endpoints
+export const authApi = {
+  /**
+   * Start phone authentication by sending an SMS code
+   */
+  startPhoneAuth: async (phoneNumber: string): Promise<{ success: boolean; sessionId: string }> => {
+    const response = await api.post('/auth/start', { phoneNumber });
+    return response.data;
+  },
+
+  /**
+   * Verify the received SMS code
+   */
+  verifyPhoneAuth: async (
+    sessionId: string,
+    code: string
+  ): Promise<{ success: boolean; userExists?: boolean; creatingNewUser?: boolean }> => {
+    const response = await api.post('/auth/verify', { sessionId, code });
+    return response.data;
+  },
+
+  /**
+   * Create a new user for a verified session in user-creation mode
+   */
+  createUser: async (
+    sessionId: string,
+    displayName: string
+  ): Promise<{ success: boolean; userCreated: boolean; userId: number }> => {
+    const response = await api.post('/auth/create-user', { sessionId, displayName });
+    return response.data;
+  },
+
+  /**
+   * Optional helper: check if a display name is available during user creation
+   */
+  checkDisplayName: async (
+    sessionId: string,
+    displayName: string
+  ): Promise<{ available: boolean }> => {
+    const response = await api.post('/auth/check-display-name', { sessionId, displayName });
+    return response.data;
+  },
+
+  /**
+   * Logout current browser session (clears JWT cookie)
+   */
+  logout: async (): Promise<{ success: boolean }> => {
+    const response = await api.post('/auth/logout');
     return response.data;
   },
 };

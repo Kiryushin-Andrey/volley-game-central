@@ -2,56 +2,52 @@ import { useState, useEffect } from 'react';
 import { User } from '../types';
 import { userApi } from '../services/api';
 import { logDebug, isDebugMode } from '../debug';
+import { withRetry } from '../utils/retry';
 
-export const useTelegramWebApp = () => {
+export const useAuthenticatedUser = () => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [webApp, setWebApp] = useState<any>(null);
-  const [isTelegramWebApp, setIsTelegramWebApp] = useState(false);
 
   useEffect(() => {
     logDebug('Initializing Telegram WebApp hook...');
-    const tg = window.Telegram?.WebApp;
     
     // Check if this is a legitimate Telegram WebApp session
-    const isTgApp = Boolean(tg);
-    setIsTelegramWebApp(isTgApp);
-    logDebug('Is Telegram WebApp available: ' + isTgApp);
+    const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+    const isTelegramApp = Boolean(telegramUser);
+    logDebug('Is Telegram WebApp available: ' + isTelegramApp);
     
-    if (isTgApp) {
-      tg.ready();
-      tg.expand();
-      setWebApp(tg);
+    if (isTelegramApp) {
+      const telegramWebApp = window.Telegram.WebApp;
+      telegramWebApp.ready();
+      telegramWebApp.expand();
       logDebug('Telegram WebApp initialized');
 
-      // Apply Telegram theme
-      document.documentElement.style.setProperty('--tg-theme-bg-color', tg.themeParams.bg_color || '#ffffff');
-      document.documentElement.style.setProperty('--tg-theme-text-color', tg.themeParams.text_color || '#000000');
-      document.documentElement.style.setProperty('--tg-theme-hint-color', tg.themeParams.hint_color || '#999999');
-      document.documentElement.style.setProperty('--tg-theme-link-color', tg.themeParams.link_color || '#2481cc');
-      document.documentElement.style.setProperty('--tg-theme-button-color', tg.themeParams.button_color || '#2481cc');
-      document.documentElement.style.setProperty('--tg-theme-button-text-color', tg.themeParams.button_text_color || '#ffffff');
-
       // Check if we have init data
-      logDebug('Telegram user data available: ' + Boolean(tg.initDataUnsafe?.user));
-      logDebug('InitData string: ' + tg.initData);
+      logDebug('InitData string: ' + telegramWebApp.initData);
       logDebug('InitDataUnsafe object:');
-      logDebug(tg.initDataUnsafe || 'null');
+      logDebug(telegramWebApp.initDataUnsafe || 'null');
       
-      // Only proceed with authenticated Telegram users
-      if (tg.initDataUnsafe?.user) {
-        authenticateUser(tg.initDataUnsafe.user);
-      } else {
-        logDebug('No Telegram user data available');
-        setIsLoading(false);
-      } 
+      getAuthenticateUserForTelegramUser(telegramUser);
     } else {
       logDebug('Not running in Telegram WebApp environment');
-      setIsLoading(false);
+
+      // Attempt JWT cookie-based authentication (e.g., after PhoneAuth)
+      (async () => {
+        try {
+          const authenticatedUser = await withRetry(() => userApi.getCurrentUser(), { retries: 3, delayMs: 700 });
+          setUser(authenticatedUser);
+          logDebug('Authenticated via JWT cookie session');
+        } catch (e) {
+          logDebug('No JWT session found or authentication failed');
+          setUser(null);
+        } finally {
+          setIsLoading(false);
+        }
+      })();
     }
   }, []);
 
-  const authenticateUser = async (telegramUser: any) => {
+  const getAuthenticateUserForTelegramUser = async (telegramUser: any) => {
     try {
       logDebug('Authenticating Telegram user:');
       logDebug(telegramUser);
@@ -77,7 +73,7 @@ export const useTelegramWebApp = () => {
       
       // With our new approach, the authentication happens via middleware
       // Just fetch the current user which will use the initData header
-      const authenticatedUser = await userApi.getCurrentUser();
+      const authenticatedUser = await withRetry(() => userApi.getCurrentUser(), { retries: 3, delayMs: 700 });
       
       setUser(authenticatedUser);
       logDebug('Authentication successful:');
@@ -105,12 +101,5 @@ export const useTelegramWebApp = () => {
     }
   };
 
-  // Button management has been removed as we now use MainButton and BackButton components from @twa-dev/sdk/react
-
-  return {
-    user,
-    isLoading,
-    webApp,
-    isTelegramWebApp,
-  };
+  return { user, isLoading };
 };

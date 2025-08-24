@@ -114,6 +114,20 @@
       "when": 1753493186109,
       "tag": "0015_drop_username_from_users",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "5",
+      "when": 1753593186109,
+      "tag": "0016_add_phone_and_nullable_telegram_id",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "5",
+      "when": 1753693186109,
+      "tag": "0017_add_auth_sessions",
+      "breakpoints": true
     }
   ]
 }

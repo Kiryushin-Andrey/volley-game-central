@@ -1,6 +1,6 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { useTelegramWebApp } from './hooks/useTelegramWebApp';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { useAuthenticatedUser } from './hooks/useAuthenticatedUser';
 import GamesList from './pages/GamesList';
 import GameDetails from './pages/GameDetails';
 import CreateGame from './pages/CreateGame';
@@ -8,18 +8,27 @@ import EditGameSettings from './pages/EditGameSettings';
 import BunqSettings from './pages/BunqSettings';
 import CheckPayments from './pages/CheckPayments';
 import LoadingSpinner from './components/LoadingSpinner';
-// import WhatsAppAuth from './components/WhatsAppAuth';
+import PhoneAuth from './components/auth/PhoneAuth';
 import './App.scss';
 import { logDebug, isDebugMode } from './debug';
-
-// Using debug mode from the debug.ts module
+import { initAppTheme } from './utils/theme';
+import { authApi } from './services/api';
 
 function App() {
-  const { user, isLoading, isTelegramWebApp } = useTelegramWebApp();
-  // WhatsApp auth local UI state
-  // const [whatsAppStep, setWhatsAppStep] = React.useState<'idle' | 'phone' | 'code'>('idle');
-  // const [whatsAppPhone, setWhatsAppPhone] = React.useState('');
-  // const [whatsAppCode, setWhatsAppCode] = React.useState('');
+  const { user, isLoading } = useAuthenticatedUser();
+  const [isPhoneAuthOpen, setIsPhoneAuthOpen] = React.useState(false);
+  const isTelegramApp = Boolean(window.Telegram?.WebApp?.initDataUnsafe?.user);
+
+  const handleLogout = async () => {
+    await authApi.logout();
+    window.location.href = '/';
+  };
+
+  // Initialize app theming (Telegram vs browser system theme)
+  React.useEffect(() => {
+    const cleanup = initAppTheme();
+    return cleanup;
+  }, []);
 
   // Define content based on app state
   let content;
@@ -34,8 +43,8 @@ function App() {
     );
   }
   
-  // If not in Telegram WebApp or no authenticated user, show message
-  else if (!isTelegramWebApp || !user) {
+  // If no authenticated user at all (neither Telegram nor JWT), show auth choice
+  else if (!user) {
     const botName = (import.meta.env.VITE_TELEGRAM_BOT_NAME as string | undefined);
     const telegramUrl = botName ? `https://t.me/${botName}` : undefined;
     content = (
@@ -57,33 +66,24 @@ function App() {
             <span>Telegram</span>
           </a>
           <button
-            className="landing-button whatsapp"
+            className="landing-button phone"
             type="button"
-            onClick={() => {
-              // setWhatsAppStep('phone');
-            }}
+            style={{ background: '#0ea5e9', color: '#fff' }}
+            onClick={() => setIsPhoneAuthOpen(true)}
           >
             <span className="icon" aria-hidden>
-              {/* WhatsApp SVG icon */}
-              <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-                <path fill="currentColor" d="M19.11 17.54c-.28-.14-1.63-.8-1.88-.9-.25-.09-.43-.14-.62.14-.18.28-.71.89-.87 1.07-.16.18-.32.21-.6.07-.28-.14-1.18-.43-2.25-1.38-.83-.74-1.39-1.65-1.56-1.93-.16-.28-.02-.43.12-.57.12-.12.28-.32.41-.48.14-.16.18-.28.28-.46.09-.18.05-.35-.02-.5-.07-.14-.62-1.49-.85-2.05-.22-.53-.44-.46-.62-.46-.16 0-.35 0-.55.01-.18.01-.5.07-.76.35-.26.28-1 1-1 2.43 0 1.43 1.03 2.8 1.18 2.99.14.18 2.03 3.1 4.9 4.34.69.3 1.23.48 1.65.61.69.22 1.32.19 1.82.12.56-.08 1.63-.66 1.86-1.31.23-.64.23-1.19.16-1.31-.07-.12-.25-.19-.53-.33zM16.02 3.2C9.49 3.2 4.2 8.48 4.2 15.02c0 2.08.54 4.03 1.49 5.73L4 28l7.44-1.53c1.63.89 3.51 1.4 5.49 1.4 6.54 0 11.82-5.28 11.82-11.82 0-6.55-5.28-11.85-11.73-11.85zm0 21.2c-1.88 0-3.63-.54-5.09-1.46l-.37-.22-4.41.9.92-4.3-.24-.39c-.91-1.5-1.42-3.25-1.42-5.09 0-5.43 4.42-9.85 9.85-9.85 5.43 0 9.85 4.42 9.85 9.85 0 5.43-4.42 9.85-9.85 9.85z"/>
+              {/* Phone SVG icon */}
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path fill="currentColor" d="M6.62 10.79a15.464 15.464 0 006.59 6.59l2.2-2.2a1 1 0 011.02-.24c1.12.37 2.33.57 3.57.57a1 1 0 011 1V21a1 1 0 01-1 1C10.07 22 2 13.93 2 3a1 1 0 011-1h3.49a1 1 0 011 1c0 1.24.2 2.45.57 3.57a1 1 0 01-.24 1.02l-2.2 2.2z"/>
               </svg>
             </span>
-            <span>WhatsApp</span>
+            <span>Phone number</span>
           </button>
         </div>
-        {/* WhatsApp auth UI */}
-        {/* <WhatsAppAuth
-          step={whatsAppStep}
-          phone={whatsAppPhone}
-          code={whatsAppCode}
-          onPhoneChange={setWhatsAppPhone}
-          onCodeChange={setWhatsAppCode}
-          onContinue={() => setWhatsAppStep('code')}
-          onVerify={() => {
-            // Placeholder for verify action
-          }}
-        /> */}
+        {/* Phone Number auth UI */}
+        {isPhoneAuthOpen && (
+          <PhoneAuth onClose={() => setIsPhoneAuthOpen(false)} />
+        )}
         {!telegramUrl && (
           <p className="landing-hint">Telegram bot name is not configured.</p>
         )}
@@ -105,12 +105,12 @@ function App() {
               volleyball games and everyone is welcome to join.
             </p>
             <p>
-              You can register for any game via this website using your WhatsApp or Telegram account.
-              Connecting via WhatsApp or Telegram lets us send you payment requests and important notifications (like time or venue changes).
+              You can register for any game via this website using your Telegram account or phone number.
+              Connecting via Telegram or phone number lets us send you payment requests and important notifications (like time or venue changes).
             </p>
             <p>
               We only collect payments to cover the cost of the hall rental — we don’t make a profit.
-              After each game, payment requests are sent via Telegram or WhatsApp to the people who registered for this game.
+              After each game, payment requests are sent via Telegram or SMS to the people who registered for this game.
             </p>
             <p className="how-secondary">
               <a href="https://github.com/Kiryushin-Andrey/volley-game-central" target="_blank" rel="noopener noreferrer">
@@ -132,16 +132,14 @@ function App() {
   // Authenticated user - show main app content
   else {
     content = (
-      <Router>
-        <Routes>
-          <Route path="/" element={<GamesList user={user!} />} />
-          <Route path="/game/:gameId" element={<GameDetails user={user!} />} />
-          <Route path="/games/new" element={<CreateGame />} />
-          <Route path="/game/:gameId/edit" element={<EditGameSettings />} />
-          <Route path="/bunq-settings" element={<BunqSettings />} />
-          <Route path="/check-payments" element={<CheckPayments />} />
-        </Routes>
-      </Router>
+      <Routes>
+        <Route path="/" element={<GamesList user={user!} />} />
+        <Route path="/game/:gameId" element={<GameDetails user={user!} />} />
+        <Route path="/games/new" element={<CreateGame />} />
+        <Route path="/game/:gameId/edit" element={<EditGameSettings />} />
+        <Route path="/bunq-settings" element={<BunqSettings />} />
+        <Route path="/check-payments" element={<CheckPayments />} />
+      </Routes>
     );
   }
 
@@ -149,7 +147,7 @@ function App() {
   React.useEffect(() => {
     if (isDebugMode()) {
       logDebug('App state:');
-      logDebug({ user, isLoading, isTelegramWebApp });
+      logDebug({ user, isLoading });
       logDebug(`Telegram WebApp availability: ${Boolean(window.Telegram?.WebApp)}`);
       logDebug(`InitData: ${window.Telegram?.WebApp?.initData || 'none'}`);
       
@@ -158,13 +156,34 @@ function App() {
         logDebug(window.Telegram.WebApp.initDataUnsafe);
       }
     }
-  }, [user, isLoading, isTelegramWebApp]);
+  }, [user, isLoading]);
   
   // Always render the app container with content
   return (
-    <div className="app-container">
-      {content}
-    </div>
+    <Router>
+      <div className="app-container">
+        {/* Browser-only header */}
+        {!isTelegramApp && (
+          <header className="app-header" role="banner">
+            <div className="header-inner">
+              <Link className="brand" to="/" aria-label="Go to home">Haarlem Volley Bot</Link>
+              <div className="spacer" />
+              {user && (
+                <div className="user-controls">
+                  <span className="user-badge" title={user.displayName}>{user.displayName}</span>
+                  <button className="logout-btn" type="button" onClick={handleLogout}>Logout</button>
+                </div>
+              )}
+            </div>
+          </header>
+        )}
+
+        {/* Content area: constrain width in browser mode */}
+        <main className={!isTelegramApp ? 'page-content' : undefined} role="main">
+          {content}
+        </main>
+      </div>
+    </Router>
   );
 }
 

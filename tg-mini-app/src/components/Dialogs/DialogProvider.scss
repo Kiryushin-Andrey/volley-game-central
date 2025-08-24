@@ -1,0 +1,73 @@
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.dialog {
+  width: min(92vw, 420px);
+  max-width: 92vw;
+  background: var(--tg-theme-bg-color, #ffffff);
+  color: var(--tg-theme-text-color, #111827);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  padding: 16px;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dialog-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.dialog-message {
+  font-size: 14px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.dialog-btn {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.dialog-btn.ok {
+  background: var(--tg-theme-button-color, #111827);
+  color: var(--tg-theme-button-text-color, #ffffff);
+  border-color: var(--tg-theme-button-color, #111827);
+}
+
+.dialog-btn.cancel {
+  background: var(--tg-theme-secondary-bg-color, #f3f4f6);
+  color: var(--tg-theme-text-color, #111827);
+  border-color: color-mix(in srgb, var(--tg-theme-text-color, #111827) 10%, transparent);
+}
+
+.dialog-btn.destructive {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+/* Improve tap targets on mobile */
+.dialog-btn:active {
+  transform: translateY(1px);
+}

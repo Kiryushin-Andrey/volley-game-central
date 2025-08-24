@@ -1,10 +1,18 @@
+/// <reference path="./types/express.d.ts" />
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import { telegramAuthMiddleware } from './middleware/telegramAuth';
 import userRoutes from './routes/users';
+import bunqRoutes from './routes/bunqConfig';
 import gameRoutes from './routes/games';
+import gamesAdminRoutes from './routes/gamesAdmin';
+import usersAdminRoutes from './routes/usersAdmin';
+import authRoutes from './routes/auth';
+import webhookRoutes from './routes/webhooks';
 import './services/telegramService'; // Import to ensure the bot is initialized
+import cookieParser from 'cookie-parser';
+import { authMiddleware } from './middleware/auth';
+import { adminAuthMiddleware } from './middleware/adminAuth';
 
 // Initialize Express app
 const app = express();
@@ -23,6 +31,7 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 
 // Public routes
@@ -30,9 +39,19 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
-// Protected routes - apply telegramAuth middleware
-app.use('/users', telegramAuthMiddleware, userRoutes);
-app.use('/games', telegramAuthMiddleware, gameRoutes);
+// Public webhooks (no auth)
+app.use('/webhooks', webhookRoutes);
+
+// Public auth routes
+app.use('/auth', authRoutes);
+
+// Protected routes - accept Telegram WebApp auth or JWT cookie (phone auth)
+app.use('/games', authMiddleware, gameRoutes);
+app.use('/users', authMiddleware, userRoutes);
+app.use('/users/me/bunq', authMiddleware, adminAuthMiddleware, bunqRoutes);
+
+app.use('/games/admin', authMiddleware, adminAuthMiddleware, gamesAdminRoutes);
+app.use('/users/admin', authMiddleware, adminAuthMiddleware, usersAdminRoutes);
 
 // Start the server
 const PORT = process.env.PORT || 3000;
@@ -53,3 +72,4 @@ process.on('SIGTERM', () => {
 process.on('SIGINT', () => {
   process.exit();
 });
+
