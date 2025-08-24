@@ -88,6 +88,14 @@ export const userApi = {
   },
 
   /**
+   * Public: check whether a user with specified phone number exists
+   */
+  checkPhoneExists: async (phoneNumber: string): Promise<{ exists: boolean }> => {
+    const response = await api.post('/users/phone-exists', { phoneNumber });
+    return response.data;
+  },
+
+  /**
    * Admin: Send a payment reminder to a user with unpaid requests
    */
   sendPaymentReminder: async (userId: number): Promise<{ success: boolean; message: string }> => {

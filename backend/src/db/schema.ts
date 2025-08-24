@@ -2,12 +2,14 @@ import { pgTable, serial, varchar, timestamp, boolean, integer, text } from 'dri
 
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
-  telegramId: varchar('telegram_id', { length: 255 }).notNull().unique(),
+  telegramId: varchar('telegram_id', { length: 255 }).unique(),
   telegramUsername: varchar('telegram_username', { length: 255 }),
   displayName: varchar('display_name', { length: 255 }).notNull(),
   avatarUrl: varchar('avatar_url', { length: 500 }),
   blockReason: text('block_reason'),
   isAdmin: boolean('is_admin').notNull().default(false),
+  phoneNumber: varchar('phone_number', { length: 50 }),
+  phoneNumberVerified: boolean('phone_number_verified').notNull().default(false),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
