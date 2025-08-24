@@ -5,6 +5,9 @@ import { telegramAuthMiddleware } from './middleware/telegramAuth';
 import userRoutes from './routes/users';
 import gameRoutes from './routes/games';
 import './services/telegramService'; // Import to ensure the bot is initialized
+import { db } from './db';
+import { users } from './db/schema';
+import { eq } from 'drizzle-orm';
 
 // Initialize Express app
 const app = express();
@@ -30,6 +33,32 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
+// Public: check whether a user with specified phone number is registered
+app.post('/users/phone-exists', async (req, res) => {
+  try {
+    const { phoneNumber } = req.body as { phoneNumber?: string };
+    if (!phoneNumber || typeof phoneNumber !== 'string') {
+      return res.status(400).json({ error: 'phoneNumber is required' });
+    }
+
+    // Normalize phone: remove spaces, hyphens, parentheses
+    const normalized = phoneNumber.replace(/[\s\-()]/g, '');
+    if (normalized.length < 5) {
+      return res.status(400).json({ error: 'phoneNumber is invalid' });
+    }
+
+    const rows = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.phoneNumber, normalized));
+
+    return res.json({ exists: rows.length > 0 });
+  } catch (err) {
+    console.error('Error checking phone existence:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Protected routes - apply telegramAuth middleware
 app.use('/users', telegramAuthMiddleware, userRoutes);
 app.use('/games', telegramAuthMiddleware, gameRoutes);
@@ -53,3 +82,4 @@ process.on('SIGTERM', () => {
 process.on('SIGINT', () => {
   process.exit();
 });
+
