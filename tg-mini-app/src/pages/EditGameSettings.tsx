@@ -5,6 +5,7 @@ import { gamesApi } from '../services/api';
 import { PricingMode } from '../types';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { BackButton } from '@twa-dev/sdk/react';
+import { isTelegramApp } from '../utils/telegram';
 import DatePicker from 'react-datepicker';
 import { registerLocale } from 'react-datepicker';
 import { enGB } from 'date-fns/locale/en-GB';
@@ -32,6 +33,7 @@ const EditGameSettings: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const inTelegram = isTelegramApp();
 
   // Handle payment amount input changes, converting from euros to cents
   const handlePaymentAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -132,7 +134,9 @@ const EditGameSettings: React.FC = () => {
 
   return (
     <div className="edit-game-settings-container">
-      <BackButton onClick={handleCancel} />
+      {inTelegram && (
+        <BackButton onClick={handleCancel} />
+      )}
       <h1>Edit Game Settings</h1>
       
       {error && <div className="error-message">{error}</div>}

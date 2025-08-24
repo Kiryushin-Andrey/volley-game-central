@@ -11,6 +11,7 @@ import { gamesApi } from "../services/api";
 import { showPopup } from "../utils/uiPrompts";
 import "./GameDetails.scss";
 import { MainButton, BackButton } from "@twa-dev/sdk/react";
+import { isTelegramApp } from "../utils/telegram";
 import {
   formatDate,
   isGameUpcoming,
@@ -42,6 +43,7 @@ interface GameDetailsProps {
 const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
   const { gameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
+  const inTelegram = isTelegramApp();
 
   const [game, setGame] = useState<Game | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -393,8 +395,9 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
 
   return (
     <div className="game-details-container">
-      {/* BackButton component */}
-      <BackButton onClick={() => navigate("/")} />
+      {inTelegram && (
+        <BackButton onClick={() => navigate("/")} />
+      )}
       <div className="game-header">
         {showAddParticipantButton && showUserSearch && (
           <div className="user-search-container">
@@ -562,14 +565,26 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
 
       <ActionLoadingOverlay visible={isActionLoading} />
 
-      {/* MainButton component */}
+      {/* Main button (Telegram SDK inside Telegram, regular button in web) */}
       {showMainButton && (
-        <MainButton
-          text={mainButtonText || ""}
-          onClick={mainButtonClick}
-          progress={isActionLoading}
-          disabled={isActionLoading}
-        />
+        inTelegram ? (
+          <MainButton
+            text={mainButtonText || ""}
+            onClick={mainButtonClick}
+            progress={isActionLoading}
+            disabled={isActionLoading}
+          />
+        ) : (
+          <div className="bottom-action-bar">
+            <button
+              className="tg-main-button btn btn-primary"
+              onClick={mainButtonClick}
+              disabled={isActionLoading}
+            >
+              {isActionLoading ? "Processing..." : (mainButtonText || "Action")}
+            </button>
+          </div>
+        )
       )}
 
       {/* Password Dialog for Payment Requests */}

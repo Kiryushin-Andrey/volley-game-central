@@ -1,13 +1,14 @@
-import { pgTable, serial, varchar, timestamp, boolean, integer, text } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, timestamp, boolean, integer, text, uuid } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
-  telegramId: varchar('telegram_id', { length: 255 }).notNull().unique(),
+  telegramId: varchar('telegram_id', { length: 255 }).unique(),
   telegramUsername: varchar('telegram_username', { length: 255 }),
   displayName: varchar('display_name', { length: 255 }).notNull(),
   avatarUrl: varchar('avatar_url', { length: 500 }),
   blockReason: text('block_reason'),
   isAdmin: boolean('is_admin').notNull().default(false),
+  phoneNumber: varchar('phone_number', { length: 50 }),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -83,4 +84,13 @@ export const paymentRequests = pgTable('payment_requests', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   lastCheckedAt: timestamp('last_checked_at').defaultNow().notNull(),
   paid: boolean('paid').notNull().default(false)
+});
+
+// Authentication sessions for phone-based login
+export const authSessions = pgTable('auth_sessions', {
+  id: uuid('id').primaryKey(),
+  phoneNumber: varchar('phone_number', { length: 50 }).notNull().unique(),
+  authCode: varchar('auth_code', { length: 10 }).notNull(),
+  creatingNewUser: boolean('creating_new_user').notNull().default(false),
+  createdAt: timestamp('created_at').defaultNow(),
 });

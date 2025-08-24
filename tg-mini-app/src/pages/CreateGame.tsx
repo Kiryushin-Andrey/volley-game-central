@@ -5,6 +5,7 @@ import { gamesApi } from '../services/api';
 import { PricingMode } from '../types';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { BackButton } from '@twa-dev/sdk/react';
+import { isTelegramApp } from '../utils/telegram';
 import DatePicker from 'react-datepicker';
 import { registerLocale } from 'react-datepicker';
 import { enGB } from 'date-fns/locale/en-GB';
@@ -30,6 +31,7 @@ const CreateGame: React.FC = () => {
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const inTelegram = isTelegramApp();
 
   // Fetch default date and time from the server
   useEffect(() => {
@@ -128,7 +130,9 @@ const CreateGame: React.FC = () => {
 
   return (
     <div className="create-game-container">
-      <BackButton onClick={handleCancel} />
+      {inTelegram && (
+        <BackButton onClick={handleCancel} />
+      )}
       <h1>Create New Game</h1>
       
       {error && <div className="error-message">{error}</div>}

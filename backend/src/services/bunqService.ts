@@ -2,34 +2,14 @@ import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { db } from '../db';
 import { games, gameRegistrations, users, paymentRequests } from '../db/schema';
 import { eq, and, not, inArray } from 'drizzle-orm';
-import { sendTelegramNotification } from './telegramService';
-import { getNotificationSubjectLowercase } from '../utils/notificationUtils';
+import { notifyUser } from './notificationService';
 import { bunqCredentialsService, type BunqCredentials } from './bunqCredentialsService';
 import { calculatePerParticipantCost } from '../utils/pricingUtils';
 import { PricingMode } from '../types/PricingMode';
 import crypto from 'crypto';
 
-interface User {
-  id: number;
-  telegramId: string;
-  displayName: string;
-  telegramUsername?: string | null;
-  avatarUrl?: string | null;
-  isAdmin: boolean;
-  createdAt: Date | null;
-}
-
-interface Game {
-  id: number;
-  dateTime: Date;
-  maxPlayers: number;
-  unregisterDeadlineHours: number;
-  paymentAmount: number;
-  pricingMode: PricingMode;
-  fullyPaid: boolean;
-  createdAt: Date | null;
-  createdById: number;
-}
+type User = typeof users.$inferSelect;
+type Game = typeof games.$inferSelect;
 
 interface PaymentRequestResult {
   success: boolean;
@@ -716,11 +696,13 @@ export const bunqService = {
         });
       }
 
-      // Send Telegram notification to the user
-      const notificationMessage = `💰 Please pay ${formattedAmount} for ${participantsText} for the volleyball game on ${formattedDate}: ${paymentRequestUrl}`;
-      await sendTelegramNotification(user.telegramId, notificationMessage);
-      console.log(`Consolidated payment notification sent to ${(user.telegramUsername || user.displayName)} via Telegram`);
-      
+      // Notify the user about the payment request
+      await notifyUser(
+        user,
+        `💳 Please pay <b>€${(totalAmount / 100).toFixed(2)}</b> for ${participantsText} for the volleyball game on ${formattedDate}.\n\n` +
+        (paymentRequestUrl ? `Pay here: <a href="${paymentRequestUrl}">bunq.me link</a>` : 'Payment link is being prepared, please try again shortly.')
+      );
+
       return {
         success: true,
         paymentRequestUrl
@@ -836,7 +818,16 @@ export const bunqService = {
             game.maxPlayers,
             activeRegistrations.length // Use actual number of active registrations
           );
-          const totalAmount = perParticipantCost * participantCount;
+          // Base total for this user's participants
+          let totalAmount = perParticipantCost * participantCount;
+
+          // Surcharge: add €0.15 if the user has no Telegram ID but has a phone number
+          // Interpretation: surcharge is applied per user group (not per participant).
+          // If you want it per participant, change '+= 15' to '+= 15 * participantCount'.
+          const isPhoneOnly = (!user.telegramId || user.telegramId.length === 0) && !!user.phoneNumber;
+          if (isPhoneOnly) {
+            totalAmount += 15; // cents
+          }
           
           // Create consolidated payment request for this user
           const result = await bunqService.createConsolidatedPaymentRequest(

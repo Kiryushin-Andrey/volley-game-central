@@ -1,7 +1,10 @@
+@use './styles/toggles';
+
 :root {
   --tg-theme-bg-color: #ffffff;
   --tg-theme-text-color: #000000;
   --tg-theme-hint-color: #999999;
+  --tg-theme-secondary-bg-color: #f8f9fa;
   --tg-theme-link-color: #2481cc;
   --tg-theme-button-color: #2481cc;
   --tg-theme-button-text-color: #ffffff;
@@ -25,6 +28,72 @@ body {
   min-height: 100vh;
   background-color: var(--tg-theme-bg-color);
   color: var(--tg-theme-text-color);
+}
+
+// Browser header (hidden automatically in Telegram because we only render it there)
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--tg-theme-secondary-bg-color);
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+}
+
+.header-inner {
+  max-width: 1000px; // header can be a bit wider
+  margin: 0 auto;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand {
+  font-weight: 700;
+  color: var(--tg-theme-text-color);
+  text-decoration: none;
+}
+
+.brand:hover,
+.brand:focus,
+.brand:visited {
+  color: var(--tg-theme-text-color);
+  text-decoration: none;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.user-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-badge {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.06);
+  color: var(--tg-theme-text-color);
+  font-size: 14px;
+}
+
+.logout-btn {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(0,0,0,0.1);
+  background: var(--tg-theme-button-color);
+  color: var(--tg-theme-button-text-color);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+// Constrain page content width in browser (App.tsx adds page-content only in browser mode)
+.page-content {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 16px;
 }
 
 .error-message {
@@ -255,7 +324,7 @@ body {
 }
 
 .wa-section {
-  background: rgba(0,0,0,0.03);
+  background: var(--tg-theme-secondary-bg-color);
   border: 1px solid rgba(0,0,0,0.06);
   border-radius: 10px;
   padding: 12px;
@@ -274,7 +343,7 @@ body {
   padding: 10px 12px;
   border: 1px solid rgba(0,0,0,0.12);
   border-radius: 8px;
-  background: #fff;
+  background: var(--tg-theme-bg-color);
   color: var(--tg-theme-text-color);
   font-size: 14px;
   outline: none;
@@ -283,6 +352,27 @@ body {
 .wa-input:focus {
   border-color: var(--tg-theme-button-color);
   box-shadow: 0 0 0 3px rgba(36, 129, 204, 0.15);
+}
+
+// Placeholder color aligned with Telegram hint color
+.wa-input::placeholder {
+  color: var(--tg-theme-hint-color);
+  opacity: 1; // ensure consistent contrast
+}
+
+// Input group and prefix badge used in PhoneStep
+.wa-input-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.wa-prefix {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--tg-theme-secondary-bg-color);
+  color: var(--tg-theme-hint-color);
+  border: 1px solid rgba(0,0,0,0.06);
 }
 
 .wa-note {
@@ -310,4 +400,29 @@ body {
 .wa-button.secondary {
   background: #25D366;
   color: #fff;
+}
+
+// Dark theme refinements
+@media (prefers-color-scheme: dark) {
+  .wa-section {
+    background: var(--tg-theme-secondary-bg-color);
+    border-color: rgba(255,255,255,0.08);
+  }
+
+  .wa-input {
+    background: var(--tg-theme-bg-color);
+    border-color: rgba(255,255,255,0.15);
+    color: var(--tg-theme-text-color);
+  }
+
+  .wa-input::placeholder {
+    color: var(--tg-theme-hint-color);
+    opacity: 1;
+  }
+
+  .wa-prefix {
+    background: var(--tg-theme-secondary-bg-color);
+    color: var(--tg-theme-hint-color);
+    border-color: rgba(255,255,255,0.1);
+  }
 }

@@ -1,6 +1,6 @@
 services:
   volleybot:
-    image: andreykir/volleybot:1.4.0
+    image: andreykir/volleybot:1.5.0
     restart: unless-stopped
     depends_on:
       postgres:

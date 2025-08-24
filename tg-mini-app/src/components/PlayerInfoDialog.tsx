@@ -106,7 +106,7 @@ const PlayerInfoDialog: React.FC<PlayerInfoDialogProps> = ({ isOpen, onClose, us
     if (!reason || !reason.trim()) return;
     try {
       setModerationBusy(true);
-      const res = await userApi.blockUser(user.telegramId, reason.trim());
+      const res = await userApi.blockUser(user.id, reason.trim());
       setBlockReason(res.user.blockReason ?? reason.trim());
     } catch (e: any) {
       const tg: any = (window as any)?.Telegram?.WebApp;
@@ -121,7 +121,7 @@ const PlayerInfoDialog: React.FC<PlayerInfoDialogProps> = ({ isOpen, onClose, us
     if (!user || moderationBusy) return;
     try {
       setModerationBusy(true);
-      await userApi.unblockUser(user.telegramId);
+      await userApi.unblockUser(user.id);
       setBlockReason(null);
     } catch (e: any) {
       const tg: any = (window as any)?.Telegram?.WebApp;

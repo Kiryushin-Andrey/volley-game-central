@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 
 /**
  * Middleware to check if the authenticated user is an admin
- * This middleware should be used after the telegramAuthMiddleware
+ * This middleware should be used after the authMiddleware
  */
 export const adminAuthMiddleware = (req: Request, res: Response, next: NextFunction) => {
   // Check if user exists and is authenticated

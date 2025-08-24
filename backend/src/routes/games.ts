@@ -1,129 +1,16 @@
 import { Router } from 'express';
 import { db } from '../db';
-import { games, gameRegistrations, users, paymentRequests } from '../db/schema';
+import { games, gameRegistrations, users } from '../db/schema';
 import { gte, desc, inArray, eq, and, sql, lt, lte, asc, isNull } from 'drizzle-orm';
 import type { InferSelectModel } from 'drizzle-orm';
-import { PricingMode } from '../types/PricingMode';
-
-type PaymentRequest = InferSelectModel<typeof paymentRequests>;
-import { telegramAuthMiddleware } from '../middleware/telegramAuth';
-import { adminAuthMiddleware } from '../middleware/adminAuth';
-import { sendTelegramNotification, sendGroupAnnouncement } from '../services/telegramService';
-import { gameService } from '../services/gameService';
-import { bunqService } from '../services/bunqService';
 import { REGISTRATION_OPEN_DAYS } from '../constants';
-import { getNotificationSubjectWithVerb, getNotificationSubjectLowercase } from '../utils/notificationUtils';
-import { formatLocationSection } from '../utils/telegramMessageUtils';
+import { notifyUser } from '../services/notificationService';
+import { getNotificationSubjectWithVerb } from '../utils/notificationUtils';
 
 const router = Router();
 
-// Calculate default settings for a new game
-router.get('/defaults', telegramAuthMiddleware, async (req, res) => {
-  try {
-    const { defaultDateTime, defaultLocationName, defaultLocationLink, defaultPaymentAmount, defaultPricingMode, defaultWithPositions } =
-      await gameService.calculateDefaultGameSettings();
-    res.json({
-      defaultDateTime,
-      defaultLocationName,
-      defaultLocationLink,
-      defaultPaymentAmount,
-      defaultPricingMode,
-      defaultWithPositions,
-    });
-  } catch (error) {
-    console.error('Error calculating default date time:', error);
-    res.status(500).json({ error: 'Failed to calculate default date time' });
-  }
-});
-
-// Create a new game
-router.post(
-  '/',
-  telegramAuthMiddleware,
-  adminAuthMiddleware,
-  async (req, res) => {
-    try {
-      const {
-        dateTime,
-        maxPlayers,
-        unregisterDeadlineHours = 5,
-        paymentAmount,
-        pricingMode = PricingMode.PER_PARTICIPANT,
-        withPositions = false,
-        locationName,
-        locationLink,
-      } = req.body;
-
-      if (!dateTime || !maxPlayers) {
-        return res
-          .status(400)
-          .json({ error: 'dateTime and maxPlayers are required' });
-      }
-
-      // Extract the user ID from the authenticated session
-      if (!req.user || !req.user.id) {
-        return res
-          .status(401)
-          .json({ error: 'Authentication required to create a game' });
-      }
-
-      const createdById = req.user.id;
-
-      const newGame = await db
-        .insert(games)
-        .values({
-          dateTime: new Date(dateTime),
-          maxPlayers,
-          unregisterDeadlineHours,
-          paymentAmount,
-          pricingMode,
-          withPositions,
-          locationName,
-          locationLink,
-          createdById,
-        })
-        .returning();
-
-      // After creating the game, if registration is already open and it's not a 5-1 game, announce it in the group
-      try {
-        const created = newGame[0];
-        const gameDate = new Date(created.dateTime);
-        const now = new Date();
-        const registrationOpensAt = new Date(gameDate);
-        registrationOpensAt.setDate(registrationOpensAt.getDate() - REGISTRATION_OPEN_DAYS);
-
-        const isRegistrationOpen = now >= registrationOpensAt;
-        const isFiveOne = !!created.withPositions;
-
-        if (isRegistrationOpen && !isFiveOne) {
-          const formattedDate = gameDate.toLocaleDateString('en-GB', {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long',
-            hour: '2-digit',
-            minute: '2-digit',
-          });
-
-          const locationText = formatLocationSection((created as any).locationName, (created as any).locationLink);
-          const message = `<b>🏐 New Volleyball Game Registration Open!</b>\n\nRegistration is now open for the game on <b>${formattedDate}</b>${locationText}\n\nSpots are limited to ${created.maxPlayers} players. First come, first served!\n\nClick the button below to join:`;
-
-          await sendGroupAnnouncement(message);
-        }
-      } catch (announceErr) {
-        console.error('Failed to send creation announcement:', announceErr);
-        // Non-blocking
-      }
-
-      res.status(201).json(newGame[0]);
-    } catch (error) {
-      console.error('Error creating game:', error);
-      res.status(500).json({ error: 'Failed to create game' });
-    }
-  },
-);
-
 // Register user for a game
-router.post('/:gameId/register', telegramAuthMiddleware, async (req, res) => {
+router.post('/:gameId/register', async (req, res) => {
   try {
     const { gameId } = req.params;
     const { guestName } = req.body; // Optional guest name from request body
@@ -244,23 +131,20 @@ router.post('/:gameId/register', telegramAuthMiddleware, async (req, res) => {
       const guestName = registration[0].guestName;
 
       // Send different notifications based on waitlist status
-      if (userDetails[0].telegramId) {
-        if (isWaitlist) {
-          // User is on waitlist
-          const subject = getNotificationSubjectWithVerb(guestName, 'have');
-          await sendTelegramNotification(
-            userDetails[0].telegramId,
-            `⏳ ${subject} been added to the waiting list for the volleyball game on ${formattedDate}. We'll notify you if a spot becomes available! Position on waitlist: ${position - game[0].maxPlayers + 1
-            }`,
-          );
-        } else {
-          // User is a direct participant
-          const subject = getNotificationSubjectWithVerb(guestName, 'are');
-          await sendTelegramNotification(
-            userDetails[0].telegramId,
-            `✅ ${subject} registered for the volleyball game on ${formattedDate}. See you there! 🏐`,
-          );
-        }
+      if (isWaitlist) {
+        const subject = getNotificationSubjectWithVerb(guestName, 'have');
+        await notifyUser(
+          userDetails[0],
+          `⏳ ${subject} been added to the waiting list for the volleyball game on ${formattedDate}. We'll notify you if a spot becomes available! Position on waitlist: ${position - game[0].maxPlayers + 1}`,
+          { allowSms: false }
+        );
+      } else {
+        const subject = getNotificationSubjectWithVerb(guestName, 'are');
+        await notifyUser(
+          userDetails[0],
+          `✅ ${subject} registered for the volleyball game on ${formattedDate}. See you there! 🏐`,
+          { allowSms: false }
+        );
       }
     }
 
@@ -272,7 +156,7 @@ router.post('/:gameId/register', telegramAuthMiddleware, async (req, res) => {
 });
 
 // Unregister user from a game
-router.delete('/:gameId/register', telegramAuthMiddleware, async (req, res) => {
+router.delete('/:gameId/register', async (req, res) => {
   try {
     const { gameId } = req.params;
     const { guestName } = req.body as { guestName?: string };
@@ -377,12 +261,13 @@ router.delete('/:gameId/register', telegramAuthMiddleware, async (req, res) => {
       );
 
     // Send notification to the user who left
-    if (userDetails.length > 0 && registrationDetails.length > 0 && userDetails[0].telegramId) {
+    if (userDetails.length > 0 && registrationDetails.length > 0) {
       const guestName = registrationDetails[0].guestName;
       const subject = getNotificationSubjectWithVerb(guestName, 'have');
-      await sendTelegramNotification(
-        userDetails[0].telegramId,
+      await notifyUser(
+        userDetails[0],
         `❌ ${subject} been unregistered from the volleyball game on ${formattedDate}. Hope to see you at another game soon! 🏐`,
+        { allowSms: false }
       );
     }
 
@@ -412,7 +297,7 @@ router.delete('/:gameId/register', telegramAuthMiddleware, async (req, res) => {
           .from(users)
           .where(eq(users.id, promotedUserId));
 
-        if (promotedUser.length > 0 && promotedUser[0].telegramId) {
+        if (promotedUser.length > 0) {
           // Format date for the notification
           const gameDate = new Date(game[0].dateTime);
           const formattedDate = gameDate.toLocaleDateString('en-GB', {
@@ -425,8 +310,8 @@ router.delete('/:gameId/register', telegramAuthMiddleware, async (req, res) => {
 
           // Send notification to the promoted user
           const subject = getNotificationSubjectWithVerb(promotedGuestName, 'have');
-          await sendTelegramNotification(
-            promotedUser[0].telegramId,
+          await notifyUser(
+            promotedUser[0],
             `🎉 Good news! ${subject} been moved from the waiting list to the participants list for the volleyball game on ${formattedDate}. See you there! 🏐`,
           );
         }
@@ -496,7 +381,7 @@ router.get('/:gameId', async (req, res) => {
   }
 });
 
-router.get('/', telegramAuthMiddleware, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     // Parse query parameters
     const showPast = req.query.showPast === 'true';
@@ -694,621 +579,9 @@ router.get('/', telegramAuthMiddleware, async (req, res) => {
   }
 });
 
-// Update game details - Admin only
-router.put(
-  '/:gameId',
-  telegramAuthMiddleware,
-  adminAuthMiddleware,
-  async (req, res) => {
-    try {
-      const gameId = parseInt(req.params.gameId);
-      const {
-        dateTime,
-        maxPlayers,
-        unregisterDeadlineHours,
-        paymentAmount,
-        pricingMode,
-        withPositions,
-        locationName,
-        locationLink,
-      } = req.body;
-
-      // Validate required fields
-      if (!dateTime || !maxPlayers) {
-        return res
-          .status(400)
-          .json({ error: 'dateTime and maxPlayers are required' });
-      }
-
-      // Check if game exists before updating
-      const existingGame = await db
-        .select()
-        .from(games)
-        .where(eq(games.id, gameId));
-      if (!existingGame.length) {
-        return res.status(404).json({ error: 'Game not found' });
-      }
-
-      // Store original values for comparison to determine what changed
-      const originalDateTime = new Date(existingGame[0].dateTime);
-      const newDateTime = new Date(dateTime);
-
-      // Update the game with new settings
-      const game = await db
-        .update(games)
-        .set({
-          dateTime: newDateTime,
-          maxPlayers,
-          unregisterDeadlineHours,
-          paymentAmount,
-          pricingMode,
-          withPositions,
-          locationName,
-          locationLink,
-        })
-        .where(eq(games.id, gameId))
-        .returning();
-
-      // Get all registrations for this game to notify users
-      const registrations = await db
-        .select({
-          userId: gameRegistrations.userId,
-        })
-        .from(gameRegistrations)
-        .where(eq(gameRegistrations.gameId, gameId));
-
-      // If there are registrations, notify all registered users about the changes
-      if (registrations.length > 0) {
-        // Format dates for the notification
-        const formattedNewDate = newDateTime.toLocaleDateString('en-GB', {
-          weekday: 'long',
-          day: 'numeric',
-          month: 'long',
-          hour: '2-digit',
-          minute: '2-digit',
-        });
-
-        const formattedOldDate = originalDateTime.toLocaleDateString('en-GB', {
-          weekday: 'long',
-          day: 'numeric',
-          month: 'long',
-          hour: '2-digit',
-          minute: '2-digit',
-        });
-
-        // Determine what changed for the notification message
-        const dateTimeChanged =
-          originalDateTime.getTime() !== newDateTime.getTime();
-
-        // Create notification message based on what changed
-        let notificationMessage = '🔄 <b>Game Update:</b>\n';
-        const changes = [];
-
-        if (dateTimeChanged) {
-          changes.push(
-            `The game has been rescheduled from ${formattedOldDate} to ${formattedNewDate}`,
-          );
-        }
-
-        // Only send notification if there are actual changes
-        if (changes.length > 0) {
-          notificationMessage = '🔄 <b>Game Update:</b>\n\n';
-          notificationMessage += changes
-            .map((change) => `• ${change}`)
-            .join('\n');
-
-          // Get user details for all registered users
-          for (const registration of registrations) {
-            const userDetails = await db
-              .select()
-              .from(users)
-              .where(eq(users.id, registration.userId));
-
-            if (userDetails.length > 0 && userDetails[0].telegramId) {
-              // Send notification to each registered user
-              await sendTelegramNotification(
-                userDetails[0].telegramId,
-                notificationMessage,
-              );
-            }
-          }
-        }
-
-        res.json(game[0]);
-      }
-    } catch (error) {
-      console.error('Error updating game:', error);
-      res.status(500).json({ error: 'Failed to update game' });
-    }
-  },
-);
-
-// Delete game and its registrations
-router.delete(
-  '/:gameId',
-  telegramAuthMiddleware,
-  adminAuthMiddleware,
-  async (req, res) => {
-    try {
-      const gameId = parseInt(req.params.gameId);
-
-      // Delete all registrations for this game first
-      await db
-        .delete(gameRegistrations)
-        .where(eq(gameRegistrations.gameId, gameId));
-
-      // Then delete the game itself
-      const game = await db
-        .delete(games)
-        .where(eq(games.id, gameId))
-        .returning();
-
-      if (!game.length) {
-        return res.status(404).json({ error: 'Game not found' });
-      }
-
-      res.status(204).send();
-    } catch (error) {
-      console.error('Error deleting game:', error);
-      res.status(500).json({ error: 'Failed to delete game' });
-    }
-  },
-);
-
-// Create payment requests for all unpaid players in a game (admin only)
-router.post(
-  '/:gameId/payment-requests',
-  telegramAuthMiddleware,
-  adminAuthMiddleware,
-  async (req, res) => {
-    try {
-      if (!req.user || !req.user.id) {
-        return res.status(401).json({ error: 'Authentication required' });
-      }
-
-      const gameId = parseInt(req.params.gameId);
-      const password = req.body.password;
-
-      // Check if game exists
-      const game = await db.select().from(games).where(eq(games.id, gameId));
-      if (!game.length) {
-        return res.status(404).json({ error: 'Game not found' });
-      }
-
-      // Create payment requests for all unpaid players
-      const result = await bunqService.createPaymentRequests(
-        gameId,
-        req.user.id,
-        password,
-      );
-
-      if (result.success) {
-        res.json({
-          message: `Successfully created ${result.requestsCreated} payment requests`,
-          requestsCreated: result.requestsCreated,
-          errors: result.errors,
-        });
-      } else {
-        res.status(500).json({
-          error:
-            result.errors.length == 1
-              ? result.errors[0]
-              : 'Failed to create payment requests',
-          errors: result.errors,
-        });
-      }
-    } catch (error) {
-      console.error('Error creating payment requests:', error);
-      res.status(500).json({ error: 'Failed to create payment requests' });
-    }
-  },
-);
-
-// Admin: Add a participant to a game (admin only)
-router.post(
-  '/:gameId/participants',
-  telegramAuthMiddleware,
-  adminAuthMiddleware,
-  async (req, res) => {
-    try {
-      const gameId = parseInt(req.params.gameId);
-      const { userId, guestName } = req.body;
-
-      if (!userId) {
-        return res.status(400).json({ error: 'User ID is required' });
-      }
-
-      // Check if game exists
-      const game = await db.select().from(games).where(eq(games.id, gameId));
-      if (!game.length) {
-        return res.status(404).json({ error: 'Game not found' });
-      }
-
-      // Allow modifications only when the game start time is in the past
-      const gameDateTime = new Date(game[0].dateTime);
-      const now = new Date();
-      if (now < gameDateTime) {
-        return res
-          .status(400)
-          .json({ error: 'Cannot modify participants for future or ongoing games' });
-      }
-
-      // Check if payment requests exist for this game
-      const paymentRequestsExist = await db
-        .select()
-        .from(paymentRequests)
-        .innerJoin(
-          gameRegistrations,
-          eq(paymentRequests.gameRegistrationId, gameRegistrations.id),
-        )
-        .where(eq(gameRegistrations.gameId, gameId))
-        .limit(1);
-
-      if (paymentRequestsExist.length > 0) {
-        return res.status(400).json({
-          error:
-            'Cannot modify participants after payment requests have been sent',
-        });
-      }
-
-      // Check if user exists
-      const user = await db.select().from(users).where(eq(users.id, userId));
-      if (!user.length) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-
-      // Check if user is already registered
-      // If guestName is provided, allow multiple registrations per user but prevent duplicates for the same guest
-      // If no guestName, ensure there is no existing self-registration (guestName IS NULL)
-      const existingRegistration = await db
-        .select()
-        .from(gameRegistrations)
-        .where(
-          and(
-            eq(gameRegistrations.gameId, gameId),
-            eq(gameRegistrations.userId, userId),
-            guestName ? eq(gameRegistrations.guestName, guestName) : isNull(gameRegistrations.guestName),
-          ),
-        );
-
-      if (existingRegistration.length > 0) {
-        return res
-          .status(400)
-          .json({
-            error: guestName
-              ? 'This guest is already registered for this game'
-              : 'User already registered for this game',
-          });
-      }
-
-      // Add user to the game with timestamp set to REGISTRATION_OPEN_DAYS days before the game date
-      const registrationOpenDate = new Date(gameDateTime);
-      registrationOpenDate.setDate(
-        registrationOpenDate.getDate() - REGISTRATION_OPEN_DAYS,
-      );
-
-      const registration = await db
-        .insert(gameRegistrations)
-        .values({
-          gameId,
-          userId,
-          guestName: guestName ?? null,
-          paid: false,
-          createdAt: registrationOpenDate, // Set to X days before game date
-        })
-        .returning();
-
-      res.status(201).json(registration[0]);
-    } catch (error) {
-      console.error('Error adding participant:', error);
-      res.status(500).json({ error: 'Failed to add participant' });
-    }
-  },
-);
-
-// Admin: Remove a participant from a game (admin only)
-router.delete(
-  '/:gameId/participants/:userId',
-  telegramAuthMiddleware,
-  adminAuthMiddleware,
-  async (req, res) => {
-    try {
-      const gameId = parseInt(req.params.gameId);
-      const userId = parseInt(req.params.userId);
-      const { guestName } = req.body;
-
-      // Check if game exists
-      const game = await db.select().from(games).where(eq(games.id, gameId));
-      if (!game.length) {
-        return res.status(404).json({ error: 'Game not found' });
-      }
-
-      // Check if game is in the past
-      const gameDateTime = new Date(game[0].dateTime);
-      const now = new Date();
-      if (gameDateTime > now) {
-        return res
-          .status(400)
-          .json({ error: 'Cannot modify participants for future games' });
-      }
-
-      // Check if payment requests exist for this game
-      const paymentRequestsExist = await db
-        .select()
-        .from(paymentRequests)
-        .innerJoin(
-          gameRegistrations,
-          eq(paymentRequests.gameRegistrationId, gameRegistrations.id),
-        )
-        .where(eq(gameRegistrations.gameId, gameId))
-        .limit(1);
-
-      if (paymentRequestsExist.length > 0) {
-        return res.status(400).json({
-          error:
-            'Cannot modify participants after payment requests have been sent',
-        });
-      }
-
-      const registration = await db
-        .select()
-        .from(gameRegistrations)
-        .where(
-          and(
-            eq(gameRegistrations.gameId, gameId),
-            eq(gameRegistrations.userId, userId),
-            guestName
-              ? eq(gameRegistrations.guestName, guestName)
-              : isNull(gameRegistrations.guestName),
-          ),
-        );
-
-      if (!registration.length) {
-        return res.status(404).json({ error: 'Registration not found' });
-      }
-
-      // Delete the registration
-      await db
-        .delete(gameRegistrations)
-        .where(eq(gameRegistrations.id, registration[0].id));
-
-      res.json({ message: 'Participant removed successfully' });
-    } catch (error) {
-      console.error('Error removing participant:', error);
-      res.status(500).json({ error: 'Failed to remove participant' });
-    }
-  },
-);
-
-// Update a player's paid status for a game (admin only)
-router.put(
-  '/:gameId/players/:userId/paid',
-  telegramAuthMiddleware,
-  adminAuthMiddleware,
-  async (req, res) => {
-    try {
-      const gameId = parseInt(req.params.gameId);
-      const userId = parseInt(req.params.userId);
-
-      // Check if game exists
-      const game = await db.select().from(games).where(eq(games.id, gameId));
-      if (!game.length) {
-        return res.status(404).json({ error: 'Game not found' });
-      }
-
-      // Check if registration exists
-      const registration = await db
-        .select()
-        .from(gameRegistrations)
-        .where(
-          and(
-            eq(gameRegistrations.gameId, gameId),
-            eq(gameRegistrations.userId, userId),
-          ),
-        );
-
-      if (!registration.length) {
-        return res.status(404).json({ error: 'Registration not found' });
-      }
-
-      // Get paid status from request body, default to true if not provided
-      const { paid = true } = req.body;
-
-      // Update paid status
-      const success = await bunqService.updatePaidStatus(gameId, userId, paid);
-
-      if (success) {
-        const statusMessage = paid ? 'paid' : 'unpaid';
-        res.json({
-          message: `Successfully marked registration as ${statusMessage}`,
-        });
-      } else {
-        res
-          .status(400)
-          .json({ error: 'Failed to update registration paid status' });
-      }
-    } catch (error) {
-      console.error('Error updating registration paid status:', error);
-      res
-        .status(500)
-        .json({ error: 'Failed to update registration paid status' });
-    }
-  },
-);
-
-// Check payment statuses for all unpaid games
-router.post(
-  '/check-payments',
-  telegramAuthMiddleware,
-  adminAuthMiddleware,
-  async (req, res) => {
-    try {
-      if (!req.user?.id) {
-        return res.status(401).json({ error: 'Authentication required' });
-      }
-
-      const { password } = req.body;
-      if (!password) {
-        return res.status(400).json({ error: 'Password is required' });
-      }
-
-      // 1. Get up to 10 unpaid past games
-      const unpaidGames = await db
-        .select()
-        .from(games)
-        .where(and(eq(games.fullyPaid, false), lt(games.dateTime, new Date())))
-        .orderBy(desc(games.dateTime))
-        .limit(10);
-
-      if (unpaidGames.length === 0) {
-        return res.json({
-          success: true,
-          message: 'No unpaid past games found',
-          updatedPlayers: 0,
-          updatedGames: 0,
-          processedGames: 0,
-        });
-      }
-
-      const gameIds = unpaidGames.map((g) => g.id);
-      let totalUpdatedPlayers = 0;
-      let totalUpdatedGames = 0;
-      const errors: string[] = [];
-
-      // 2. Get all unpaid registrations for these games with payment requests
-      const unpaidRegistrations = await db
-        .select({
-          id: gameRegistrations.id,
-          gameId: gameRegistrations.gameId,
-          userId: gameRegistrations.userId,
-          paid: gameRegistrations.paid,
-          createdAt: gameRegistrations.createdAt,
-          user: {
-            id: users.id,
-            telegramId: users.telegramId,
-            displayName: users.displayName,
-            telegramUsername: users.telegramUsername,
-            avatarUrl: users.avatarUrl,
-            isAdmin: users.isAdmin,
-            createdAt: users.createdAt,
-          },
-          paymentRequest: {
-            id: paymentRequests.id,
-            paymentRequestId: paymentRequests.paymentRequestId,
-            monetaryAccountId: paymentRequests.monetaryAccountId,
-            paid: paymentRequests.paid,
-            gameRegistrationId: paymentRequests.gameRegistrationId,
-            paymentLink: paymentRequests.paymentLink,
-            createdAt: paymentRequests.createdAt,
-            lastCheckedAt: paymentRequests.lastCheckedAt,
-          },
-        })
-        .from(gameRegistrations)
-        .innerJoin(users, eq(users.id, gameRegistrations.userId))
-        .leftJoin(
-          paymentRequests,
-          eq(paymentRequests.gameRegistrationId, gameRegistrations.id),
-        )
-        .where(
-          and(
-            inArray(gameRegistrations.gameId, gameIds),
-            eq(gameRegistrations.paid, false),
-          ),
-        );
-
-      // 3. Process each registration with a payment request
-      for (const registration of unpaidRegistrations) {
-        if (!registration.paymentRequest) continue;
-
-        const isPaid = await bunqService.checkPaymentRequestStatus(
-          registration.paymentRequest.paymentRequestId,
-          registration.paymentRequest.monetaryAccountId,
-          req.user.id, // admin user ID
-          password,
-        );
-
-        if (isPaid) {
-          await db
-            .update(gameRegistrations)
-            .set({ paid: true })
-            .where(eq(gameRegistrations.id, registration.id));
-
-          totalUpdatedPlayers++;
-
-          // Check if all registrations for this game are now paid
-          const unpaidCount = await db
-            .select({ count: sql<number>`count(*)` })
-            .from(gameRegistrations)
-            .where(
-              and(
-                eq(gameRegistrations.gameId, registration.gameId),
-                eq(gameRegistrations.paid, false),
-              ),
-            )
-            .then((rows) => rows[0]?.count ?? 0);
-
-          if (unpaidCount === 0) {
-            await db
-              .update(games)
-              .set({ fullyPaid: true })
-              .where(eq(games.id, registration.gameId));
-            totalUpdatedGames++;
-          }
-        }
-      }
-
-      // 4. Check each game to see if all registrations are now paid
-      for (const game of unpaidGames) {
-        // Get all registrations ordered by creation time
-        const allRegistrations = await db
-          .select({
-            id: gameRegistrations.id,
-            paid: gameRegistrations.paid,
-          })
-          .from(gameRegistrations)
-          .where(eq(gameRegistrations.gameId, game.id))
-          .orderBy(gameRegistrations.createdAt);
-
-        // Only consider the first maxPlayers registrations as non-waitlist
-        const activeRegistrations = allRegistrations.slice(0, game.maxPlayers);
-
-        // Count unpaid active registrations
-        const unpaidCount = activeRegistrations.filter(
-          (reg) => !reg.paid,
-        ).length;
-
-        if (unpaidCount === 0) {
-          await db
-            .update(games)
-            .set({ fullyPaid: true })
-            .where(eq(games.id, game.id));
-          totalUpdatedGames++;
-        }
-      }
-
-      res.json({
-        success: true,
-        message: `Payment check completed. Updated ${totalUpdatedPlayers} players and marked ${totalUpdatedGames} games as fully paid.`,
-        updatedPlayers: totalUpdatedPlayers,
-        updatedGames: totalUpdatedGames,
-        processedGames: unpaidGames.length,
-        errors: errors.length > 0 ? errors : undefined,
-      });
-    } catch (error) {
-      console.error('Error checking payments:', error);
-      res.status(500).json({
-        error: 'Failed to check payments',
-        message:
-          error instanceof Error ? error.message : 'Unknown error occurred',
-      });
-    }
-  },
-);
-
 // Get last used guest name for a user (excluding current game)
 router.get(
   '/:gameId/last-guest-name',
-  telegramAuthMiddleware,
   async (req, res) => {
     try {
       const { gameId } = req.params;

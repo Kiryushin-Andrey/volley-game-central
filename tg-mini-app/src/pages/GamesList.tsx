@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, memo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { logDebug } from '../debug';
-import { gamesApi } from '../services/api';
+import { gamesApi, bunqApi } from '../services/api';
 import { GameWithStats, User } from '../types';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { resolveLocationLink } from '../utils/locationUtils';
@@ -154,6 +154,7 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
   const isLoadingRef = useRef(false);
   const [loadingIndicator, setLoadingIndicator] = useState(false);
   const navigate = useNavigate();
+  const [hasBunqIntegration, setHasBunqIntegration] = useState<boolean>(false);
 
   // Persist showPositions preference
   useEffect(() => {
@@ -173,6 +174,21 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
       setGames(filteredGames);
     }
   }, [showPositions, allGames]);
+
+  // Load bunq integration status for admin users
+  useEffect(() => {
+    const loadBunqStatus = async () => {
+      if (!user.isAdmin) return;
+      try {
+        const status = await bunqApi.getStatus();
+        setHasBunqIntegration(status.enabled);
+      } catch (e) {
+        logDebug('Failed to load bunq status');
+        setHasBunqIntegration(false);
+      }
+    };
+    loadBunqStatus();
+  }, [user.isAdmin]);
   
   // Load games function with useCallback to prevent infinite loops
   const loadGames = useCallback(async () => {
@@ -313,12 +329,14 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
                 >
                   💳 Bunq settings
                 </button>
-                <button
-                  className="check-payments-button"
-                  onClick={() => navigate('/check-payments')}
-                >
-                  🔄 Check Payments
-                </button>
+                {hasBunqIntegration && (
+                  <button
+                    className="check-payments-button"
+                    onClick={() => navigate('/check-payments')}
+                  >
+                    🔄 Check Payments
+                  </button>
+                )}
                 <button
                   className="create-game-button"
                   onClick={() => navigate('/games/new')}

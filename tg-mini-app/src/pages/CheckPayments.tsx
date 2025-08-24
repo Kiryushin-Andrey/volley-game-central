@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { gamesApi } from '../services/api';
 import { BackButton } from '@twa-dev/sdk/react';
+import { isTelegramApp } from '../utils/telegram';
 import PasswordDialog from '../components/PasswordDialog';
 import './CheckPayments.scss';
 import WebApp from '@twa-dev/sdk';
@@ -12,6 +13,7 @@ const CheckPayments = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [passwordError, setPasswordError] = useState<string>('');
   const navigate = useNavigate();
+  const inTelegram = isTelegramApp();
 
   // Show password dialog immediately when component mounts
   useEffect(() => {
@@ -50,7 +52,9 @@ const CheckPayments = () => {
 
   return (
     <div className="check-payments">
-      <BackButton onClick={handleCancel} />
+      {inTelegram && (
+        <BackButton onClick={handleCancel} />
+      )}
       <h1>Check Payments</h1>
       <p>This will check the payment status of all unpaid games and update the database accordingly.</p>
       

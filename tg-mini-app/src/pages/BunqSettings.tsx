@@ -1,23 +1,26 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 import { 
   BunqSettingsViewModel, 
   BunqSettingsState
 } from '../viewmodels/BunqSettingsViewModel';
 import MonetaryAccountSelector from '../components/MonetaryAccountSelector';
 import CredentialsForm from '../components/CredentialsForm';
+import { BackButton } from '@twa-dev/sdk/react';
+import { isTelegramApp } from '../utils/telegram';
 import './BunqSettings.scss';
 
 const BunqSettings: React.FC = () => {
   const navigate = useNavigate();
-  const { webApp } = useTelegramWebApp();
+  const webApp = window.Telegram?.WebApp;
   
   // State management
   const [state, setState] = useState<BunqSettingsState>(
     BunqSettingsViewModel.getInitialState()
   );
   const [isPasswordFormShown, setIsPasswordFormShown] = useState(false);
+  
+  const inTelegram = isTelegramApp();
   
   // Create viewmodel instance with state updater
   const updateState = useCallback((updates: Partial<BunqSettingsState>) => {
@@ -40,20 +43,6 @@ const BunqSettings: React.FC = () => {
     }
   }, [state.isEnabled]);
 
-  // Set up Telegram back button
-  useEffect(() => {
-    if (webApp?.BackButton) {
-      webApp.BackButton.show();
-      webApp.BackButton.onClick(() => {
-        navigate(-1);
-      });
-
-      return () => {
-        webApp.BackButton.hide();
-      };
-    }
-  }, [webApp, navigate]);
-
   if (state.isLoading) {
     return (
       <div className="bunq-settings-container">
@@ -70,6 +59,9 @@ const BunqSettings: React.FC = () => {
   return (
     <div className="bunq-settings-container">
       <div className="bunq-settings-header">
+        {inTelegram && (
+          <BackButton onClick={() => navigate(-1)} />
+        )}
         <h1>Bunq Settings</h1>
       </div>
       
