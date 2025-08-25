@@ -8,11 +8,12 @@ import { PricingMode } from '../types/PricingMode';
 type PaymentRequest = InferSelectModel<typeof paymentRequests>;
 import { telegramAuthMiddleware } from '../middleware/telegramAuth';
 import { adminAuthMiddleware } from '../middleware/adminAuth';
-import { sendTelegramNotification } from '../services/telegramService';
+import { sendTelegramNotification, sendGroupAnnouncement } from '../services/telegramService';
 import { gameService } from '../services/gameService';
 import { bunqService } from '../services/bunqService';
 import { REGISTRATION_OPEN_DAYS } from '../constants';
 import { getNotificationSubjectWithVerb, getNotificationSubjectLowercase } from '../utils/notificationUtils';
+import { formatLocationSection } from '../utils/telegramMessageUtils';
 
 const router = Router();
 
@@ -75,6 +76,36 @@ router.post(
           createdById,
         })
         .returning();
+
+      // After creating the game, if registration is already open and it's not a 5-1 game, announce it in the group
+      try {
+        const created = newGame[0];
+        const gameDate = new Date(created.dateTime);
+        const now = new Date();
+        const registrationOpensAt = new Date(gameDate);
+        registrationOpensAt.setDate(registrationOpensAt.getDate() - REGISTRATION_OPEN_DAYS);
+
+        const isRegistrationOpen = now >= registrationOpensAt;
+        const isFiveOne = !!created.withPositions;
+
+        if (isRegistrationOpen && !isFiveOne) {
+          const formattedDate = gameDate.toLocaleDateString('en-GB', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+
+          const locationText = formatLocationSection((created as any).locationName, (created as any).locationLink);
+          const message = `<b>🏐 New Volleyball Game Registration Open!</b>\n\nRegistration is now open for the game on <b>${formattedDate}</b>${locationText}\n\nSpots are limited to ${created.maxPlayers} players. First come, first served!\n\nClick the button below to join:`;
+
+          await sendGroupAnnouncement(message);
+        }
+      } catch (announceErr) {
+        console.error('Failed to send creation announcement:', announceErr);
+        // Non-blocking
+      }
 
       res.status(201).json(newGame[0]);
     } catch (error) {
