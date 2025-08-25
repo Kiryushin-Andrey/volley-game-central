@@ -60,7 +60,7 @@ const GameItem = memo(({ game, onClick, formatDate }: {
         </div>
       )}
 
-      {/* Upcoming games within 5 days: show registered/total */}
+      {/* Upcoming games within registration window: show registered/total */}
       {game.registeredCount !== undefined && (
         <div className="compact-stats">
           <span className="counter">{game.registeredCount}</span>
@@ -178,7 +178,7 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
         totalRegisteredCount: game.totalRegisteredCount || 0,
         paidCount: game.paidCount,
         registeredCount: game.registeredCount,
-        // User registration status (already included by API for games within 5 days)
+        // User registration status (already included by API for games within 10 days)
         isUserRegistered: game.isUserRegistered || false,
         userRegistration: game.userRegistration || undefined
       }));

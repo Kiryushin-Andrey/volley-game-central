@@ -1,5 +1,5 @@
 /** Number of days before a game when registration opens (must match server policy) */
-export const DAYS_BEFORE_GAME_TO_JOIN = 5;
+export const DAYS_BEFORE_GAME_TO_JOIN = 10;
 
 export const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
@@ -27,17 +27,13 @@ export const formatDate = (dateString: string): string => {
 export const isGameUpcoming = (gameDate: string): boolean => {
   const gameDateTime = new Date(gameDate);
   const now = new Date();
-  // Consider the game as "upcoming" until 6 hours after it starts
-  const sixHoursAfterStart = new Date(gameDateTime.getTime() + 6 * 60 * 60 * 1000);
-  return sixHoursAfterStart > now;
+  return gameDateTime > now;
 };
 
 export const isGamePast = (gameDate: string): boolean => {
   const gameDateTime = new Date(gameDate);
   const now = new Date();
-  // Consider the game as "past" only after 6 hours have passed since it started
-  const sixHoursAfterStart = new Date(gameDateTime.getTime() + 6 * 60 * 60 * 1000);
-  return sixHoursAfterStart <= now;
+  return gameDateTime <= now;
 };
 
 export const canJoinGame = (gameDate: string): boolean => {

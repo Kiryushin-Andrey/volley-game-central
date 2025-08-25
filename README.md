@@ -207,7 +207,7 @@ Reload the Mini App in Telegram.
 - Submit to create the game.
 
 3) If the new game doesn’t appear
-- By default, the list shows only games within `REGISTRATION_OPEN_DAYS` (currently 5 days). Use the admin toggle “Show all scheduled games” to see games further in the future.
+- By default, the list shows only games within `REGISTRATION_OPEN_DAYS` (currently 10 days). Use the admin toggle “Show all scheduled games” to see games further in the future.
 
 Optional: direct SQL insert for testing
 ```sql

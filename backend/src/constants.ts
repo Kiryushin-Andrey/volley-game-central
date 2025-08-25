@@ -1,1 +1,1 @@
-export const REGISTRATION_OPEN_DAYS = 5;
+export const REGISTRATION_OPEN_DAYS = 10;

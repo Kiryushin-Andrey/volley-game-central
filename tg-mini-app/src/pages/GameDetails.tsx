@@ -17,6 +17,7 @@ import {
   isGamePast,
   canJoinGame,
   canLeaveGame,
+  DAYS_BEFORE_GAME_TO_JOIN,
 } from "../utils/gameDateUtils";
 import {
   getActiveRegistrations,
@@ -174,8 +175,8 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
       if (!canJoinGame(game.dateTime)) {
         const gameDateTime = new Date(game.dateTime);
         const daysBeforeGame = new Date(gameDateTime.getTime());
-        daysBeforeGame.setDate(daysBeforeGame.getDate() - 5);
-        return `Registration opens ${daysBeforeGame.toLocaleDateString()} (X days before the game).`;
+        daysBeforeGame.setDate(daysBeforeGame.getDate() - DAYS_BEFORE_GAME_TO_JOIN);
+        return `Registration opens ${daysBeforeGame.toLocaleDateString()} (${DAYS_BEFORE_GAME_TO_JOIN} days before the game).`;
       }
     }
 
