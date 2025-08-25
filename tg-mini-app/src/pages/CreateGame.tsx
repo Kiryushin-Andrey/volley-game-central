@@ -37,7 +37,7 @@ const CreateGame: React.FC = () => {
       try {
         setIsInitialLoading(true);
         
-        const defaults = await gamesApi.getDefaultDateTime();
+        const defaults = await gamesApi.getDefaultGameSettings();
         const defaultDate = defaults.date;
         
         if (defaultDate.getHours() === 0 && defaultDate.getMinutes() === 0) {
@@ -45,8 +45,16 @@ const CreateGame: React.FC = () => {
         }
         
         setSelectedDate(defaultDate);
-        if (defaults.suggestedLocationName) setLocationName(defaults.suggestedLocationName);
-        if (defaults.suggestedLocationLink) setLocationLink(defaults.suggestedLocationLink);
+        if (defaults.locationName) setLocationName(defaults.locationName);
+        if (defaults.locationLink) setLocationLink(defaults.locationLink);
+        if (defaults.pricingMode) setPricingMode(defaults.pricingMode);
+        if (typeof defaults.paymentAmount === 'number') {
+          setPaymentAmount(defaults.paymentAmount);
+          setPaymentAmountDisplay(centsToEuroString(defaults.paymentAmount));
+        }
+        if (typeof defaults.withPositions === 'boolean') {
+          setWithPositions(defaults.withPositions);
+        }
       } catch (err) {
         logDebug('Error fetching default date and time:');
         logDebug(err);

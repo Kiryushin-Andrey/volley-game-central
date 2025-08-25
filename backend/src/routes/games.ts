@@ -17,12 +17,19 @@ import { formatLocationSection } from '../utils/telegramMessageUtils';
 
 const router = Router();
 
-// Calculate default date and time for a new game
-router.get('/default-datetime', telegramAuthMiddleware, async (req, res) => {
+// Calculate default settings for a new game
+router.get('/defaults', telegramAuthMiddleware, async (req, res) => {
   try {
-    const { defaultDateTime, defaultLocationName, defaultLocationLink } =
-      await gameService.calculateDefaultDateTime();
-    res.json({ defaultDateTime, defaultLocationName, defaultLocationLink });
+    const { defaultDateTime, defaultLocationName, defaultLocationLink, defaultPaymentAmount, defaultPricingMode, defaultWithPositions } =
+      await gameService.calculateDefaultGameSettings();
+    res.json({
+      defaultDateTime,
+      defaultLocationName,
+      defaultLocationLink,
+      defaultPaymentAmount,
+      defaultPricingMode,
+      defaultWithPositions,
+    });
   } catch (error) {
     console.error('Error calculating default date time:', error);
     res.status(500).json({ error: 'Failed to calculate default date time' });

@@ -97,12 +97,22 @@ export const userApi = {
 };
 
 export const gamesApi = {
-  getDefaultDateTime: async (): Promise<{ date: Date; suggestedLocationName?: string | null; suggestedLocationLink?: string | null }> => {
-    const response = await api.get('/games/default-datetime');
+  getDefaultGameSettings: async (): Promise<{ 
+    date: Date; 
+    locationName?: string | null; 
+    locationLink?: string | null;
+    paymentAmount?: number | null; // cents
+    pricingMode?: PricingMode | null;
+    withPositions?: boolean | null;
+  }> => {
+    const response = await api.get('/games/defaults');
     return {
       date: new Date(response.data.defaultDateTime),
-      suggestedLocationName: response.data.defaultLocationName ?? null,
-      suggestedLocationLink: response.data.defaultLocationLink ?? null,
+      locationName: response.data.defaultLocationName ?? null,
+      locationLink: response.data.defaultLocationLink ?? null,
+      paymentAmount: response.data.defaultPaymentAmount ?? null,
+      pricingMode: (response.data.defaultPricingMode as PricingMode | undefined) ?? null,
+      withPositions: response.data.defaultWithPositions ?? null,
     };
   },
 
