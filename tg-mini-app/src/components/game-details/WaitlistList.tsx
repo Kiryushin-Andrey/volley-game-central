@@ -1,6 +1,7 @@
 import React from 'react';
 import { GameRegistration, UserPublicInfo } from '../../types';
 import RemovePlayerButton from './RemovePlayerButton';
+import { FaUser } from 'react-icons/fa';
 
 interface Props {
   registrations: GameRegistration[];
@@ -24,7 +25,11 @@ export const WaitlistList: React.FC<Props> = ({ registrations, currentUserId, is
                 }
               }}
             >
-              {registration.user?.avatarUrl ? (
+              {registration.guestName ? (
+                <div className="avatar-placeholder guest-avatar">
+                  <FaUser className="guest-icon" />
+                </div>
+              ) : registration.user?.avatarUrl ? (
                 <img
                   src={registration.user.avatarUrl}
                   alt={`${registration.user.displayName}'s avatar`}
@@ -36,19 +41,43 @@ export const WaitlistList: React.FC<Props> = ({ registrations, currentUserId, is
                 </div>
               )}
             </div>
+
             <div
-              className={`player-name ${isAdmin && !registration.guestName && registration.user ? 'clickable' : ''}`}
+              className={`player-details ${isAdmin && registration.user ? 'clickable' : ''}`}
               onClick={() => {
-                if (isAdmin && !registration.guestName && registration.user && onShowUserInfo) {
+                if (isAdmin && registration.user && onShowUserInfo) {
                   onShowUserInfo(registration.user);
                 }
               }}
             >
-              {registration.guestName || registration.user?.displayName || registration.user?.telegramUsername || `Player ${registration.userId}`}
+              <div className="player-name">
+                {registration.guestName || registration.user?.displayName || registration.user?.telegramUsername || `Player ${registration.userId}`}
+              </div>
+              {registration.guestName && (
+                <div className="invited-by">
+                  <div className="inviter-avatar">
+                    {registration.user?.avatarUrl ? (
+                      <img
+                        src={registration.user.avatarUrl}
+                        alt={`${registration.user.displayName}'s avatar`}
+                        className="inviter-avatar-image"
+                      />
+                    ) : (
+                      <div className="inviter-avatar-placeholder">
+                        {(registration.user?.displayName || registration.user?.telegramUsername || `Player ${registration.userId}`).charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <span className="invited-by-text">
+                    Invited by {registration.user?.displayName || registration.user?.telegramUsername || `Player ${registration.userId}`}
+                  </span>
+                </div>
+              )}
             </div>
+
             {registration.userId === currentUserId && !registration.guestName && (
-              <>
-                <div className="player-badge waitlist">You</div>
+              <div className="self-actions">
+                <div className="player-badge">You</div>
                 {(() => {
                   const tooltip = 'Leave waitlist';
                   return (
@@ -65,7 +94,7 @@ export const WaitlistList: React.FC<Props> = ({ registrations, currentUserId, is
                     </div>
                   );
                 })()}
-              </>
+              </div>
             )}
 
             {registration.guestName && registration.userId === currentUserId && onRemovePlayer && (
