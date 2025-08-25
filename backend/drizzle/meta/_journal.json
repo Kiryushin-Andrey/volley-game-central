@@ -107,6 +107,13 @@
       "when": 1753393186109,
       "tag": "0014_add_telegram_username_and_display_name",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "5",
+      "when": 1753493186109,
+      "tag": "0015_drop_username_from_users",
+      "breakpoints": true
     }
   ]
 }
