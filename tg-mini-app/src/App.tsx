@@ -123,9 +123,6 @@ function App() {
                 Source code at GitHub
               </a>
             </p>
-            <p className="how-secondary">
-              For questions, contact me at <a href="mailto:kiryushin.andrey@gmail.com">kiryushin.andrey@gmail.com</a>
-            </p>
           </div>
         </details>
       </div>
