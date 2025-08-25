@@ -12,7 +12,8 @@ import crypto from 'crypto';
 interface User {
   id: number;
   telegramId: string;
-  username: string;
+  displayName: string;
+  telegramUsername?: string | null;
   avatarUrl?: string | null;
   isAdmin: boolean;
   createdAt: Date | null;
@@ -53,7 +54,7 @@ interface BunqClient {
 }
 
 /**
- * Creates a safe email local-part from a username.
+ * Creates a safe email local-part from a user-visible name.
  * - Lowercases and trims
  * - Removes diacritics (NFKD) for Latin-based scripts
  * - Replaces spaces with underscore
@@ -62,9 +63,9 @@ interface BunqClient {
  * - Falls back to `user{fallbackId}` if empty
  * - Truncates to 64 characters to satisfy common email local-part limits
  */
-function toEmailLocalPart(username: string, fallbackId: number): string {
-  if (!username) return `user${fallbackId}`;
-  let local = username.trim().toLowerCase();
+function toEmailLocalPart(name: string, fallbackId: number): string {
+  if (!name) return `user${fallbackId}`;
+  let local = name.trim().toLowerCase();
 
   // Transliterate Cyrillic to Latin equivalents (basic Russian/Ukrainian set)
   local = transliterateCyrillic(local);
@@ -612,7 +613,8 @@ export const bunqService = {
         },
         counterparty_alias: {
           type: 'EMAIL',
-          value: `${toEmailLocalPart(user.username, user.id)}@volleyfun.nl` // Using sanitized username as email placeholder
+          // Prefer Telegram username for stable alias; fallback to display name
+          value: `${toEmailLocalPart(user.telegramUsername || user.displayName, user.id)}@volleyfun.nl`
         },
         description: description,
         allow_bunqme: true
@@ -658,7 +660,7 @@ export const bunqService = {
         throw new Error(`Bunq API returned status ${response.status}`);
       }
 
-      console.log('Sent payment request for ' + user.username, response.data?.Response?.[0]);
+      console.log('Sent payment request for ' + (user.telegramUsername || user.displayName), response.data?.Response?.[0]);
       console.log('Id = ', response.data?.Response?.[0]?.Id);
 
       // Prefer RequestInquiry.id; fallback to Id.id depending on Bunq response shape
@@ -717,7 +719,7 @@ export const bunqService = {
       // Send Telegram notification to the user
       const notificationMessage = `💰 Please pay ${formattedAmount} for ${participantsText} for the volleyball game on ${formattedDate}: ${paymentRequestUrl}`;
       await sendTelegramNotification(user.telegramId, notificationMessage);
-      console.log(`Consolidated payment notification sent to ${user.username} via Telegram`);
+      console.log(`Consolidated payment notification sent to ${(user.telegramUsername || user.displayName)} via Telegram`);
       
       return {
         success: true,

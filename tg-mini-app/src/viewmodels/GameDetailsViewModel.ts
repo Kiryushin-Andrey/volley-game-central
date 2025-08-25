@@ -183,7 +183,7 @@ export class GameDetailsViewModel {
 
   removePlayer(game: Game, userId: number, guestName?: string): void {
     const player = game.registrations.find(reg => reg.userId === userId && (!guestName ? !reg.guestName : reg.guestName === guestName));
-    const displayName = guestName || player?.user?.username || `Player ${userId}`;
+    const displayName = guestName || player?.user?.displayName || player?.user?.telegramUsername || `Player ${userId}`;
     showConfirm(`Remove ${displayName} from this game?`, async (confirmed) => {
       if (!confirmed) return;
       try {
@@ -204,8 +204,10 @@ export class GameDetailsViewModel {
 
   togglePaidStatus(game: Game, userId: number, currentPaidStatus: boolean): void {
     const newPaidStatus = !currentPaidStatus;
-    const username = game.registrations.find(reg => reg.userId === userId)?.user?.username || `Player ${userId}`;
-    showConfirm(`${newPaidStatus ? 'Mark' : 'Unmark'} ${username} as ${newPaidStatus ? 'paid' : 'unpaid'}?`, async (confirmed) => {
+    const name = game.registrations.find(reg => reg.userId === userId)?.user?.displayName
+      || game.registrations.find(reg => reg.userId === userId)?.user?.telegramUsername
+      || `Player ${userId}`;
+    showConfirm(`${newPaidStatus ? 'Mark' : 'Unmark'} ${name} as ${newPaidStatus ? 'paid' : 'unpaid'}?`, async (confirmed) => {
       if (!confirmed) return;
       try {
         this.setIsPaidUpdating(userId);

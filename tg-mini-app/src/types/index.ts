@@ -6,7 +6,8 @@ export enum PricingMode {
 // Minimal user info used across UI for player dialogs and click handlers
 export interface UserPublicInfo {
   id: number;
-  username: string;
+  displayName: string;
+  telegramUsername?: string | null;
   telegramId: string;
   avatarUrl?: string | null;
   blockReason?: string | null;
@@ -15,7 +16,8 @@ export interface UserPublicInfo {
 export interface User {
   id: number;
   telegramId: string;
-  username: string;
+  displayName: string;
+  telegramUsername?: string | null;
   isAdmin: boolean;
   createdAt: Date | null;
   blockReason?: string | null;

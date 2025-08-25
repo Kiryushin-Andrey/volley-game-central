@@ -83,7 +83,7 @@ const PlayerInfoDialog: React.FC<PlayerInfoDialogProps> = ({ isOpen, onClose, us
 
   if (!isOpen || !user) return null;
 
-  const tmeLink = user.username ? `https://t.me/${encodeURIComponent(user.username)}` : undefined;
+  const tmeLink = user.telegramUsername ? `https://t.me/${encodeURIComponent(user.telegramUsername)}` : undefined;
 
   const handleSendReminder = async () => {
     if (!user) return;
@@ -142,15 +142,15 @@ const PlayerInfoDialog: React.FC<PlayerInfoDialogProps> = ({ isOpen, onClose, us
         <div className="dialog-content">
           <div className="avatar-wrap">
             {user.avatarUrl ? (
-              <img src={user.avatarUrl} alt={`${user.username}'s avatar`} className="avatar" />
+              <img src={user.avatarUrl} alt={`${user.displayName}'s avatar`} className="avatar" />
             ) : (
-              <div className="avatar placeholder">{(user.username || `Player ${user.id}`).charAt(0).toUpperCase()}</div>
+              <div className="avatar placeholder">{(user.displayName || user.telegramUsername || `Player ${user.id}`).charAt(0).toUpperCase()}</div>
             )}
           </div>
           <div className="info-rows">
             <div className="row">
-              <span className="label">Name</span>
-              <span className="value">{user.username || `Player ${user.id}`}</span>
+              <span className="label">Display Name</span>
+              <span className="value">{user.displayName || user.telegramUsername || `Player ${user.id}`}</span>
             </div>
             <div className="row">
               <span className="label">Telegram ID</span>
@@ -158,8 +158,8 @@ const PlayerInfoDialog: React.FC<PlayerInfoDialogProps> = ({ isOpen, onClose, us
             </div>
             {tmeLink && (
               <div className="row">
-                <span className="label">Username</span>
-                <a className="value link" href={tmeLink} target="_blank" rel="noopener noreferrer">@{user.username}</a>
+                <span className="label">Telegram Username</span>
+                <a className="value link" href={tmeLink} target="_blank" rel="noopener noreferrer">@{user.telegramUsername}</a>
               </div>
             )}
           </div>

@@ -52,12 +52,12 @@ export const PlayersList: React.FC<Props> = ({
               ) : registration.user?.avatarUrl ? (
                 <img
                   src={registration.user.avatarUrl}
-                  alt={`${registration.user.username}'s avatar`}
+                  alt={`${registration.user.displayName}'s avatar`}
                   className="avatar-image"
                 />
               ) : (
                 <div className="avatar-placeholder">
-                  {(registration.user?.username || `Player ${registration.userId}`).charAt(0).toUpperCase()}
+                  {(registration.user?.displayName || registration.user?.telegramUsername || `Player ${registration.userId}`).charAt(0).toUpperCase()}
                 </div>
               )}
             </div>
@@ -72,7 +72,7 @@ export const PlayersList: React.FC<Props> = ({
               }}
             >
               <div className="player-name">
-                {registration.guestName || registration.user?.username || `Player ${registration.userId}`}
+                {registration.guestName || registration.user?.displayName || registration.user?.telegramUsername || `Player ${registration.userId}`}
               </div>
               {registration.guestName && (
                 <div className="invited-by">
@@ -80,17 +80,17 @@ export const PlayersList: React.FC<Props> = ({
                     {registration.user?.avatarUrl ? (
                       <img
                         src={registration.user.avatarUrl}
-                        alt={`${registration.user.username}'s avatar`}
+                        alt={`${registration.user.displayName}'s avatar`}
                         className="inviter-avatar-image"
                       />
                     ) : (
                       <div className="inviter-avatar-placeholder">
-                        {(registration.user?.username || `Player ${registration.userId}`).charAt(0).toUpperCase()}
+                        {(registration.user?.displayName || registration.user?.telegramUsername || `Player ${registration.userId}`).charAt(0).toUpperCase()}
                       </div>
                     )}
                   </div>
                   <span className="invited-by-text">
-                    Invited by {registration.user?.username || `Player ${registration.userId}`}
+                    Invited by {registration.user?.displayName || registration.user?.telegramUsername || `Player ${registration.userId}`}
                   </span>
                 </div>
               )}

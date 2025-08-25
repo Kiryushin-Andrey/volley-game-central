@@ -27,12 +27,12 @@ export const WaitlistList: React.FC<Props> = ({ registrations, currentUserId, is
               {registration.user?.avatarUrl ? (
                 <img
                   src={registration.user.avatarUrl}
-                  alt={`${registration.user.username}'s avatar`}
+                  alt={`${registration.user.displayName}'s avatar`}
                   className="avatar-image"
                 />
               ) : (
                 <div className="avatar-placeholder">
-                  {(registration.user?.username || `Player ${registration.userId}`).charAt(0).toUpperCase()}
+                  {(registration.user?.displayName || registration.user?.telegramUsername || `Player ${registration.userId}`).charAt(0).toUpperCase()}
                 </div>
               )}
             </div>
@@ -44,7 +44,7 @@ export const WaitlistList: React.FC<Props> = ({ registrations, currentUserId, is
                 }
               }}
             >
-              {registration.guestName || registration.user?.username || `Player ${registration.userId}`}
+              {registration.guestName || registration.user?.displayName || registration.user?.telegramUsername || `Player ${registration.userId}`}
             </div>
             {registration.userId === currentUserId && !registration.guestName && (
               <>

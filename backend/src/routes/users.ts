@@ -39,7 +39,7 @@ router.get('/', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) =>
   }
 });
 
-// Search users by query (username) - Must come before :telegramId route
+// Search users by query (displayName or telegramUsername) - Must come before :telegramId route
 router.get('/search', telegramAuthMiddleware, adminAuthMiddleware, async (req, res) => {
   try {
     const { q: query } = req.query;
@@ -51,18 +51,22 @@ router.get('/search', telegramAuthMiddleware, adminAuthMiddleware, async (req, r
 
     const searchTerm = `%${query.toLowerCase()}%`;
     
-    // Search for users where username contains the query (case-insensitive)
+    // Search where displayName or telegramUsername contains the query (case-insensitive)
     const results = await db
       .select({
         id: users.id,
-        username: users.username,
+        displayName: users.displayName,
+        telegramUsername: users.telegramUsername,
         telegramId: users.telegramId,
         avatarUrl: users.avatarUrl,
         blockReason: users.blockReason,
       })
       .from(users)
       .where(
-        ilike(users.username, searchTerm)
+        or(
+          ilike(users.displayName, searchTerm),
+          ilike(users.telegramUsername, searchTerm)
+        )
       )
       .execute();
     

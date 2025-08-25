@@ -100,6 +100,13 @@
       "when": 1753293186109,
       "tag": "0013_add_block_reason_to_users",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "5",
+      "when": 1753393186109,
+      "tag": "0014_add_telegram_username_and_display_name",
+      "breakpoints": true
     }
   ]
 }

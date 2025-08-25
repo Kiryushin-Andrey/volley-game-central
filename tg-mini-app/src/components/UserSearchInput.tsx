@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { gamesApi } from '../services/api';
 import { logDebug } from '../debug';
 import { FaTimes } from 'react-icons/fa';
+import { UserPublicInfo } from '../types';
 import './UserSearchInput.scss';
 
 interface UserSearchInputProps {
@@ -11,12 +12,7 @@ interface UserSearchInputProps {
   placeholder?: string;
 }
 
-interface UserOption {
-  id: number;
-  username: string;
-  telegramId: string | null;
-  avatarUrl?: string | null;
-}
+type UserOption = UserPublicInfo;
 
 export const UserSearchInput: React.FC<UserSearchInputProps> = ({
   onSelectUser,
@@ -45,7 +41,7 @@ export const UserSearchInput: React.FC<UserSearchInputProps> = ({
       try {
         setIsLoading(true);
         const results = await gamesApi.searchUsers(query);
-        setUsers(results);
+        setUsers(results as UserPublicInfo[]);
         setShowDropdown(results.length > 0);
         setSelectedIndex(-1);
       } catch (error) {
@@ -125,12 +121,12 @@ export const UserSearchInput: React.FC<UserSearchInputProps> = ({
           <div className="selected-user-chip">
             <div className="chip-avatar">
               {selectedUser.avatarUrl ? (
-                <img src={selectedUser.avatarUrl} alt={`${selectedUser.username}'s avatar`} />
+                <img src={selectedUser.avatarUrl} alt={`${selectedUser.displayName}'s avatar`} />
               ) : (
-                <span>{selectedUser.username.charAt(0).toUpperCase()}</span>
+                <span>{selectedUser.displayName.charAt(0).toUpperCase()}</span>
               )}
             </div>
-            <div className="chip-name" title={selectedUser.username}>{selectedUser.username}</div>
+            <div className="chip-name" title={selectedUser.displayName}>{selectedUser.displayName}</div>
             <button
               className="chip-remove"
               onClick={clearSelection}
@@ -188,17 +184,17 @@ export const UserSearchInput: React.FC<UserSearchInputProps> = ({
                     {user.avatarUrl ? (
                       <img 
                         src={user.avatarUrl} 
-                        alt={`${user.username}'s avatar`}
+                        alt={`${user.displayName}'s avatar`}
                         className="avatar-image"
                       />
                     ) : (
                       <div className="avatar-placeholder">
-                        {user.username.charAt(0).toUpperCase()}
+                        {user.displayName.charAt(0).toUpperCase()}
                       </div>
                     )}
                     </div>
                     <div className="player-name">
-                      {user.username}
+                      {user.displayName}
                     </div>
                   </div>
                 </li>

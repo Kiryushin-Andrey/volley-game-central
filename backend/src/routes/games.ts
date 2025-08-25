@@ -428,7 +428,8 @@ router.get('/:gameId', async (req, res) => {
         user: {
           id: users.id,
           telegramId: users.telegramId,
-          username: users.username,
+          displayName: users.displayName,
+          telegramUsername: users.telegramUsername,
           avatarUrl: users.avatarUrl,
           blockReason: users.blockReason,
         },
@@ -1151,7 +1152,8 @@ router.post(
           user: {
             id: users.id,
             telegramId: users.telegramId,
-            username: users.username,
+            displayName: users.displayName,
+            telegramUsername: users.telegramUsername,
             avatarUrl: users.avatarUrl,
             isAdmin: users.isAdmin,
             createdAt: users.createdAt,
