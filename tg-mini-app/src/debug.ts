@@ -3,6 +3,9 @@
 // Get debug mode from localStorage or default to false
 let debugModeEnabled = localStorage.getItem('debugModeEnabled') === 'true';
 
+// In-memory buffer for all debug logs regardless of UI/debug mode state
+const debugLogBuffer: string[] = [];
+
 // Function to toggle debug mode
 export function toggleDebugMode(): void {
   debugModeEnabled = !debugModeEnabled;
@@ -10,10 +13,22 @@ export function toggleDebugMode(): void {
   
   const debugLog = document.getElementById('debug-log');
   const debugToggle = document.getElementById('debug-toggle');
+  const copyButton = document.getElementById('copy-logs');
   
   // Show or hide the debug logs panel
   if (debugLog) {
     debugLog.style.display = debugModeEnabled ? 'block' : 'none';
+    if (debugModeEnabled) {
+      // Populate UI from in-memory buffer when enabling
+      renderLogsToUI();
+    } else {
+      // Clear only UI when disabling (preserve buffer)
+      clearUILogs();
+    }
+  }
+  // Show/hide copy button alongside the panel
+  if (copyButton) {
+    (copyButton as HTMLElement).style.display = debugModeEnabled ? 'inline-flex' : 'none';
   }
   
   // Reposition the toggle button based on debug panel visibility and info text presence
@@ -29,6 +44,7 @@ export function toggleDebugMode(): void {
 // Function to update debug toggle position based on info text presence
 export function updateDebugTogglePosition(): void {
   const debugToggle = document.getElementById('debug-toggle');
+  const copyButton = document.getElementById('copy-logs');
   const infoText = document.querySelector('.info-text');
   
   if (!debugToggle) return;
@@ -48,6 +64,15 @@ export function updateDebugTogglePosition(): void {
   }
   
   debugToggle.style.bottom = `${bottomPosition}px`;
+
+  // Position the copy button slightly above the toggle to avoid overlap
+  if (copyButton) {
+    // Anchor to left, and keep a fixed offset above the debug panel when visible
+    const el = copyButton as HTMLElement;
+    el.style.left = '10px';
+    el.style.right = 'auto';
+    el.style.bottom = debugModeEnabled ? '210px' : '10px';
+  }
 }
 
 // Export getter for debug mode state
@@ -60,10 +85,22 @@ window.addEventListener('DOMContentLoaded', () => {
   // Find our embedded debug elements
   const debugToggle = document.getElementById('debug-toggle');
   const debugLog = document.getElementById('debug-log');
+  const copyButton = document.getElementById('copy-logs');
   
   if (debugToggle && debugLog) {
     // Set initial debug log visibility based on stored preference
     debugLog.style.display = debugModeEnabled ? 'block' : 'none';
+    // Set initial copy button visibility
+    if (copyButton) {
+      (copyButton as HTMLElement).style.display = debugModeEnabled ? 'inline-flex' : 'none';
+      copyButton.addEventListener('click', async () => {
+        await copyAllLogsToClipboard();
+      });
+    }
+    // Populate UI from buffer if debug mode starts enabled
+    if (debugModeEnabled) {
+      renderLogsToUI();
+    }
     
     // Set initial toggle button position based on debug mode
     updateDebugTogglePosition();
@@ -109,9 +146,12 @@ export function logDebug(message: any): void {
   const formattedMsg = typeof message === 'string' 
     ? message 
     : JSON.stringify(message, null, 2);
+  const bufferEntry = `[${timestamp}] ${formattedMsg}`;
   
   // Always log to console regardless of debug mode
   console.log(`[DEBUG ${timestamp}] ${formattedMsg}`);
+  // Always add to in-memory buffer
+  debugLogBuffer.push(bufferEntry);
   
   // Only update UI if debug mode is enabled
   if (!isDebugMode()) return;
@@ -122,7 +162,7 @@ export function logDebug(message: any): void {
     const logEntry = document.createElement('div');
     logEntry.style.borderBottom = '1px solid #444';
     logEntry.style.padding = '2px 0';
-    logEntry.textContent = `[${timestamp}] ${formattedMsg}`;
+    logEntry.textContent = bufferEntry;
     
     // Add to the container
     logElement.appendChild(logEntry);
@@ -142,5 +182,42 @@ export function clearAllLogs(): void {
     }
     // Log that logs were cleared
     logDebug('Logs cleared');
+  }
+}
+
+// Helper: Render entire buffer to the UI panel
+function renderLogsToUI(): void {
+  const logElement = document.getElementById('debug-log');
+  if (!logElement) return;
+  // Clear current UI
+  clearUILogs();
+  // Append from buffer
+  for (const entry of debugLogBuffer) {
+    const logEntry = document.createElement('div');
+    logEntry.style.borderBottom = '1px solid #444';
+    logEntry.style.padding = '2px 0';
+    logEntry.textContent = entry;
+    logElement.appendChild(logEntry);
+  }
+  logElement.scrollTop = logElement.scrollHeight;
+}
+
+// Helper: Clear only the UI log container (preserves buffer)
+function clearUILogs(): void {
+  const logElement = document.getElementById('debug-log');
+  if (!logElement) return;
+  while (logElement.firstChild) {
+    logElement.removeChild(logElement.firstChild);
+  }
+}
+
+// Helper: Copy all buffered logs to clipboard with blank line separation
+async function copyAllLogsToClipboard(): Promise<void> {
+  try {
+    const text = debugLogBuffer.join('\n\n');
+    await navigator.clipboard.writeText(text);
+    console.log('Debug logs copied to clipboard');
+  } catch (err) {
+    console.error('Failed to copy debug logs:', err);
   }
 }
