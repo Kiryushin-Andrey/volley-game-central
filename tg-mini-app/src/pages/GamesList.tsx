@@ -140,12 +140,27 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
   const [error, setError] = useState<string | null>(null);
   const [gameFilter, setGameFilter] = useState<GameFilter>('upcoming');
   const [showAll, setShowAll] = useState(false);
-  const [showPositions, setShowPositions] = useState(false);
+  const [showPositions, setShowPositions] = useState<boolean>(() => {
+    // Initialize from localStorage to persist user preference across navigations
+    try {
+      const saved = localStorage.getItem('showPositions');
+      return saved === 'true';
+    } catch {
+      return false;
+    }
+  });
   
   // Use a ref for loading state to avoid re-renders of the parent component
   const isLoadingRef = useRef(false);
   const [loadingIndicator, setLoadingIndicator] = useState(false);
   const navigate = useNavigate();
+
+  // Persist showPositions preference
+  useEffect(() => {
+    try {
+      localStorage.setItem('showPositions', showPositions ? 'true' : 'false');
+    } catch {}
+  }, [showPositions]);
 
   useEffect(() => {
     if (allGames.length > 0) {
