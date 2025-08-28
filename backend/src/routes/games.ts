@@ -242,24 +242,25 @@ router.post('/:gameId/register', telegramAuthMiddleware, async (req, res) => {
 
       // Get the guest name from the registration for notifications
       const guestName = registration[0].guestName;
-      
+
       // Send different notifications based on waitlist status
-      if (isWaitlist) {
-        // User is on waitlist
-        const subject = getNotificationSubjectWithVerb(guestName, 'have');
-        await sendTelegramNotification(
-          userDetails[0].telegramId,
-          `⏳ ${subject} been added to the waiting list for the volleyball game on ${formattedDate}. We'll notify you if a spot becomes available! Position on waitlist: ${
-            position - game[0].maxPlayers + 1
-          }`,
-        );
-      } else {
-        // User is a direct participant
-        const subject = getNotificationSubjectWithVerb(guestName, 'are');
-        await sendTelegramNotification(
-          userDetails[0].telegramId,
-          `✅ ${subject} registered for the volleyball game on ${formattedDate}. See you there! 🏐`,
-        );
+      if (userDetails[0].telegramId) {
+        if (isWaitlist) {
+          // User is on waitlist
+          const subject = getNotificationSubjectWithVerb(guestName, 'have');
+          await sendTelegramNotification(
+            userDetails[0].telegramId,
+            `⏳ ${subject} been added to the waiting list for the volleyball game on ${formattedDate}. We'll notify you if a spot becomes available! Position on waitlist: ${position - game[0].maxPlayers + 1
+            }`,
+          );
+        } else {
+          // User is a direct participant
+          const subject = getNotificationSubjectWithVerb(guestName, 'are');
+          await sendTelegramNotification(
+            userDetails[0].telegramId,
+            `✅ ${subject} registered for the volleyball game on ${formattedDate}. See you there! 🏐`,
+          );
+        }
       }
     }
 
@@ -376,7 +377,7 @@ router.delete('/:gameId/register', telegramAuthMiddleware, async (req, res) => {
       );
 
     // Send notification to the user who left
-    if (userDetails.length > 0 && registrationDetails.length > 0) {
+    if (userDetails.length > 0 && registrationDetails.length > 0 && userDetails[0].telegramId) {
       const guestName = registrationDetails[0].guestName;
       const subject = getNotificationSubjectWithVerb(guestName, 'have');
       await sendTelegramNotification(
@@ -411,7 +412,7 @@ router.delete('/:gameId/register', telegramAuthMiddleware, async (req, res) => {
           .from(users)
           .where(eq(users.id, promotedUserId));
 
-        if (promotedUser.length > 0) {
+        if (promotedUser.length > 0 && promotedUser[0].telegramId) {
           // Format date for the notification
           const gameDate = new Date(game[0].dateTime);
           const formattedDate = gameDate.toLocaleDateString('en-GB', {
@@ -495,7 +496,6 @@ router.get('/:gameId', async (req, res) => {
   }
 });
 
-// Get all games with optimized registration stats and user-specific registration info
 router.get('/', telegramAuthMiddleware, async (req, res) => {
   try {
     // Parse query parameters
@@ -504,38 +504,35 @@ router.get('/', telegramAuthMiddleware, async (req, res) => {
 
     // Get current date for filtering
     const currentDate = new Date();
-    // Consider a game as past only after 6 hours from its start time
-    const sixHoursMs = 6 * 60 * 60 * 1000;
-    const nowMinusSixHours = new Date(currentDate.getTime() - sixHoursMs);
     let filteredGames;
 
     if (showPast) {
-      // For past games: game date is before current date
+      // For past games: game date is strictly before now
       if (showAll) {
-        // Show all past games (started more than 6 hours ago)
+        // Show all past games
         filteredGames = await db
           .select()
           .from(games)
-          .where(lt(games.dateTime, nowMinusSixHours))
+          .where(lt(games.dateTime, currentDate))
           .orderBy(desc(games.dateTime));
       } else {
-        // Get past games (older than 6 hours) with unpaid participants
+        // Get past games with unpaid participants
         filteredGames = await db
           .select()
           .from(games)
           .where(
-            and(lt(games.dateTime, nowMinusSixHours), eq(games.fullyPaid, false)),
+            and(lt(games.dateTime, currentDate), eq(games.fullyPaid, false)),
           )
           .orderBy(desc(games.dateTime));
       }
     } else {
-      // For upcoming games: game date is on or after current date
+      // For upcoming games: game date is on or after now
       if (showAll) {
-        // Show all upcoming games (from 6 hours before now and into the future)
+        // Show all upcoming games (now and into the future)
         filteredGames = await db
           .select()
           .from(games)
-          .where(gte(games.dateTime, nowMinusSixHours))
+          .where(gte(games.dateTime, currentDate))
           .orderBy(asc(games.dateTime));
       } else {
         // Only show games within the next REGISTRATION_OPEN_DAYS days (open for registration)
@@ -549,8 +546,8 @@ router.get('/', telegramAuthMiddleware, async (req, res) => {
           .from(games)
           .where(
             and(
-              // Include games that started within the last 6 hours as upcoming
-              gte(games.dateTime, nowMinusSixHours),
+              // Include games starting from now until registration window end
+              gte(games.dateTime, currentDate),
               lte(games.dateTime, registrationWindowEnd),
             ),
           )
@@ -607,8 +604,8 @@ router.get('/', telegramAuthMiddleware, async (req, res) => {
         const paidCount = paidCounts.find((pc) => pc.gameId === game.id);
         const totalCount = regCount?.totalCount || 0;
 
-        // A game is in the past only after 6 hours since it started
-        const isGameInPast = new Date(game.dateTime) < nowMinusSixHours;
+        // A game is in the past as soon as its start time is before now
+        const isGameInPast = new Date(game.dateTime) < currentDate;
         const isWithinRegistrationWindow =
           new Date(game.dateTime) < registrationWindowEnd;
 
@@ -927,11 +924,10 @@ router.post(
         return res.status(404).json({ error: 'Game not found' });
       }
 
-      // Allow modifications only when the game is considered past (6 hours after start)
+      // Allow modifications only when the game start time is in the past
       const gameDateTime = new Date(game[0].dateTime);
       const now = new Date();
-      const sixHoursAfterStart = new Date(gameDateTime.getTime() + 6 * 60 * 60 * 1000);
-      if (now < sixHoursAfterStart) {
+      if (now < gameDateTime) {
         return res
           .status(400)
           .json({ error: 'Cannot modify participants for future or ongoing games' });
