@@ -128,6 +128,13 @@
       "when": 1753693186109,
       "tag": "0017_add_auth_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "5",
+      "when": 1753793186109,
+      "tag": "0018_update_auth_sessions_nullable_code",
+      "breakpoints": true
     }
   ]
 }

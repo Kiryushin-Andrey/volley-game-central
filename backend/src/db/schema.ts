@@ -89,8 +89,8 @@ export const paymentRequests = pgTable('payment_requests', {
 // Authentication sessions for phone-based login
 export const authSessions = pgTable('auth_sessions', {
   id: uuid('id').primaryKey(),
-  phoneNumber: varchar('phone_number', { length: 50 }).notNull().unique(),
-  authCode: varchar('auth_code', { length: 10 }).notNull(),
+  phoneNumber: varchar('phone_number', { length: 50 }).notNull(),
+  authCode: varchar('auth_code', { length: 10 }),
   creatingNewUser: boolean('creating_new_user').notNull().default(false),
   createdAt: timestamp('created_at').defaultNow(),
 });

@@ -308,6 +308,14 @@ export const bunqApi = {
     const response = await api.put('/users/me/bunq/monetary-account', { monetaryAccountId });
     return response.data;
   },
+
+  /**
+   * Manually install webhook filters for Bunq
+   */
+  installWebhook: async (password: string): Promise<{ success: boolean; message: string }> => {
+    const response = await api.post('/users/me/bunq/webhook/install', { password });
+    return response.data;
+  },
 };
 
 // Phone authentication API endpoints

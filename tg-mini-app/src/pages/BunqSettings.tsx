@@ -7,6 +7,7 @@ import {
 import MonetaryAccountSelector from '../components/MonetaryAccountSelector';
 import CredentialsForm from '../components/CredentialsForm';
 import { BackButton } from '@twa-dev/sdk/react';
+import PasswordDialog from '../components/PasswordDialog';
 import { isTelegramApp } from '../utils/telegram';
 import './BunqSettings.scss';
 
@@ -19,6 +20,8 @@ const BunqSettings: React.FC = () => {
     BunqSettingsViewModel.getInitialState()
   );
   const [isPasswordFormShown, setIsPasswordFormShown] = useState(false);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
   
   const inTelegram = isTelegramApp();
   
@@ -42,6 +45,32 @@ const BunqSettings: React.FC = () => {
       setState(prevState => ({ ...prevState, storedPassword: '', selectedMonetaryAccountId: null }));
     }
   }, [state.isEnabled]);
+
+  const handleOpenPasswordDialog = () => {
+    setPasswordError('');
+    // Clear any previous error in state to avoid showing stale messages in the dialog
+    setState(prev => ({ ...prev, error: '' }));
+    setShowPasswordDialog(true);
+  };
+
+  const handlePasswordSubmit = async (password: string) => {
+    setPasswordError('');
+    const ok = await viewModel.handleInstallWebhook(password);
+    if (ok) {
+      setShowPasswordDialog(false);
+    } else {
+      // Keep dialog open and show error; error message is in state.error
+      setPasswordError(state.error || 'Failed to install webhook');
+    }
+  };
+
+  const handlePasswordCancel = () => {
+    if (!state.isProcessing) {
+      setShowPasswordDialog(false);
+      setPasswordError('');
+      setState(prev => ({ ...prev, error: '' }));
+    }
+  };
 
   if (state.isLoading) {
     return (
@@ -124,6 +153,13 @@ const BunqSettings: React.FC = () => {
               <div className="button-group">
                 <button 
                   className="btn btn-secondary"
+                  onClick={handleOpenPasswordDialog}
+                  disabled={state.isProcessing}
+                >
+                  {state.isProcessing ? 'Installing Webhook...' : 'Install Webhook'}
+                </button>
+                <button 
+                  className="btn btn-secondary"
                   onClick={() => viewModel.handleShowCredentialsForm()}
                   disabled={state.isProcessing}
                 >
@@ -155,6 +191,15 @@ const BunqSettings: React.FC = () => {
         )}
 
       </div>
+      <PasswordDialog
+        isOpen={showPasswordDialog}
+        title="Install Bunq Webhook"
+        message="Enter your Bunq password to install webhook filters."
+        onSubmit={handlePasswordSubmit}
+        onCancel={handlePasswordCancel}
+        isProcessing={state.isProcessing}
+        error={passwordError || state.error}
+      />
     </div>
   );
 };

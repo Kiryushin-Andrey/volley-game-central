@@ -29,4 +29,21 @@ router.post('/twilio/sms-status', (req, res) => {
   res.status(200).send('OK');
 });
 
+// Bunq webhook: outgoing payment request paid (or other Bunq events)
+// We'll just log the headers and body for now and acknowledge.
+// Mount path: /webhooks/bunq (see index.ts)
+router.post('/bunq', (req, res) => {
+  try {
+    // Log headers for debugging (may include signature fields)
+    console.log('[Bunq Webhook] headers:', JSON.stringify(req.headers));
+    // Log raw body
+    console.log('[Bunq Webhook] body:', JSON.stringify(req.body));
+  } catch (e) {
+    console.error('[Bunq Webhook] Failed to log request:', e);
+  }
+
+  // Acknowledge immediately
+  res.status(200).send('OK');
+});
+
 export default router;

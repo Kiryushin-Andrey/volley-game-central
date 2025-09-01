@@ -2,7 +2,7 @@ import express from 'express';
 import { randomUUID } from 'crypto';
 import { db } from '../db';
 import { authSessions, users } from '../db/schema';
-import { eq } from 'drizzle-orm';
+import { and, desc, eq, gt, lt, sql } from 'drizzle-orm';
 import { sendSms } from '../services/smsService';
 import jwt from 'jsonwebtoken';
 
@@ -19,6 +19,8 @@ function generateCode(length = 6): string {
 }
 
 const RESEND_COOLDOWN_MS = 60_000; // 60 seconds cooldown between code sends
+const RATE_LIMIT_WINDOW_MS = 2 * 60 * 60 * 1000; // 2 hours
+const RATE_LIMIT_MAX_SESSIONS = 3; // max sessions allowed in window
 
 // Start authentication: create/update session and send SMS with code
 router.post('/start', async (req, res) => {
@@ -36,14 +38,26 @@ router.post('/start', async (req, res) => {
 
     const code = generateCode(6);
 
-    // Check if session exists for this phone
-    const existing = await db.select().from(authSessions).where(eq(authSessions.phoneNumber, normalized));
-    let sessionId: string;
+    // Rate limit: prohibit if 3 or more sessions in last 2 hours for this phone
+    const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MS);
+    const recentCountRows = await db
+      .select({ cnt: sql<number>`count(*)` })
+      .from(authSessions)
+      .where(and(eq(authSessions.phoneNumber, normalized), gt(authSessions.createdAt, windowStart)));
+    const recentCount = recentCountRows[0]?.cnt ?? 0;
+    if (recentCount >= RATE_LIMIT_MAX_SESSIONS) {
+      return res.status(429).json({ error: 'Too many authentication attempts. Please try again later.' });
+    }
 
-    if (existing.length > 0) {
-      // Enforce cooldown for resending code on existing session
-      const session = existing[0] as typeof existing[number] & { createdAt: Date };
-      const lastTs = new Date(session.createdAt).getTime();
+    // Cooldown: check the most recent session for this phone
+    const latestRows = await db
+      .select()
+      .from(authSessions)
+      .where(eq(authSessions.phoneNumber, normalized))
+      .orderBy(desc(authSessions.createdAt))
+      .limit(1);
+    if (latestRows.length > 0) {
+      const lastTs = new Date(latestRows[0].createdAt as Date).getTime();
       const nowTs = Date.now();
       const elapsed = nowTs - lastTs;
       if (elapsed < RESEND_COOLDOWN_MS) {
@@ -51,22 +65,20 @@ router.post('/start', async (req, res) => {
         res.setHeader('Retry-After', String(retryAfterSec));
         return res.status(429).json({ error: `Please wait ${retryAfterSec}s before requesting a new code`, retryAfterSec });
       }
-
-      // Update existing session (new code and timestamp)
-      sessionId = session.id as string;
-      await db
-        .update(authSessions)
-        .set({ authCode: code, createdAt: new Date() })
-        .where(eq(authSessions.phoneNumber, normalized));
-    } else {
-      // Create new session
-      sessionId = randomUUID();
-      await db.insert(authSessions).values({
-        id: sessionId,
-        phoneNumber: normalized,
-        authCode: code,
-      });
     }
+
+    // Cleanup: drop sessions for this phone older than 2 hours
+    await db
+      .delete(authSessions)
+      .where(and(eq(authSessions.phoneNumber, normalized), lt(authSessions.createdAt, windowStart)));
+
+    // Create new session
+    const sessionId = randomUUID();
+    await db.insert(authSessions).values({
+      id: sessionId,
+      phoneNumber: normalized,
+      authCode: code,
+    });
 
     // Send SMS
     const appName = process.env.APP_NAME || 'VolleyBot';
@@ -98,7 +110,7 @@ router.post('/verify', async (req, res) => {
     const session = sessionRows[0]
 
     // Validate code
-    if (session.authCode !== code) {
+    if (!session.authCode || session.authCode !== code) {
       return res.status(400).json({ error: 'Invalid code' });
     }
 
@@ -115,23 +127,29 @@ router.post('/verify', async (req, res) => {
         console.error('JWT_SECRET is not configured');
         return res.status(500).json({ error: 'Server misconfiguration' });
       }
-      const token = jwt.sign({ userId }, secret, { expiresIn: '7d' });
+      const token = jwt.sign({ userId }, secret, { expiresIn: '30d' });
 
-      // Set HttpOnly cookie for 7 days
-      const weekMs = 7 * 24 * 60 * 60 * 1000;
+      // Invalidate the code (do not delete the row)
+      await db
+        .update(authSessions)
+        .set({ authCode: null })
+        .where(eq(authSessions.id, sessionId));
+
+      // Set HttpOnly cookie for 30 days
+      const monthMs = 30 * 24 * 60 * 60 * 1000;
       res.cookie('auth_token', token, {
         httpOnly: true,
         sameSite: 'lax',
         secure: process.env.NODE_ENV === 'production',
-        maxAge: weekMs,
+        maxAge: monthMs,
       });
 
       return res.json({ success: true, userExists: true });
     } else {
-      // Mark session as creating new user
+      // Mark session as creating new user and invalidate the code
       await db
         .update(authSessions)
-        .set({ creatingNewUser: true })
+        .set({ creatingNewUser: true, authCode: null })
         .where(eq(authSessions.id, sessionId));
 
       return res.json({ success: true, userExists: false, creatingNewUser: true });
@@ -236,8 +254,11 @@ router.post('/create-user', async (req, res) => {
       })
       .returning();
 
-    // Delete the auth session (consume it)
-    await db.delete(authSessions).where(eq(authSessions.id, sessionId));
+    // Consume the session by erasing the code and clearing creatingNewUser flag
+    await db
+      .update(authSessions)
+      .set({ authCode: null, creatingNewUser: false })
+      .where(eq(authSessions.id, sessionId));
 
     // Issue JWT cookie
     const secret = process.env.JWT_SECRET;
@@ -245,14 +266,14 @@ router.post('/create-user', async (req, res) => {
       console.error('JWT_SECRET is not configured');
       return res.status(500).json({ error: 'Server misconfiguration' });
     }
-    const token = jwt.sign({ userId: newUser.id }, secret, { expiresIn: '7d' });
+    const token = jwt.sign({ userId: newUser.id }, secret, { expiresIn: '30d' });
 
-    const weekMs = 7 * 24 * 60 * 60 * 1000;
+    const monthMs = 30 * 24 * 60 * 60 * 1000;
     res.cookie('auth_token', token, {
       httpOnly: true,
       sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production',
-      maxAge: weekMs,
+      maxAge: monthMs,
     });
 
     return res.json({ success: true, userCreated: true, userId: newUser.id });
