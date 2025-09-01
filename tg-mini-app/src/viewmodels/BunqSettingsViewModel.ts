@@ -187,6 +187,31 @@ export class BunqSettingsViewModel {
   }
 
   /**
+   * Manually install Bunq webhook filters
+   */
+  async handleInstallWebhook(password?: string): Promise<void> {
+    try {
+      this.updateState({ isProcessing: true, error: '', successMessage: '' });
+      const pwd = (password || '').trim();
+      if (!pwd) {
+        this.updateState({ isProcessing: false, error: 'Password is required to install webhook' });
+        return;
+      }
+      const result = await bunqApi.installWebhook(pwd);
+      if (result.success) {
+        this.updateState({ successMessage: 'Webhook installed successfully', storedPassword: pwd });
+      } else {
+        this.updateState({ error: result.message || 'Failed to install webhook' });
+      }
+    } catch (err: any) {
+      console.error('Failed to install webhook:', err);
+      this.updateState({ error: err.response?.data?.message || 'Failed to install webhook' });
+    } finally {
+      this.updateState({ isProcessing: false });
+    }
+  }
+
+  /**
    * Get initial state for the component
    */
   static getInitialState(): BunqSettingsState {

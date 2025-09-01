@@ -124,6 +124,18 @@ const BunqSettings: React.FC = () => {
               <div className="button-group">
                 <button 
                   className="btn btn-secondary"
+                  onClick={() => {
+                    const pwd = state.storedPassword || window.prompt('Enter your Bunq password to install webhook') || '';
+                    if (pwd && pwd.trim()) {
+                      viewModel.handleInstallWebhook(pwd);
+                    }
+                  }}
+                  disabled={state.isProcessing}
+                >
+                  {state.isProcessing ? 'Installing Webhook...' : 'Install Webhook'}
+                </button>
+                <button 
+                  className="btn btn-secondary"
                   onClick={() => viewModel.handleShowCredentialsForm()}
                   disabled={state.isProcessing}
                 >

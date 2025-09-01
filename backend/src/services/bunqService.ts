@@ -17,6 +17,58 @@ interface PaymentRequestResult {
   error?: string;
 }
 
+/**
+ * Installs URL notification filters for webhooks (REQUEST category only)
+ * using the authenticated Bunq client of the given user.
+ * Constructs the target URL from MINI_APP_URL internally.
+ * @param userId Backend user ID owning the bunq credentials
+ * @param password Password to decrypt the credentials
+ * @returns { success, targetUrl? } where targetUrl is the effective webhook URL used
+ */
+export async function installWebhookFilters(
+  userId: number,
+  password: string
+): Promise<{ success: boolean; targetUrl?: string }> {
+  try {
+    const miniAppUrl = process.env.MINI_APP_URL;
+    if (!miniAppUrl) {
+      console.error('installWebhookFilters: MINI_APP_URL is not set');
+      return { success: false };
+    }
+    const targetUrl = `${miniAppUrl.replace(/\/$/, '')}/webhooks/bunq`;
+
+    const bunqClientResult = await createBunqClient({ userId, password });
+    if (!bunqClientResult) return { success: false };
+
+    const { client } = bunqClientResult;
+
+    // Resolve bunq user id (UserPerson/UserCompany/UserApiKey)
+    const userResp = await client.get('/user');
+    const responseItems = userResp.data?.Response || [];
+    const bunqUserId =
+      responseItems.find((x: any) => x.UserPerson)?.UserPerson?.id ||
+      responseItems.find((x: any) => x.UserCompany)?.UserCompany?.id ||
+      responseItems.find((x: any) => x.UserApiKey)?.UserApiKey?.id;
+    if (!bunqUserId) {
+      console.error('installWebhookFilters: Could not resolve bunq user id');
+      return { success: false };
+    }
+
+    const body = {
+      notification_filters: [
+        { category: 'REQUEST', notification_target: targetUrl }
+      ]
+    };
+
+    await client.post(`/user/${bunqUserId}/notification-filter-url`, body);
+    console.log('[Bunq] Webhook installed at', targetUrl);
+    return { success: true, targetUrl };
+  } catch (err: any) {
+    console.error('installWebhookFilters error:', err?.response?.data || err?.message || err);
+    return { success: false };
+  }
+}
+
 // Default Bunq API URL
 const BUNQ_API_URL = process.env.BUNQ_API_URL || 'https://api.bunq.com/v1';
 

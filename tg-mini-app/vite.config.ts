@@ -22,6 +22,11 @@ export default defineConfig({
         target: 'http://localhost:3000',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
+      },
+      // Proxy webhooks to backend (no rewrite so /webhooks stays intact)
+      '/webhooks': {
+        target: 'http://localhost:3000',
+        changeOrigin: true
       }
     }
   },

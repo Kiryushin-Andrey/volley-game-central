@@ -3,7 +3,7 @@ import { db } from '../db';
 import { bunqCredentials } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import { bunqCredentialsService } from '../services/bunqCredentialsService';
-import { createInstallation, registerDevice, createSession, fetchMonetaryAccounts } from '../services/bunqService';
+import { createInstallation, registerDevice, createSession, fetchMonetaryAccounts, installWebhookFilters } from '../services/bunqService';
 
 const router = Router();
 
@@ -85,6 +85,10 @@ router.post('/enable', async (req, res) => {
     }
 
     console.log('Bunq integration enabled successfully for user:', req.user.id);
+
+    // Attempt to install webhook filters so bunq notifies us on request updates
+    await installWebhookFilters(req.user.id, password);
+
     res.json({
       success: true,
       message: 'Bunq integration enabled successfully. You can now configure your monetary account.'
@@ -196,6 +200,31 @@ router.put('/monetary-account', async (req, res) => {
       success: false,
       message: 'Internal server error while updating monetary account'
     });
+  }
+});
+
+// Manually install Bunq webhook filters for the current user
+router.post('/webhook/install', async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Not authenticated' });
+    }
+
+    const { password } = req.body as { password?: string };
+    if (!password) {
+      return res.status(400).json({ success: false, message: 'Password is required' });
+    }
+
+    const result = await installWebhookFilters(req.user.id, password);
+    if (!result.success) {
+      return res.status(500).json({ success: false, message: 'Failed to install webhook filters' });
+    }
+
+    console.log('[Bunq] Webhook installed at', result.targetUrl, 'for user', req.user.id);
+    return res.json({ success: true, message: 'Webhook installed successfully' });
+  } catch (error: any) {
+    console.error('Error installing Bunq webhook:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error while installing webhook' });
   }
 });
 
