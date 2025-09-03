@@ -693,7 +693,6 @@ export const bunqService = {
       }
 
       console.log('Sent payment request for ' + (user.telegramUsername || user.displayName), response.data?.Response?.[0]);
-      console.log('Id = ', response.data?.Response?.[0]?.Id);
 
       // Prefer RequestInquiry.id; fallback to Id.id depending on Bunq response shape
       const paymentRequestId: string | number | undefined =
@@ -752,7 +751,7 @@ export const bunqService = {
       await notifyUser(
         user,
         `💳 Please pay <b>€${(totalAmount / 100).toFixed(2)}</b> for ${participantsText} for the volleyball game on ${formattedDate}.\n\n` +
-        (paymentRequestUrl ? `Pay here: <a href="${paymentRequestUrl}">bunq.me link</a>` : 'Payment link is being prepared, please try again shortly.')
+        (paymentRequestUrl ? `Pay here: <a href="${paymentRequestUrl}">${paymentRequestUrl}</a>` : 'Payment link is being prepared, please try again shortly.')
       );
 
       return {

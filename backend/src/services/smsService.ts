@@ -12,10 +12,6 @@ const STATUS_CALLBACK_URL = MINI_APP_URL
   : undefined;
 
 let twilioClient: Twilio | null = null;
-// Prefer API Key auth when provided; otherwise fall back to classic auth
-console.log("API_KEY_SID", API_KEY_SID);
-console.log("API_KEY_SECRET", API_KEY_SECRET);
-console.log("ACCOUNT_SID", ACCOUNT_SID);
 if (API_KEY_SID && API_KEY_SECRET && ACCOUNT_SID) {
   twilioClient = new Twilio(API_KEY_SID, API_KEY_SECRET, { accountSid: ACCOUNT_SID });
 }

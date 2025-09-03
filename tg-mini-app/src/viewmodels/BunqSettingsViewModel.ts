@@ -199,7 +199,7 @@ export class BunqSettingsViewModel {
       }
       const result = await bunqApi.installWebhook(pwd);
       if (result.success) {
-        this.updateState({ successMessage: 'Webhook installed successfully', storedPassword: pwd });
+        this.updateState({ successMessage: 'Webhook installed successfully', storedPassword: '' });
         return true;
       } else {
         this.updateState({ error: result.message || 'Failed to install webhook' });

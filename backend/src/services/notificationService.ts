@@ -11,10 +11,7 @@ export interface NotifiableUser {
 
 // Replace <a href="URL">text</a> with "text (URL)" for SMS
 function replaceAnchorsWithUrls(html: string): string {
-  return html.replace(/<a\s+href="([^"]+)"[^>]*>(.*?)<\/a>/gi, (_m, url, text) => {
-    const cleanText = String(text).replace(/<[^>]*>/g, '');
-    return `${cleanText} (${url})`;
-  });
+  return html.replace(/<a\s+href="([^"]+)"[^>]*>(.*?)<\/a>/gi, (_m, url) => url);
 }
 
 // Strip remaining HTML tags for SMS
@@ -50,7 +47,9 @@ export async function notifyUser(
       await sendSms(user.phoneNumber, sms);
       return 'sms';
     }
-    console.warn('notifyUser: no telegramId or phoneNumber for user', user.displayName ?? 'unknown');
+    if (!user.telegramId && !user.phoneNumber) {
+      console.warn('notifyUser: no telegramId or phoneNumber for user', user.displayName ?? 'unknown');
+    }
     return 'none';
   } catch (err) {
     console.error('notifyUser failed:', err);
