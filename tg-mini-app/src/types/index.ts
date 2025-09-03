@@ -11,6 +11,7 @@ export interface UserPublicInfo {
   telegramId: string;
   avatarUrl?: string | null;
   blockReason?: string | null;
+  phoneNumber?: string | null;
 }
 
 export interface User {

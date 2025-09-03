@@ -162,6 +162,12 @@ const PlayerInfoDialog: React.FC<PlayerInfoDialogProps> = ({ isOpen, onClose, us
                 <a className="value link" href={tmeLink} target="_blank" rel="noopener noreferrer">@{user.telegramUsername}</a>
               </div>
             )}
+            {user.phoneNumber && (
+              <div className="row">
+                <span className="label">Phone</span>
+                <a className="value link" href={`tel:${user.phoneNumber}`}>{user.phoneNumber}</a>
+              </div>
+            )}
           </div>
 
           {(loading || error || (unpaidGames && unpaidGames.length > 0)) && (

@@ -356,6 +356,7 @@ router.get('/:gameId', async (req, res) => {
           telegramUsername: users.telegramUsername,
           avatarUrl: users.avatarUrl,
           blockReason: users.blockReason,
+          phoneNumber: users.phoneNumber,
         },
       })
       .from(gameRegistrations)
