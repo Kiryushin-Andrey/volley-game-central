@@ -6,6 +6,7 @@ export const users = pgTable('users', {
   telegramUsername: varchar('telegram_username', { length: 255 }),
   displayName: varchar('display_name', { length: 255 }).notNull(),
   avatarUrl: varchar('avatar_url', { length: 500 }),
+  prevDisplayNames: text('prev_display_names'),
   blockReason: text('block_reason'),
   isAdmin: boolean('is_admin').notNull().default(false),
   phoneNumber: varchar('phone_number', { length: 50 }),

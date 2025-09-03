@@ -1,0 +1,100 @@
+.edit-name-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.edit-name-dialog {
+  width: calc(100% - 32px);
+  max-width: 420px;
+  background: var(--tg-theme-bg-color);
+  color: var(--tg-theme-text-color);
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.08);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+  overflow: hidden;
+}
+
+.edit-name-dialog .dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: var(--tg-theme-secondary-bg-color);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+.edit-name-dialog .dialog-header h3 {
+  font-size: 16px;
+}
+
+.edit-name-dialog .close-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--tg-theme-text-color);
+}
+
+.edit-name-dialog .dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+}
+
+.edit-name-dialog .label {
+  font-size: 13px;
+  color: var(--tg-theme-hint-color);
+}
+
+.edit-name-dialog .input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid rgba(0,0,0,0.12);
+  border-radius: 8px;
+  background: var(--tg-theme-bg-color);
+  color: var(--tg-theme-text-color);
+  outline: none;
+}
+
+.edit-name-dialog .input:focus {
+  border-color: var(--tg-theme-button-color);
+  box-shadow: 0 0 0 3px rgba(36, 129, 204, 0.15);
+}
+
+.edit-name-dialog .error {
+  color: #d9534f;
+  font-size: 13px;
+}
+
+.edit-name-dialog .actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.primary-btn, .secondary-btn {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(0,0,0,0.08);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primary-btn {
+  background: var(--tg-theme-button-color);
+  color: var(--tg-theme-button-text-color);
+}
+
+.secondary-btn {
+  background: var(--tg-theme-secondary-bg-color);
+  color: var(--tg-theme-text-color);
+}

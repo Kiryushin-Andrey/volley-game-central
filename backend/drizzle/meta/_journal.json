@@ -142,6 +142,13 @@
       "when": 1753803186109,
       "tag": "0019_add_webhook_received_to_payment_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "5",
+      "when": 1753813186109,
+      "tag": "0020_add_prev_display_names_to_users",
+      "breakpoints": true
     }
   ]
 }

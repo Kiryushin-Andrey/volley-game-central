@@ -71,6 +71,35 @@ body {
   gap: 8px;
 }
 
+.user-id {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px; /* tighter spacing between icon and name */
+  cursor: pointer;
+  background: var(--tg-theme-bg-color);
+  color: var(--tg-theme-text-color);
+}
+
+.user-id:hover {
+  background: var(--tg-theme-secondary-bg-color);
+}
+
+.user-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,0,0,0.1);
+}
+
+.user-icon-btn svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
 .user-badge {
   padding: 6px 10px;
   border-radius: 999px;

@@ -12,16 +12,42 @@ import PhoneAuth from './components/auth/PhoneAuth';
 import './App.scss';
 import { logDebug, isDebugMode } from './debug';
 import { initAppTheme } from './utils/theme';
-import { authApi } from './services/api';
+import { authApi, userApi } from './services/api';
+import EditDisplayNameDialog from './components/EditDisplayNameDialog';
 
 function App() {
   const { user, isLoading } = useAuthenticatedUser();
   const [isPhoneAuthOpen, setIsPhoneAuthOpen] = React.useState(false);
   const isTelegramApp = Boolean(window.Telegram?.WebApp?.initDataUnsafe?.user);
 
+  // Local header display name state so we can reflect updates immediately
+  const [headerName, setHeaderName] = React.useState<string | null>(null);
+  const [isEditNameOpen, setIsEditNameOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    if (user?.displayName) {
+      setHeaderName(user.displayName);
+    } else if (user) {
+      // fallback to something stable if displayName missing
+      setHeaderName(user.displayName || '');
+    } else {
+      setHeaderName(null);
+    }
+  }, [user?.id, user?.displayName]);
+
   const handleLogout = async () => {
     await authApi.logout();
     window.location.href = '/';
+  };
+
+  const handleOpenEditName = () => {
+    setIsEditNameOpen(true);
+  };
+
+  const handleSaveDisplayName = async (newName: string) => {
+    await userApi.updateProfile({ displayName: newName });
+    setHeaderName(newName);
+    setIsEditNameOpen(false);
   };
 
   // Initialize app theming (Telegram vs browser system theme)
@@ -170,7 +196,30 @@ function App() {
               <div className="spacer" />
               {user && (
                 <div className="user-controls">
-                  <span className="user-badge" title={user.displayName}>{user.displayName}</span>
+                  <div
+                    className="user-id"
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Edit display name"
+                    title="Edit display name"
+                    onClick={handleOpenEditName}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleOpenEditName();
+                      }
+                    }}
+                  >
+                    <span className="user-icon-btn" aria-hidden>
+                      {/* Person/user icon */}
+                      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                        <path fill="currentColor" d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5zm0 2c-3.866 0-7 3.134-7 7 0 .552.448 1 1 1h12c.552 0 1-.448 1-1 0-3.866-3.134-7-7-7z"/>
+                      </svg>
+                    </span>
+                    <span className="user-badge" title={headerName || user.displayName}>
+                      {headerName || user.displayName}
+                    </span>
+                  </div>
                   <button className="logout-btn" type="button" onClick={handleLogout}>Logout</button>
                 </div>
               )}
@@ -182,6 +231,15 @@ function App() {
         <main className={!isTelegramApp ? 'page-content' : undefined} role="main">
           {content}
         </main>
+        {/* Edit display name dialog (browser mode only) */}
+        {!isTelegramApp && user && (
+          <EditDisplayNameDialog
+            isOpen={isEditNameOpen}
+            initialName={headerName || user.displayName || ''}
+            onCancel={() => setIsEditNameOpen(false)}
+            save={handleSaveDisplayName}
+          />
+        )}
       </div>
     </Router>
   );
