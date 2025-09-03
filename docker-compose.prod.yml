@@ -17,6 +17,14 @@ services:
       TELEGRAM_GROUP_ID: ${TELEGRAM_GROUP_ID:?TELEGRAM_GROUP_ID is required}
       TELEGRAM_TOPIC_ID: ${TELEGRAM_TOPIC_ID}
       MINI_APP_URL: ${MINI_APP_URL:?MINI_APP_URL is required}
+      # Twilio (SMS) configuration
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:?TWILIO_ACCOUNT_SID is required}
+      TWILIO_MESSAGING_SERVICE_SID: ${TWILIO_MESSAGING_SERVICE_SID:?TWILIO_MESSAGING_SERVICE_SID is required}
+      TWILIO_API_KEY_SID: ${TWILIO_API_KEY_SID}
+      TWILIO_API_KEY_SECRET: ${TWILIO_API_KEY_SECRET}
+      
+      # Auth / Security
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       # Application settings
       NODE_ENV: production
       TZ: Europe/Amsterdam

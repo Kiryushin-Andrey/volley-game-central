@@ -1,7 +1,6 @@
 import { Twilio } from 'twilio';
 
 const ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
-const AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
 const API_KEY_SID = process.env.TWILIO_API_KEY_SID;
 const API_KEY_SECRET = process.env.TWILIO_API_KEY_SECRET;
 const TWILIO_MESSAGING_SERVICE_SID = process.env.TWILIO_MESSAGING_SERVICE_SID;
@@ -14,10 +13,11 @@ const STATUS_CALLBACK_URL = MINI_APP_URL
 
 let twilioClient: Twilio | null = null;
 // Prefer API Key auth when provided; otherwise fall back to classic auth
+console.log("API_KEY_SID", API_KEY_SID);
+console.log("API_KEY_SECRET", API_KEY_SECRET);
+console.log("ACCOUNT_SID", ACCOUNT_SID);
 if (API_KEY_SID && API_KEY_SECRET && ACCOUNT_SID) {
   twilioClient = new Twilio(API_KEY_SID, API_KEY_SECRET, { accountSid: ACCOUNT_SID });
-} else if (ACCOUNT_SID && AUTH_TOKEN) {
-  twilioClient = new Twilio(ACCOUNT_SID, AUTH_TOKEN);
 }
 
 export async function sendSms(to: string, body: string): Promise<void> {
@@ -30,31 +30,20 @@ export async function sendSms(to: string, body: string): Promise<void> {
     });
   } else {
     // Throw when Twilio is not configured (no silent fallback)
-    const missingClassic: string[] = [];
-    if (!ACCOUNT_SID) missingClassic.push('TWILIO_ACCOUNT_SID');
-    if (!AUTH_TOKEN) missingClassic.push('TWILIO_AUTH_TOKEN');
-
-    const missingApiKey: string[] = [];
-    if (!ACCOUNT_SID) missingApiKey.push('TWILIO_ACCOUNT_SID');
-    if (!API_KEY_SID) missingApiKey.push('TWILIO_API_KEY_SID');
-    if (!API_KEY_SECRET) missingApiKey.push('TWILIO_API_KEY_SECRET');
-
-    const missingShared: string[] = [];
-    if (!TWILIO_MESSAGING_SERVICE_SID) missingShared.push('TWILIO_MESSAGING_SERVICE_SID');
+    const missingEnvVars: string[] = [];
+    if (!ACCOUNT_SID) missingEnvVars.push('TWILIO_ACCOUNT_SID');
+    if (!API_KEY_SID) missingEnvVars.push('TWILIO_API_KEY_SID');
+    if (!API_KEY_SECRET) missingEnvVars.push('TWILIO_API_KEY_SECRET');
+    if (!TWILIO_MESSAGING_SERVICE_SID) missingEnvVars.push('TWILIO_MESSAGING_SERVICE_SID');
 
     const messageLines: string[] = [
-      'Cannot send SMS: Twilio not configured. Provide either:',
-      ' - Classic: TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN',
-      ' - API Key: TWILIO_ACCOUNT_SID + TWILIO_API_KEY_SID + TWILIO_API_KEY_SECRET',
+      'Cannot send SMS: Twilio not configured.',
     ];
 
-    const details: string[] = [];
-    if (missingClassic.length) details.push(`Missing (classic): ${missingClassic.join(', ')}`);
-    if (missingApiKey.length) details.push(`Missing (api key): ${missingApiKey.join(', ')}`);
-    if (missingShared.length) details.push(`Missing: ${missingShared.join(', ')}`);
+    if (missingEnvVars.length)
+      messageLines.push(`Missing: ${missingEnvVars.join(', ')}`);
 
-    const suffix = details.length ? ` ${details.join(' | ')}` : '';
-    throw new Error(messageLines.join('\n') + suffix);
+    throw new Error(messageLines.join('\n'));
   }
 }
 

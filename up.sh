@@ -59,7 +59,7 @@ if docker compose -f $COMPOSE_FILE --env-file $ENV_FILE up -d; then
   CONTAINER_ID=$(docker compose -f $COMPOSE_FILE --env-file $ENV_FILE ps -q volleybot)
   if [ ! -z "$CONTAINER_ID" ]; then
     echo -e "${YELLOW}Environment variables in the container:${NC}"
-    docker exec $CONTAINER_ID env | grep -E 'TELEGRAM|MINI_APP'
+    docker exec $CONTAINER_ID env | grep -E 'TELEGRAM|MINI_APP|TWILIO'
   fi
   
   # Show running containers

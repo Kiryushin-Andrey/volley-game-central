@@ -873,12 +873,12 @@ export const bunqService = {
           // Base total for this user's participants
           let totalAmount = perParticipantCost * participantCount;
 
-          // Surcharge: add €0.15 if the user has no Telegram ID but has a phone number
+          // Surcharge: add €0.20 if the user has no Telegram ID but has a phone number
           // Interpretation: surcharge is applied per user group (not per participant).
-          // If you want it per participant, change '+= 15' to '+= 15 * participantCount'.
+          // If you want it per participant, change '+= 20' to '+= 20 * participantCount'.
           const isPhoneOnly = (!user.telegramId || user.telegramId.length === 0) && !!user.phoneNumber;
           if (isPhoneOnly) {
-            totalAmount += 15; // cents
+            totalAmount += 20; // cents
           }
           
           // Create consolidated payment request for this user
