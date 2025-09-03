@@ -83,7 +83,8 @@ export const paymentRequests = pgTable('payment_requests', {
   monetaryAccountId: integer('monetary_account_id').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   lastCheckedAt: timestamp('last_checked_at').defaultNow().notNull(),
-  paid: boolean('paid').notNull().default(false)
+  paid: boolean('paid').notNull().default(false),
+  webhookReceived: boolean('webhook_received').notNull().default(false)
 });
 
 // Authentication sessions for phone-based login

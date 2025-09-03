@@ -61,7 +61,6 @@ export async function installWebhookFilters(
     };
 
     await client.post(`/user/${bunqUserId}/notification-filter-url`, body);
-    console.log('[Bunq] Webhook installed at', targetUrl);
     return { success: true, targetUrl };
   } catch (err: any) {
     console.error('installWebhookFilters error:', err?.response?.data || err?.message || err);
@@ -1181,7 +1180,7 @@ export const bunqService = {
               
             await bunqService.updatePaidStatus(registration.gameId, registration.userId, true);
             
-              updatedCount++;
+            updatedCount++;
           }
         } catch (error: any) {
           console.error('Error updating payment request status:', error);

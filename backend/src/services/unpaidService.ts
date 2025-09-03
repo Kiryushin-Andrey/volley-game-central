@@ -30,7 +30,8 @@ export async function getUserUnpaidItems(userId: number): Promise<UnpaidItem[]> 
       and(
         eq(paymentRequests.paid, false),
         eq(paymentRequests.userId, userId),
-        eq(gameRegistrations.paid, false)
+        eq(gameRegistrations.paid, false),
+        eq(paymentRequests.webhookReceived, false)
       )
     )
     .orderBy(desc(paymentRequests.createdAt));

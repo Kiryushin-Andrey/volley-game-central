@@ -72,6 +72,15 @@ export const userApi = {
   },
 
   /**
+   * Current user: Get unpaid games (grouped per game)
+   * Reuses backend endpoint GET /users/me/unpaid-games
+   */
+  getMyUnpaidGames: async (): Promise<UnpaidRegistration[]> => {
+    const response = await api.get('/users/me/unpaid-games');
+    return response.data;
+  },
+
+  /**
    * Admin: Block a user by ID with a reason
    */
   blockUser: async (userId: number, reason: string): Promise<{ success: boolean; message: string; user: User }> => {

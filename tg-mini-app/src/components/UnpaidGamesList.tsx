@@ -30,7 +30,7 @@ const UnpaidGamesList: React.FC<UnpaidGamesListProps> = ({ items }) => {
   return (
     <ul
       className="unpaid-list"
-      style={{ listStyle: 'none', padding: 0, margin: '8px 0 0', display: 'flex', flexDirection: 'column', gap: 8 }}
+      style={{ listStyle: 'none', padding: 0, margin: '8px 0 12px', display: 'flex', flexDirection: 'column', gap: 8 }}
     >
       {items.map((item, idx) => {
         const dt = new Date(item.dateTime);
@@ -54,15 +54,14 @@ const UnpaidGamesList: React.FC<UnpaidGamesListProps> = ({ items }) => {
               </div>
               <div style={{ textAlign: 'right' }}>
                 {item.paymentLink && (
-                  <a
-                    className="link"
-                    href={item.paymentLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => window.open(item.paymentLink as string, '_blank', 'noopener,noreferrer')}
                     style={{ display: 'inline-block', marginTop: 4 }}
+                    aria-label="Pay now"
                   >
-                    Pay now →
-                  </a>
+                    Pay now
+                  </button>
                 )}
               </div>
             </div>
