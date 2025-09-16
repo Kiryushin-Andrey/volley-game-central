@@ -613,11 +613,25 @@
     font-size: 16px;
     color: var(--tg-theme-text-color);
     font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 
     &.clickable {
       cursor: pointer;
       text-decoration: underline;
       text-underline-offset: 2px;
+    }
+
+    .volleyball-icon {
+      color: #2196F3;
+      font-size: 16px;
+      flex-shrink: 0;
+      filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+      
+      @media (prefers-color-scheme: dark) {
+        color: #64B5F6;
+      }
     }
   }
 

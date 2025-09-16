@@ -93,10 +93,10 @@ export class GameDetailsViewModel {
     }
   }
 
-  async register(game: Game): Promise<void> {
+  async register(game: Game, bringingTheBall: boolean): Promise<void> {
     try {
       this.setIsActionLoading(true);
-      await gamesApi.registerForGame(game.id);
+      await gamesApi.registerForGame(game.id, undefined, bringingTheBall);
       await this.loadGame(game.id);
     } catch (err: any) {
       logDebug('Error registering for game:');

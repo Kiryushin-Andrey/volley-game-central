@@ -4,6 +4,7 @@ import { Game, User, PricingMode } from "../types";
 import LoadingSpinner from "../components/LoadingSpinner";
 import PasswordDialog from "../components/PasswordDialog";
 import GuestRegistrationDialog from "../components/GuestRegistrationDialog";
+import BringBallDialog from "../components/BringBallDialog";
 import { UserSearchInput } from "../components/UserSearchInput";
 import { formatDisplayPricingInfo } from "../utils/pricingUtils";
 import { resolveLocationLink } from "../utils/locationUtils";
@@ -63,6 +64,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
   const [defaultGuestName, setDefaultGuestName] = useState<string>("");
   const [showPlayerInfo, setShowPlayerInfo] = useState<boolean>(false);
   const [selectedUser, setSelectedUser] = useState<UserPublicInfo | null>(null);
+  const [showBringBallDialog, setShowBringBallDialog] = useState<boolean>(false);
 
   // ViewModel setup
   const vmRef = useRef<GameDetailsViewModel | null>(null);
@@ -208,7 +210,8 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
       });
       return;
     }
-    await vmRef.current!.register(game);
+    // Show the bring ball dialog
+    setShowBringBallDialog(true);
   };
 
   const handleUnregister = () => {
@@ -337,6 +340,19 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
   const handleClosePlayerInfo = () => {
     setShowPlayerInfo(false);
     setSelectedUser(null);
+  };
+
+  // Handle bring ball dialog submission
+  const handleBringBallSubmit = async (bringingTheBall: boolean) => {
+    if (!game || isActionLoading) return;
+    
+    await vmRef.current!.register(game, bringingTheBall);
+    setShowBringBallDialog(false);
+  };
+
+  // Handle bring ball dialog cancellation
+  const handleBringBallCancel = () => {
+    setShowBringBallDialog(false);
   };
 
   // Handle game deletion with confirmation
@@ -614,6 +630,14 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
         isOpen={showPlayerInfo}
         onClose={handleClosePlayerInfo}
         user={selectedUser}
+      />
+
+      {/* Bring Ball Dialog */}
+      <BringBallDialog
+        isOpen={showBringBallDialog}
+        onSubmit={handleBringBallSubmit}
+        onCancel={handleBringBallCancel}
+        isProcessing={isActionLoading}
       />
     </div>
   );

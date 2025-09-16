@@ -46,6 +46,7 @@ export interface GameRegistration {
   userId: number;
   paid: boolean;
   isWaitlist: boolean;
+  bringingTheBall: boolean;
   createdAt: Date | null;
   guestName?: string | null;
   user?: UserPublicInfo;

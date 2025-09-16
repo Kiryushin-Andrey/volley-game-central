@@ -34,6 +34,7 @@ export const gameRegistrations = pgTable('game_registrations', {
   userId: serial('user_id').references(() => users.id),
   guestName: varchar('guest_name', { length: 255 }),
   paid: boolean('paid').notNull().default(false),
+  bringingTheBall: boolean('bringing_the_ball').notNull().default(false),
   createdAt: timestamp('created_at').defaultNow(),
 });
 

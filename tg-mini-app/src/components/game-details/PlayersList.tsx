@@ -1,6 +1,7 @@
 import React from 'react';
 import { GameRegistration, UserPublicInfo } from '../../types';
 import { FaCheck, FaTimes, FaUser } from 'react-icons/fa';
+import { GiVolleyballBall } from 'react-icons/gi';
 import RemovePlayerButton from './RemovePlayerButton';
 
 interface Props {
@@ -73,6 +74,13 @@ export const PlayersList: React.FC<Props> = ({
             >
               <div className="player-name">
                 {registration.guestName || registration.user?.displayName || registration.user?.telegramUsername || `Player ${registration.userId}`}
+                {!isPastGame && registration.bringingTheBall && (
+                  <GiVolleyballBall 
+                    className="volleyball-icon" 
+                    title="Bringing the ball" 
+                    aria-label="Bringing the ball"
+                  />
+                )}
               </div>
               {registration.guestName && (
                 <div className="invited-by">

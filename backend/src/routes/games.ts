@@ -13,7 +13,7 @@ const router = Router();
 router.post('/:gameId/register', async (req, res) => {
   try {
     const { gameId } = req.params;
-    const { guestName } = req.body; // Optional guest name from request body
+    const { guestName, bringingTheBall } = req.body; // Optional guest name and bringingTheBall from request body
 
     // Get user ID from authenticated user
     if (!req.user) {
@@ -95,7 +95,8 @@ router.post('/:gameId/register', async (req, res) => {
       .values({
         gameId: parseInt(gameId),
         userId,
-        guestName: guestName || null
+        guestName: guestName || null,
+        bringingTheBall: bringingTheBall || false
       })
       .returning();
 
@@ -348,6 +349,7 @@ router.get('/:gameId', async (req, res) => {
         userId: gameRegistrations.userId,
         guestName: gameRegistrations.guestName,
         paid: gameRegistrations.paid,
+        bringingTheBall: gameRegistrations.bringingTheBall,
         createdAt: gameRegistrations.createdAt,
         user: {
           id: users.id,

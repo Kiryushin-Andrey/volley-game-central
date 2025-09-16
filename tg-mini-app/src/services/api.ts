@@ -143,8 +143,15 @@ export const gamesApi = {
     return api.post('/games/admin', gameData).then(res => res.data);
   },
 
-  registerForGame: async (gameId: number, guestName?: string): Promise<void> => {
-    await api.post(`/games/${gameId}/register`, guestName ? { guestName } : {});
+  registerForGame: async (gameId: number, guestName?: string, bringingTheBall?: boolean): Promise<void> => {
+    const payload: any = {};
+    if (guestName) {
+      payload.guestName = guestName;
+    }
+    if (bringingTheBall !== undefined) {
+      payload.bringingTheBall = bringingTheBall;
+    }
+    await api.post(`/games/${gameId}/register`, payload);
   },
 
   /**

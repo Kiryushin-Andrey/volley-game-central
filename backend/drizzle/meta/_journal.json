@@ -64,8 +64,7 @@
       "when": 1753273186105,
       "tag": "0008_add_with_positions_to_games",
       "breakpoints": true
-    }
-    ,
+    },
     {
       "idx": 9,
       "version": "5",
@@ -148,6 +147,13 @@
       "version": "5",
       "when": 1753813186109,
       "tag": "0020_add_prev_display_names_to_users",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "5",
+      "when": 1758040285549,
+      "tag": "0021_add_bringing_the_ball_column",
       "breakpoints": true
     }
   ]
