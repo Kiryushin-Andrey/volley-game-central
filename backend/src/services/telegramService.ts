@@ -4,6 +4,7 @@ import { db } from '../db';
 import { games, gameRegistrations } from '../db/schema';
 import { gt, lte, and, eq, count } from 'drizzle-orm';
 import { REGISTRATION_OPEN_DAYS } from '../constants';
+import { formatGameDate } from '../utils/dateUtils';
 
 // Get mini app URL from environment
 const MINI_APP_URL = process.env.MINI_APP_URL || 'http://localhost:3001';
@@ -141,13 +142,7 @@ export async function checkAndAnnounceGameRegistrations(): Promise<void> {
     // Send announcements for each game
     for (const game of upcomingGames) {
       const gameDate = new Date(game.dateTime);
-      const formattedDate = gameDate.toLocaleDateString('en-GB', { 
-        weekday: 'long',
-        day: 'numeric', 
-        month: 'long',
-        hour: '2-digit', 
-        minute: '2-digit'
-      });
+      const formattedDate = formatGameDate(gameDate);
       
       const locationText = formatLocationSection((game as any).locationName, (game as any).locationLink);
 
@@ -196,13 +191,7 @@ async function debugPostAllOpenRegistrations(): Promise<void> {
     
     for (const game of openRegistrationGames) {
       const gameDate = new Date(game.dateTime);
-      const formattedDate = gameDate.toLocaleDateString('en-GB', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
+      const formattedDate = formatGameDate(gameDate);
       
       const availableSpots = game.maxPlayers - Number(game.registrationCount);
       const spotsText = availableSpots > 0 

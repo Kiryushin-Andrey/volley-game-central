@@ -7,6 +7,7 @@ import { bunqCredentialsService, type BunqCredentials } from './bunqCredentialsS
 import { calculatePerParticipantCost } from '../utils/pricingUtils';
 import { PricingMode } from '../types/PricingMode';
 import crypto from 'crypto';
+import { formatGameDate } from '../utils/dateUtils';
 
 type User = typeof users.$inferSelect;
 type Game = typeof games.$inferSelect;
@@ -841,13 +842,7 @@ export const bunqService = {
       let requestsCreated = 0;
       
       const gameDate = new Date(game.dateTime);
-      const formattedDate = gameDate.toLocaleDateString('en-GB', { 
-        weekday: 'long',
-        day: 'numeric', 
-        month: 'long',
-        hour: '2-digit', 
-        minute: '2-digit'
-      });
+      const formattedDate = formatGameDate(gameDate);
       
       for (const [userId, userRegistrations] of unpaidUserGroups) {
         try {

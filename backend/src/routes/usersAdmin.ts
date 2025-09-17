@@ -4,6 +4,7 @@ import { users } from '../db/schema';
 import { eq, or, ilike } from 'drizzle-orm';
 import { getUserUnpaidItems } from '../services/unpaidService';
 import { notifyUser } from '../services/notificationService';
+import { formatGameDateShort } from '../utils/dateUtils';
 
 const router = Router();
 
@@ -143,9 +144,7 @@ router.post('/id/:userId/payment-reminder', async (req, res) => {
     lines.push('💰 <b>Payment reminder</b>');
     lines.push('You still have unpaid registrations:');
     for (const it of items) {
-      const formattedDate = it.dateTime.toLocaleDateString('en-GB', {
-        weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
-      });
+      const formattedDate = formatGameDateShort(it.dateTime);
       const location = it.locationName ? ` • ${it.locationName}` : '';
       const amountPart = it.totalAmountCents != null ? ` — €${(it.totalAmountCents / 100).toFixed(2)}` : '';
       const linkPart = it.paymentLink ? ` — <a href="${it.paymentLink}">pay link</a>` : '';

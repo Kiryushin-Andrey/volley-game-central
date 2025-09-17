@@ -9,6 +9,8 @@ import { gameService } from '../services/gameService';
 import { bunqService } from '../services/bunqService';
 import { REGISTRATION_OPEN_DAYS } from '../constants';
 import { formatLocationSection } from '../utils/telegramMessageUtils';
+import { getNotificationSubjectWithVerb } from '../utils/notificationUtils';
+import { formatGameDate } from '../utils/dateUtils';
 
 const router = Router();
 
@@ -82,13 +84,7 @@ router.post('/', async (req, res) => {
       const isFiveOne = !!created.withPositions;
 
       if (isRegistrationOpen && !isFiveOne) {
-        const formattedDate = gameDate.toLocaleDateString('en-GB', {
-          weekday: 'long',
-          day: 'numeric',
-          month: 'long',
-          hour: '2-digit',
-          minute: '2-digit',
-        });
+        const formattedDate = formatGameDate(gameDate);
 
         const locationText = formatLocationSection((created as any).locationName, (created as any).locationLink);
         const message = `<b>🏐 New Volleyball Game Registration Open!</b>\n\nRegistration is now open for the game on <b>${formattedDate}</b>${locationText}\n\nSpots are limited to ${created.maxPlayers} players. First come, first served!\n\nClick the button below to join:`;
@@ -133,6 +129,8 @@ router.put('/:gameId', async (req, res) => {
 
     const originalDateTime = new Date(existingGame[0].dateTime);
     const newDateTime = new Date(dateTime);
+    const originalMaxPlayers = existingGame[0].maxPlayers;
+    const capacityIncreased = maxPlayers > originalMaxPlayers;
 
     const game = await db
       .update(games)
@@ -149,45 +147,53 @@ router.put('/:gameId', async (req, res) => {
       .where(eq(games.id, gameId))
       .returning();
 
-    const registrations = await db
-      .select({ userId: gameRegistrations.userId })
+    // Fetch all registrations with user details once for both capacity increase and date change notifications
+    const allRegistrations = await db
+      .select({
+        userId: gameRegistrations.userId,
+        guestName: gameRegistrations.guestName,
+        createdAt: gameRegistrations.createdAt,
+        user: {
+          id: users.id,
+          telegramId: users.telegramId,
+          displayName: users.displayName,
+          telegramUsername: users.telegramUsername,
+          avatarUrl: users.avatarUrl,
+          isAdmin: users.isAdmin,
+          createdAt: users.createdAt,
+        },
+      })
       .from(gameRegistrations)
-      .where(eq(gameRegistrations.gameId, gameId));
+      .innerJoin(users, eq(users.id, gameRegistrations.userId))
+      .where(eq(gameRegistrations.gameId, gameId))
+      .orderBy(gameRegistrations.createdAt);
 
-    if (registrations.length > 0) {
-      const formattedNewDate = newDateTime.toLocaleDateString('en-GB', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
+    // Send notifications to promoted users
+    if (capacityIncreased && allRegistrations.length > originalMaxPlayers) {
+      const promotedUsers = allRegistrations.slice(originalMaxPlayers, maxPlayers);
 
-      const formattedOldDate = originalDateTime.toLocaleDateString('en-GB', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
+      const gameDate = new Date(newDateTime);
+      const formattedDate = formatGameDate(gameDate);
+      for (const promotedRegistration of promotedUsers) {
+        const subject = getNotificationSubjectWithVerb(promotedRegistration.guestName, 'have');
+        await notifyUser(
+          promotedRegistration.user,
+          `🎉 Great news! The game capacity has been increased and ${subject} been moved from the waiting list to the participants list for the volleyball game on ${formattedDate}. See you there! 🏐`,
+        );
+      }
+    }
+
+    if (allRegistrations.length > 0) {
+      const formattedNewDate = formatGameDate(newDateTime);
+      const formattedOldDate = formatGameDate(originalDateTime);
 
       const dateTimeChanged = originalDateTime.getTime() !== newDateTime.getTime();
 
-      let notificationMessage = '🔄 <b>Game Update:</b>\n';
-      const changes: string[] = [];
-
       if (dateTimeChanged) {
-        changes.push(`The game has been rescheduled from ${formattedOldDate} to ${formattedNewDate}`);
-      }
+        const notificationMessage = `🔄 <b>Game Update:</b>\n\n• The game has been rescheduled from ${formattedOldDate} to ${formattedNewDate}`;
 
-      if (changes.length > 0) {
-        notificationMessage = '🔄 <b>Game Update:</b>\n\n' + changes.map((c) => `• ${c}`).join('\n');
-
-        for (const registration of registrations) {
-          const userDetails = await db.select().from(users).where(eq(users.id, registration.userId));
-          if (userDetails.length > 0) {
-            await notifyUser(userDetails[0], notificationMessage);
-          }
+        for (const registration of allRegistrations) {
+          await notifyUser(registration.user, notificationMessage);
         }
       }
 

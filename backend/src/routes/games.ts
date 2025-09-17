@@ -5,7 +5,8 @@ import { gte, desc, inArray, eq, and, sql, lt, lte, asc, isNull } from 'drizzle-
 import type { InferSelectModel } from 'drizzle-orm';
 import { REGISTRATION_OPEN_DAYS } from '../constants';
 import { notifyUser } from '../services/notificationService';
-import { getNotificationSubjectWithVerb } from '../utils/notificationUtils';
+import { getNotificationSubject, getNotificationSubjectWithVerb } from '../utils/notificationUtils';
+import { formatGameDate } from '../utils/dateUtils';
 
 const router = Router();
 
@@ -120,13 +121,7 @@ router.post('/:gameId/register', async (req, res) => {
     if (userDetails.length > 0) {
       // Format date for the notification
       const gameDate = new Date(game[0].dateTime);
-      const formattedDate = gameDate.toLocaleDateString('en-GB', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
+      const formattedDate = formatGameDate(gameDate);
 
       // Get the guest name from the registration for notifications
       const guestName = registration[0].guestName;
@@ -240,13 +235,7 @@ router.delete('/:gameId/register', async (req, res) => {
 
     // Format date for the notification
     const gameDate = new Date(game[0].dateTime);
-    const formattedDate = gameDate.toLocaleDateString('en-GB', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    const formattedDate = formatGameDate(gameDate);
 
     // Delete the registration
     await db
@@ -301,13 +290,7 @@ router.delete('/:gameId/register', async (req, res) => {
         if (promotedUser.length > 0) {
           // Format date for the notification
           const gameDate = new Date(game[0].dateTime);
-          const formattedDate = gameDate.toLocaleDateString('en-GB', {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long',
-            hour: '2-digit',
-            minute: '2-digit',
-          });
+          const formattedDate = formatGameDate(gameDate);
 
           // Send notification to the promoted user
           const subject = getNotificationSubjectWithVerb(promotedGuestName, 'have');
