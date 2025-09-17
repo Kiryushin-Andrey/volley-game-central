@@ -208,14 +208,6 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
                   >
                     💳 Bunq settings
                   </button>
-                  {vm.hasBunqIntegration && (
-                    <button
-                      className="check-payments-button"
-                      onClick={() => vm.navigateTo('/check-payments')}
-                    >
-                      🔄 Check Payments
-                    </button>
-                  )}
                   <button
                     className="create-game-button"
                     onClick={() => vm.navigateTo('/games/new')}

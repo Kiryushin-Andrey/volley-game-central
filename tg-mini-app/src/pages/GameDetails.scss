@@ -346,6 +346,56 @@
       animation: spin 1s linear infinite;
     }
   }
+
+  .check-payments-button {
+    background: transparent;
+    border: none;
+    padding: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    height: 32px;
+    width: 32px;
+    margin: 0;
+    flex-shrink: 0;
+    align-self: center;
+    color: var(--tg-theme-text-color, #000000);
+
+    &:hover {
+      background-color: rgba(0, 123, 255, 0.1);
+    }
+
+    &:active {
+      background-color: rgba(0, 123, 255, 0.2);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+
+      &:hover {
+        background-color: transparent;
+      }
+    }
+
+    svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    .mini-spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid transparent;
+      border-top: 2px solid currentColor;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+  }
 }
 
 /* Positions note */

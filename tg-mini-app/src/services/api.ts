@@ -273,12 +273,13 @@ export const gamesApi = {
   },
   
   /**
-   * Check payment status of all unpaid games and update the database
+   * Check payment status of unpaid games and update the database
    * @param password The Bunq API password
+   * @param gameId Optional specific game ID to check (if not provided, checks all unpaid games)
    */
-  checkPayments(password: string): Promise<{ message: string; updatedGames: number; updatedPlayers: number }> {
+  checkPayments(password: string, gameId?: number): Promise<{ message: string; updatedGames: number; updatedPlayers: number }> {
     return api
-      .post('/games/admin/check-payments', { password })
+      .post('/games/admin/check-payments', { password, gameId })
       .then((res) => res.data);
   },
 };

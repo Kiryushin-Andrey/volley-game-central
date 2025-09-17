@@ -58,6 +58,8 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
   const [showPasswordDialog, setShowPasswordDialog] = useState<boolean>(false);
   const [passwordError, setPasswordError] = useState<string>("");
   const [showUserSearch, setShowUserSearch] = useState<boolean>(false);
+  const [isCheckingPayments, setIsCheckingPayments] = useState<boolean>(false);
+  const [passwordDialogAction, setPasswordDialogAction] = useState<'payment_requests' | 'check_payments'>('payment_requests');
   const [showGuestDialog, setShowGuestDialog] = useState<boolean>(false);
   const [guestError, setGuestError] = useState<string>("");
   const [isGuestRegistering, setIsGuestRegistering] = useState<boolean>(false);
@@ -255,13 +257,50 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
   // Handle sending payment requests
   const handleSendPaymentRequests = async () => {
     if (!game || !isActionAllowed()) return;
+    setPasswordDialogAction('payment_requests');
     vmRef.current!.startPaymentRequestsFlow();
+  };
+
+  // Handle checking payments for this game
+  const handleCheckPayments = async () => {
+    if (!game || !isActionAllowed()) return;
+    setPasswordDialogAction('check_payments');
+    setShowPasswordDialog(true);
   };
 
   // Handle password dialog submission
   const handlePasswordSubmit = async (password: string) => {
     if (!game) return;
-    await vmRef.current!.submitPassword(game.id, password);
+
+    if (passwordDialogAction === 'check_payments') {
+      try {
+        setIsCheckingPayments(true);
+        setPasswordError('');
+        const result = await gamesApi.checkPayments(password, game.id);
+        setShowPasswordDialog(false);
+        showPopup({
+          title: 'Payment check completed',
+          message: result.message || 'Payment check completed successfully',
+          buttons: [{ type: 'ok' }]
+        });
+        vmRef.current!.loadGame(game.id);
+      } catch (error: any) {
+        if (error?.response?.data?.message === 'Invalid password') {
+          setPasswordError(error.response?.data?.message);
+        } else {
+          setShowPasswordDialog(false);
+          showPopup({
+            title: 'Error',
+            message: error instanceof Error ? error.message : 'Unknown error',
+            buttons: [{ type: 'ok' }]
+          });
+        }
+      } finally {
+        setIsCheckingPayments(false);
+      }
+    } else {
+      await vmRef.current!.submitPassword(game.id, password);
+    }
   };
 
   // Handle password dialog cancellation
@@ -491,6 +530,15 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
               }
               onSendPaymentRequests={handleSendPaymentRequests}
               isSendingPaymentRequests={isSendingPaymentRequests}
+              canCheckPayments={
+                isGamePast(game.dateTime) &&
+                game.paymentAmount > 0 &&
+                !game.fullyPaid &&
+                hasBunqIntegration &&
+                !isCheckingBunq
+              }
+              onCheckPayments={handleCheckPayments}
+              isCheckingPayments={isCheckingPayments}
             />
           )}
         </div>
@@ -603,14 +651,17 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
         )
       )}
 
-      {/* Password Dialog for Payment Requests */}
+      {/* Password Dialog */}
       <PasswordDialog
         isOpen={showPasswordDialog}
         title="Enter Password"
-        message="Please enter your password to send payment requests."
+        message={passwordDialogAction === 'check_payments'
+          ? "Please enter your password to check payment statuses."
+          : "Please enter your password to send payment requests."
+        }
         onSubmit={handlePasswordSubmit}
         onCancel={handlePasswordCancel}
-        isProcessing={isSendingPaymentRequests}
+        isProcessing={passwordDialogAction === 'check_payments' ? isCheckingPayments : isSendingPaymentRequests}
         error={passwordError}
       />
 

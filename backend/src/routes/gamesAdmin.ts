@@ -421,29 +421,39 @@ router.put('/:gameId/players/:userId/paid', async (req, res) => {
   }
 });
 
-// Check payment statuses for all unpaid past games
+// Check payment statuses for all unpaid past games or a specific game
 router.post('/check-payments', async (req, res) => {
   try {
     if (!req.user?.id) {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const { password } = req.body as { password?: string };
+    const { password, gameId } = req.body as { password?: string, gameId?: number };
     if (!password) {
       return res.status(400).json({ error: 'Password is required' });
     }
 
-    const unpaidGames = await db
-      .select()
-      .from(games)
-      .where(and(eq(games.fullyPaid, false), lt(games.dateTime, new Date())))
-      .orderBy(desc(games.dateTime))
-      .limit(10);
+    let unpaidGames;
+    if (gameId) {
+      // Check specific game
+      unpaidGames = await db
+        .select()
+        .from(games)
+        .where(and(eq(games.id, gameId), eq(games.fullyPaid, false), lt(games.dateTime, new Date())));
+    } else {
+      // Check all unpaid past games (legacy behavior)
+      unpaidGames = await db
+        .select()
+        .from(games)
+        .where(and(eq(games.fullyPaid, false), lt(games.dateTime, new Date())))
+        .orderBy(desc(games.dateTime))
+        .limit(10);
+    }
 
     if (unpaidGames.length === 0) {
       return res.json({
         success: true,
-        message: 'No unpaid past games found',
+        message: gameId ? 'Game not found or already fully paid' : 'No unpaid past games found',
         updatedPlayers: 0,
         updatedGames: 0,
         processedGames: 0,
@@ -531,7 +541,9 @@ router.post('/check-payments', async (req, res) => {
 
     res.json({
       success: true,
-      message: `Payment check completed. Updated ${totalUpdatedPlayers} players and marked ${totalUpdatedGames} games as fully paid.`,
+      message: gameId
+        ? `Payment check completed for game. Updated ${totalUpdatedPlayers} players${totalUpdatedGames > 0 ? ' and marked game as fully paid' : ''}.`
+        : `Payment check completed. Updated ${totalUpdatedPlayers} players and marked ${totalUpdatedGames} games as fully paid.`,
       updatedPlayers: totalUpdatedPlayers,
       updatedGames: totalUpdatedGames,
       processedGames: unpaidGames.length,
