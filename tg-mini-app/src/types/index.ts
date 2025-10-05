@@ -24,6 +24,13 @@ export interface User {
   blockReason?: string | null;
 }
 
+export interface CollectorUser {
+  id: number;
+  displayName: string;
+  telegramUsername?: string | null;
+  avatarUrl?: string | null;
+}
+
 export interface Game {
   id: number;
   dateTime: string;
@@ -37,6 +44,7 @@ export interface Game {
   locationLink?: string | null;
   createdAt: Date | null;
   createdById: number;
+  collectorUser?: CollectorUser | null;
   registrations: GameRegistration[];
 }
 

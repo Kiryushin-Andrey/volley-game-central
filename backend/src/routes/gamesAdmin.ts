@@ -242,6 +242,9 @@ router.post('/:gameId/payment-requests', async (req, res) => {
     const result = await bunqService.createPaymentRequests(gameId, req.user.id, password);
 
     if (result.success) {
+      // Update the game to track who collected payments
+      await db.update(games).set({ collectorUserId: req.user.id }).where(eq(games.id, gameId));
+      
       res.json({
         message: `Successfully created ${result.requestsCreated} payment requests`,
         requestsCreated: result.requestsCreated,

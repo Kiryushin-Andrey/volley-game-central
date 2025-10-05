@@ -553,6 +553,28 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
         </div>
       )}
 
+      {isPastGame && game.collectorUser && user.isAdmin && (
+        <div className="collector-info">
+          <span className="collector-label">Payments collected by</span>
+          <div className="collector-user">
+            <div className="collector-avatar">
+              {game.collectorUser.avatarUrl ? (
+                <img
+                  src={game.collectorUser.avatarUrl}
+                  alt={`${game.collectorUser.displayName}'s avatar`}
+                  className="avatar-image"
+                />
+              ) : (
+                <div className="avatar-placeholder">
+                  {game.collectorUser.displayName.charAt(0).toUpperCase()}
+                </div>
+              )}
+            </div>
+            <span className="collector-name">{game.collectorUser.displayName}</span>
+          </div>
+        </div>
+      )}
+
       <div className="players-container">
         <div className="players-stats-header">
           <div className="stats-row">

@@ -324,6 +324,24 @@ router.get('/:gameId', async (req, res) => {
       return res.status(404).json({ error: 'Game not found' });
     }
 
+    // Get collector user information if collectorUserId is set
+    let collectorUser = null;
+    if (game[0].collectorUserId) {
+      const collectorResult = await db
+        .select({
+          id: users.id,
+          displayName: users.displayName,
+          telegramUsername: users.telegramUsername,
+          avatarUrl: users.avatarUrl,
+        })
+        .from(users)
+        .where(eq(users.id, game[0].collectorUserId));
+      
+      if (collectorResult.length > 0) {
+        collectorUser = collectorResult[0];
+      }
+    }
+
     // Get registrations with user information joined
     const registrations = await db
       .select({
@@ -360,6 +378,7 @@ router.get('/:gameId', async (req, res) => {
     res.json({
       ...restGame,
       registrations: registrationsWithWaitlistStatus,
+      collectorUser,
     });
   } catch (error) {
     console.error('Error fetching game:', error);

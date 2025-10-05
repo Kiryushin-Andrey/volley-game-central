@@ -26,6 +26,7 @@ export const games = pgTable('games', {
   locationLink: varchar('location_link', { length: 1000 }),
   createdAt: timestamp('created_at').defaultNow(),
   createdById: serial('created_by_id').references(() => users.id),
+  collectorUserId: integer('collector_user_id').references(() => users.id),
 });
 
 export const gameRegistrations = pgTable('game_registrations', {
