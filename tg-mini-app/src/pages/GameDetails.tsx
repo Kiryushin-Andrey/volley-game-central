@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Game, User, PricingMode } from "../types";
 import LoadingSpinner from "../components/LoadingSpinner";
@@ -6,6 +6,7 @@ import PasswordDialog from "../components/PasswordDialog";
 import GuestRegistrationDialog from "../components/GuestRegistrationDialog";
 import BringBallDialog from "../components/BringBallDialog";
 import { UserSearchInput } from "../components/UserSearchInput";
+import { HalloweenDecorations } from "../components/HalloweenDecorations";
 import { formatDisplayPricingInfo } from "../utils/pricingUtils";
 import { resolveLocationLink } from "../utils/locationUtils";
 import { gamesApi } from "../services/api";
@@ -410,6 +411,23 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
     return canJoinGame(game.dateTime);
   }, [game, isLoading, isActionLoading, error]);
 
+  // Generate random positions for falling leaves - must be before early returns
+  const fallingLeaves = useMemo(() => {
+    if (!game || game.tag !== 'halloween') return [];
+    
+    const leaves = ['🍂', '🍁'];
+    const leafCount = 8;
+    
+    return Array.from({ length: leafCount }, (_, i) => ({
+      emoji: leaves[i % 2],
+      left: `${10 + Math.random() * 80}%`, // Random position between 10-90%
+      animationDelay: `${i * 1.5}s`,
+      animationDuration: `${8 + Math.random() * 3}s`, // 8-11s
+      fontSize: `${20 + Math.random() * 6}px`, // 20-26px
+      opacity: 0.3 + Math.random() * 0.1, // 0.3-0.4
+    }));
+  }, [game]);
+
   if (isLoading) {
     return <LoadingSpinner />;
   }
@@ -448,8 +466,32 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
     onClick: mainButtonClick,
   } = mainButtonProps();
 
+  const isHalloween = game.tag === 'halloween';
+
   return (
-    <div className="game-details-container">
+    <div className={`game-details-container ${isHalloween ? 'halloween-theme' : ''}`}>
+      {isHalloween && (
+        <>
+          <HalloweenDecorations variant="page" />
+          <div className="falling-leaves-layer">
+            {fallingLeaves.map((leaf, index) => (
+              <div
+                key={index}
+                className="leaf"
+                style={{
+                  left: leaf.left,
+                  animationDelay: leaf.animationDelay,
+                  animationDuration: leaf.animationDuration,
+                  fontSize: leaf.fontSize,
+                  opacity: leaf.opacity,
+                }}
+              >
+                {leaf.emoji}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
       {inTelegram && (
         <BackButton onClick={() => navigate("/")} />
       )}
@@ -549,6 +591,14 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
           <p>
             🔶 This game will be played with positions according to the 5-1
             scheme. Knowledge of the 5-1 scheme is expected of all participants.
+          </p>
+        </div>
+      )}
+
+      {isHalloween && (
+        <div className="halloween-note">
+          <p>
+            🎃 Halloween Special! Get ready for a spooky volleyball night! 👻🦇
           </p>
         </div>
       )}

@@ -1,0 +1,101 @@
+/* Halloween Decorations Component Styles */
+
+.halloween-decorations-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.halloween-decoration {
+  position: absolute;
+  font-size: 20px;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  opacity: 0.4;
+  z-index: 1000;
+
+  &.spider {
+    font-size: 18px;
+  }
+
+  &.ghost {
+    font-size: 22px;
+  }
+}
+
+/* Page variant - larger decorations */
+.halloween-decorations-container.page-variant {
+  position: fixed;
+  pointer-events: none;
+
+  .halloween-decoration {
+    font-size: 32px;
+    opacity: 0.5;
+    z-index: 1000;
+
+    &.spider {
+      font-size: 28px;
+    }
+
+    &.ghost {
+      font-size: 34px;
+    }
+
+    &.bat {
+      font-size: 30px;
+    }
+  }
+}
+
+/* Subtle animations that don't obstruct content */
+@keyframes bounce-subtle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes swing-subtle {
+  0%, 100% {
+    transform: rotate(-3deg);
+  }
+  50% {
+    transform: rotate(3deg);
+  }
+}
+
+@keyframes float-subtle {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(3px, -5px);
+  }
+  50% {
+    transform: translate(0, -8px);
+  }
+  75% {
+    transform: translate(-3px, -5px);
+  }
+}
+
+@keyframes fly-subtle {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate(-10px, 10px) rotate(-5deg);
+  }
+  50% {
+    transform: translate(-15px, 0) rotate(5deg);
+  }
+  75% {
+    transform: translate(-10px, -10px) rotate(-5deg);
+  }
+}

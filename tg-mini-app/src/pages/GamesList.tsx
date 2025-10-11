@@ -1,10 +1,11 @@
 import React, { memo } from 'react';
 import { useGamesListViewModel } from './GamesListViewModel';
-import UnpaidGamesList from '../components/UnpaidGamesList';
 import { GameWithStats, User } from '../types';
-import LoadingSpinner from '../components/LoadingSpinner';
-import { resolveLocationLink } from '../utils/locationUtils';
 import { isGameUpcoming } from '../utils/gameDateUtils';
+import { resolveLocationLink } from '../utils/locationUtils';
+import { HalloweenDecorations } from '../components/HalloweenDecorations';
+import LoadingSpinner from '../components/LoadingSpinner';
+import UnpaidGamesList from '../components/UnpaidGamesList';
 import './GamesList.scss';
 
 interface GamesListProps {
@@ -18,12 +19,14 @@ const GameItem = memo(({ game, onClick, formatDate }: {
   formatDate: (date: string) => string 
 }) => {
   const isUpcomingGame = isGameUpcoming(game.dateTime);
+  const isHalloween = game.tag === 'halloween';
   
   return (
     <div
-      className={`game-card ${game.isUserRegistered ? 'registered' : ''}`}
+      className={`game-card ${game.isUserRegistered ? 'registered' : ''} ${isHalloween ? 'halloween-theme' : ''}`}
       onClick={() => onClick(game.id)}
     >
+      {isHalloween && <HalloweenDecorations variant="card" />}
       <div className="game-header">
         <div className="game-date-location">
           <span className="game-date">{formatDate(game.dateTime)}</span>
@@ -39,43 +42,43 @@ const GameItem = memo(({ game, onClick, formatDate }: {
               </a>
             </span>
           )}
+        </div>
+        {game.isUserRegistered && (
+          <div className={`registration-badge ${game.userRegistration?.isWaitlist ? 'waitlist' : 'active'}`}>
+            {game.userRegistration?.isWaitlist ? 'Waitlist' : 'You\'re in'}
+          </div>
+        )}
       </div>
-      {game.isUserRegistered && (
-        <div className={`registration-badge ${game.userRegistration?.isWaitlist ? 'waitlist' : 'active'}`}>
-          {game.userRegistration?.isWaitlist ? 'Waitlist' : 'You\'re in'}
-        </div>
-      )}
-    </div>
-    
-    <div className="game-stats">
-      {/* Past games: show paid/total counts */}
-      {game.paidCount !== undefined && (
-        <div className="compact-stats">
-          <span className="counter">{game.paidCount}</span>
-          <span className="divider">/</span>
-          <span className="counter">{game.totalRegisteredCount}</span>
-        </div>
-      )}
-
-      {/* Upcoming games within registration window: show registered/total */}
-      {game.registeredCount !== undefined && (
-        <div className="compact-stats">
-          <span className="counter">{game.registeredCount}</span>
-          <span className="divider">/</span>
-          <span className="counter">{game.maxPlayers}</span>
-        </div>
-      )}
       
-      {/* Regular upcoming games: show current count/capacity */}
-      {game.paidCount === undefined && game.registeredCount === undefined && (
-        <div className="compact-stats">
-          <span className="counter">{game.totalRegisteredCount}</span>
-          <span className="divider">/</span>
-          <span className="counter">{game.maxPlayers}</span>
-        </div>
-      )}
+      <div className="game-stats">
+        {/* Past games: show paid/total counts */}
+        {game.paidCount !== undefined && (
+          <div className="compact-stats">
+            <span className="counter">{game.paidCount}</span>
+            <span className="divider">/</span>
+            <span className="counter">{game.totalRegisteredCount}</span>
+          </div>
+        )}
+
+        {/* Upcoming games within registration window: show registered/total */}
+        {game.registeredCount !== undefined && (
+          <div className="compact-stats">
+            <span className="counter">{game.registeredCount}</span>
+            <span className="divider">/</span>
+            <span className="counter">{game.maxPlayers}</span>
+          </div>
+        )}
+        
+        {/* Regular upcoming games: show current count/capacity */}
+        {game.paidCount === undefined && game.registeredCount === undefined && (
+          <div className="compact-stats">
+            <span className="counter">{game.totalRegisteredCount}</span>
+            <span className="divider">/</span>
+            <span className="counter">{game.maxPlayers}</span>
+          </div>
+        )}
+      </div>
     </div>
-  </div>
   );
 });
 
@@ -103,18 +106,26 @@ const GameItemsList = memo(({
   // Show the list of games
   return (
     <div className="games-list">
-      {games.map((game) => (
-        <div 
-          key={game.id} 
-          className={`game-card-wrapper ${showPositions ? (game.withPositions ? 'with-positions' : 'without-positions') : ''}`}
-        >
-          <GameItem 
-            game={game} 
-            onClick={handleGameClick}
-            formatDate={formatDate}
-          />
-        </div>
-      ))}
+      {games.map((game) => {
+        const isHalloween = game.tag === 'halloween';
+        // Don't apply position color coding to Halloween games
+        const positionClass = !isHalloween && showPositions 
+          ? (game.withPositions ? 'with-positions' : 'without-positions') 
+          : '';
+        return (
+          <div 
+            key={game.id} 
+            className={`game-card-wrapper ${positionClass} ${isHalloween ? 'halloween-wrapper' : ''}`}
+          >
+            {isHalloween && <div className="leaf-layer" />}
+            <GameItem 
+              game={game} 
+              onClick={handleGameClick}
+              formatDate={formatDate}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 });

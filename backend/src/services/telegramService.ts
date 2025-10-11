@@ -146,7 +146,15 @@ export async function checkAndAnnounceGameRegistrations(): Promise<void> {
       
       const locationText = formatLocationSection((game as any).locationName, (game as any).locationLink);
 
-      const message = `<b>🏐 New Volleyball Game Registration Open!</b>\n\nRegistration is now open for the game on <b>${formattedDate}</b>${locationText}\n\nSpots are limited to ${game.maxPlayers} players. First come, first served!\n\nClick the button below to join:`;
+      // Check if this is a Halloween game
+      const isHalloween = (game as any).tag === 'halloween';
+      
+      let message: string;
+      if (isHalloween) {
+        message = `<b>🎃👻 SPOOKY VOLLEYBALL NIGHT! 👻🎃</b>\n\n🦇 <b>Halloween Special Game Registration Open!</b> 🦇\n\nGet ready for a frightfully fun volleyball night on <b>${formattedDate}</b>${locationText}\n\n🕷️ Costumes encouraged! 🕸️\n🎃 Spooky vibes guaranteed! 🎃\n👻 Limited to ${game.maxPlayers} brave players! 👻\n\n<i>Dare to join? Click below if you're not too scared...</i> 😈`;
+      } else {
+        message = `<b>🏐 New Volleyball Game Registration Open!</b>\n\nRegistration is now open for the game on <b>${formattedDate}</b>${locationText}\n\nSpots are limited to ${game.maxPlayers} players. First come, first served!\n\nClick the button below to join:`;
+      }
       
       await sendGroupAnnouncement(message);
     }

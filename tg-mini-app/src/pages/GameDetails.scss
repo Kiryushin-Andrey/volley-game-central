@@ -1,8 +1,12 @@
+@import '../styles/halloween.scss';
+
 .game-details-container {
   padding: 16px;
   max-width: 100%;
   margin: 0 auto;
   padding-bottom: 80px; // Account for Telegram's main button
+  position: relative;
+  overflow-x: hidden;
 }
 
 .game-details-header {

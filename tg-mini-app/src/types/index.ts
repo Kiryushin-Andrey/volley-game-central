@@ -42,6 +42,7 @@ export interface Game {
   withPositions: boolean;
   locationName?: string | null;
   locationLink?: string | null;
+  tag?: string | null;
   createdAt: Date | null;
   createdById: number;
   collectorUser?: CollectorUser | null;

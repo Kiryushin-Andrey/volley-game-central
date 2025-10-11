@@ -24,6 +24,7 @@ export const games = pgTable('games', {
   withPositions: boolean('with_positions').notNull().default(false),
   locationName: varchar('location_name', { length: 255 }),
   locationLink: varchar('location_link', { length: 1000 }),
+  tag: varchar('tag', { length: 50 }),
   createdAt: timestamp('created_at').defaultNow(),
   createdById: serial('created_by_id').references(() => users.id),
   collectorUserId: integer('collector_user_id').references(() => users.id),

@@ -162,6 +162,13 @@
       "when": 1759698161940,
       "tag": "0022_add_collector_user_id_to_games",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "5",
+      "when": 1759798161940,
+      "tag": "0023_add_tag_to_games",
+      "breakpoints": true
     }
   ]
 }
