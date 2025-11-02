@@ -23,18 +23,26 @@ const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN || '');
 // Handle any text message - show the mini-app
 // IMPORTANT: This must come AFTER command handlers
 bot.on('text', (ctx) => {
-  // Skip if it's a command (already handled above)
-  if (ctx.message.text.startsWith('/')) {
-    console.log('Command detected in text handler but not processed:', ctx.message.text);
-    // Don't return here, let it fall through to command handlers
-  } else {
     // Special case for debugging
     if (ctx.message.text.toLowerCase() === 'ping') {
       return ctx.reply('pong');
     }
     
-    // For regular text messages, show the mini-app button
-    ctx.reply('🏐 Access your volleyball games:', {
+    // For regular text messages, inform about the bot's purpose and community groups
+    const message = `🤖 I'm just a Telegram bot for registering for volleyball games.
+
+If you want to talk to people, join one of our community groups:
+
+<b>Telegram Group</b> (mostly Russian-speaking)
+https://t.me/+nZxG6L8bbcxhMTg0
+
+<b>WhatsApp Group</b> (less active, but English-speaking)
+https://chat.whatsapp.com/DE3sBMgi55tCEkyeUnA6be
+
+To register for games, use the button below:`;
+    
+    ctx.reply(message, {
+      parse_mode: 'HTML',
       reply_markup: {
         inline_keyboard: [[
           {
@@ -44,7 +52,6 @@ bot.on('text', (ctx) => {
         ]]
       }
     });
-  }
 });
 
 /**
