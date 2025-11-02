@@ -3,6 +3,7 @@ import { db } from '../db';
 import { users } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import { getUserUnpaidItems } from '../services/unpaidService';
+import { isDevMode } from '../utils/devMode';
 
 const router = Router();
 
@@ -15,7 +16,10 @@ router.get('/me', async (req, res) => {
       return res.status(401).json({ error: 'Not authenticated' });
     }
     
-    res.json(req.user);
+    res.json({
+      user: req.user,
+      isDevMode: isDevMode(),
+    });
   } catch (error) {
     console.error('Error fetching current user:', error);
     res.status(500).json({ error: 'Failed to fetch user data' });

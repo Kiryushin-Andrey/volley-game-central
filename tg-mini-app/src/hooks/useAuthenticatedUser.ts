@@ -6,6 +6,7 @@ import { withRetry } from '../utils/retry';
 
 export const useAuthenticatedUser = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [isDevMode, setIsDevMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -34,12 +35,17 @@ export const useAuthenticatedUser = () => {
       // Attempt JWT cookie-based authentication (e.g., after PhoneAuth)
       (async () => {
         try {
-          const authenticatedUser = await withRetry(() => userApi.getCurrentUser(), { retries: 3, delayMs: 700 });
-          setUser(authenticatedUser);
+          const response = await withRetry(() => userApi.getCurrentUser(), { retries: 3, delayMs: 700 });
+          setUser(response.user);
+          setIsDevMode(response.isDevMode);
           logDebug('Authenticated via JWT cookie session');
-        } catch (e) {
+        } catch (e: any) {
           logDebug('No JWT session found or authentication failed');
           setUser(null);
+          // Extract isDevMode from 401 error response if available
+          const devMode = e?.response?.data?.isDevMode ?? false;
+          setIsDevMode(devMode);
+          logDebug('Dev mode from error response: ' + devMode);
         } finally {
           setIsLoading(false);
         }
@@ -73,11 +79,12 @@ export const useAuthenticatedUser = () => {
       
       // With our new approach, the authentication happens via middleware
       // Just fetch the current user which will use the initData header
-      const authenticatedUser = await withRetry(() => userApi.getCurrentUser(), { retries: 3, delayMs: 700 });
+      const response = await withRetry(() => userApi.getCurrentUser(), { retries: 3, delayMs: 700 });
       
-      setUser(authenticatedUser);
-      logDebug('Authentication successful:');
-      logDebug(authenticatedUser);
+      setUser(response.user);
+      setIsDevMode(response.isDevMode);
+      logDebug('Authentication successful (dev mode = ' + response.isDevMode + '):');
+      logDebug(response.user);
     } catch (error: any) {
       logDebug('Authentication failed:');
       logDebug(error?.message || 'Unknown error');
@@ -96,10 +103,14 @@ export const useAuthenticatedUser = () => {
       
       // No fallback user - strict authentication required
       setUser(null);
+      // Extract isDevMode from 401 error response if available
+      const devMode = error?.response?.data?.isDevMode ?? false;
+      setIsDevMode(devMode);
+      logDebug('Dev mode from error response: ' + devMode);
     } finally {
       setIsLoading(false);
     }
   };
 
-  return { user, isLoading };
+  return { user, isDevMode, isLoading };
 };

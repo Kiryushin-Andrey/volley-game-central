@@ -5,6 +5,7 @@ import { authSessions, users } from '../db/schema';
 import { and, desc, eq, gt, lt, sql } from 'drizzle-orm';
 import { sendSms } from '../services/smsService';
 import jwt from 'jsonwebtoken';
+import { isDevMode, logDevMode } from '../utils/devMode';
 
 const router = express.Router();
 
@@ -295,6 +296,92 @@ router.post('/logout', async (_req, res) => {
     return res.json({ success: true });
   } catch (err) {
     console.error('Error during logout:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Dev mode login: simplified authentication for local development
+// Expects: { phoneNumber: string, displayName: string, isAdmin?: boolean }
+// Creates or finds user by phone number and returns user data
+router.post('/dev-login', async (req, res) => {
+  if (!isDevMode()) {
+    return res.status(403).json({ error: 'Dev mode login is only available when DEV_MODE=true' });
+  }
+
+  try {
+    const { phoneNumber, displayName, isAdmin } = req.body as { phoneNumber?: string; displayName?: string; isAdmin?: boolean };
+    
+    if (!phoneNumber || typeof phoneNumber !== 'string') {
+      return res.status(400).json({ error: 'phoneNumber is required' });
+    }
+    
+    if (!displayName || typeof displayName !== 'string') {
+      return res.status(400).json({ error: 'displayName is required' });
+    }
+
+    const normalizedPhoneNumber = normalizePhone(phoneNumber);
+    const adminStatus = isAdmin === true;
+    logDevMode(`Dev login attempt for phone: ${normalizedPhoneNumber}, name: ${displayName}, admin: ${adminStatus}`);
+
+    // Find or create user
+    const existingUsers = await db.select().from(users).where(eq(users.phoneNumber, normalizedPhoneNumber)).limit(1);
+    
+    let user;
+    if (existingUsers.length > 0) {
+      // User exists, update display name and admin status if different
+      user = existingUsers[0];
+      if (user.displayName !== displayName || user.isAdmin !== adminStatus) {
+        const [updatedUser] = await db
+          .update(users)
+          .set({ displayName, isAdmin: adminStatus })
+          .where(eq(users.id, user.id))
+          .returning();
+        user = updatedUser;
+        logDevMode(`Updated existing user ${user.id} with display name: ${displayName}, admin: ${adminStatus}`);
+      } else {
+        logDevMode(`Found existing user ${user.id}: ${user.displayName}, admin: ${user.isAdmin}`);
+      }
+    } else {
+      // Create new user
+      const [newUser] = await db
+        .insert(users)
+        .values({
+          phoneNumber: normalizedPhoneNumber,
+          displayName,
+          isAdmin: adminStatus,
+        })
+        .returning();
+      user = newUser;
+      logDevMode(`Created new user ${user.id}: ${user.displayName}, admin: ${user.isAdmin}`);
+    }
+
+    // Issue JWT cookie just like regular phone auth
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      console.error('JWT_SECRET is not configured');
+      return res.status(500).json({ error: 'Server misconfiguration' });
+    }
+    const token = jwt.sign({ userId: user.id }, secret, { expiresIn: '30d' });
+
+    const monthMs = 30 * 24 * 60 * 60 * 1000;
+    res.cookie('auth_token', token, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: monthMs,
+    });
+
+    return res.json({
+      success: true,
+      user: {
+        id: user.id,
+        phoneNumber: user.phoneNumber,
+        displayName: user.displayName,
+        isAdmin: user.isAdmin,
+      },
+    });
+  } catch (err) {
+    console.error('Error during dev login:', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });

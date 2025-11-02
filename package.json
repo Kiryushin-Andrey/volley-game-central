@@ -8,6 +8,7 @@
     "backend:dev": "docker compose up -d postgres && cd backend && npm run dev",
     "backend:build": "cd backend && npm run build",
     "dev": "concurrently \"npm run backend:dev\" \"npm run tg-mini-app:dev\"",
+    "dev:local": "DEV_MODE=true npm run dev",
     "build": "npm run backend:build && npm run tg-mini-app:build",
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",

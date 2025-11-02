@@ -16,7 +16,7 @@ import { authApi, userApi } from './services/api';
 import EditDisplayNameDialog from './components/EditDisplayNameDialog';
 
 function App() {
-  const { user, isLoading } = useAuthenticatedUser();
+  const { user, isDevMode, isLoading } = useAuthenticatedUser();
   const [isPhoneAuthOpen, setIsPhoneAuthOpen] = React.useState(false);
   const isTelegramApp = Boolean(window.Telegram?.WebApp?.initDataUnsafe?.user);
 
@@ -108,7 +108,7 @@ function App() {
         </div>
         {/* Phone Number auth UI */}
         {isPhoneAuthOpen && (
-          <PhoneAuth onClose={() => setIsPhoneAuthOpen(false)} />
+          <PhoneAuth onClose={() => setIsPhoneAuthOpen(false)} isDevMode={isDevMode} />
         )}
         {!telegramUrl && (
           <p className="landing-hint">Telegram bot name is not configured.</p>

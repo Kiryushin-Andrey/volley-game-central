@@ -4,6 +4,7 @@ import { validate } from '@telegram-apps/init-data-node';
 import { db } from '../db';
 import { users } from '../db/schema';
 import { eq } from 'drizzle-orm';
+import { isDevMode } from '../utils/devMode';
 
 // Helper: find user by ID
 async function findUserById(userId: number) {
@@ -42,7 +43,7 @@ async function findOrCreateTelegramUser(tu: TelegramUser) {
 /**
  * Combined authentication middleware:
  * 1) Prefer Telegram WebApp auth when Authorization header is present
- * 2) Fallback to JWT cookie from phone auth
+ * 2) Fallback to JWT cookie from phone auth (works for both regular and dev mode users)
  */
 export async function authMiddleware(req: Request, res: Response, next: NextFunction) {
   try {
@@ -52,7 +53,7 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
       const initData = authHeader.replace('TelegramWebApp ', '');
       if (!initData) {
         console.warn('[Auth][TG] Missing init data in Authorization header');
-        return res.status(401).json({ error: 'Unauthorized' });
+        return res.status(401).json({ error: 'Unauthorized', isDevMode: isDevMode() });
       }
 
       const botToken = process.env.TELEGRAM_BOT_TOKEN;
@@ -66,18 +67,18 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
       const userDataString = params.get('user');
       if (!userDataString) {
         console.warn('[Auth][TG] Missing user field in init data');
-        return res.status(401).json({ error: 'Unauthorized' });
+        return res.status(401).json({ error: 'Unauthorized', isDevMode: isDevMode() });
       }
       let tgUser: TelegramUser;
       try {
         tgUser = JSON.parse(userDataString);
       } catch (e) {
         console.warn('[Auth][TG] Failed to parse user JSON from init data:', e);
-        return res.status(401).json({ error: 'Unauthorized' });
+        return res.status(401).json({ error: 'Unauthorized', isDevMode: isDevMode() });
       }
       if (!tgUser.id) {
         console.warn('[Auth][TG] Parsed user missing id');
-        return res.status(401).json({ error: 'Unauthorized' });
+        return res.status(401).json({ error: 'Unauthorized', isDevMode: isDevMode() });
       }
 
       const user = await findOrCreateTelegramUser(tgUser);
@@ -85,7 +86,7 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
       return next();
     }
 
-    // 2) Fallback to JWT cookie from phone auth
+    // 3) Fallback to JWT cookie from phone auth
     const token = (req as any).cookies?.auth_token;
     const secret = process.env.JWT_SECRET;
     if (token && secret) {
@@ -103,9 +104,9 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
     }
 
     // Neither Telegram nor JWT produced a user
-    return res.status(401).json({ error: 'Unauthorized' });
+    return res.status(401).json({ error: 'Unauthorized', isDevMode: isDevMode() });
   } catch (err) {
     console.error('[Auth] Combined auth error:', err);
-    return res.status(401).json({ error: 'Unauthorized' });
+    return res.status(401).json({ error: 'Unauthorized', isDevMode: isDevMode() });
   }
 }

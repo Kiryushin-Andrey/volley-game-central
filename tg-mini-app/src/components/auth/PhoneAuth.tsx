@@ -11,6 +11,7 @@ const CODE_LENGTH = 6;
 
 interface PhoneAuthProps {
   onClose?: () => void;
+  isDevMode?: boolean;
 }
 
 // ViewModel holding all state and logic
@@ -159,9 +160,31 @@ class PhoneAuthViewModel {
       this.setState({ isProcessing: false });
     }
   }
+
+  async devLogin(displayName: string, isAdmin: boolean, onSuccess: () => void) {
+    const name = displayName.trim();
+    if (!name) {
+      this.setState({ error: 'Please enter your name' });
+      return;
+    }
+    if (!this.state.phoneLocal) {
+      this.setState({ error: 'Please enter your phone number' });
+      return;
+    }
+    try {
+      this.setState({ isProcessing: true, error: null });
+      await authApi.devLogin(this.fullPhone, name, isAdmin);
+      onSuccess();
+    } catch (e: any) {
+      const message = e?.response?.data?.error || 'Dev login failed';
+      this.setState({ error: message });
+    } finally {
+      this.setState({ isProcessing: false });
+    }
+  }
 }
 
-function PhoneAuth({ onClose }: PhoneAuthProps) {
+function PhoneAuth({ onClose, isDevMode }: PhoneAuthProps) {
   const viewModel = React.useMemo(() => new PhoneAuthViewModel(), []);
   const state = React.useSyncExternalStore(
     viewModel.subscribe,
@@ -195,6 +218,8 @@ function PhoneAuth({ onClose }: PhoneAuthProps) {
           error={state.error}
           onPhoneChange={(v) => viewModel.setPhoneLocal(v)}
           onContinue={() => viewModel.startAuth()}
+          isDevMode={isDevMode}
+          onDevLogin={(name, isAdmin) => viewModel.devLogin(name, isAdmin, finishAuth)}
         />
       )}
 

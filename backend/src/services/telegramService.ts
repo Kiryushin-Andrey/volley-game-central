@@ -5,6 +5,7 @@ import { games, gameRegistrations } from '../db/schema';
 import { gt, lte, and, eq, count } from 'drizzle-orm';
 import { REGISTRATION_OPEN_DAYS } from '../constants';
 import { formatGameDate } from '../utils/dateUtils';
+import { isDevMode, logDevMode } from '../utils/devMode';
 
 // Get mini app URL from environment
 const MINI_APP_URL = process.env.MINI_APP_URL || 'http://localhost:3001';
@@ -54,6 +55,11 @@ bot.on('text', (ctx) => {
  * @returns Promise that resolves when the message is sent
  */
 export async function sendTelegramNotification(telegramId: string, message: string): Promise<void> {
+  if (isDevMode()) {
+    logDevMode(`[SUPPRESSED] Telegram notification to ${telegramId}: ${message}`);
+    return;
+  }
+  
   try {
     await bot.telegram.sendMessage(telegramId, message, { parse_mode: 'HTML' });
     console.log(`Notification sent to user ${telegramId}`);
@@ -71,6 +77,11 @@ export async function sendTelegramNotification(telegramId: string, message: stri
  * @returns Promise that resolves when the message is sent
  */
 export async function sendGroupAnnouncement(message: string, topicId?: number): Promise<void> {
+  if (isDevMode()) {
+    logDevMode(`[SUPPRESSED] Group announcement: ${message}`);
+    return;
+  }
+  
   if (!TELEGRAM_GROUP_ID) {
     console.warn('No Telegram group ID configured, skipping group announcement');
     return;

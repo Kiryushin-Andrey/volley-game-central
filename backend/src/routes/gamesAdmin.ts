@@ -183,6 +183,7 @@ router.put('/:gameId', async (req, res) => {
       }
     }
 
+    // Send date change notifications if there are registrations
     if (allRegistrations.length > 0) {
       const formattedNewDate = formatGameDate(newDateTime);
       const formattedOldDate = formatGameDate(originalDateTime);
@@ -196,9 +197,9 @@ router.put('/:gameId', async (req, res) => {
           await notifyUser(registration.user, notificationMessage);
         }
       }
-
-      res.json(game[0]);
     }
+
+    res.json(game[0]);
   } catch (error) {
     console.error('Error updating game:', error);
     res.status(500).json({ error: 'Failed to update game' });

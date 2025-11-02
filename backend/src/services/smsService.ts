@@ -1,4 +1,5 @@
 import { Twilio } from 'twilio';
+import { isDevMode, logDevMode } from '../utils/devMode';
 
 const ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
 const API_KEY_SID = process.env.TWILIO_API_KEY_SID;
@@ -17,6 +18,11 @@ if (API_KEY_SID && API_KEY_SECRET && ACCOUNT_SID) {
 }
 
 export async function sendSms(to: string, body: string): Promise<void> {
+  if (isDevMode()) {
+    logDevMode(`[SUPPRESSED] SMS to ${to}: ${body}`);
+    return;
+  }
+  
   if (twilioClient && TWILIO_MESSAGING_SERVICE_SID) {
     await twilioClient.messages.create({
       messagingServiceSid: TWILIO_MESSAGING_SERVICE_SID,

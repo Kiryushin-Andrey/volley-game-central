@@ -12,6 +12,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Send cookies with requests
 });
 
 // Add Telegram WebApp init data to requests
@@ -50,7 +51,7 @@ export const userApi = {
    * Get current authenticated user details
    * Authentication happens automatically via request interceptor above
    */
-  getCurrentUser: async (): Promise<User> => {
+  getCurrentUser: async (): Promise<{ user: User | null; isDevMode: boolean }> => {
     const response = await api.get('/users/me');
     return response.data;
   },
@@ -375,6 +376,21 @@ export const authApi = {
     displayName: string
   ): Promise<{ available: boolean }> => {
     const response = await api.post('/auth/check-display-name', { sessionId, displayName });
+    return response.data;
+  },
+
+  /**
+   * Dev mode login: authenticate with phone number and display name (no SMS verification)
+   * Only available when server is running in dev mode
+   */
+  devLogin: async (
+    phoneNumber: string,
+    displayName: string,
+    isAdmin?: boolean
+  ): Promise<{ success: boolean; user: User }> => {
+    const response = await api.post('/auth/dev-login', { phoneNumber, displayName, isAdmin }, {
+      withCredentials: true,
+    });
     return response.data;
   },
 
