@@ -1,10 +1,10 @@
 import { Telegraf } from 'telegraf';
 import { formatLocationSection } from '../utils/telegramMessageUtils';
 import { db } from '../db';
-import { games, gameRegistrations } from '../db/schema';
+import { games, gameRegistrations, users } from '../db/schema';
 import { gt, lte, and, eq, count } from 'drizzle-orm';
 import { REGISTRATION_OPEN_DAYS } from '../constants';
-import { formatGameDate } from '../utils/dateUtils';
+import { formatGameDate, formatGameDateShort } from '../utils/dateUtils';
 import { isDevMode, logDevMode } from '../utils/devMode';
 
 // Get mini app URL from environment
@@ -186,6 +186,125 @@ export async function checkAndAnnounceGameRegistrations(): Promise<void> {
 // No commands to register with BotFather
 console.log('No bot commands to register with Telegram');
 
+/**
+ * Check for games starting in approximately 24 hours and send reminder notifications
+ * to registered players (Telegram users only, excluding waitlist)
+ */
+export async function checkAndSendGameReminders(): Promise<void> {
+  try {
+    const now = new Date();
+    
+    const reminderWindowStart = new Date(now);
+    reminderWindowStart.setHours(reminderWindowStart.getHours() + 23);
+    
+    const reminderWindowEnd = new Date(now);
+    reminderWindowEnd.setHours(reminderWindowEnd.getHours() + 24);
+    
+    // Find games starting in the reminder window
+    const upcomingGames = await db
+      .select()
+      .from(games)
+      .where(
+        and(
+          gt(games.dateTime, reminderWindowStart),
+          lte(games.dateTime, reminderWindowEnd)
+        )
+      );
+    
+    if (upcomingGames.length === 0) {
+      console.log('No games found starting in ~24 hours');
+      return;
+    }
+    
+    console.log(`Found ${upcomingGames.length} game(s) starting in ~24 hours, checking registrations...`);
+    
+    // Process each game
+    for (const game of upcomingGames) {
+      // Get all registrations for this game, ordered by creation time
+      const allRegistrations = await db
+        .select({
+          id: gameRegistrations.id,
+          userId: gameRegistrations.userId,
+          guestName: gameRegistrations.guestName,
+          createdAt: gameRegistrations.createdAt,
+          telegramId: users.telegramId,
+          displayName: users.displayName,
+        })
+        .from(gameRegistrations)
+        .innerJoin(users, eq(gameRegistrations.userId, users.id))
+        .where(eq(gameRegistrations.gameId, game.id))
+        .orderBy(gameRegistrations.createdAt);
+      
+      // Filter to only active registrations (not waitlist) - first maxPlayers registrations
+      const activeRegistrations = allRegistrations.slice(0, game.maxPlayers);
+      
+      // Filter to only Telegram users (telegramId is not null)
+      const telegramRegistrations = activeRegistrations.filter(
+        (reg) => reg.telegramId !== null && reg.telegramId !== undefined
+      );
+      
+      if (telegramRegistrations.length === 0) {
+        console.log(`No Telegram registrations found for game ${game.id}`);
+        continue;
+      }
+      
+      // Calculate unregister deadline
+      const gameDateTime = new Date(game.dateTime);
+      const deadlineHours = game.unregisterDeadlineHours || 5; // Default to 5 hours if not set
+      const unregisterDeadline = new Date(gameDateTime);
+      unregisterDeadline.setHours(unregisterDeadline.getHours() - deadlineHours);
+      
+      const formattedGameDate = formatGameDate(gameDateTime);
+      const formattedDeadline = formatGameDateShort(unregisterDeadline);
+      
+      // Group registrations by userId to send one reminder per user
+      const registrationsByUser = new Map<number, typeof telegramRegistrations>();
+      
+      for (const registration of telegramRegistrations) {
+        if (!registrationsByUser.has(registration.userId)) {
+          registrationsByUser.set(registration.userId, []);
+        }
+        registrationsByUser.get(registration.userId)!.push(registration);
+      }
+      
+      // Send reminders to each registered Telegram user
+      for (const [userId, userRegistrations] of registrationsByUser.entries()) {
+        const firstRegistration = userRegistrations[0];
+        if (!firstRegistration.telegramId) {
+          continue;
+        }
+        
+        // Build message based on registrations
+        const selfRegistration = userRegistrations.find(reg => !reg.guestName);
+        const guestRegistrations = userRegistrations.filter(reg => reg.guestName);
+        
+        let registrationText: string;
+        if (selfRegistration && guestRegistrations.length > 0) {
+          // User registered themselves and guests
+          const guestNames = guestRegistrations.map(reg => `"${reg.guestName}"`).join(', ');
+          registrationText = `You're registered for the game${guestRegistrations.length === 1 ? ` with guest ${guestNames}` : ` with guests ${guestNames}`}`;
+        } else if (selfRegistration) {
+          // User only registered themselves
+          registrationText = `You're registered for the game`;
+        } else {
+          // User only registered guests
+          const guestNames = guestRegistrations.map(reg => `"${reg.guestName}"`).join(', ');
+          registrationText = `You're registered${guestRegistrations.length === 1 ? ` with guest ${guestNames}` : ` with guests ${guestNames}`} for the game`;
+        }
+        
+        const message = `⏰ <b>Reminder: Volleyball Game Tomorrow!</b>\n\n${registrationText} on <b>${formattedGameDate}</b>.\n\n⏳ <b>Unregister deadline:</b> ${formattedDeadline}\n\nSee you there! 🏐`;
+        
+        await sendTelegramNotification(firstRegistration.telegramId, message);
+        console.log(`Sent reminder to Telegram user ${firstRegistration.telegramId} (${firstRegistration.displayName || 'unknown'}) for game ${game.id}`);
+      }
+      
+      console.log(`Sent reminders to ${registrationsByUser.size} Telegram user(s) for game ${game.id}`);
+    }
+  } catch (error) {
+    console.error('Error checking and sending game reminders:', error);
+  }
+}
+
 // Debug function to post notifications about all upcoming games with open registration
 async function debugPostAllOpenRegistrations(): Promise<void> {
   try {
@@ -239,8 +358,12 @@ export function launchBot(): void {
   // Set up periodic job to check for game registrations opening
   setInterval(checkAndAnnounceGameRegistrations, 60 * 60 * 1000); // Check every hour
   
+  // Set up periodic job to check for games starting in ~24 hours and send reminders
+  setInterval(checkAndSendGameReminders, 60 * 60 * 1000); // Check every hour
+  
   // Also check once at startup
   checkAndAnnounceGameRegistrations();
+  checkAndSendGameReminders();
   
   // Debug: Post notifications about all upcoming games with open registration
   // debugPostAllOpenRegistrations();
