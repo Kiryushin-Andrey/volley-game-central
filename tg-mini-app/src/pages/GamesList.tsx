@@ -1,4 +1,6 @@
 import React, { memo } from 'react';
+import { Link } from 'react-router-dom';
+import { FaUsers, FaCog, FaPlus } from 'react-icons/fa';
 import { useGamesListViewModel } from './GamesListViewModel';
 import { GameWithStats, User } from '../types';
 import { isGameUpcoming } from '../utils/gameDateUtils';
@@ -161,7 +163,7 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
   return (
     <div className="games-list-container">
       <div style={{ margin: '8px 12px' }}>
-        {vm.unpaidItems.length > 0 && (
+        {vm.unpaidItems.length > 0 && vm.gameFilter === 'upcoming' && (
           <>
             <div style={{ fontWeight: 600, margin: '0 0 6px 2px' }}>Your unpaid games</div>
             <UnpaidGamesList items={vm.unpaidItems} />
@@ -191,43 +193,33 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
         <>
           <div className="games-header">
             <div className="filters-container">
-            <div className="toggle-container">
-              <label className="toggle-switch">
-                <input 
-                  type="checkbox" 
-                  checked={vm.showPositions}
-                  onChange={(e) => vm.setShowPositions(e.target.checked)}
-                />
-                <span className="slider round"></span>
-              </label>
-              <span className="toggle-label">Show games with 5-1 positions</span>
-            </div>
-            
-            {vm.showPositions && (
-              <div className="positions-note">
-                <p>🔶 Games marked with yellow are played with 5-1 positions. Knowledge of the 5-1 scheme is expected of all participants.</p>
-              </div>
+            {vm.gameFilter === 'upcoming' && (
+              <>
+                <div className="toggle-container">
+                  <label className="toggle-switch">
+                    <input 
+                      type="checkbox" 
+                      checked={vm.showPositions}
+                      onChange={(e) => vm.setShowPositions(e.target.checked)}
+                    />
+                    <span className="slider round"></span>
+                  </label>
+                  <span className="toggle-label">Show games with 5-1 positions</span>
+                </div>
+                
+                {vm.showPositions && (
+                  <div className="positions-note">
+                    <p>🔶 Games marked with yellow are played with 5-1 positions. Knowledge of the 5-1 scheme is expected of all participants.</p>
+                  </div>
+                )}
+              </>
             )}
             
             {/* Admin controls */}
-              {user.isAdmin && (
+              {(user.isAdmin || vm.hasAdminAssignments) && (
                 <div className="admin-controls">
-                <div className="button-row">
-                  <button
-                    className="bunq-settings-button"
-                    onClick={() => vm.navigateTo('/bunq-settings')}
-                  >
-                    💳 Bunq settings
-                  </button>
-                  <button
-                    className="create-game-button"
-                    onClick={() => vm.navigateTo('/games/new')}
-                  >
-                    Create New Game
-                  </button>
-                </div>
-                
                   <div className="game-filters">
+                  <div className="radio-group-with-actions">
                   <div className="radio-group">
                     <label className={`radio-label ${vm.gameFilter === 'upcoming' ? 'active' : ''}`}>
                       <input
@@ -249,8 +241,46 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
                       />
                       <span>Past</span>
                     </label>
+                    </div>
+                    {user.isAdmin && (
+                      <div className="admin-icon-buttons">
+                        <Link
+                          to="/game-administrators"
+                          className="icon-button"
+                          title="Game Administrators"
+                        >
+                          <FaUsers />
+                        </Link>
+                        <Link
+                          to="/bunq-settings"
+                          className="icon-button"
+                          title="Bunq Settings"
+                        >
+                          <FaCog />
+                        </Link>
+                        <Link
+                          to="/games/new"
+                          className="icon-button icon-button-primary"
+                          title="Create New Game"
+                        >
+                          <FaPlus />
+                        </Link>
+                      </div>
+                    )}
+                    {!user.isAdmin && vm.hasAdminAssignments && (
+                      <div className="admin-icon-buttons">
+                        <Link
+                          to="/games/new"
+                          className="icon-button icon-button-primary"
+                          title="Create New Game"
+                        >
+                          <FaPlus />
+                        </Link>
+                      </div>
+                    )}
                   </div>
                   
+                  {(user.isAdmin || vm.hasAdminAssignments) && (
                   <div className="show-all-toggle">
                     <input
                       type="checkbox"
@@ -262,6 +292,7 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
                       {vm.gameFilter == 'upcoming' ? "Show all scheduled games" : "Show fully paid games"}
                     </label>
                   </div>
+                  )}
                   </div>
                 </div>
               )}

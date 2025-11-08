@@ -11,6 +11,7 @@ import { REGISTRATION_OPEN_DAYS } from '../constants';
 import { formatLocationSection } from '../utils/telegramMessageUtils';
 import { getNotificationSubjectWithVerb } from '../utils/notificationUtils';
 import { formatGameDate } from '../utils/dateUtils';
+import { isUserAssignedToGameById, isUserAssignedToGame } from '../middleware/adminOrAssignedAdmin';
 
 const router = Router();
 
@@ -51,11 +52,22 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'dateTime and maxPlayers are required' });
     }
 
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({ error: 'Authentication required to create a game' });
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+  
+    // Check if assigned administrator is authorized to create this game
+    if (!req.user.isAdmin) {
+      const isAuthorized = await isUserAssignedToGame(req.user!.id, {
+        dateTime,
+        withPositions,
+      });
+      if (!isAuthorized) {
+        return res.status(403).json({ error: 'You are not authorized to create games for this day and type' });
+      }
     }
 
-    const createdById = req.user.id;
+    const createdById = req.user!.id;
 
     const newGame = await db
       .insert(games)
@@ -122,9 +134,18 @@ router.put('/:gameId', async (req, res) => {
       return res.status(400).json({ error: 'dateTime and maxPlayers are required' });
     }
 
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
     const existingGame = await db.select().from(games).where(eq(games.id, gameId));
     if (!existingGame.length) {
       return res.status(404).json({ error: 'Game not found' });
+    }
+
+    // Check if assigned administrator is authorized for this game
+    if (!req.user.isAdmin && !(await isUserAssignedToGameById(req.user.id, gameId))) {
+      return res.status(403).json({ error: 'You are not authorized to manage this game' });
     }
 
     const originalDateTime = new Date(existingGame[0].dateTime);
@@ -211,6 +232,19 @@ router.delete('/:gameId', async (req, res) => {
   try {
     const gameId = parseInt(req.params.gameId);
 
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const existingGame = await db.select().from(games).where(eq(games.id, gameId));
+    if (!existingGame.length) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+
+    if (!req.user.isAdmin && !(await isUserAssignedToGameById(req.user.id, gameId))) {
+      return res.status(403).json({ error: 'You are not authorized to manage this game' });
+    }
+
     await db.delete(gameRegistrations).where(eq(gameRegistrations.gameId, gameId));
 
     const game = await db.delete(games).where(eq(games.id, gameId)).returning();
@@ -240,7 +274,12 @@ router.post('/:gameId/payment-requests', async (req, res) => {
       return res.status(404).json({ error: 'Game not found' });
     }
 
-    const result = await bunqService.createPaymentRequests(gameId, req.user.id, password);
+    // Check if assigned administrator is authorized for this game
+    if (!req.user.isAdmin && !(await isUserAssignedToGameById(req.user.id, gameId))) {
+      return res.status(403).json({ error: 'You are not authorized to manage this game' });
+    }
+
+    const result = await bunqService.createPaymentRequests(gameId, req.user!.id, password);
 
     if (result.success) {
       // Update the game to track who collected payments
@@ -269,6 +308,10 @@ router.post('/:gameId/participants', async (req, res) => {
     const gameId = parseInt(req.params.gameId);
     const { userId, guestName } = req.body as { userId?: number; guestName?: string };
 
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
     if (!userId) {
       return res.status(400).json({ error: 'User ID is required' });
     }
@@ -276,6 +319,11 @@ router.post('/:gameId/participants', async (req, res) => {
     const game = await db.select().from(games).where(eq(games.id, gameId));
     if (!game.length) {
       return res.status(404).json({ error: 'Game not found' });
+    }
+
+    // Check if assigned administrator is authorized for this game
+    if (!req.user.isAdmin && !(await isUserAssignedToGameById(req.user.id, gameId))) {
+      return res.status(403).json({ error: 'You are not authorized to manage this game' });
     }
 
     const gameDateTime = new Date(game[0].dateTime);
@@ -348,6 +396,15 @@ router.delete('/:gameId/participants/:userId', async (req, res) => {
       return res.status(404).json({ error: 'Game not found' });
     }
 
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    // Check if assigned administrator is authorized for this game
+    if (!req.user.isAdmin && !(await isUserAssignedToGameById(req.user.id, gameId))) {
+      return res.status(403).json({ error: 'You are not authorized to manage this game' });
+    }
+
     const gameDateTime = new Date(game[0].dateTime);
     const now = new Date();
     if (gameDateTime > now) {
@@ -400,6 +457,15 @@ router.put('/:gameId/players/:userId/paid', async (req, res) => {
       return res.status(404).json({ error: 'Game not found' });
     }
 
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    // Check if assigned administrator is authorized for this game
+    if (!req.user.isAdmin && !(await isUserAssignedToGameById(req.user.id, gameId))) {
+      return res.status(403).json({ error: 'You are not authorized to manage this game' });
+    }
+
     const registration = await db
       .select()
       .from(gameRegistrations)
@@ -444,8 +510,13 @@ router.post('/check-payments', async (req, res) => {
         .select()
         .from(games)
         .where(and(eq(games.id, gameId), eq(games.fullyPaid, false), lt(games.dateTime, new Date())));
+      
+      // Check if assigned administrator is authorized for this game
+      if (unpaidGames.length > 0 && !req.user.isAdmin && !(await isUserAssignedToGameById(req.user.id, gameId))) {
+        return res.status(403).json({ error: 'You are not authorized to manage this game' });
+      }
     } else {
-      // Check all unpaid past games (legacy behavior)
+      // Check all unpaid past games
       unpaidGames = await db
         .select()
         .from(games)

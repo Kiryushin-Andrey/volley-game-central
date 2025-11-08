@@ -12,6 +12,7 @@ interface MonetaryAccountSelectorProps {
     onSuccess?: (message: string) => void;
     onPasswordFormToggle?: (isShown: boolean) => void;
     initialPassword?: string;
+    assignedUserId?: number;
 }
 
 const MonetaryAccountSelector: React.FC<MonetaryAccountSelectorProps> = ({
@@ -19,7 +20,8 @@ const MonetaryAccountSelector: React.FC<MonetaryAccountSelectorProps> = ({
     onError,
     onSuccess,
     onPasswordFormToggle,
-    initialPassword
+    initialPassword,
+    assignedUserId
 }) => {
     // State management
     const [state, setState] = useState<MonetaryAccountSelectorState>(
@@ -31,7 +33,7 @@ const MonetaryAccountSelector: React.FC<MonetaryAccountSelectorProps> = ({
         setState(prevState => ({ ...prevState, ...updates }));
     }, []);
 
-    const viewModel = new MonetaryAccountSelectorViewModel(updateState);
+    const viewModel = new MonetaryAccountSelectorViewModel(updateState, assignedUserId);
 
     // Load monetary accounts if initial password is provided
     useEffect(() => {

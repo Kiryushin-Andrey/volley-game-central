@@ -118,9 +118,17 @@
       background-color: var(--tg-theme-secondary-bg-color, #f8f9fa);
       border-radius: 8px;
       
+      .radio-group-with-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      
       .radio-group {
         display: flex;
         gap: 12px;
+        flex: 1;
         
         .radio-label {
           display: flex;
@@ -173,6 +181,47 @@
                 transform: scale(1);
               }
             }
+          }
+        }
+      }
+      
+      .admin-icon-buttons {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      
+      .icon-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        background-color: var(--tg-theme-secondary-bg-color, #f1f3f4);
+        color: var(--tg-theme-text-color);
+        border: 1px solid var(--tg-theme-hint-color, #e1e8ed);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        font-size: 16px;
+        
+        &:hover {
+          background-color: var(--tg-theme-hint-color, #e1e8ed);
+        }
+        
+        &:active {
+          opacity: 0.7;
+          transform: scale(0.95);
+        }
+        
+        &.icon-button-primary {
+          background-color: var(--tg-theme-button-color, #007bff);
+          color: var(--tg-theme-button-text-color, #ffffff);
+          border-color: var(--tg-theme-button-color, #007bff);
+          
+          &:hover {
+            opacity: 0.9;
           }
         }
       }

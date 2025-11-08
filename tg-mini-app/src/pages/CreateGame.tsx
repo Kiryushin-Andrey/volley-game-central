@@ -98,10 +98,12 @@ const CreateGame: React.FC = () => {
       });
       
       navigate('/');
-    } catch (err) {
+    } catch (err: any) {
       logDebug('Error creating game:');
       logDebug(err);
-      setError('Failed to create game. Please try again.');
+      // Extract error message from server response
+      const errorMessage = err?.response?.data?.error || err?.message || 'Failed to create game. Please try again.';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

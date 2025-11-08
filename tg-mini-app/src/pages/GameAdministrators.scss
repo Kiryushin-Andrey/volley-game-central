@@ -1,0 +1,302 @@
+.game-administrators {
+  padding: 16px;
+  max-width: 100%;
+  margin: 0 auto;
+  color: var(--tg-theme-text-color);
+  background-color: var(--tg-theme-bg-color);
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.game-administrators-header {
+  margin-bottom: 24px;
+  text-align: center;
+
+  h1 {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--tg-theme-text-color);
+    margin-bottom: 8px;
+  }
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  font-size: 16px;
+  color: var(--tg-theme-hint-color);
+}
+
+.error-message {
+  padding: 12px 16px;
+  background: #fee;
+  border: 1px solid #fcc;
+  border-radius: 8px;
+  color: #c33;
+  font-size: 14px;
+  line-height: 1.4;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  margin-bottom: 20px;
+}
+
+.administrators-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.administrator-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: var(--tg-theme-secondary-bg-color, #f8f9fa);
+  border-radius: 12px;
+  border: 1px solid var(--tg-theme-hint-color, #e1e8ed);
+
+  .administrator-info {
+    flex: 1;
+  }
+
+  .administrator-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--tg-theme-button-color, #007aff);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 16px;
+    flex-shrink: 0;
+    overflow: hidden;
+
+    &.clickable {
+      cursor: pointer;
+      transition: transform 0.05s ease;
+      &:active { transform: scale(0.98); }
+    }
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  .user-details {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .user-name {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--tg-theme-text-color);
+    margin-bottom: 4px;
+
+    &.clickable {
+      cursor: pointer;
+    }
+  }
+
+  .assignment-details {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .day-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    background: var(--tg-theme-button-color, #007aff);
+    color: var(--tg-theme-button-text-color, white);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .positions-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    background: #6c5ce7;
+    color: white;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .administrator-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .delete-button {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: #f44336;
+    color: white;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease;
+    flex-shrink: 0;
+    padding: 0;
+
+    &:hover {
+      background: #d32f2f;
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--tg-theme-hint-color);
+
+  p {
+    margin: 8px 0;
+    font-size: 16px;
+  }
+}
+
+.actions {
+  margin-top: 24px;
+}
+
+.create-form {
+  padding: 20px;
+  background: var(--tg-theme-secondary-bg-color, #f8f9fa);
+  border-radius: 12px;
+  border: 1px solid var(--tg-theme-hint-color, #e1e8ed);
+
+  h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--tg-theme-text-color);
+    margin-bottom: 20px;
+  }
+
+  .form-group {
+    margin-bottom: 20px;
+
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--tg-theme-text-color);
+      margin-bottom: 8px;
+    }
+
+    select {
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 16px;
+      border: 1px solid var(--tg-theme-hint-color, #e1e8ed);
+      border-radius: 8px;
+      background: var(--tg-theme-bg-color);
+      color: var(--tg-theme-text-color);
+      box-sizing: border-box;
+      cursor: pointer;
+
+      &:focus {
+        outline: none;
+        border-color: var(--tg-theme-button-color, #007aff);
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      color: var(--tg-theme-text-color);
+
+      input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+      }
+    }
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+  }
+}
+
+.btn {
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: 500;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  flex: 1;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &.btn-primary {
+    background: var(--tg-theme-button-color, #007aff);
+    color: var(--tg-theme-button-text-color, white);
+
+    &:hover:not(:disabled) {
+      opacity: 0.9;
+    }
+  }
+
+  &.btn-secondary {
+    background: var(--tg-theme-secondary-bg-color, #f8f9fa);
+    color: var(--tg-theme-text-color);
+    border: 1px solid var(--tg-theme-hint-color, #e1e8ed);
+
+    &:hover:not(:disabled) {
+      background: var(--tg-theme-hint-color, #e1e8ed);
+    }
+  }
+
+  &.btn-small {
+    padding: 8px 12px;
+    font-size: 14px;
+    flex: none;
+    min-width: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+}
+

@@ -21,9 +21,11 @@ export type MonetaryAccountSelectorStateUpdater = (updates: Partial<MonetaryAcco
 
 export class MonetaryAccountSelectorViewModel {
   private updateState: MonetaryAccountSelectorStateUpdater;
+  private assignedUserId?: number;
 
-  constructor(updateState: MonetaryAccountSelectorStateUpdater) {
+  constructor(updateState: MonetaryAccountSelectorStateUpdater, assignedUserId?: number) {
     this.updateState = updateState;
+    this.assignedUserId = assignedUserId;
   }
 
   /**
@@ -38,7 +40,7 @@ export class MonetaryAccountSelectorViewModel {
 
     try {
       this.updateState({ isLoadingAccounts: true, error: '' });
-      const result = await bunqApi.getMonetaryAccounts(passwordToUse);
+      const result = await bunqApi.getMonetaryAccounts(passwordToUse, this.assignedUserId);
       
       if (result.success) {
         this.updateState({ 
@@ -70,7 +72,7 @@ export class MonetaryAccountSelectorViewModel {
         successMessage: '' 
       });
       
-      const result = await bunqApi.updateMonetaryAccount(accountId);
+      const result = await bunqApi.updateMonetaryAccount(accountId, this.assignedUserId);
       
       if (result.success) {
         this.updateState({ 
@@ -84,9 +86,8 @@ export class MonetaryAccountSelectorViewModel {
       }
     } catch (err: any) {
       console.error('Failed to update Bunq account:', err);
-      this.updateState({ 
-        error: err.response?.data?.message || 'Failed to update Bunq account' 
-      });
+      const errorMessage = err.response?.data?.error || err.response?.data?.message || 'Failed to update Bunq account';
+      this.updateState({ error: errorMessage });
     } finally {
       this.updateState({ isProcessing: false });
     }

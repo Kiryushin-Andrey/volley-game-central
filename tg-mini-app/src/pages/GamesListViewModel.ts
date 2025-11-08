@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { gamesApi, bunqApi, userApi } from '../services/api';
+import { gamesApi, bunqApi, userApi, gameAdministratorsApi } from '../services/api';
 import type { UnpaidRegistration } from '../services/api';
 import { GameWithStats, User } from '../types';
 import { logDebug } from '../debug';
@@ -24,6 +24,7 @@ export class GamesListViewModel {
   loadingUnpaid = false;
   loadingGames = false;
   showPageContent = false;
+  hasAdminAssignments = false;
 
   constructor(
     private user: User,
@@ -31,6 +32,7 @@ export class GamesListViewModel {
       gamesApi: typeof gamesApi;
       bunqApi: typeof bunqApi;
       userApi: typeof userApi;
+      gameAdministratorsApi: typeof gameAdministratorsApi;
       navigate: ReturnType<typeof useNavigate>;
       logDebug: typeof logDebug;
     }
@@ -67,6 +69,10 @@ export class GamesListViewModel {
   setGameFilter(filter: GameFilter) {
     if (this.gameFilter === filter) return;
     this.gameFilter = filter;
+    // When switching to past games, always show the games list immediately
+    if (filter === 'past') {
+      this.setShowPageContent(true);
+    }
     this.emitChange();
     // reload unpaid on filter change (as in original code)
     this.loadUnpaid();
@@ -99,6 +105,23 @@ export class GamesListViewModel {
         this.emitChange();
       }
     }
+    
+    // Check if user has administrator assignments (for non-admin users)
+    if (!this.user.isAdmin) {
+      try {
+        const assignments = await this.deps.gameAdministratorsApi.getMyAssignments();
+        this.hasAdminAssignments = assignments.length > 0;
+      } catch (e) {
+        this.deps.logDebug('Failed to load administrator assignments');
+        this.hasAdminAssignments = false;
+      } finally {
+        this.emitChange();
+      }
+    } else {
+      // Admins always have access to past games
+      this.hasAdminAssignments = true;
+    }
+    
     // initial data
     await Promise.all([this.loadGames(), this.loadUnpaid()]);
   }
@@ -106,6 +129,11 @@ export class GamesListViewModel {
   private applyPositionFilter() {
     if (this.allGames.length === 0) {
       this.games = [];
+      return;
+    }
+    // For past games, always show all games regardless of toggle
+    if (this.gameFilter === 'past') {
+      this.games = [...this.allGames];
       return;
     }
     let filtered = [...this.allGames];
@@ -157,7 +185,13 @@ export class GamesListViewModel {
       this.emitChange();
       const items = await this.deps.userApi.getMyUnpaidGames();
       this.unpaidItems = items || [];
-      this.setShowPageContent(this.unpaidItems.length === 0);
+      // For past games, always show the games list (unpaid block is hidden)
+      // For upcoming games, show games list only if there are no unpaid items
+      if (this.gameFilter === 'past') {
+        this.setShowPageContent(true);
+      } else {
+        this.setShowPageContent(this.unpaidItems.length === 0);
+      }
     } catch (e) {
       this.deps.logDebug('Error loading unpaid games:');
       this.deps.logDebug(e);
@@ -206,6 +240,7 @@ export function useGamesListViewModel(user: User) {
       gamesApi,
       bunqApi,
       userApi,
+      gameAdministratorsApi,
       navigate,
       logDebug,
     });

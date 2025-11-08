@@ -8,6 +8,7 @@ import { encryptionUtils } from '../utils/encryptionUtils';
  */
 export interface BunqCredentials {
   apiKey: string;
+  apiKeyName?: string;
   monetaryAccountId?: number;
   installationToken?: string;
   privateKey?: string;
@@ -22,6 +23,9 @@ interface EncryptedBunqCredentials {
   
   // Monetary Account ID (unencrypted)
   monetaryAccountId: number | null;
+  
+  // API Key Name (unencrypted)
+  apiKeyName: string | null;
   
   // API Key
   apiKeyEncrypted: string;
@@ -165,6 +169,7 @@ export const bunqCredentialsService = {
 
       return {
         apiKey,
+        apiKeyName: encryptedCredentials.apiKeyName || undefined,
         monetaryAccountId: encryptedCredentials.monetaryAccountId || undefined,
         installationToken,
         privateKey,
@@ -225,6 +230,7 @@ export const bunqCredentialsService = {
    * Store all Bunq credentials at once (API key, installation token, private key, and session token)
    * @param userId User ID
    * @param apiKey API key to store
+   * @param apiKeyName API key name (used as User-Agent in Bunq API requests)
    * @param installationToken Installation token to store
    * @param privateKey Private key to store
    * @param sessionToken Session token to store
@@ -235,6 +241,7 @@ export const bunqCredentialsService = {
   async storeAllCredentials(
     userId: number, 
     apiKey: string, 
+    apiKeyName: string | null,
     installationToken: string, 
     privateKey: string,
     sessionToken: string, 
@@ -280,6 +287,7 @@ export const bunqCredentialsService = {
           .update(bunqCredentials)
           .set({
             monetaryAccountId,
+            apiKeyName,
             
             // API Key
             apiKeyEncrypted: encryptedApiKey.encrypted,
@@ -319,6 +327,7 @@ export const bunqCredentialsService = {
           .values({
             userId,
             monetaryAccountId,
+            apiKeyName,
             
             // API Key
             apiKeyEncrypted: encryptedApiKey.encrypted,

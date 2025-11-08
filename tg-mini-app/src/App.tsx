@@ -7,6 +7,7 @@ import CreateGame from './pages/CreateGame';
 import EditGameSettings from './pages/EditGameSettings';
 import BunqSettings from './pages/BunqSettings';
 import CheckPayments from './pages/CheckPayments';
+import GameAdministrators from './pages/GameAdministrators';
 import LoadingSpinner from './components/LoadingSpinner';
 import PhoneAuth from './components/auth/PhoneAuth';
 import './App.scss';
@@ -164,7 +165,9 @@ function App() {
         <Route path="/games/new" element={<CreateGame />} />
         <Route path="/game/:gameId/edit" element={<EditGameSettings />} />
         <Route path="/bunq-settings" element={<BunqSettings />} />
+        <Route path="/bunq-settings/user/:assignedUserId" element={<BunqSettings />} />
         <Route path="/check-payments" element={<CheckPayments />} />
+        <Route path="/game-administrators" element={<GameAdministrators />} />
       </Routes>
     );
   }

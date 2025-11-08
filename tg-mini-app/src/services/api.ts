@@ -104,6 +104,14 @@ export const userApi = {
     const response = await api.post(`/users/admin/id/${userId}/payment-reminder`);
     return response.data;
   },
+
+  /**
+   * Admin: Get user information by ID
+   */
+  getUserById: async (userId: number): Promise<User> => {
+    const response = await api.get(`/users/admin/id/${userId}`);
+    return response.data;
+  },
 };
 
 export const gamesApi = {
@@ -285,53 +293,117 @@ export const gamesApi = {
   },
 };
 
+// Game administrators API endpoints
+export const gameAdministratorsApi = {
+  /**
+   * Get all game administrator assignments
+   */
+  getAll: async (): Promise<GameAdministrator[]> => {
+    const response = await api.get('/game-administrators');
+    return response.data;
+  },
+
+  /**
+   * Create a new game administrator assignment
+   */
+  create: async (data: { dayOfWeek: number; withPositions: boolean; userId: number }): Promise<GameAdministrator> => {
+    const response = await api.post('/game-administrators', data);
+    return response.data;
+  },
+
+  /**
+   * Get current user's administrator assignments
+   */
+  getMyAssignments: async (): Promise<GameAdministrator[]> => {
+    const response = await api.get('/game-administrators/me');
+    return response.data;
+  },
+
+  /**
+   * Delete a game administrator assignment
+   */
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/game-administrators/${id}`);
+  },
+};
+
 // Bunq-related API endpoints
 export const bunqApi = {
   /**
-   * Check if Bunq integration is enabled for the current user
+   * Check if Bunq integration is enabled for the current user or assigned user
+   * @param assignedUserId Optional user ID to check (admin only)
    */
-  getStatus: async (): Promise<{ enabled: boolean }> => {
-    const response = await api.get('/users/me/bunq/status');
+  getStatus: async (assignedUserId?: number): Promise<{ enabled: boolean }> => {
+    const url = assignedUserId 
+      ? `/users/admin/id/${assignedUserId}/bunq/status`
+      : '/users/me/bunq/status';
+    const response = await api.get(url);
     return response.data;
   },
 
   /**
    * Enable Bunq integration with API key and password
+   * @param apiKey Bunq API key
+   * @param password Bunq password
+   * @param assignedUserId Optional user ID to enable for (admin only)
+   * @param apiKeyName Optional API key name (used as User-Agent in Bunq API requests)
    */
-  enable: async (apiKey: string, password: string): Promise<{ success: boolean; message: string }> => {
-    const response = await api.post('/users/me/bunq/enable', { apiKey, password });
+  enable: async (apiKey: string, password: string, assignedUserId?: number, apiKeyName?: string): Promise<{ success: boolean; message: string }> => {
+    const url = assignedUserId 
+      ? `/users/admin/id/${assignedUserId}/bunq/enable`
+      : '/users/me/bunq/enable';
+    const response = await api.post(url, { apiKey, password, apiKeyName });
     return response.data;
   },
 
   /**
    * Disable Bunq integration
+   * @param assignedUserId Optional user ID to disable for (admin only)
    */
-  disable: async (): Promise<{ success: boolean; message: string }> => {
-    const response = await api.delete('/users/me/bunq/disable');
+  disable: async (assignedUserId?: number): Promise<{ success: boolean; message: string }> => {
+    const url = assignedUserId 
+      ? `/users/admin/id/${assignedUserId}/bunq/disable`
+      : '/users/me/bunq/disable';
+    const response = await api.delete(url);
     return response.data;
   },
 
   /**
    * Get available monetary accounts for Bunq integration
+   * @param password Bunq password
+   * @param assignedUserId Optional user ID to get accounts for (admin only)
    */
-  getMonetaryAccounts: async (password: string): Promise<{ success: boolean; accounts: Array<{ id: number; description: string }> }> => {
-    const response = await api.post('/users/me/bunq/monetary-accounts', { password });
+  getMonetaryAccounts: async (password: string, assignedUserId?: number): Promise<{ success: boolean; accounts: Array<{ id: number; description: string }> }> => {
+    const url = assignedUserId 
+      ? `/users/admin/id/${assignedUserId}/bunq/monetary-accounts`
+      : '/users/me/bunq/monetary-accounts';
+    const response = await api.post(url, { password });
     return response.data;
   },
 
   /**
    * Update the selected monetary account ID
+   * @param monetaryAccountId The monetary account ID to select
+   * @param assignedUserId Optional user ID to update for (admin only)
    */
-  updateMonetaryAccount: async (monetaryAccountId: number): Promise<{ success: boolean; message: string }> => {
-    const response = await api.put('/users/me/bunq/monetary-account', { monetaryAccountId });
+  updateMonetaryAccount: async (monetaryAccountId: number, assignedUserId?: number): Promise<{ success: boolean; message: string }> => {
+    const url = assignedUserId 
+      ? `/users/admin/id/${assignedUserId}/bunq/monetary-account`
+      : '/users/me/bunq/monetary-account';
+    const response = await api.put(url, { monetaryAccountId });
     return response.data;
   },
 
   /**
    * Manually install webhook filters for Bunq
+   * @param password Bunq password
+   * @param assignedUserId Optional user ID to install webhook for (admin only)
    */
-  installWebhook: async (password: string): Promise<{ success: boolean; message: string }> => {
-    const response = await api.post('/users/me/bunq/webhook/install', { password });
+  installWebhook: async (password: string, assignedUserId?: number): Promise<{ success: boolean; message: string }> => {
+    const url = assignedUserId 
+      ? `/users/admin/id/${assignedUserId}/bunq/webhook/install`
+      : '/users/me/bunq/webhook/install';
+    const response = await api.post(url, { password });
     return response.data;
   },
 };
@@ -412,4 +484,13 @@ export interface UnpaidRegistration {
   locationName: string | null;
   totalAmountCents: number | null;
   paymentLink: string | null;
+}
+
+export interface GameAdministrator {
+  id: number;
+  dayOfWeek: number; // 0 = Monday, 1 = Tuesday, ..., 6 = Sunday
+  withPositions: boolean; // true for 5-1 games, false for regular games
+  userId: number;
+  createdAt: string; // ISO string from backend
+  user: UserPublicInfo;
 }

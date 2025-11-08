@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, timestamp, boolean, integer, text, uuid } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, timestamp, boolean, integer, text, uuid, unique } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
@@ -8,6 +8,7 @@ export const users = pgTable('users', {
   avatarUrl: varchar('avatar_url', { length: 500 }),
   prevDisplayNames: text('prev_display_names'),
   blockReason: text('block_reason'),
+  blockedById: integer('blocked_by_id').references((): any => users.id, { onDelete: 'set null' }),
   isAdmin: boolean('is_admin').notNull().default(false),
   phoneNumber: varchar('phone_number', { length: 50 }),
   createdAt: timestamp('created_at').defaultNow(),
@@ -45,6 +46,9 @@ export const bunqCredentials = pgTable('bunq_credentials', {
   
   // Monetary Account ID (unencrypted)
   monetaryAccountId: integer('monetary_account_id'),
+  
+  // API Key Name (unencrypted, used as User-Agent in Bunq API requests)
+  apiKeyName: varchar('api_key_name', { length: 255 }),
   
   // API Key (encrypted)
   apiKeyEncrypted: text('api_key_encrypted').notNull(),
@@ -99,3 +103,14 @@ export const authSessions = pgTable('auth_sessions', {
   creatingNewUser: boolean('creating_new_user').notNull().default(false),
   createdAt: timestamp('created_at').defaultNow(),
 });
+
+// Game administrators assigned per day of week and 5-1 mark
+export const gameAdministrators = pgTable('game_administrators', {
+  id: serial('id').primaryKey(),
+  dayOfWeek: integer('day_of_week').notNull(), // 0 = Monday, 1 = Tuesday, ..., 6 = Sunday
+  withPositions: boolean('with_positions').notNull().default(false), // true for 5-1 games, false for regular games
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table) => ({
+  uniqueDayPosition: unique().on(table.dayOfWeek, table.withPositions),
+}));

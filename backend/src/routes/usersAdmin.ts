@@ -2,22 +2,12 @@ import { Router } from 'express';
 import { db } from '../db';
 import { users } from '../db/schema';
 import { eq, or, ilike } from 'drizzle-orm';
+import type { InferSelectModel } from 'drizzle-orm';
 import { getUserUnpaidItems } from '../services/unpaidService';
 import { notifyUser } from '../services/notificationService';
 import { formatGameDateShort } from '../utils/dateUtils';
 
 const router = Router();
-
-// Get all users
-router.get('/', async (req, res) => {
-  try {
-    const allUsers = await db.select().from(users);
-    res.json(allUsers);
-  } catch (error) {
-    console.error('Error fetching users:', error);
-    res.status(500).json({ error: 'Failed to fetch users' });
-  }
-});
 
 // Search users by query (displayName or telegramUsername)
 router.get('/search', async (req, res) => {
@@ -57,6 +47,10 @@ router.post('/id/:userId/block', async (req, res) => {
     const userId = parseInt(req.params.userId);
     const { reason } = req.body as { reason?: string };
 
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
     if (Number.isNaN(userId)) {
       return res.status(400).json({ error: 'Invalid userId' });
     }
@@ -64,12 +58,16 @@ router.post('/id/:userId/block', async (req, res) => {
       return res.status(400).json({ error: 'Reason is required' });
     }
 
-    const [updated] = await db
+    const updatedResult = await db
       .update(users)
-      .set({ blockReason: reason.trim() })
+      .set({ 
+        blockReason: reason.trim(),
+        blockedById: req.user.id
+      })
       .where(eq(users.id, userId))
-      .returning();
+      .returning() as InferSelectModel<typeof users>[];
 
+    const updated = updatedResult[0];
     if (!updated) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -90,12 +88,16 @@ router.delete('/id/:userId/block', async (req, res) => {
       return res.status(400).json({ error: 'Invalid userId' });
     }
 
-    const [updated] = await db
+    const updatedResult = await db
       .update(users)
-      .set({ blockReason: null })
+      .set({ 
+        blockReason: null,
+        blockedById: null
+      })
       .where(eq(users.id, userId))
-      .returning();
+      .returning() as InferSelectModel<typeof users>[];
 
+    const updated = updatedResult[0];
     if (!updated) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -158,6 +160,27 @@ router.post('/id/:userId/payment-reminder', async (req, res) => {
   } catch (error) {
     console.error('Error sending payment reminder:', error);
     res.status(500).json({ error: 'Failed to send payment reminder' });
+  }
+});
+
+// Get user by ID (must be after more specific routes like /id/:userId/unpaid-games)
+router.get('/id/:userId', async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId);
+    if (Number.isNaN(userId)) {
+      return res.status(400).json({ error: 'Invalid userId' });
+    }
+
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).json({ error: 'Failed to fetch user' });
   }
 });
 

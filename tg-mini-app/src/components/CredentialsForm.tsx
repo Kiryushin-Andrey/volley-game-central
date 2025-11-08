@@ -36,6 +36,19 @@ const CredentialsForm: React.FC<CredentialsFormProps> = ({
       </div>
       
       <div className="form-group">
+        <label htmlFor="apiKeyName">API Key Name</label>
+        <input
+          type="text"
+          id="apiKeyName"
+          value={credentials.apiKeyName}
+          onChange={(e) => onCredentialsChange({ apiKeyName: e.target.value })}
+          placeholder="Enter a name for this API key (used as User-Agent)"
+          disabled={isProcessing}
+        />
+        <small className="form-help">This name will be used to identify your API key in Bunq</small>
+      </div>
+      
+      <div className="form-group">
         <label htmlFor="password">Password</label>
         <input
           type="password"
@@ -58,7 +71,7 @@ const CredentialsForm: React.FC<CredentialsFormProps> = ({
         <button 
           className="btn btn-primary"
           onClick={onSubmit}
-          disabled={isProcessing || !credentials.apiKey.trim() || !credentials.password.trim()}
+          disabled={isProcessing || !credentials.apiKey.trim() || !credentials.password.trim() || !credentials.apiKeyName.trim()}
         >
           {isProcessing 
             ? 'Enabling...' 

@@ -1,12 +1,13 @@
 import { Router } from 'express';
 import { db } from '../db';
-import { games, gameRegistrations, users } from '../db/schema';
-import { gte, desc, inArray, eq, and, sql, lt, lte, asc, isNull } from 'drizzle-orm';
+import { games, gameRegistrations, users, gameAdministrators } from '../db/schema';
+import { gte, desc, inArray, eq, and, sql, lt, lte, asc, isNull, or } from 'drizzle-orm';
 import type { InferSelectModel } from 'drizzle-orm';
 import { REGISTRATION_OPEN_DAYS } from '../constants';
 import { notifyUser } from '../services/notificationService';
-import { getNotificationSubject, getNotificationSubjectWithVerb } from '../utils/notificationUtils';
+import { getNotificationSubjectWithVerb } from '../utils/notificationUtils';
 import { formatGameDate } from '../utils/dateUtils';
+import { isUserAssignedToGameById } from '../middleware/adminOrAssignedAdmin';
 
 const router = Router();
 
@@ -314,6 +315,10 @@ router.delete('/:gameId/register', async (req, res) => {
 
 router.get('/:gameId', async (req, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
     const { gameId } = req.params;
     const game = await db
       .select()
@@ -373,12 +378,15 @@ router.get('/:gameId', async (req, res) => {
       isWaitlist: index >= game[0].maxPlayers,
     }));
 
+    let isAssignedAdmin = await isUserAssignedToGameById(req.user.id, parseInt(gameId));
+
     // Ensure legacy field not leaked; respond with new fields
     const { locationAddress: _deprecated, ...restGame } = game[0] as any;
     res.json({
       ...restGame,
       registrations: registrationsWithWaitlistStatus,
       collectorUser,
+      isAssignedAdmin,
     });
   } catch (error) {
     console.error('Error fetching game:', error);
@@ -394,7 +402,10 @@ router.get('/', async (req, res) => {
 
     // Get current date for filtering
     const currentDate = new Date();
-    let filteredGames;
+    const userId = req.user?.id;
+    const isAdmin = req.user?.isAdmin || false;
+    
+    let filteredGames: InferSelectModel<typeof games>[];
 
     if (showPast) {
       // For past games: game date is strictly before now
@@ -414,6 +425,35 @@ router.get('/', async (req, res) => {
             and(lt(games.dateTime, currentDate), eq(games.fullyPaid, false)),
           )
           .orderBy(desc(games.dateTime));
+      }
+
+      // For non-admin users, filter games based on their administrator assignments
+      if (!isAdmin && userId) {
+        // Get user's administrator assignments
+        const userAssignments = await db
+          .select()
+          .from(gameAdministrators)
+          .where(eq(gameAdministrators.userId, userId));
+
+        if (userAssignments.length > 0) {
+          // Filter games to only show those matching user's assignments
+          filteredGames = filteredGames.filter((game) => {
+            const gameDate = new Date(game.dateTime);
+            // Get day of week (0=Monday, 6=Sunday)
+            // JavaScript: 0=Sunday, 1=Monday, ..., 6=Saturday
+            let dayOfWeek = gameDate.getDay();
+            dayOfWeek = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Convert to Monday=0 format
+
+            return userAssignments.some(
+              (assignment) =>
+                assignment.dayOfWeek === dayOfWeek &&
+                assignment.withPositions === game.withPositions
+            );
+          });
+        } else {
+          // User has no assignments, return empty array for past games
+          filteredGames = [];
+        }
       }
     } else {
       // For upcoming games: game date is on or after now

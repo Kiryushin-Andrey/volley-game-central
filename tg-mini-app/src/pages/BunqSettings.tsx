@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { 
   BunqSettingsViewModel, 
   BunqSettingsState
@@ -13,7 +13,11 @@ import './BunqSettings.scss';
 
 const BunqSettings: React.FC = () => {
   const navigate = useNavigate();
+  const { assignedUserId } = useParams<{ assignedUserId?: string }>();
   const webApp = window.Telegram?.WebApp;
+  
+  // Parse assignedUserId if present
+  const assignedUserIdNum = assignedUserId ? parseInt(assignedUserId, 10) : undefined;
   
   // State management
   const [state, setState] = useState<BunqSettingsState>(
@@ -30,12 +34,12 @@ const BunqSettings: React.FC = () => {
     setState(prevState => ({ ...prevState, ...updates }));
   }, []);
   
-  const viewModel = new BunqSettingsViewModel(updateState);
-
-  // Load Bunq integration status on component mount
-  useEffect(() => {
-    viewModel.loadBunqStatus();
-  }, []);
+  const viewModel = useMemo(() => {
+    const vm = new BunqSettingsViewModel(updateState, assignedUserIdNum);
+    vm.loadBunqStatus();
+    vm.loadAssignedUserName();
+    return vm;
+  }, [updateState, assignedUserIdNum]);
 
 
 
@@ -91,7 +95,7 @@ const BunqSettings: React.FC = () => {
         {inTelegram && (
           <BackButton onClick={() => navigate(-1)} />
         )}
-        <h1>Bunq Settings</h1>
+        <h1>Bunq Settings{state.assignedUserName && ` (${state.assignedUserName})`}</h1>
       </div>
       
       <div className="settings-content">
@@ -136,6 +140,7 @@ const BunqSettings: React.FC = () => {
             {/* Monetary Account Selection */}
             <MonetaryAccountSelector 
               initialPassword={state.storedPassword}
+              assignedUserId={assignedUserIdNum}
               onAccountSelected={(accountId) => {
                 setState(prevState => ({ ...prevState, selectedMonetaryAccountId: accountId }));
               }}
@@ -167,7 +172,15 @@ const BunqSettings: React.FC = () => {
                 </button>
                 <button 
                   className="btn btn-danger"
-                  onClick={() => viewModel.handleDisableIntegration(webApp)}
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    try {
+                      await viewModel.handleDisableIntegration(webApp);
+                    } catch (error) {
+                      console.error('Error disabling integration:', error);
+                      setState(prevState => ({ ...prevState, error: 'Failed to disable integration. Please try again.' }));
+                    }
+                  }}
                   disabled={state.isProcessing}
                 >
                   {state.isProcessing ? 'Disabling...' : 'Disable Integration'}

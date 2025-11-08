@@ -149,9 +149,10 @@ function transliterateCyrillic(input: string): string {
 /**
  * Creates an installation token using the API key
  * @param apiKey The API key to use for installation
+ * @param apiKeyName The API key name (used as User-Agent in Bunq API requests)
  * @returns Object with installation token and private key, or null if failed
  */
-export async function createInstallation(apiKey: string): Promise<{ installationToken: string; privateKey: string } | null> {
+export async function createInstallation(apiKey: string, apiKeyName: string): Promise<{ installationToken: string; privateKey: string } | null> {
   try {
     // For installation, we don't use X-Bunq-Client-Authentication header
     const client = axios.create({
@@ -159,7 +160,7 @@ export async function createInstallation(apiKey: string): Promise<{ installation
       headers: {
         'Content-Type': 'application/json',
         'Cache-Control': 'no-cache',
-        'User-Agent': 'Volley Game Central API Client'
+        'User-Agent': apiKeyName
       }
     });
 
@@ -207,22 +208,23 @@ export async function createInstallation(apiKey: string): Promise<{ installation
  * Registers a device using the installation token and API key
  * @param installationToken The installation token
  * @param apiKey The API key (used as secret in the request body)
+ * @param apiKeyName The API key name (used as User-Agent and description in Bunq API requests)
  * @returns True if successful, false otherwise
  */
-export async function registerDevice(installationToken: string, apiKey: string): Promise<boolean> {
+export async function registerDevice(installationToken: string, apiKey: string, apiKeyName: string): Promise<boolean> {
   try {
     const client = axios.create({
       baseURL: BUNQ_API_URL,
       headers: {
         'Content-Type': 'application/json',
         'Cache-Control': 'no-cache',
-        'User-Agent': 'Volley Game Central API Client',
+        'User-Agent': apiKeyName,
         'X-Bunq-Client-Authentication': installationToken
       }
     });
 
     const response = await client.post('/device-server', {
-      description: 'Volley Game Central API Client',
+      description: apiKeyName,
       secret: apiKey
     });
 
@@ -238,9 +240,10 @@ export async function registerDevice(installationToken: string, apiKey: string):
  * @param installationToken The installation token
  * @param apiKey The API key (used as secret in the request body)
  * @param privateKey The private key for signing the request
+ * @param apiKeyName The API key name (used as User-Agent in Bunq API requests)
  * @returns Session token or null if failed
  */
-export async function createSession(installationToken: string, apiKey: string, privateKey: string): Promise<string | null> {
+export async function createSession(installationToken: string, apiKey: string, privateKey: string, apiKeyName: string): Promise<string | null> {
   try {
     // Prepare the request body
     const requestBody = {
@@ -259,7 +262,7 @@ export async function createSession(installationToken: string, apiKey: string, p
       headers: {
         'Content-Type': 'application/json',
         'Cache-Control': 'no-cache',
-        'User-Agent': 'Volley Game Central API Client',
+        'User-Agent': apiKeyName,
         'X-Bunq-Client-Authentication': installationToken,
         'X-Bunq-Client-Signature': base64Signature
       }
@@ -287,16 +290,17 @@ export async function createSession(installationToken: string, apiKey: string, p
 /**
  * Tests if a session token is still valid
  * @param sessionToken The session token to test
+ * @param apiKeyName The API key name (used as User-Agent in Bunq API requests)
  * @returns True if valid, false otherwise
  */
-export async function isSessionTokenValid(sessionToken: string): Promise<boolean> {
+export async function isSessionTokenValid(sessionToken: string, apiKeyName: string): Promise<boolean> {
   try {
     const client = axios.create({
       baseURL: BUNQ_API_URL,
       headers: {
         'Content-Type': 'application/json',
         'Cache-Control': 'no-cache',
-        'User-Agent': 'Volley Game Central API Client',
+        'User-Agent': apiKeyName,
         'X-Bunq-Client-Authentication': sessionToken
       }
     });
@@ -314,16 +318,17 @@ export async function isSessionTokenValid(sessionToken: string): Promise<boolean
 /**
  * Fetches monetary accounts for a user using a session token
  * @param sessionToken The session token to use
+ * @param apiKeyName The API key name (used as User-Agent in Bunq API requests)
  * @returns Array of monetary accounts or null if failed
  */
-export async function fetchMonetaryAccounts(sessionToken: string): Promise<any[] | null> {
+export async function fetchMonetaryAccounts(sessionToken: string, apiKeyName: string): Promise<any[] | null> {
   try {
     const client = axios.create({
       baseURL: BUNQ_API_URL,
       headers: {
         'Content-Type': 'application/json',
         'Cache-Control': 'no-cache',
-        'User-Agent': 'Volley Game Central API Client',
+        'User-Agent': apiKeyName,
         'X-Bunq-Client-Authentication': sessionToken
       }
     });
@@ -391,6 +396,8 @@ async function refreshTokens(userId: number, password: string, credentials: Bunq
   try {
     console.log('Refreshing Bunq tokens...');
     
+    const apiKeyName = credentials.apiKeyName || 'VolleyBot API Client';
+    
     let installationToken = credentials.installationToken;
     let privateKey = credentials.privateKey;
     let installationResult: { installationToken: string; privateKey: string } | null = null;
@@ -398,7 +405,7 @@ async function refreshTokens(userId: number, password: string, credentials: Bunq
     // Step 1: Ensure we have a valid installation token
     if (!installationToken || !privateKey) {
       console.log('Creating new installation token...');
-      installationResult = await createInstallation(credentials.apiKey);
+      installationResult = await createInstallation(credentials.apiKey, apiKeyName);
       if (!installationResult) {
         console.error('Failed to create installation token');
         return null;
@@ -409,12 +416,12 @@ async function refreshTokens(userId: number, password: string, credentials: Bunq
     
     // Step 2: Register device (this is idempotent)
     console.log('Registering device...');
-    let deviceRegistered = await registerDevice(installationToken, credentials.apiKey);
+    let deviceRegistered = await registerDevice(installationToken, credentials.apiKey, apiKeyName);
     
     if (!deviceRegistered) {
       console.error('Failed to register device, creating new installation token...');
       // Try to create a new installation token and retry
-      const retryInstallationResult = await createInstallation(credentials.apiKey);
+      const retryInstallationResult = await createInstallation(credentials.apiKey, apiKeyName);
       if (!retryInstallationResult) {
         console.error('Failed to create new installation token for retry');
         return null;
@@ -424,7 +431,7 @@ async function refreshTokens(userId: number, password: string, credentials: Bunq
       installationResult = retryInstallationResult;
       
       console.log('Retrying device registration with new installation token...');
-      deviceRegistered = await registerDevice(installationToken, credentials.apiKey);
+      deviceRegistered = await registerDevice(installationToken, credentials.apiKey, apiKeyName);
       if (!deviceRegistered) {
         console.error('Failed to register device on retry');
         return null;
@@ -433,7 +440,7 @@ async function refreshTokens(userId: number, password: string, credentials: Bunq
     
     // Step 3: Create session token
     console.log('Creating session token...');
-    const sessionToken = await createSession(installationToken, credentials.apiKey, privateKey);
+    const sessionToken = await createSession(installationToken, credentials.apiKey, privateKey, apiKeyName);
     if (!sessionToken) {
       console.error('Failed to create session token');
       return null;
@@ -443,6 +450,7 @@ async function refreshTokens(userId: number, password: string, credentials: Bunq
     const success = await bunqCredentialsService.storeAllCredentials(
       userId,
       credentials.apiKey,
+      credentials.apiKeyName || null,
       installationToken,
       privateKey,
       sessionToken,
@@ -505,13 +513,15 @@ async function createBunqClient(params: BunqClientParams): Promise<BunqClient | 
       }
     }
     
+    const apiKeyName = credentials.apiKeyName || 'VolleyBot API Client';
+    
     // Create Bunq API client
     const client = axios.create({
       baseURL: BUNQ_API_URL,
       headers: {
         'Content-Type': 'application/json',
         'Cache-Control': 'no-cache',
-        'User-Agent': 'Volley Game Central API Client',
+        'User-Agent': apiKeyName,
         'X-Bunq-Client-Authentication': credentials.sessionToken
       }
     });

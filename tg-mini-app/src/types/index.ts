@@ -47,6 +47,7 @@ export interface Game {
   createdById: number;
   collectorUser?: CollectorUser | null;
   registrations: GameRegistration[];
+  isAssignedAdmin?: boolean;
 }
 
 export interface GameRegistration {
