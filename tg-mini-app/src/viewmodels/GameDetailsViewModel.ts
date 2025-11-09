@@ -344,11 +344,16 @@ export class GameDetailsViewModel {
       await this.loadGame(gameId);
     } catch (error: any) {
       logDebug('Error sending payment requests: ' + error);
-      if (error?.response?.data?.error == 'Invalid password') {
-        this.setPaymentRequest({ passwordError: error.response?.data?.error });
+      // Extract error message from response data if available, otherwise use error message
+      const errorMessage = error?.response?.data?.error || error?.message || 'Unknown error';
+      
+      // Check for "Invalid password" error - this should be a 400 error from the server
+      if (errorMessage === 'Invalid password') {
+        // Keep the password dialog open and show the error message
+        this.setPaymentRequest({ passwordError: errorMessage });
       } else {
         this.setPaymentRequest({ showPasswordDialog: false });
-        showPopup({ title: 'Error', message: error instanceof Error ? error.message : 'Unknown error', buttons: [{ type: 'ok' }] });
+        showPopup({ title: 'Error', message: errorMessage, buttons: [{ type: 'ok' }] });
       }
     } finally {
       this.setPaymentRequest({ isSendingPaymentRequests: false });

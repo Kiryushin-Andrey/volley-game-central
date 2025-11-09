@@ -299,14 +299,29 @@ router.post('/:gameId/payment-requests', async (req, res) => {
         errors: result.errors,
       });
     } else {
-      res.status(500).json({
-        error: result.errors.length == 1 ? result.errors[0] : 'Failed to create payment requests',
+      // Check if the error is "Invalid password" - this should be a 400 Bad Request, not 500
+      const hasInvalidPasswordError = result.errors.some(err => err === 'Invalid password');
+      const statusCode = hasInvalidPasswordError ? 400 : 500;
+      
+      // If there's an "Invalid password" error, use that as the error message
+      // Otherwise, use the first error if there's only one, or a generic message
+      const errorMessage = hasInvalidPasswordError 
+        ? 'Invalid password'
+        : (result.errors.length == 1 ? result.errors[0] : 'Failed to create payment requests');
+      
+      res.status(statusCode).json({
+        error: errorMessage,
         errors: result.errors,
       });
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating payment requests:', error);
-    res.status(500).json({ error: 'Failed to create payment requests' });
+    // Check if the error is "Invalid password" - this should be a 400 Bad Request, not 500
+    if (error instanceof Error && error.message === 'Invalid password') {
+      res.status(400).json({ error: 'Invalid password' });
+    } else {
+      res.status(500).json({ error: 'Failed to create payment requests' });
+    }
   }
 });
 
