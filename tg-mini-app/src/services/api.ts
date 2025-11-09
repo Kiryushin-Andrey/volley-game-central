@@ -148,7 +148,18 @@ export const gamesApi = {
     return response.data;
   },
 
-  createGame(gameData: { dateTime: string; maxPlayers: number; unregisterDeadlineHours: number; paymentAmount: number; pricingMode?: PricingMode; withPositions: boolean; locationName?: string | null; locationLink?: string | null }): Promise<Game> {
+  createGame(gameData: {
+    dateTime: string;
+    maxPlayers: number;
+    unregisterDeadlineHours: number;
+    paymentAmount: number;
+    pricingMode?: PricingMode;
+    withPositions: boolean;
+    readonly?: boolean;
+    locationName?: string | null;
+    locationLink?: string | null;
+    title?: string | null;
+  }): Promise<Game> {
     return api.post('/games/admin', gameData).then(res => res.data);
   },
 
@@ -190,7 +201,18 @@ export const gamesApi = {
     await api.delete(`/games/admin/${gameId}`);
   },
 
-  updateGame(gameId: number, gameData: { dateTime: string; maxPlayers: number; unregisterDeadlineHours: number; paymentAmount: number; pricingMode?: PricingMode; withPositions: boolean; locationName?: string | null; locationLink?: string | null }): Promise<Game> {
+  updateGame(gameId: number, gameData: {
+    dateTime: string;
+    maxPlayers: number;
+    unregisterDeadlineHours: number;
+    paymentAmount: number;
+    pricingMode?: PricingMode;
+    withPositions: boolean;
+    readonly?: boolean;
+    locationName?: string | null;
+    locationLink?: string | null;
+    title?: string | null;
+  }): Promise<Game> {
     return api.put(`/games/admin/${gameId}`, gameData).then(res => res.data);
   },
 

@@ -13,8 +13,4 @@ export const getUserRegistration = (game: Game, userId: number): GameRegistratio
   return game.registrations.find(reg => reg.userId === userId && (reg.guestName === null || reg.guestName === undefined));
 };
 
-export const hasAnyPaid = (game: Game): boolean => {
-  return game.registrations.some(reg => reg.paid);
-};
-
 

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { db } from '../db';
 import { games, gameRegistrations, users, paymentRequests } from '../db/schema';
-import { gte, desc, inArray, eq, and, sql, lt, lte, asc, isNull } from 'drizzle-orm';
+import { gte, desc, inArray, eq, and, sql, lt, isNull } from 'drizzle-orm';
 import { PricingMode } from '../types/PricingMode';
 import { sendGroupAnnouncement } from '../services/telegramService';
 import { notifyUser } from '../services/notificationService';
@@ -44,8 +44,10 @@ router.post('/', async (req, res) => {
       paymentAmount,
       pricingMode = PricingMode.PER_PARTICIPANT,
       withPositions = false,
+      readonly = false,
       locationName,
       locationLink,
+      title,
     } = req.body;
 
     if (!dateTime || !maxPlayers) {
@@ -78,8 +80,10 @@ router.post('/', async (req, res) => {
         paymentAmount,
         pricingMode,
         withPositions,
+        readonly: readonly ?? false,
         locationName,
         locationLink,
+        title,
         createdById,
       })
       .returning();
@@ -126,8 +130,10 @@ router.put('/:gameId', async (req, res) => {
       paymentAmount,
       pricingMode,
       withPositions,
+      readonly,
       locationName,
       locationLink,
+      title,
     } = req.body;
 
     if (!dateTime || !maxPlayers) {
@@ -162,8 +168,10 @@ router.put('/:gameId', async (req, res) => {
         paymentAmount,
         pricingMode,
         withPositions,
+        readonly: readonly ?? false,
         locationName,
         locationLink,
+        title,
       })
       .where(eq(games.id, gameId))
       .returning();
@@ -328,7 +336,9 @@ router.post('/:gameId/participants', async (req, res) => {
 
     const gameDateTime = new Date(game[0].dateTime);
     const now = new Date();
-    if (now < gameDateTime) {
+    // Allow modifying participants for readonly games (admins can manage at any time)
+    // But still enforce the past game restriction for non-readonly games
+    if (!game[0].readonly && now < gameDateTime) {
       return res.status(400).json({ error: 'Cannot modify participants for future or ongoing games' });
     }
 
@@ -407,7 +417,9 @@ router.delete('/:gameId/participants/:userId', async (req, res) => {
 
     const gameDateTime = new Date(game[0].dateTime);
     const now = new Date();
-    if (gameDateTime > now) {
+    // Allow modifying participants for readonly games (admins can manage at any time)
+    // But still enforce the past game restriction for non-readonly games
+    if (!game[0].readonly && gameDateTime > now) {
       return res.status(400).json({ error: 'Cannot modify participants for future games' });
     }
 

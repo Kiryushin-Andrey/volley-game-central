@@ -40,9 +40,11 @@ export interface Game {
   pricingMode: PricingMode;
   fullyPaid: boolean;
   withPositions: boolean;
+  readonly: boolean;
   locationName?: string | null;
   locationLink?: string | null;
   tag?: string | null;
+  title?: string | null;
   createdAt: Date | null;
   createdById: number;
   collectorUser?: CollectorUser | null;

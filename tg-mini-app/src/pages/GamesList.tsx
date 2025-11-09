@@ -30,56 +30,66 @@ const GameItem = memo(({ game, onClick, formatDate }: {
     >
       {isHalloween && <HalloweenDecorations variant="card" />}
       <div className="game-header">
-        <div className="game-date-location">
-          <span className="game-date">{formatDate(game.dateTime)}</span>
-          {isUpcomingGame && (game.locationName || game.locationLink) && (
-            <span className="game-location">
-              <a
-                href={resolveLocationLink(game.locationName, game.locationLink)}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()} // Prevent card click when clicking location
-              >
-                📍 {game.locationName || 'Location'}
-              </a>
-            </span>
+        <div className="game-header-top">
+          <div className="game-date-location">
+            <span className="game-date">{formatDate(game.dateTime)}</span>
+            {isUpcomingGame && (game.locationName || game.locationLink) && (
+              <span className="game-location">
+                <a
+                  href={resolveLocationLink(game.locationName, game.locationLink)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()} // Prevent card click when clicking location
+                >
+                  📍 {game.locationName || 'Location'}
+                </a>
+              </span>
+            )}
+          </div>
+          {game.isUserRegistered && (
+            <div className={`registration-badge ${game.userRegistration?.isWaitlist ? 'waitlist' : 'active'}`}>
+              {game.userRegistration?.isWaitlist ? 'Waitlist' : 'You\'re in'}
+            </div>
           )}
         </div>
-        {game.isUserRegistered && (
-          <div className={`registration-badge ${game.userRegistration?.isWaitlist ? 'waitlist' : 'active'}`}>
-            {game.userRegistration?.isWaitlist ? 'Waitlist' : 'You\'re in'}
+        {game.title && (
+          <div className="game-title">
+            {game.title}
           </div>
         )}
       </div>
       
-      <div className="game-stats">
-        {/* Past games: show paid/total counts */}
-        {game.paidCount !== undefined && (
-          <div className="compact-stats">
-            <span className="counter">{game.paidCount}</span>
-            <span className="divider">/</span>
-            <span className="counter">{game.totalRegisteredCount}</span>
-          </div>
-        )}
+      {/* Show stats for non-readonly games, or for past readonly games (which have paidCount) */}
+      {(!game.readonly || game.paidCount !== undefined) && (
+        <div className="game-stats">
+          {/* Past games: show paid/total counts */}
+          {game.paidCount !== undefined && (
+            <div className="compact-stats">
+              <span className="counter">{game.paidCount}</span>
+              <span className="divider">/</span>
+              <span className="counter">{game.totalRegisteredCount}</span>
+            </div>
+          )}
 
-        {/* Upcoming games within registration window: show registered/total */}
-        {game.registeredCount !== undefined && (
-          <div className="compact-stats">
-            <span className="counter">{game.registeredCount}</span>
-            <span className="divider">/</span>
-            <span className="counter">{game.maxPlayers}</span>
-          </div>
-        )}
-        
-        {/* Regular upcoming games: show current count/capacity */}
-        {game.paidCount === undefined && game.registeredCount === undefined && (
-          <div className="compact-stats">
-            <span className="counter">{game.totalRegisteredCount}</span>
-            <span className="divider">/</span>
-            <span className="counter">{game.maxPlayers}</span>
-          </div>
-        )}
-      </div>
+          {/* Upcoming games within registration window: show registered/total */}
+          {game.registeredCount !== undefined && (
+            <div className="compact-stats">
+              <span className="counter">{game.registeredCount}</span>
+              <span className="divider">/</span>
+              <span className="counter">{game.maxPlayers}</span>
+            </div>
+          )}
+          
+          {/* Regular upcoming games: show current count/capacity */}
+          {game.paidCount === undefined && game.registeredCount === undefined && (
+            <div className="compact-stats">
+              <span className="counter">{game.totalRegisteredCount}</span>
+              <span className="divider">/</span>
+              <span className="counter">{game.maxPlayers}</span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 });

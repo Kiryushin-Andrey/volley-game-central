@@ -23,9 +23,11 @@ export const games = pgTable('games', {
   pricingMode: varchar('pricing_mode', { length: 20 }).notNull().default('per_participant'), // 'per_participant' or 'total_cost'
   fullyPaid: boolean('fully_paid').notNull().default(false),
   withPositions: boolean('with_positions').notNull().default(false),
+  readonly: boolean('readonly').notNull().default(false),
   locationName: varchar('location_name', { length: 255 }),
   locationLink: varchar('location_link', { length: 1000 }),
   tag: varchar('tag', { length: 50 }),
+  title: varchar('title', { length: 255 }),
   createdAt: timestamp('created_at').defaultNow(),
   createdById: serial('created_by_id').references(() => users.id),
   collectorUserId: integer('collector_user_id').references(() => users.id),

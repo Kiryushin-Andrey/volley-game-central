@@ -4,7 +4,7 @@ import { logDebug } from '../debug';
 import { Game, User } from '../types';
 import type { UserPublicInfo } from '../types';
 import { ActionGuard } from '../utils/actionGuard';
-import { getUserRegistration, hasAnyPaid } from '../utils/registrationsUtils';
+import { getUserRegistration } from '../utils/registrationsUtils';
 import { isGamePast, canJoinGame, canLeaveGame, DAYS_BEFORE_GAME_TO_JOIN } from '../utils/gameDateUtils';
 
 export interface GameDataState {
@@ -560,11 +560,12 @@ export class GameDetailsViewModel {
     this.setGuestError("");
     
     try {
-      // If admin is adding a guest for a past game with inviter selected, use admin endpoint
+      // If admin is adding a guest for a past game or readonly game with inviter selected, use admin endpoint
       const isPastGame = isGamePast(this.state.gameData.game.dateTime);
-      const hasPaymentRequests = hasAnyPaid(this.state.gameData.game);
+      const hasPaymentRequests = this.state.gameData.game.collectorUser !== null && this.state.gameData.game.collectorUser !== undefined;
       const isGameAdmin = this.user.isAdmin || (this.state.gameData.game.isAssignedAdmin ?? false);
-      if (isGameAdmin && isPastGame && !hasPaymentRequests && inviterUserId) {
+      const isReadonly = this.state.gameData.game.readonly;
+      if (isGameAdmin && (isPastGame || isReadonly) && !hasPaymentRequests && inviterUserId) {
         await gamesApi.addParticipant(this.state.gameData.game.id, inviterUserId, guestName);
       } else {
         await gamesApi.registerGuestForGame(this.state.gameData.game.id, guestName);
@@ -654,18 +655,30 @@ export class GameDetailsViewModel {
     return null;
   }
 
-  shouldShowGuestButton(): boolean {
+  shouldShowAddGuestButton(): boolean {
     if (!this.state.gameData.game || this.state.gameData.isLoading || this.state.action.isActionLoading || this.state.gameData.error) {
       return false;
     }
     
+    const game = this.state.gameData.game;
+    
+    // For readonly games, only admins can add guests
+    if (game.readonly) {
+      return this.user.isAdmin || (game.isAssignedAdmin ?? false);
+    }
+    
     // Only show for upcoming games with open registration
-    return canJoinGame(this.state.gameData.game.dateTime);
+    return canJoinGame(game.dateTime);
   }
 
   getMainButtonProps(): { show: boolean; text?: string; onClick?: () => void } {
     // No button during loading states or errors
     if (!this.state.gameData.game || this.state.gameData.isLoading || this.state.action.isActionLoading || this.state.gameData.error) {
+      return { show: false };
+    }
+
+    // Don't show buttons for readonly games - all users must use admin interface
+    if (this.state.gameData.game.readonly) {
       return { show: false };
     }
 

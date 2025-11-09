@@ -372,36 +372,41 @@
 
 .game-header {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 8px;
+  margin-bottom: 12px;
+
+  .game-header-top {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
 
   .game-date-location {
     display: flex;
     align-items: center;
     gap: 12px;
     flex: 1;
-      min-width: 0;
-      flex-wrap: wrap; // allow location to move to next line on overflow
+    min-width: 0;
+    flex-wrap: wrap; // allow location to move to next line on overflow
 
-      > * {
-        min-width: 0; // allow children to shrink
-      }
+    > * {
+      min-width: 0; // allow children to shrink
+    }
   }
 
   .game-date {
     font-size: 18px;
     font-weight: 600;
     color: var(--tg-theme-text-color);
-      flex-shrink: 0;
-      white-space: nowrap; // keep date on one line
+    flex-shrink: 0;
+    white-space: nowrap; // keep date on one line
   }
 
   .game-location {
-      flex-shrink: 1;
-      max-width: 100%;
+    flex-shrink: 1;
+    max-width: 100%;
     
     a {
       display: inline-block; // permit wrapping
@@ -448,6 +453,17 @@
       background: #ff9500;
       color: white;
     }
+  }
+
+  .game-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--tg-theme-text-color);
+    margin: 0;
+    padding: 0;
+    line-height: 1.4;
+    text-align: left;
+    width: 100%;
   }
 }
 

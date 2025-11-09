@@ -190,6 +190,20 @@
       "when": 1762481764600,
       "tag": "0026_add_blocked_by_id_to_users",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "5",
+      "when": 1762581764600,
+      "tag": "0027_add_readonly_to_games",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "5",
+      "when": 1762646570440,
+      "tag": "0028_add_title_to_games",
+      "breakpoints": true
     }
   ]
 }

@@ -21,7 +21,6 @@ import {
   getActiveRegistrations,
   getWaitlistRegistrations,
   getUserRegistration,
-  hasAnyPaid,
 } from "../utils/registrationsUtils";
 import { GameDetailsViewModel, GameDataState, ActionState, BunqState, PaymentRequestState, DialogState } from "../viewmodels/GameDetailsViewModel";
 import { PlayersList } from "../components/game-details/PlayersList";
@@ -144,10 +143,10 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
 
   // Check if the game is in the past and has no payment requests
   const isPastGame = isGamePast(gameData.game.dateTime);
-  const hasPaymentRequests = hasAnyPaid(gameData.game);
+  const hasPaymentRequests = gameData.game.collectorUser !== null && gameData.game.collectorUser !== undefined;
   const isGameAdmin = user.isAdmin || (gameData.game.isAssignedAdmin ?? false);
   const showAddParticipantButton =
-    isGameAdmin && isPastGame && !hasPaymentRequests;
+    isGameAdmin && !hasPaymentRequests && (isPastGame || gameData.game.readonly);
 
   // Get the current main button properties
   const {
@@ -194,6 +193,12 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
               disabled={action.isActionLoading}
               placeholder="Search users to add..."
             />
+          </div>
+        )}
+
+        {gameData.game.title && (
+          <div className="game-title">
+            {gameData.game.title}
           </div>
         )}
 
@@ -254,7 +259,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
               onDelete={() => viewModel.handleDeleteGame()}
               onEdit={() => navigate(`/game/${gameId}/edit`)}
               canSendPaymentRequests={
-                isGamePast(gameData.game.dateTime) &&
+                (isGamePast(gameData.game.dateTime) || gameData.game.readonly) &&
                 gameData.game.paymentAmount > 0 &&
                 !gameData.game.fullyPaid &&
                 bunq.hasBunqIntegration &&
@@ -263,7 +268,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
               onSendPaymentRequests={() => viewModel.handleSendPaymentRequests()}
               isSendingPaymentRequests={paymentRequest.isSendingPaymentRequests}
               canCheckPayments={
-                isGamePast(gameData.game.dateTime) &&
+                hasPaymentRequests &&
                 gameData.game.paymentAmount > 0 &&
                 !gameData.game.fullyPaid &&
                 bunq.hasBunqIntegration &&
@@ -293,6 +298,14 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
         </div>
       )}
 
+      {gameData.game.readonly && (
+        <div className="readonly-note">
+          <p>
+            🔒 This game is readonly. Registration and deregistration are closed. Please contact the game organizers if you have any questions.
+          </p>
+        </div>
+      )}
+
       {isPastGame && gameData.game.collectorUser && (user.isAdmin || (gameData.game.isAssignedAdmin ?? false)) && (
         <div className="collector-info">
           <span className="collector-label">Payments collected by</span>
@@ -316,36 +329,40 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
       )}
 
       <div className="players-container">
-        <div className="players-stats-header">
-          <div className="stats-row">
-            <div className="compact-stats">
-              <span className="registered-count">
-                {isPastGame ? paidActiveCount : activeRegistrations.length}
-              </span>
-              <span className="stats-divider">/</span>
-              <span className="max-count">
-                {isPastGame ? totalActiveCount : gameData.game.maxPlayers}
-              </span>
-              {!isPastGame && waitlistRegistrations.length > 0 && (
-                <span className="waitlist-indicator">
-                  (+{waitlistRegistrations.length})
-                </span>
+        {((!gameData.game.readonly || isGameAdmin) || viewModel.shouldShowAddGuestButton()) && (
+          <div className="players-stats-header">
+            <div className="stats-row">
+              {(!gameData.game.readonly || isGameAdmin) && (
+                <div className="compact-stats">
+                  <span className="registered-count">
+                    {isPastGame ? paidActiveCount : activeRegistrations.length}
+                  </span>
+                  <span className="stats-divider">/</span>
+                  <span className="max-count">
+                    {isPastGame ? totalActiveCount : gameData.game.maxPlayers}
+                  </span>
+                  {!isPastGame && waitlistRegistrations.length > 0 && (
+                    <span className="waitlist-indicator">
+                      (+{waitlistRegistrations.length})
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {viewModel.shouldShowAddGuestButton() && (
+                <div className="header-actions">
+                  <button
+                    className="add-guest-button"
+                    onClick={() => viewModel.handleGuestRegister()}
+                    disabled={action.isActionLoading || dialogs.isGuestRegistering}
+                  >
+                    {dialogs.isGuestRegistering ? "Registering..." : "Add guest"}
+                  </button>
+                </div>
               )}
             </div>
-
-            {viewModel.shouldShowGuestButton() && (
-              <div className="header-actions">
-                <button
-                  className="add-guest-button"
-                  onClick={() => viewModel.handleGuestRegister()}
-                  disabled={action.isActionLoading || dialogs.isGuestRegistering}
-                >
-                  {dialogs.isGuestRegistering ? "Registering..." : "Add guest"}
-                </button>
-              </div>
-            )}
           </div>
-        </div>
+        )}
 
         {activeRegistrations.length > 0 ? (
           <div className="players-section">
@@ -435,7 +452,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
         onCancel={() => viewModel.handleGuestCancel()}
         isProcessing={dialogs.isGuestRegistering}
         error={dialogs.guestError}
-        allowInviterSelection={isGameAdmin && isPastGame && !hasPaymentRequests}
+        allowInviterSelection={isGameAdmin && (isPastGame || gameData.game.readonly) && !hasPaymentRequests}
       />
 
       {/* Player Info Dialog (admin only) */}

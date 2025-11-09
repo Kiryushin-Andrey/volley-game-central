@@ -40,6 +40,13 @@ router.post('/:gameId/register', async (req, res) => {
       return res.status(404).json({ error: 'Game not found' });
     }
 
+    // Check if game is readonly - all users (including admins) must use admin interface
+    if (game[0].readonly) {
+      return res.status(403).json({
+        error: 'This game is readonly. Registration is closed. Please contact the game organizers if you have any questions.',
+      });
+    }
+
     // Enforce timing restriction: can only join starting X days before the game
     const gameDateTime = new Date(game[0].dateTime);
     const now = new Date();
@@ -172,6 +179,13 @@ router.delete('/:gameId/register', async (req, res) => {
       .where(eq(games.id, parseInt(gameId)));
     if (!game.length) {
       return res.status(404).json({ error: 'Game not found' });
+    }
+
+    // Check if game is readonly - all users (including admins) must use admin interface
+    if (game[0].readonly) {
+      return res.status(403).json({
+        error: 'This game is readonly. Deregistration is closed. Please contact the game organizers if you have any questions.',
+      });
     }
 
     // Get all registrations for this game to determine which are waitlisted

@@ -130,7 +130,7 @@
   color: var(--tg-theme-button-text-color, #000);
 }
 
-.game-header {
+.game-details-container .game-header {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -402,6 +402,16 @@
   }
 }
 
+.game-details-container .game-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--tg-theme-text-color);
+  margin: 0 0 8px 0;
+  padding: 0;
+  line-height: 1.4;
+  text-align: center;
+}
+
 /* Positions note */
 .positions-note {
   background-color: #fff8e1; // Light yellow background
@@ -412,6 +422,22 @@
   font-size: 14px;
   line-height: 1.4;
   color: #5d4037; // Dark brown text
+
+  p {
+    margin: 0;
+  }
+}
+
+/* Readonly note */
+.readonly-note {
+  background-color: var(--tg-theme-secondary-bg-color, #f5f5f5);
+  border-left: 4px solid var(--tg-theme-hint-color, #9e9e9e);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border-radius: 0 4px 4px 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--tg-theme-text-color, #424242);
 
   p {
     margin: 0;
@@ -622,6 +648,10 @@
   border-bottom: 1px solid var(--tg-theme-hint-color, #eee);
   background-color: var(--tg-theme-bg-color, #fff);
   transition: background-color 0.2s;
+
+  &:last-child {
+    border-bottom: none;
+  }
 
   .remove-player-button {
     background: none;
