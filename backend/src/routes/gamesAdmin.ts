@@ -89,6 +89,7 @@ router.post('/', async (req, res) => {
       .returning();
 
     // After creating the game, if registration is already open and it's not a 5-1 game, announce it in the group
+    // Skip notifications for past games and readonly games
     try {
       const created = newGame[0];
       const gameDate = new Date(created.dateTime);
@@ -98,8 +99,10 @@ router.post('/', async (req, res) => {
 
       const isRegistrationOpen = now >= registrationOpensAt;
       const isFiveOne = !!created.withPositions;
+      const isFutureGame = gameDate > now;
+      const isReadonly = !!created.readonly;
 
-      if (isRegistrationOpen && !isFiveOne) {
+      if (isRegistrationOpen && !isFiveOne && isFutureGame && !isReadonly) {
         const formattedDate = formatGameDate(gameDate);
 
         const locationText = formatLocationSection((created as any).locationName, (created as any).locationLink);
