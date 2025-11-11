@@ -12,6 +12,7 @@ import { formatLocationSection } from '../utils/telegramMessageUtils';
 import { getNotificationSubjectWithVerb } from '../utils/notificationUtils';
 import { formatGameDate } from '../utils/dateUtils';
 import { isUserAssignedToGameById, isUserAssignedToGame } from '../middleware/adminOrAssignedAdmin';
+import { getUserSelectFields } from '../utils/dbQueryUtils';
 
 const router = Router();
 
@@ -44,6 +45,7 @@ router.post('/', async (req, res) => {
       paymentAmount,
       pricingMode = PricingMode.PER_PARTICIPANT,
       withPositions = false,
+      withPriorityPlayers = false,
       readonly = false,
       locationName,
       locationLink,
@@ -80,6 +82,7 @@ router.post('/', async (req, res) => {
         paymentAmount,
         pricingMode,
         withPositions,
+        withPriorityPlayers,
         readonly: readonly ?? false,
         locationName,
         locationLink,
@@ -133,6 +136,7 @@ router.put('/:gameId', async (req, res) => {
       paymentAmount,
       pricingMode,
       withPositions,
+      withPriorityPlayers,
       readonly,
       locationName,
       locationLink,
@@ -171,6 +175,7 @@ router.put('/:gameId', async (req, res) => {
         paymentAmount,
         pricingMode,
         withPositions,
+        withPriorityPlayers,
         readonly: readonly ?? false,
         locationName,
         locationLink,
@@ -185,15 +190,7 @@ router.put('/:gameId', async (req, res) => {
         userId: gameRegistrations.userId,
         guestName: gameRegistrations.guestName,
         createdAt: gameRegistrations.createdAt,
-        user: {
-          id: users.id,
-          telegramId: users.telegramId,
-          displayName: users.displayName,
-          telegramUsername: users.telegramUsername,
-          avatarUrl: users.avatarUrl,
-          isAdmin: users.isAdmin,
-          createdAt: users.createdAt,
-        },
+        user: getUserSelectFields(),
       })
       .from(gameRegistrations)
       .innerJoin(users, eq(users.id, gameRegistrations.userId))
@@ -576,15 +573,7 @@ router.post('/check-payments', async (req, res) => {
         userId: gameRegistrations.userId,
         paid: gameRegistrations.paid,
         createdAt: gameRegistrations.createdAt,
-        user: {
-          id: users.id,
-          telegramId: users.telegramId,
-          displayName: users.displayName,
-          telegramUsername: users.telegramUsername,
-          avatarUrl: users.avatarUrl,
-          isAdmin: users.isAdmin,
-          createdAt: users.createdAt,
-        },
+        user: getUserSelectFields(),
         paymentRequest: {
           id: paymentRequests.id,
           paymentRequestId: paymentRequests.paymentRequestId,

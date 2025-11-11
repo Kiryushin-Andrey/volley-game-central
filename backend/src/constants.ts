@@ -1,2 +1,3 @@
 export const REGISTRATION_OPEN_DAYS = 10;
 export const GUEST_REGISTRATION_OPEN_DAYS = 3;
+export const REGULAR_PLAYER_REGISTRATION_OPEN_DAYS = 3; // For games with priority players enabled

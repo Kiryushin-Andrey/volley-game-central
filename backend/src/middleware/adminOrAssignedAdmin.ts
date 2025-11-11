@@ -98,3 +98,30 @@ export async function isUserAssignedToGameById(
   });
 }
 
+/**
+ * Helper function to check if a user is assigned as administrator for a specific dayOfWeek + withPositions combination
+ * @param userId - The user ID to check
+ * @param dayOfWeek - The day of week (0=Monday, 6=Sunday)
+ * @param withPositions - Whether this is for 5-1 games (true) or regular games (false)
+ * @returns true if the user is assigned to this combination, false otherwise
+ */
+export async function isUserAssignedAdminForDayAndPosition(
+  userId: number,
+  dayOfWeek: number,
+  withPositions: boolean
+): Promise<boolean> {
+  const assignments = await db
+    .select()
+    .from(gameAdministrators)
+    .where(
+      and(
+        eq(gameAdministrators.userId, userId),
+        eq(gameAdministrators.dayOfWeek, dayOfWeek),
+        eq(gameAdministrators.withPositions, withPositions)
+      )
+    )
+    .limit(1);
+
+  return assignments.length > 0;
+}
+

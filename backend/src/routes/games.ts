@@ -1,15 +1,70 @@
 import { Router } from 'express';
 import { db } from '../db';
-import { games, gameRegistrations, users, gameAdministrators } from '../db/schema';
+import { games, gameRegistrations, users, gameAdministrators, priorityPlayers } from '../db/schema';
 import { gte, desc, inArray, eq, and, sql, lt, lte, asc, isNull, or } from 'drizzle-orm';
 import type { InferSelectModel } from 'drizzle-orm';
-import { REGISTRATION_OPEN_DAYS, GUEST_REGISTRATION_OPEN_DAYS } from '../constants';
+import { REGISTRATION_OPEN_DAYS, GUEST_REGISTRATION_OPEN_DAYS, REGULAR_PLAYER_REGISTRATION_OPEN_DAYS } from '../constants';
 import { notifyUser } from '../services/notificationService';
 import { getNotificationSubjectWithVerb } from '../utils/notificationUtils';
 import { formatGameDate } from '../utils/dateUtils';
 import { isUserAssignedToGameById } from '../middleware/adminOrAssignedAdmin';
+import { getUserSelectFields } from '../utils/dbQueryUtils';
 
 const router = Router();
+
+// Helper function to check if a user is a priority player for a game
+async function isUserPriorityPlayerForGame(
+  userId: number,
+  game: { dateTime: Date | string; withPositions: boolean; withPriorityPlayers: boolean }
+): Promise<boolean> {
+  if (!game.withPriorityPlayers) {
+    return false;
+  }
+
+  // Get game's day of week (Monday=0, Tuesday=1, ..., Sunday=6)
+  const gameDate = new Date(game.dateTime);
+  let dayOfWeek = gameDate.getDay();
+  // Convert JavaScript day (0=Sunday, 1=Monday, ..., 6=Saturday) to Monday=0 format
+  dayOfWeek = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+
+  // Check if user is a priority player for the matching game administrator assignment
+  // Join gameAdministrators with priorityPlayers in a single query
+  const priorityPlayerCheck = await db
+    .select()
+    .from(priorityPlayers)
+    .innerJoin(
+      gameAdministrators,
+      eq(priorityPlayers.gameAdministratorId, gameAdministrators.id)
+    )
+    .where(
+      and(
+        eq(gameAdministrators.dayOfWeek, dayOfWeek),
+        eq(gameAdministrators.withPositions, game.withPositions),
+        eq(priorityPlayers.userId, userId)
+      )
+    )
+    .limit(1);
+
+  return priorityPlayerCheck.length > 0;
+}
+
+// Helper function to get registration open days for a user and game
+async function getRegistrationOpenDays(
+  userId: number,
+  game: { dateTime: Date | string; withPositions: boolean; withPriorityPlayers: boolean },
+  isGuest: boolean
+): Promise<number> {
+  if (isGuest) {
+    return GUEST_REGISTRATION_OPEN_DAYS;
+  }
+
+  if (game.withPriorityPlayers) {
+    const isPriority = await isUserPriorityPlayerForGame(userId, game);
+    return isPriority ? REGISTRATION_OPEN_DAYS : REGULAR_PLAYER_REGISTRATION_OPEN_DAYS;
+  }
+
+  return REGISTRATION_OPEN_DAYS;
+}
 
 // Helper function to classify a game into a category
 type GameCategory = 'thursday-5-1' | 'thursday-deti-plova' | 'sunday' | 'other';
@@ -68,20 +123,28 @@ router.post('/:gameId/register', async (req, res) => {
 
     // Enforce timing restriction: can only join starting X days before the game
     // Guest registration has a different restriction (3 days instead of 10)
+    // For games with priority players enabled:
+    //   - Priority players can register 10 days before
+    //   - Regular players can register 3 days before
     const gameDateTime = new Date(game[0].dateTime);
     const now = new Date();
     const isGuestRegistration = !!guestName;
-    const registrationOpenDays = isGuestRegistration ? GUEST_REGISTRATION_OPEN_DAYS : REGISTRATION_OPEN_DAYS;
+    
+    const registrationOpenDays = await getRegistrationOpenDays(userId, game[0], isGuestRegistration);
     const registrationOpenDate = new Date(gameDateTime);
     registrationOpenDate.setDate(
       registrationOpenDate.getDate() - registrationOpenDays,
     );
 
     if (now < registrationOpenDate) {
+      const errorMessage = isGuestRegistration
+        ? `Guest registration is only possible starting ${GUEST_REGISTRATION_OPEN_DAYS} days before the game`
+        : game[0].withPriorityPlayers
+        ? `Registration is only possible starting ${registrationOpenDays} days before the game`
+        : `Registration is only possible starting ${REGISTRATION_OPEN_DAYS} days before the game`;
+      
       return res.status(403).json({
-        error: isGuestRegistration
-          ? `Guest registration is only possible starting ${GUEST_REGISTRATION_OPEN_DAYS} days before the game`
-          : `Registration is only possible starting ${REGISTRATION_OPEN_DAYS} days before the game`,
+        error: errorMessage,
         gameDateTime: gameDateTime,
         registrationOpensAt: registrationOpenDate,
       });
@@ -395,15 +458,7 @@ router.get('/:gameId', async (req, res) => {
         paid: gameRegistrations.paid,
         bringingTheBall: gameRegistrations.bringingTheBall,
         createdAt: gameRegistrations.createdAt,
-        user: {
-          id: users.id,
-          telegramId: users.telegramId,
-          displayName: users.displayName,
-          telegramUsername: users.telegramUsername,
-          avatarUrl: users.avatarUrl,
-          blockReason: users.blockReason,
-          phoneNumber: users.phoneNumber,
-        },
+        user: getUserSelectFields(),
       })
       .from(gameRegistrations)
       .innerJoin(users, eq(gameRegistrations.userId, users.id))
@@ -418,6 +473,12 @@ router.get('/:gameId', async (req, res) => {
 
     let isAssignedAdmin = await isUserAssignedToGameById(req.user.id, parseInt(gameId));
 
+    // Check if user is a priority player for this game (for frontend display)
+    const isPriorityPlayer = await isUserPriorityPlayerForGame(req.user.id, game[0]);
+    const registrationOpenDays = await getRegistrationOpenDays(req.user.id, game[0], false);
+    const registrationOpenDate = new Date(game[0].dateTime);
+    registrationOpenDate.setDate(registrationOpenDate.getDate() - registrationOpenDays);
+
     // Ensure legacy field not leaked; respond with new fields
     const { locationAddress: _deprecated, ...restGame } = game[0] as any;
     res.json({
@@ -425,6 +486,9 @@ router.get('/:gameId', async (req, res) => {
       registrations: registrationsWithWaitlistStatus,
       collectorUser,
       isAssignedAdmin,
+      registrationOpenDays,
+      registrationOpensAt: registrationOpenDate.toISOString(),
+      isPriorityPlayer,
     });
   } catch (error) {
     console.error('Error fetching game:', error);

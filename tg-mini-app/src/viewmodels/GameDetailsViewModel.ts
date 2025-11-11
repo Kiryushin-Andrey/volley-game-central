@@ -5,7 +5,7 @@ import { Game, User } from '../types';
 import type { UserPublicInfo } from '../types';
 import { ActionGuard } from '../utils/actionGuard';
 import { getUserRegistration } from '../utils/registrationsUtils';
-import { isGamePast, canJoinGame, canLeaveGame, canRegisterGuest, DAYS_BEFORE_GAME_TO_JOIN, DAYS_BEFORE_GAME_TO_REGISTER_GUEST } from '../utils/gameDateUtils';
+import { isGamePast, isGameUpcoming, canJoinGame, canLeaveGame, canRegisterGuest, DAYS_BEFORE_GAME_TO_JOIN, DAYS_BEFORE_GAME_TO_REGISTER_GUEST } from '../utils/gameDateUtils';
 
 export interface GameDataState {
   game: Game | null;
@@ -667,11 +667,24 @@ export class GameDetailsViewModel {
       }
     } else {
       // If user is not registered, check if they can join
-      if (!canJoinGame(this.state.gameData.game.dateTime)) {
+      if (!canJoinGame(this.state.gameData.game.dateTime, this.state.gameData.game.registrationOpensAt)) {
         const gameDateTime = new Date(this.state.gameData.game.dateTime);
+        const registrationOpenDays = this.state.gameData.game.registrationOpenDays || DAYS_BEFORE_GAME_TO_JOIN;
         const daysBeforeGame = new Date(gameDateTime.getTime());
-        daysBeforeGame.setDate(daysBeforeGame.getDate() - DAYS_BEFORE_GAME_TO_JOIN);
-        return `Registration opens ${daysBeforeGame.toLocaleDateString()} (${DAYS_BEFORE_GAME_TO_JOIN} days before the game).`;
+        daysBeforeGame.setDate(daysBeforeGame.getDate() - registrationOpenDays);
+        
+        let message = `Registration opens ${daysBeforeGame.toLocaleDateString()} (${registrationOpenDays} days before the game).`;
+        
+        // Add disclaimer for non-priority users about priority players
+        if (
+          this.state.gameData.game.withPriorityPlayers &&
+          !this.state.gameData.game.isPriorityPlayer &&
+          isGameUpcoming(this.state.gameData.game.dateTime)
+        ) {
+          message += ' This game has priority players who can register ahead of others.';
+        }
+        
+        return message;
       }
     }
 
@@ -729,7 +742,7 @@ export class GameDetailsViewModel {
       }
     } else {
       // Check if user can join the game (starting X days before)
-      if (canJoinGame(this.state.gameData.game.dateTime)) {
+      if (canJoinGame(this.state.gameData.game.dateTime, this.state.gameData.game.registrationOpensAt)) {
         return {
           show: true,
           text: "Join Game",

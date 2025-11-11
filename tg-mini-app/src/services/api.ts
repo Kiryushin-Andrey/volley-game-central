@@ -157,6 +157,7 @@ export const gamesApi = {
     paymentAmount: number;
     pricingMode?: PricingMode;
     withPositions: boolean;
+    withPriorityPlayers?: boolean;
     readonly?: boolean;
     locationName?: string | null;
     locationLink?: string | null;
@@ -210,6 +211,7 @@ export const gamesApi = {
     paymentAmount: number;
     pricingMode?: PricingMode;
     withPositions: boolean;
+    withPriorityPlayers?: boolean;
     readonly?: boolean;
     locationName?: string | null;
     locationLink?: string | null;
@@ -348,6 +350,33 @@ export const gameAdministratorsApi = {
    */
   delete: async (id: number): Promise<void> => {
     await api.delete(`/game-administrators/${id}`);
+  },
+};
+
+// Priority players API endpoints
+export const priorityPlayersApi = {
+  /**
+   * Get all priority players (optionally filtered by gameAdministratorId)
+   */
+  getAll: async (gameAdministratorId?: number): Promise<PriorityPlayer[]> => {
+    const params = gameAdministratorId ? { gameAdministratorId } : {};
+    const response = await api.get('/priority-players', { params });
+    return response.data;
+  },
+
+  /**
+   * Create a new priority player assignment
+   */
+  create: async (data: { gameAdministratorId: number; userId: number }): Promise<PriorityPlayer> => {
+    const response = await api.post('/priority-players', data);
+    return response.data;
+  },
+
+  /**
+   * Delete a priority player assignment
+   */
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/priority-players/${id}`);
   },
 };
 
@@ -514,6 +543,14 @@ export interface GameAdministrator {
   id: number;
   dayOfWeek: number; // 0 = Monday, 1 = Tuesday, ..., 6 = Sunday
   withPositions: boolean; // true for 5-1 games, false for regular games
+  userId: number;
+  createdAt: string; // ISO string from backend
+  user: UserPublicInfo;
+}
+
+export interface PriorityPlayer {
+  id: number;
+  gameAdministratorId: number;
   userId: number;
   createdAt: string; // ISO string from backend
   user: UserPublicInfo;

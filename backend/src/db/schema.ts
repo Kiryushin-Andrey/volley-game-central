@@ -23,6 +23,7 @@ export const games = pgTable('games', {
   pricingMode: varchar('pricing_mode', { length: 20 }).notNull().default('per_participant'), // 'per_participant' or 'total_cost'
   fullyPaid: boolean('fully_paid').notNull().default(false),
   withPositions: boolean('with_positions').notNull().default(false),
+  withPriorityPlayers: boolean('with_priority_players').notNull().default(false),
   readonly: boolean('readonly').notNull().default(false),
   locationName: varchar('location_name', { length: 255 }),
   locationLink: varchar('location_link', { length: 1000 }),
@@ -115,4 +116,14 @@ export const gameAdministrators = pgTable('game_administrators', {
   createdAt: timestamp('created_at').defaultNow(),
 }, (table) => ({
   uniqueDayPosition: unique().on(table.dayOfWeek, table.withPositions),
+}));
+
+// Priority players assigned per day of week and 5-1 mark
+export const priorityPlayers = pgTable('priority_players', {
+  id: serial('id').primaryKey(),
+  gameAdministratorId: integer('game_administrator_id').notNull().references(() => gameAdministrators.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table) => ({
+  uniqueAdministratorUser: unique().on(table.gameAdministratorId, table.userId),
 }));

@@ -204,6 +204,20 @@
       "when": 1762646570440,
       "tag": "0028_add_title_to_games",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "5",
+      "when": 1762746570440,
+      "tag": "0029_add_priority_players",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "5",
+      "when": 1762846570440,
+      "tag": "0030_add_with_priority_players_to_games",
+      "breakpoints": true
     }
   ]
 }

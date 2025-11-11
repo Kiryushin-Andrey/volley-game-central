@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { db } from '../db';
 import { gameAdministrators, users } from '../db/schema';
 import { eq, and, desc } from 'drizzle-orm';
+import { getUserSelectFields } from '../utils/dbQueryUtils';
 
 const router = Router();
 
@@ -15,15 +16,7 @@ router.get('/', async (req, res) => {
         withPositions: gameAdministrators.withPositions,
         userId: gameAdministrators.userId,
         createdAt: gameAdministrators.createdAt,
-        user: {
-          id: users.id,
-          displayName: users.displayName,
-          telegramUsername: users.telegramUsername,
-          telegramId: users.telegramId,
-          avatarUrl: users.avatarUrl,
-          blockReason: users.blockReason,
-          phoneNumber: users.phoneNumber,
-        },
+        user: getUserSelectFields(),
       })
       .from(gameAdministrators)
       .innerJoin(users, eq(users.id, gameAdministrators.userId))
@@ -99,15 +92,7 @@ router.post('/', async (req, res) => {
         withPositions: gameAdministrators.withPositions,
         userId: gameAdministrators.userId,
         createdAt: gameAdministrators.createdAt,
-        user: {
-          id: users.id,
-          displayName: users.displayName,
-          telegramUsername: users.telegramUsername,
-          telegramId: users.telegramId,
-          avatarUrl: users.avatarUrl,
-          blockReason: users.blockReason,
-          phoneNumber: users.phoneNumber,
-        },
+        user: getUserSelectFields(),
       })
       .from(gameAdministrators)
       .innerJoin(users, eq(users.id, gameAdministrators.userId))

@@ -28,6 +28,7 @@ const EditGameSettings: React.FC = () => {
   const [paymentAmountDisplay, setPaymentAmountDisplay] = useState<string>('0.00'); // Display value in euros
   const [pricingMode, setPricingMode] = useState<PricingMode>(PricingMode.PER_PARTICIPANT);
   const [withPositions, setWithPositions] = useState<boolean>(false);
+  const [withPriorityPlayers, setWithPriorityPlayers] = useState<boolean>(false);
   const [readonly, setReadonly] = useState<boolean>(false);
   const [locationName, setLocationName] = useState<string>('');
   const [locationLink, setLocationLink] = useState<string>('');
@@ -74,6 +75,7 @@ const EditGameSettings: React.FC = () => {
         
         // Set withPositions flag
         setWithPositions(!!game.withPositions);
+        setWithPriorityPlayers(!!game.withPriorityPlayers);
         setReadonly(!!game.readonly);
         setLocationName(game.locationName || '');
         setLocationLink(game.locationLink || '');
@@ -109,6 +111,7 @@ const EditGameSettings: React.FC = () => {
         paymentAmount,
         pricingMode,
         withPositions,
+        withPriorityPlayers,
         readonly,
         locationName: locationName || null,
         locationLink: locationLink || null,
@@ -280,6 +283,23 @@ const EditGameSettings: React.FC = () => {
               <span className="slider round"></span>
             </label>
             <span className="toggle-label">Playing 5-1</span>
+          </div>
+        </div>
+
+        <div className="form-group">
+          <div className="toggle-container">
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={withPriorityPlayers}
+                onChange={(e) => setWithPriorityPlayers(e.target.checked)}
+              />
+              <span className="slider round"></span>
+            </label>
+            <span className="toggle-label">With priority players</span>
+          </div>
+          <div className="field-description">
+            When enabled, priority players assigned to this game's day and type will have priority in registration.
           </div>
         </div>
 

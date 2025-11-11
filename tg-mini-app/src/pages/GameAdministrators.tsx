@@ -12,9 +12,8 @@ import PlayerInfoDialog from '../components/PlayerInfoDialog';
 import type { UserPublicInfo } from '../types';
 import './GameAdministrators.scss';
 import WebApp from '@twa-dev/sdk';
-import { FaCog } from 'react-icons/fa';
-
-const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+import { FaCog, FaUsers } from 'react-icons/fa';
+import { DAYS_OF_WEEK } from '../utils/constants';
 
 const GameAdministrators: React.FC = () => {
   const navigate = useNavigate();
@@ -185,6 +184,13 @@ const GameAdministrators: React.FC = () => {
                     </div>
                   </div>
                   <div className="administrator-actions">
+                    <Link
+                      to={`/priority-players/${admin.id}`}
+                      className="btn btn-small btn-secondary"
+                      title="Manage Priority Players"
+                    >
+                      <FaUsers />
+                    </Link>
                     <Link
                       to={`/bunq-settings/user/${admin.userId}`}
                       className="btn btn-small btn-secondary"

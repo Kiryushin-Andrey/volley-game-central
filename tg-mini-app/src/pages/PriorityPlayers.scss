@@ -1,4 +1,4 @@
-.game-administrators {
+.priority-players {
   padding: 16px;
   max-width: 100%;
   margin: 0 auto;
@@ -8,7 +8,7 @@
   box-sizing: border-box;
 }
 
-.game-administrators-header {
+.priority-players-header {
   margin-bottom: 24px;
   text-align: center;
 
@@ -40,134 +40,136 @@
   margin-bottom: 20px;
 }
 
-.administrators-list {
+.assignments-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 20px;
   margin-bottom: 20px;
 }
 
-.administrator-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px;
+.assignment-group {
   background: var(--tg-theme-secondary-bg-color, #f8f9fa);
   border-radius: 12px;
   border: 1px solid var(--tg-theme-hint-color, #e1e8ed);
+  padding: 16px;
+}
 
-  .administrator-info {
-    flex: 1;
-  }
+.assignment-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--tg-theme-hint-color, #e1e8ed);
+}
 
-  .administrator-user {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
+.assignment-info {
+  flex: 1;
+}
 
-  .user-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: var(--tg-theme-button-color, #007aff);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: 600;
-    font-size: 16px;
-    flex-shrink: 0;
-    overflow: hidden;
+.assignment-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 
-    &.clickable {
-      cursor: pointer;
-      transition: transform 0.05s ease;
-      &:active { transform: scale(0.98); }
-    }
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--tg-theme-button-color, #007aff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 16px;
+  flex-shrink: 0;
+  overflow: hidden;
 
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-  }
-
-  .user-details {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .user-name {
-    font-size: 16px;
-    font-weight: 500;
-    color: var(--tg-theme-text-color);
-    margin-bottom: 4px;
-
-    &.clickable {
-      cursor: pointer;
-    }
-  }
-
-  .assignment-details {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
-
-  .day-badge {
-    display: inline-block;
-    padding: 4px 8px;
-    background: var(--tg-theme-button-color, #007aff);
-    color: var(--tg-theme-button-text-color, white);
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 500;
-  }
-
-  .positions-badge {
-    display: inline-block;
-    padding: 4px 8px;
-    background: #6c5ce7;
-    color: white;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 500;
-  }
-
-  .administrator-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-    flex-wrap: wrap;
-  }
-
-  .delete-button {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    border: none;
-    background: #f44336;
-    color: white;
-    font-size: 24px;
-    line-height: 1;
+  &.clickable {
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.2s ease;
-    flex-shrink: 0;
-    padding: 0;
-
-    &:hover {
-      background: #d32f2f;
-    }
-
-    &:active {
-      transform: scale(0.95);
-    }
+    transition: transform 0.05s ease;
+    &:active { transform: scale(0.98); }
   }
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.user-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--tg-theme-text-color);
+  margin-bottom: 4px;
+
+  &.clickable {
+    cursor: pointer;
+  }
+}
+
+.assignment-details {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.day-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  background: var(--tg-theme-button-color, #007aff);
+  color: var(--tg-theme-button-text-color, white);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.positions-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  background: #6c5ce7;
+  color: white;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.priority-players-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.priority-player-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background: var(--tg-theme-bg-color);
+  border-radius: 8px;
+  border: 1px solid var(--tg-theme-hint-color, #e1e8ed);
+}
+
+.priority-player-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.empty-priority-players {
+  padding: 12px;
+  text-align: center;
+  color: var(--tg-theme-hint-color);
+  font-size: 14px;
 }
 
 .empty-state {
@@ -184,8 +186,25 @@
 .actions {
   margin-top: 24px;
   display: flex;
-  gap: 12px;
   flex-direction: column;
+  gap: 12px;
+}
+
+.user-search-container {
+  margin: 0;
+  position: relative;
+  z-index: 10;
+  width: 100%;
+}
+
+.user-search-container input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  background: var(--tg-theme-bg-color);
+  color: var(--tg-theme-text-color);
 }
 
 .create-form {
@@ -234,18 +253,19 @@
       }
     }
 
-    .checkbox-label {
+    .assignment-display {
       display: flex;
       align-items: center;
       gap: 8px;
-      cursor: pointer;
-      font-size: 16px;
-      color: var(--tg-theme-text-color);
+      padding: 12px 16px;
+      background: var(--tg-theme-secondary-bg-color, #f8f9fa);
+      border-radius: 8px;
+      border: 1px solid var(--tg-theme-hint-color, #e1e8ed);
 
-      input[type="checkbox"] {
-        width: 20px;
-        height: 20px;
-        cursor: pointer;
+      .admin-name {
+        margin-left: auto;
+        font-weight: 500;
+        color: var(--tg-theme-text-color);
       }
     }
   }
@@ -267,8 +287,6 @@
   transition: all 0.2s ease;
   text-align: center;
   flex: 1;
-  text-decoration: none;
-  display: inline-block;
 
   &:disabled {
     opacity: 0.6;
@@ -303,6 +321,32 @@
     align-items: center;
     justify-content: center;
     gap: 4px;
+  }
+}
+
+.delete-button {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: #f44336;
+  color: white;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+  padding: 0;
+
+  &:hover {
+    background: #d32f2f;
+  }
+
+  &:active {
+    transform: scale(0.95);
   }
 }
 

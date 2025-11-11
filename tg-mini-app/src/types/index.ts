@@ -40,6 +40,7 @@ export interface Game {
   pricingMode: PricingMode;
   fullyPaid: boolean;
   withPositions: boolean;
+  withPriorityPlayers: boolean;
   readonly: boolean;
   locationName?: string | null;
   locationLink?: string | null;
@@ -50,6 +51,9 @@ export interface Game {
   collectorUser?: CollectorUser | null;
   registrations: GameRegistration[];
   isAssignedAdmin?: boolean;
+  registrationOpenDays?: number;
+  registrationOpensAt?: string;
+  isPriorityPlayer?: boolean;
 }
 
 export interface GameRegistration {

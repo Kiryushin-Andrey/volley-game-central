@@ -9,6 +9,7 @@ import gamesAdminRoutes from './routes/gamesAdmin';
 import usersAdminRoutes from './routes/usersAdmin';
 import gameAdministratorsRoutes from './routes/gameAdministrators';
 import gameAdministratorsMeRoutes from './routes/gameAdministratorsMe';
+import priorityPlayersRoutes from './routes/priorityPlayers';
 import authRoutes from './routes/auth';
 import webhookRoutes from './routes/webhooks';
 import './services/telegramService'; // Import to ensure the bot is initialized
@@ -58,6 +59,7 @@ app.use('/users/admin', authMiddleware, adminOrAssignedAdminMiddleware, usersAdm
 app.use('/users/admin/id/:collectorUserId/bunq', authMiddleware, adminAuthMiddleware, bunqRoutes);
 app.use('/game-administrators/me', authMiddleware, gameAdministratorsMeRoutes);
 app.use('/game-administrators', authMiddleware, adminAuthMiddleware, gameAdministratorsRoutes);
+app.use('/priority-players', authMiddleware, priorityPlayersRoutes);
 
 // Start the server
 const PORT = process.env.PORT || 3000;
