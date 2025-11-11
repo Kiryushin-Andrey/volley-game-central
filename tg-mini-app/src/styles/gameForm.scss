@@ -1,4 +1,5 @@
-.create-game-container {
+// Shared form container styles
+.game-form-container {
   padding: 1rem;
   max-width: 600px;
   margin: 0 auto;
@@ -16,65 +17,6 @@
     border-radius: 8px;
     margin-bottom: 1rem;
     text-align: center;
-  }
-
-  .form-group {
-    margin-bottom: 1.5rem;
-    
-    label {
-      display: block;
-      margin-bottom: 0.5rem;
-      color: var(--tg-theme-hint-color, #888);
-      font-weight: 500;
-    }
-    
-    input {
-      width: 100%;
-      padding: 0.75rem;
-      border: 1px solid var(--tg-theme-hint-color, #ccc);
-      border-radius: 8px;
-      background-color: var(--tg-theme-bg-color, #fff);
-      color: var(--tg-theme-text-color, #000);
-      font-size: 1rem;
-      
-      &:focus {
-        outline: none;
-        border-color: var(--tg-theme-button-color, #50a8eb);
-        box-shadow: 0 0 0 2px rgba(80, 168, 235, 0.2);
-      }
-    }
-    
-    .datepicker-container {
-      width: 100%;
-      
-      .datepicker-input {
-        width: 100%;
-        padding: 0.75rem;
-        border: 1px solid var(--tg-theme-hint-color, #ccc);
-        border-radius: 8px;
-        background-color: var(--tg-theme-bg-color, #fff);
-        color: var(--tg-theme-text-color, #000);
-        font-size: 1rem;
-        cursor: pointer;
-        
-        &:focus {
-          outline: none;
-          border-color: var(--tg-theme-button-color, #50a8eb);
-          box-shadow: 0 0 0 2px rgba(80, 168, 235, 0.2);
-        }
-      }
-    }
-  }
-
-  
-
-  .field-description {
-    font-size: 0.875rem;
-    color: var(--tg-theme-hint-color, #888);
-    margin-top: 0.5rem;
-    margin-left: 1rem;
-    line-height: 1.4;
-    font-style: italic;
   }
 
   .button-group {
@@ -111,7 +53,7 @@
       }
     }
     
-    .create-button {
+    .submit-button {
       background-color: var(--tg-theme-button-color, #50a8eb);
       color: var(--tg-theme-button-text-color, #fff);
       
@@ -122,7 +64,7 @@
   }
 }
 
-/* DatePicker custom styling */
+// DatePicker custom styling
 .react-datepicker {
   font-family: inherit;
   border-radius: 8px;
@@ -176,3 +118,81 @@
 .react-datepicker__time-list-item:hover {
   background-color: rgba(80, 168, 235, 0.1);
 }
+
+// DatePicker calendar class styling
+.datepicker-calendar {
+  font-family: inherit;
+  background-color: var(--tg-theme-bg-color);
+  color: var(--tg-theme-text-color);
+  border-color: var(--tg-theme-hint-color);
+  
+  .react-datepicker__header {
+    background-color: var(--tg-theme-secondary-bg-color, #f5f5f5);
+    border-bottom-color: var(--tg-theme-hint-color, #ccc);
+  }
+  
+  .react-datepicker__current-month,
+  .react-datepicker-time__header,
+  .react-datepicker__day-name {
+    color: var(--tg-theme-text-color);
+  }
+  
+  .react-datepicker__day {
+    color: var(--tg-theme-text-color);
+    
+    &:hover {
+      background-color: var(--tg-theme-button-color, #2196f3);
+      color: var(--tg-theme-button-text-color, white);
+    }
+  }
+  
+  .react-datepicker__day--selected {
+    background-color: var(--tg-theme-button-color, #2196f3);
+    color: var(--tg-theme-button-text-color, white);
+    
+    &:hover {
+      background-color: var(--tg-theme-button-color, #1976d2);
+    }
+  }
+  
+  .react-datepicker__day--keyboard-selected {
+    background-color: rgba(var(--tg-theme-button-color-rgb, 33, 150, 243), 0.5);
+    color: var(--tg-theme-button-text-color, white);
+  }
+  
+  .react-datepicker__day--outside-month {
+    color: var(--tg-theme-hint-color, #ccc);
+  }
+  
+  .react-datepicker__time-container {
+    border-left-color: var(--tg-theme-hint-color, #ccc);
+  }
+  
+  .react-datepicker__time-container .react-datepicker__time {
+    background-color: var(--tg-theme-bg-color);
+  }
+  
+  .react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box ul.react-datepicker__time-list li.react-datepicker__time-list-item {
+    color: var(--tg-theme-text-color);
+    
+    &:hover {
+      background-color: var(--tg-theme-button-color, #2196f3);
+      color: var(--tg-theme-button-text-color, white);
+    }
+  }
+  
+  .react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box ul.react-datepicker__time-list li.react-datepicker__time-list-item--selected {
+    background-color: var(--tg-theme-button-color, #2196f3);
+    color: var(--tg-theme-button-text-color, white);
+  }
+  
+  .react-datepicker__navigation-icon::before {
+    border-color: var(--tg-theme-text-color);
+  }
+  
+  .react-datepicker__year-read-view--down-arrow,
+  .react-datepicker__month-read-view--down-arrow {
+    border-color: var(--tg-theme-text-color);
+  }
+}
+

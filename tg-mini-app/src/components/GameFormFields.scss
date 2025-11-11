@@ -1,0 +1,57 @@
+.form-group {
+  margin-bottom: 1.5rem;
+  
+  label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--tg-theme-hint-color, #888);
+    font-weight: 500;
+  }
+  
+  input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--tg-theme-hint-color, #ccc);
+    border-radius: 8px;
+    background-color: var(--tg-theme-bg-color, #fff);
+    color: var(--tg-theme-text-color, #000);
+    font-size: 1rem;
+    
+    &:focus {
+      outline: none;
+      border-color: var(--tg-theme-button-color, #50a8eb);
+      box-shadow: 0 0 0 2px rgba(80, 168, 235, 0.2);
+    }
+  }
+  
+  .datepicker-container {
+    width: 100%;
+    
+    .datepicker-input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--tg-theme-hint-color, #ccc);
+      border-radius: 8px;
+      background-color: var(--tg-theme-bg-color, #fff);
+      color: var(--tg-theme-text-color, #000);
+      font-size: 1rem;
+      cursor: pointer;
+      
+      &:focus {
+        outline: none;
+        border-color: var(--tg-theme-button-color, #50a8eb);
+        box-shadow: 0 0 0 2px rgba(80, 168, 235, 0.2);
+      }
+    }
+  }
+}
+
+.field-description {
+  font-size: 0.875rem;
+  color: var(--tg-theme-hint-color, #888);
+  margin-top: 0.5rem;
+  margin-left: 1rem;
+  line-height: 1.4;
+  font-style: italic;
+}
+
