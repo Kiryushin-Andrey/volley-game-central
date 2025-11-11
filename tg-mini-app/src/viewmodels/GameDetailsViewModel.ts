@@ -5,7 +5,7 @@ import { Game, User } from '../types';
 import type { UserPublicInfo } from '../types';
 import { ActionGuard } from '../utils/actionGuard';
 import { getUserRegistration } from '../utils/registrationsUtils';
-import { isGamePast, canJoinGame, canLeaveGame, DAYS_BEFORE_GAME_TO_JOIN } from '../utils/gameDateUtils';
+import { isGamePast, canJoinGame, canLeaveGame, canRegisterGuest, DAYS_BEFORE_GAME_TO_JOIN, DAYS_BEFORE_GAME_TO_REGISTER_GUEST } from '../utils/gameDateUtils';
 
 export interface GameDataState {
   game: Game | null;
@@ -544,6 +544,24 @@ export class GameDetailsViewModel {
       return;
     }
     
+    // Check if guest registration is allowed (3 days before game)
+    const game = this.state.gameData.game;
+    const isGameAdmin = this.user.isAdmin || (game.isAssignedAdmin ?? false);
+    const isReadonly = game.readonly;
+    
+    // Admins can add guests to readonly games, but regular users need to check timing
+    if (!isReadonly && !isGameAdmin && !canRegisterGuest(game.dateTime)) {
+      const gameDateTime = new Date(game.dateTime);
+      const daysBeforeGame = new Date(gameDateTime.getTime());
+      daysBeforeGame.setDate(daysBeforeGame.getDate() - DAYS_BEFORE_GAME_TO_REGISTER_GUEST);
+      showPopup({
+        title: "Guest registration not available",
+        message: `Guest registration opens ${daysBeforeGame.toLocaleDateString()} (${DAYS_BEFORE_GAME_TO_REGISTER_GUEST} days before the game).`,
+        buttons: [{ type: 'ok' }]
+      });
+      return;
+    }
+    
     try {
       // Fetch the last used guest name as default
       const { lastGuestName } = await gamesApi.getLastGuestName(this.state.gameData.game.id);
@@ -672,8 +690,8 @@ export class GameDetailsViewModel {
       return this.user.isAdmin || (game.isAssignedAdmin ?? false);
     }
     
-    // Only show for upcoming games with open registration
-    return canJoinGame(game.dateTime);
+    // Only show for upcoming games with open guest registration (3 days before)
+    return canRegisterGuest(game.dateTime);
   }
 
   getMainButtonProps(): { show: boolean; text?: string; onClick?: () => void } {

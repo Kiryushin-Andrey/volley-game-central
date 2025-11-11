@@ -1,5 +1,7 @@
 /** Number of days before a game when registration opens (must match server policy) */
 export const DAYS_BEFORE_GAME_TO_JOIN = 10;
+/** Number of days before a game when guest registration opens (must match server policy) */
+export const DAYS_BEFORE_GAME_TO_REGISTER_GUEST = 3;
 
 export const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
@@ -41,6 +43,14 @@ export const canJoinGame = (gameDate: string): boolean => {
   const now = new Date();
   const daysBeforeGame = new Date(gameDateTime.getTime());
   daysBeforeGame.setDate(daysBeforeGame.getDate() - DAYS_BEFORE_GAME_TO_JOIN);
+  return now >= daysBeforeGame;
+};
+
+export const canRegisterGuest = (gameDate: string): boolean => {
+  const gameDateTime = new Date(gameDate);
+  const now = new Date();
+  const daysBeforeGame = new Date(gameDateTime.getTime());
+  daysBeforeGame.setDate(daysBeforeGame.getDate() - DAYS_BEFORE_GAME_TO_REGISTER_GUEST);
   return now >= daysBeforeGame;
 };
 

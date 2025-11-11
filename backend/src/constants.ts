@@ -1,1 +1,2 @@
 export const REGISTRATION_OPEN_DAYS = 10;
+export const GUEST_REGISTRATION_OPEN_DAYS = 3;

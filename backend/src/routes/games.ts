@@ -3,7 +3,7 @@ import { db } from '../db';
 import { games, gameRegistrations, users, gameAdministrators } from '../db/schema';
 import { gte, desc, inArray, eq, and, sql, lt, lte, asc, isNull, or } from 'drizzle-orm';
 import type { InferSelectModel } from 'drizzle-orm';
-import { REGISTRATION_OPEN_DAYS } from '../constants';
+import { REGISTRATION_OPEN_DAYS, GUEST_REGISTRATION_OPEN_DAYS } from '../constants';
 import { notifyUser } from '../services/notificationService';
 import { getNotificationSubjectWithVerb } from '../utils/notificationUtils';
 import { formatGameDate } from '../utils/dateUtils';
@@ -48,16 +48,21 @@ router.post('/:gameId/register', async (req, res) => {
     }
 
     // Enforce timing restriction: can only join starting X days before the game
+    // Guest registration has a different restriction (3 days instead of 10)
     const gameDateTime = new Date(game[0].dateTime);
     const now = new Date();
+    const isGuestRegistration = !!guestName;
+    const registrationOpenDays = isGuestRegistration ? GUEST_REGISTRATION_OPEN_DAYS : REGISTRATION_OPEN_DAYS;
     const registrationOpenDate = new Date(gameDateTime);
     registrationOpenDate.setDate(
-      registrationOpenDate.getDate() - REGISTRATION_OPEN_DAYS,
+      registrationOpenDate.getDate() - registrationOpenDays,
     );
 
     if (now < registrationOpenDate) {
       return res.status(403).json({
-        error: `Registration is only possible starting ${REGISTRATION_OPEN_DAYS} days before the game`,
+        error: isGuestRegistration
+          ? `Guest registration is only possible starting ${GUEST_REGISTRATION_OPEN_DAYS} days before the game`
+          : `Registration is only possible starting ${REGISTRATION_OPEN_DAYS} days before the game`,
         gameDateTime: gameDateTime,
         registrationOpensAt: registrationOpenDate,
       });
