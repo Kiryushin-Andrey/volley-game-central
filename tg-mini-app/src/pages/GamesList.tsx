@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { Link } from 'react-router-dom';
 import { FaUsers, FaCog, FaPlus } from 'react-icons/fa';
-import { useGamesListViewModel } from './GamesListViewModel';
+import { useGamesListViewModel, GameCategory } from './GamesListViewModel';
 import { GameWithStats, User } from '../types';
 import { isGameUpcoming } from '../utils/gameDateUtils';
 import { resolveLocationLink } from '../utils/locationUtils';
@@ -98,13 +98,11 @@ const GameItem = memo(({ game, onClick, formatDate }: {
 const GameItemsList = memo(({ 
   games, 
   formatDate,
-  handleGameClick,
-  showPositions 
+  handleGameClick
 }: { 
   games: GameWithStats[], 
   formatDate: (date: string) => string,
-  handleGameClick: (id: number) => void,
-  showPositions: boolean
+  handleGameClick: (id: number) => void
 }) => {  
   // Show no games message when no games are available
   if (games.length === 0) {
@@ -120,14 +118,10 @@ const GameItemsList = memo(({
     <div className="games-list">
       {games.map((game) => {
         const isHalloween = game.tag === 'halloween';
-        // Don't apply position color coding to Halloween games
-        const positionClass = !isHalloween && showPositions 
-          ? (game.withPositions ? 'with-positions' : 'without-positions') 
-          : '';
         return (
           <div 
             key={game.id} 
-            className={`game-card-wrapper ${positionClass} ${isHalloween ? 'halloween-wrapper' : ''}`}
+            className={`game-card-wrapper ${isHalloween ? 'halloween-wrapper' : ''}`}
           >
             {isHalloween && <div className="leaf-layer" />}
             <GameItem 
@@ -204,25 +198,29 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
           <div className="games-header">
             <div className="filters-container">
             {vm.gameFilter === 'upcoming' && (
-              <>
-                <div className="toggle-container">
-                  <label className="toggle-switch">
-                    <input 
-                      type="checkbox" 
-                      checked={vm.showPositions}
-                      onChange={(e) => vm.setShowPositions(e.target.checked)}
-                    />
-                    <span className="slider round"></span>
-                  </label>
-                  <span className="toggle-label">Show games with 5-1 positions</span>
-                </div>
-                
-                {vm.showPositions && (
-                  <div className="positions-note">
-                    <p>🔶 Games marked with yellow are played with 5-1 positions. Knowledge of the 5-1 scheme is expected of all participants.</p>
-                  </div>
-                )}
-              </>
+              <div className="category-filter-container">
+                <label htmlFor="gameCategory" className="category-label">Filter by game type:</label>
+                <select
+                  id="gameCategory"
+                  className={`category-dropdown category-dropdown-${vm.gameCategory || ''}`}
+                  value={vm.gameCategory || ''}
+                  onChange={(e) => vm.setGameCategory(e.target.value as GameCategory)}
+                >
+                  {vm.availableCategories.map((category) => {
+                    const labels: Record<GameCategory, string> = {
+                      'thursday-5-1': 'Thursday 5-1',
+                      'thursday-deti-plova': 'Thursday Deti Plova',
+                      'sunday': 'Sunday',
+                      'other': 'Other'
+                    };
+                    return (
+                      <option key={category} value={category}>
+                        {labels[category]}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
             )}
             
             {/* Admin controls */}
@@ -312,7 +310,6 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
             games={vm.games}
             formatDate={vm.formatDate}
             handleGameClick={vm.handleGameClick}
-            showPositions={vm.showPositions}
           />
         </>
       )}

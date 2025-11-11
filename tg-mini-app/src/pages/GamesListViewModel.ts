@@ -6,6 +6,7 @@ import { GameWithStats, User } from '../types';
 import { logDebug } from '../debug';
 
 export type GameFilter = 'upcoming' | 'past';
+export type GameCategory = 'thursday-5-1' | 'thursday-deti-plova' | 'sunday' | 'other';
 
 // ViewModel to encapsulate all state and logic for GamesList
 export class GamesListViewModel {
@@ -14,11 +15,11 @@ export class GamesListViewModel {
 
   // state
   games: GameWithStats[] = [];
-  allGames: GameWithStats[] = [];
   error: string | null = null;
   gameFilter: GameFilter = 'upcoming';
   showAll = false;
-  showPositions = false;
+  gameCategory: GameCategory | null = null;
+  availableCategories: GameCategory[] = ['thursday-5-1', 'thursday-deti-plova', 'sunday', 'other'];
   hasBunqIntegration = false;
   unpaidItems: UnpaidRegistration[] = [];
   loadingUnpaid = false;
@@ -37,10 +38,12 @@ export class GamesListViewModel {
       logDebug: typeof logDebug;
     }
   ) {
-    // initialize showPositions from localStorage
+    // initialize gameCategory from localStorage
     try {
-      const saved = localStorage.getItem('showPositions');
-      this.showPositions = saved === 'true';
+      const saved = localStorage.getItem('gameCategory');
+      if (saved && ['thursday-5-1', 'thursday-deti-plova', 'sunday', 'other'].includes(saved)) {
+        this.gameCategory = saved as GameCategory;
+      }
     } catch {}
   }
 
@@ -56,13 +59,14 @@ export class GamesListViewModel {
   }
 
   // setters
-  setShowPositions(val: boolean) {
-    this.showPositions = val;
+  setGameCategory(category: GameCategory) {
+    if (this.gameCategory === category) return;
+    this.gameCategory = category;
     try {
-      localStorage.setItem('showPositions', val ? 'true' : 'false');
+      localStorage.setItem('gameCategory', category);
     } catch {}
-    // re-filter games locally if already loaded
-    this.applyPositionFilter();
+    // Reload games with new category filter
+    this.loadGames();
     this.emitChange();
   }
 
@@ -126,24 +130,6 @@ export class GamesListViewModel {
     await Promise.all([this.loadGames(), this.loadUnpaid()]);
   }
 
-  private applyPositionFilter() {
-    if (this.allGames.length === 0) {
-      this.games = [];
-      return;
-    }
-    // For past games, always show all games regardless of toggle
-    if (this.gameFilter === 'past') {
-      this.games = [...this.allGames];
-      return;
-    }
-    let filtered = [...this.allGames];
-    // Asymmetric behavior: when toggle is OFF -> hide 5-1 games; when ON -> show all
-    if (!this.showPositions) {
-      filtered = filtered.filter((g) => !g.withPositions);
-    }
-    this.games = filtered;
-  }
-
   async loadGames() {
     if (this.isLoadingRef.current) return;
     try {
@@ -152,7 +138,25 @@ export class GamesListViewModel {
       this.emitChange();
 
       const showPast = this.gameFilter === 'past';
-      const fetchedGames = await this.deps.gamesApi.getAllGames(showPast, this.showAll);
+      
+      // Determine category to use - prefer saved, otherwise default to 'sunday' for upcoming games
+      let categoryToUse: GameCategory | undefined = undefined;
+      if (!showPast) {
+        // Set category if not already set
+        if (!this.gameCategory) {
+          // Default to 'sunday'
+          categoryToUse = 'sunday';
+          this.gameCategory = categoryToUse;
+          try {
+            localStorage.setItem('gameCategory', categoryToUse);
+          } catch {}
+        } else {
+          // Use saved category
+          categoryToUse = this.gameCategory;
+        }
+      }
+      
+      const fetchedGames = await this.deps.gamesApi.getAllGames(showPast, this.showAll, categoryToUse);
 
       const gamesWithRequiredProps: GameWithStats[] = fetchedGames.map((game: any) => ({
         ...game,
@@ -163,11 +167,8 @@ export class GamesListViewModel {
         userRegistration: game.userRegistration || undefined,
       }));
 
-      this.allGames = gamesWithRequiredProps;
+      this.games = gamesWithRequiredProps;
       this.error = null;
-
-      // apply position filter
-      this.applyPositionFilter();
     } catch (err) {
       this.error = 'Failed to load games';
       this.deps.logDebug('Error loading games:');

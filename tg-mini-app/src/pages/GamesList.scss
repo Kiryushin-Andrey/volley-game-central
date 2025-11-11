@@ -32,6 +32,88 @@
     width: 100%;
     margin: 10px 0 15px;
     
+    .category-filter-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+      
+      .category-label {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--tg-theme-text-color);
+      }
+      
+      .category-dropdown {
+        width: 100%;
+        padding: 10px 12px;
+        font-size: 14px;
+        border: 1px solid var(--tg-theme-hint-color, #e1e8ed);
+        border-radius: 8px;
+        background-color: var(--tg-theme-bg-color, #ffffff);
+        color: var(--tg-theme-text-color);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        appearance: none;
+        -webkit-appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        padding-right: 36px;
+        
+        &:hover {
+          border-color: var(--tg-theme-button-color, #007bff);
+        }
+        
+        &:focus {
+          outline: none;
+          border-color: var(--tg-theme-button-color, #007bff);
+          box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        }
+        
+        // Color coding based on selected category
+        &.category-dropdown-thursday-5-1 {
+          background-color: #fff8e1; // Light yellow
+          border-color: #ffc107; // Yellow border
+          color: #5d4037; // Dark brown text for better contrast on yellow
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235d4037' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+        }
+        
+        &.category-dropdown-thursday-deti-plova {
+          background-color: #e8f5e9; // Light green
+          border-color: #4caf50; // Green border
+          color: #1b5e20; // Dark green text for better contrast on light green
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%231b5e20' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+        }
+        
+        &.category-dropdown-sunday {
+          background-color: #e8f5e9; // Light green
+          border-color: #4caf50; // Green border
+          color: #1b5e20; // Dark green text for better contrast on light green
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%231b5e20' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+        }
+        
+        &.category-dropdown-other {
+          background-color: var(--tg-theme-bg-color, #ffffff);
+          color: var(--tg-theme-text-color);
+        }
+        
+        // Style options (limited browser support)
+        option {
+          padding: 8px;
+          
+          &.category-option-thursday-5-1 {
+            background-color: #fff8e1; // Light yellow
+          }
+          
+          &.category-option-thursday-deti-plova,
+          &.category-option-sunday {
+            background-color: #e8f5e9; // Light green
+          }
+        }
+      }
+    }
+    
     .toggle-container {
       margin-bottom: 8px; // page-specific spacing
     }
@@ -327,20 +409,6 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  
-  .game-card-wrapper {
-    &.with-positions {
-      .game-card {
-        border-left: 4px solid #ffd700;
-      }
-    }
-    
-    &.without-positions {
-      .game-card {
-        border-left: 4px solid #4caf50;
-      }
-    }
-  }
 }
 
 .game-card {

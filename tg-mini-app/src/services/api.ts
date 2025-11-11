@@ -134,13 +134,15 @@ export const gamesApi = {
     };
   },
 
-  getAllGames(showPast: boolean = false, showAll: boolean = false): Promise<GameWithStats[]> {
-    return api.get<GameWithStats[]>('/games', { 
-      params: { 
-        showPast,
-        showAll
-      } 
-    }).then(res => res.data);
+  getAllGames(showPast: boolean = false, showAll: boolean = false, category?: string): Promise<GameWithStats[]> {
+    const params: { showPast: boolean; showAll: boolean; category?: string } = { 
+      showPast,
+      showAll
+    };
+    if (category) {
+      params.category = category;
+    }
+    return api.get<GameWithStats[]>('/games', { params }).then(res => res.data);
   },
 
   getGame: async (gameId: number): Promise<Game> => {

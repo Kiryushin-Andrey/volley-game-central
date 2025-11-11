@@ -11,6 +11,25 @@ import { isUserAssignedToGameById } from '../middleware/adminOrAssignedAdmin';
 
 const router = Router();
 
+// Helper function to classify a game into a category
+type GameCategory = 'thursday-5-1' | 'thursday-deti-plova' | 'sunday' | 'other';
+
+function classifyGame(game: { dateTime: Date | string; withPositions: boolean }): GameCategory {
+  const gameDate = new Date(game.dateTime);
+  let dayOfWeek = gameDate.getDay();
+  // Convert JavaScript day (0=Sunday, 1=Monday, ..., 6=Saturday) to Monday=0 format
+  dayOfWeek = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  
+  // Thursday = 3, Sunday = 6
+  if (dayOfWeek === 3) { // Thursday
+    return game.withPositions ? 'thursday-5-1' : 'thursday-deti-plova';
+  } else if (dayOfWeek === 6) { // Sunday
+    return 'sunday';
+  } else {
+    return 'other';
+  }
+}
+
 // Register user for a game
 router.post('/:gameId/register', async (req, res) => {
   try {
@@ -418,6 +437,7 @@ router.get('/', async (req, res) => {
     // Parse query parameters
     const showPast = req.query.showPast === 'true';
     const showAll = req.query.showAll === 'true';
+    const category = req.query.category as GameCategory | undefined;
 
     // Get current date for filtering
     const currentDate = new Date();
@@ -501,6 +521,14 @@ router.get('/', async (req, res) => {
             ),
           )
           .orderBy(asc(games.dateTime));
+      }
+    }
+
+    // Apply category filter if specified (only for upcoming games)
+    if (category && !showPast) {
+      const validCategories: GameCategory[] = ['thursday-5-1', 'thursday-deti-plova', 'sunday', 'other'];
+      if (validCategories.includes(category)) {
+        filteredGames = filteredGames.filter((game) => classifyGame(game) === category);
       }
     }
 
