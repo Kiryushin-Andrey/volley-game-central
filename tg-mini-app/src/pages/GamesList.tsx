@@ -1,13 +1,15 @@
 import React, { memo } from 'react';
 import { Link } from 'react-router-dom';
 import { FaUsers, FaCog, FaPlus } from 'react-icons/fa';
-import { useGamesListViewModel, GameCategory } from './GamesListViewModel';
+import { useGamesListViewModel } from './GamesListViewModel';
+import { GameCategory, getCategoryDisplayName } from '../utils/gameDateUtils';
 import { GameWithStats, User } from '../types';
 import { isGameUpcoming } from '../utils/gameDateUtils';
 import { resolveLocationLink } from '../utils/locationUtils';
 import { HalloweenDecorations } from '../components/HalloweenDecorations';
 import LoadingSpinner from '../components/LoadingSpinner';
 import UnpaidGamesList from '../components/UnpaidGamesList';
+import CategoryInfoIcon from '../components/CategoryInfoIcon';
 import './GamesList.scss';
 
 interface GamesListProps {
@@ -200,26 +202,25 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
             {vm.gameFilter === 'upcoming' && (
               <div className="category-filter-container">
                 <label htmlFor="gameCategory" className="category-label">Filter by game type:</label>
-                <select
-                  id="gameCategory"
-                  className={`category-dropdown category-dropdown-${vm.gameCategory || ''}`}
-                  value={vm.gameCategory || ''}
-                  onChange={(e) => vm.setGameCategory(e.target.value as GameCategory)}
-                >
-                  {vm.availableCategories.map((category) => {
-                    const labels: Record<GameCategory, string> = {
-                      'thursday-5-1': 'Thursday 5-1',
-                      'thursday-deti-plova': 'Thursday Deti Plova',
-                      'sunday': 'Sunday',
-                      'other': 'Other'
-                    };
-                    return (
-                      <option key={category} value={category}>
-                        {labels[category]}
-                      </option>
-                    );
-                  })}
-                </select>
+                <div className="category-dropdown-row">
+                  {vm.gameCategory && vm.gameCategory !== 'other' && (
+                    <CategoryInfoIcon category={vm.gameCategory} />
+                  )}
+                  <select
+                    id="gameCategory"
+                    className={`category-dropdown category-dropdown-${vm.gameCategory || ''}`}
+                    value={vm.gameCategory || ''}
+                    onChange={(e) => vm.setGameCategory(e.target.value as GameCategory)}
+                  >
+                    {vm.availableCategories.map((category) => {
+                      return (
+                        <option key={category} value={category}>
+                          {getCategoryDisplayName(category)}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
               </div>
             )}
             

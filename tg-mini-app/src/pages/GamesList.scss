@@ -44,8 +44,15 @@
         color: var(--tg-theme-text-color);
       }
       
-      .category-dropdown {
+      .category-dropdown-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
         width: 100%;
+      }
+      
+      .category-dropdown {
+        flex: 1;
         padding: 10px 12px;
         font-size: 14px;
         border: 1px solid var(--tg-theme-hint-color, #e1e8ed);

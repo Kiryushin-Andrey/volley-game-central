@@ -1,0 +1,119 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { FaInfoCircle } from 'react-icons/fa';
+import { GameCategory, getCategoryDisplayName } from '../utils/gameDateUtils';
+import './CategoryInfoIcon.scss';
+
+interface CategoryInfoIconProps {
+  category: GameCategory;
+}
+
+const CategoryInfoIcon: React.FC<CategoryInfoIconProps> = ({ category }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const iconRef = useRef<HTMLDivElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
+
+  const getCategoryDescription = (cat: GameCategory): string => {
+    const registrationRules = `
+The participant list is frozen 5 hours before the game. Until that time, you can deregister without penalties. After that, deregistration is no longer possible.
+
+If you cannot come - let the people from the waitlist now, either in DM or in the group chat. You'll still get the payment request, but you can forward it to your replacement. Or simply give away your slot.
+After the game, the bot will send tickets to all participants from the main list, which need to be paid within 24 hours. If you silently skip games or don't pay for attendance - after a couple of warnings, a ban will follow.`;
+    
+    const categoryDescriptions: Record<GameCategory, string> = {
+      'thursday-5-1': 
+        'Thursday 5-1 games are advanced level games played with 5-1 positions. All participants are expected to have solid basic volleyball skills and be familiar in practice with the 5-1 scheme. The level of the games can be roughly estimated as 2-4 class of Nevobo competitions, although we have regular players both higher and lower than that, as well as players that do not take part in Nevobo competitions at all. In general, if you play in Nevobo competitions at any level for at least half a year, practicing positions there, you are welcome to join Thursday 5-1 games. If you aren\'t playing in Nevobo competitions but you\'d like to join 5-1 games, get in touch with the experienced members of this group, they will be glad to get to know you and evaluate your volleyball skills.' + 
+        registrationRules,
+      
+      'thursday-deti-plova': 
+        'The second hall on Thursdays is used 2 times per month. The first and third Thursday of the month. First and foremost, we use it for training (with a coach), and if there\'s time left, we play 1-2 games to practice the material we learned during training. Priority registration is given to the Deti Plova team (registration opens 10 days before the game). Open registration for everyone else for the remaining spots opens 3 days before the game.' + 
+        registrationRules,
+      
+      'sunday': 
+        'Sunday games are social and chill-out, no particular level enforced. The players are supposed to split into more or less equal teams on the spot and then shuffle if needed. By default we have 14 spots available, all the others go to the waitlist. If the total number of registered players reaches 22, we book a second field and the game is extended to 28 players. The second field is usually booked manually on Friday or Saturday, given that there are at least 22 players on the list.' + 
+        registrationRules,
+      
+      'other': 
+        'Other: Games that don\'t fit into the standard categories' + 
+        registrationRules
+    };
+    
+    return categoryDescriptions[cat];
+  };
+
+  const description = getCategoryDescription(category);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        iconRef.current &&
+        popupRef.current &&
+        !iconRef.current.contains(event.target as Node) &&
+        !popupRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleEscape);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isOpen]);
+
+  return (
+    <div className="category-info-icon-container" ref={iconRef}>
+      <button
+        type="button"
+        className="category-info-icon-button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen(!isOpen);
+        }}
+        aria-label="Show category information"
+        aria-expanded={isOpen}
+      >
+        <FaInfoCircle className="category-info-icon" />
+      </button>
+      {isOpen && (
+        <div className="category-info-popup-overlay" onClick={() => setIsOpen(false)}>
+          <div
+            className="category-info-popup"
+            ref={popupRef}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="category-info-popup-title">{getCategoryDisplayName(category)}</div>
+            <div className="category-info-popup-content">
+              {description.split('\n').map((line, index) => (
+                <React.Fragment key={index}>
+                  {line.trim() && <div>{line.trim()}</div>}
+                  {!line.trim() && <br />}
+                </React.Fragment>
+              ))}
+            </div>
+            <button
+              className="category-info-popup-close"
+              onClick={() => setIsOpen(false)}
+              aria-label="Close"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default CategoryInfoIcon;
+

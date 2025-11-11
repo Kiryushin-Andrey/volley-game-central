@@ -185,6 +185,8 @@
       align-items: center;
       gap: 12px;
       flex: 1;
+      flex-wrap: wrap;
+      justify-content: space-between;
 
       .user-status {
         display: flex;

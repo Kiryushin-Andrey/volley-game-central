@@ -78,4 +78,43 @@ export const canLeaveGame = (
   return now <= deadlineTime;
 };
 
+export type GameCategory = 'thursday-5-1' | 'thursday-deti-plova' | 'sunday' | 'other';
+
+/**
+ * Get the display name for a game category
+ * @param category - The game category
+ * @returns The display name for the category
+ */
+export function getCategoryDisplayName(category: GameCategory): string {
+  const names: Record<GameCategory, string> = {
+    'thursday-5-1': 'Thursday 5-1',
+    'thursday-deti-plova': 'Thursday Deti Plova',
+    'sunday': 'Sunday',
+    'other': 'Other'
+  };
+  return names[category];
+}
+
+/**
+ * Classify a game into a category based on its date and whether it uses positions
+ * @param dateTime - The game's date and time
+ * @param withPositions - Whether the game uses positions (5-1 scheme)
+ * @returns The game category
+ */
+export function classifyGame(dateTime: string, withPositions: boolean): GameCategory {
+  const gameDate = new Date(dateTime);
+  let dayOfWeek = gameDate.getDay();
+  // Convert JavaScript day (0=Sunday, 1=Monday, ..., 6=Saturday) to Monday=0 format
+  dayOfWeek = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  
+  // Thursday = 3, Sunday = 6
+  if (dayOfWeek === 3) { // Thursday
+    return withPositions ? 'thursday-5-1' : 'thursday-deti-plova';
+  } else if (dayOfWeek === 6) { // Sunday
+    return 'sunday';
+  } else {
+    return 'other';
+  }
+}
+
 

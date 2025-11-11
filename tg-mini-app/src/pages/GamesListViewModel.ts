@@ -4,9 +4,9 @@ import { gamesApi, bunqApi, userApi, gameAdministratorsApi } from '../services/a
 import type { UnpaidRegistration } from '../services/api';
 import { GameWithStats, User } from '../types';
 import { logDebug } from '../debug';
+import { GameCategory } from '../utils/gameDateUtils';
 
 export type GameFilter = 'upcoming' | 'past';
-export type GameCategory = 'thursday-5-1' | 'thursday-deti-plova' | 'sunday' | 'other';
 
 // ViewModel to encapsulate all state and logic for GamesList
 export class GamesListViewModel {
