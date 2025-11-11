@@ -201,7 +201,6 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
             <div className="filters-container">
             {vm.gameFilter === 'upcoming' && (
               <div className="category-filter-container">
-                <label htmlFor="gameCategory" className="category-label">Filter by game type:</label>
                 <div className="category-dropdown-row">
                   {vm.gameCategory && vm.gameCategory !== 'other' && (
                     <CategoryInfoIcon category={vm.gameCategory} />

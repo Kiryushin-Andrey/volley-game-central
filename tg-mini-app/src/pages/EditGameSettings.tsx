@@ -10,7 +10,6 @@ import { GameFormViewModel, GameFormState } from '../viewmodels/GameFormViewMode
 import 'react-datepicker/dist/react-datepicker.css';
 import '../styles/datepicker-fixes.scss';
 import '../styles/gameForm.scss';
-import './EditGameSettings.scss';
 
 // Register the locale with Monday as first day of week
 registerLocale('en-GB', enGB);

@@ -26,9 +26,9 @@
 }
 
 .category-info-icon {
-  font-size: 20px;
-  width: 20px;
-  height: 20px;
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
 }
 
 .category-info-popup-overlay {
@@ -76,6 +76,20 @@
     
     &:last-child {
       margin-bottom: 0;
+    }
+  }
+  
+  .category-info-link {
+    color: var(--tg-theme-link-color, #007aff);
+    text-decoration: underline;
+    word-break: break-all;
+    
+    &:hover {
+      color: var(--tg-theme-button-color, #0051d5);
+    }
+    
+    &:visited {
+      color: var(--tg-theme-link-color, #007aff);
     }
   }
 }
