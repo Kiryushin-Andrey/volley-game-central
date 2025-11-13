@@ -15,7 +15,13 @@ export default defineConfig({
   server: {
     port: 3001,
     host: true,
-    allowedHosts: ['.pinggy.link', 'localhost', '127.0.0.1', 'bot.volleyfun.nl'],
+    allowedHosts: [
+      '.pinggy.link',
+      'localhost',
+      '127.0.0.1',
+      'bot.volleyfun.nl',
+      ...(process.env.PREVIEW_HOST ? [process.env.PREVIEW_HOST] : [])
+    ],
     proxy: {
       // Proxy API requests to backend
       '/api': {

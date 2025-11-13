@@ -2,6 +2,8 @@
 
 # Dev mode startup script for Volley Game Central
 # This script sets DEV_MODE=true and starts the application
+# Usage: ./dev-start.sh [preview-host]
+# Example: ./dev-start.sh example.com
 
 echo "🏐 Starting Volley Game Central in DEV MODE"
 echo "============================================"
@@ -14,6 +16,13 @@ echo ""
 
 # Set dev mode environment variable
 export DEV_MODE=true
+
+# Accept preview host as parameter
+if [ -n "$1" ]; then
+  export PREVIEW_HOST="$1"
+  echo "Preview host set to: $PREVIEW_HOST"
+  echo ""
+fi
 
 # Start the database
 echo "Starting PostgreSQL database..."

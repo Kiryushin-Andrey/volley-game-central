@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Volley Game Central - A platform for organizing volleyball games",
   "scripts": {
-    "tg-mini-app:dev": "cd tg-mini-app && npm run dev",
+    "tg-mini-app:dev": "cd tg-mini-app && PREVIEW_HOST=\"${PREVIEW_HOST}\" npm run dev",
     "tg-mini-app:build": "cd tg-mini-app && npm run build",
     "backend:dev": "docker compose up -d postgres && cd backend && npm run dev",
     "backend:build": "cd backend && npm run build",
