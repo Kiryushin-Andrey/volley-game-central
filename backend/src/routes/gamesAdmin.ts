@@ -104,8 +104,9 @@ router.post('/', async (req, res) => {
       const isFiveOne = !!created.withPositions;
       const isFutureGame = gameDate > now;
       const isReadonly = !!created.readonly;
+      const hasPriorityPlayers = !!created.withPriorityPlayers;
 
-      if (isRegistrationOpen && !isFiveOne && isFutureGame && !isReadonly) {
+      if (isRegistrationOpen && !isFiveOne && isFutureGame && !isReadonly && !hasPriorityPlayers) {
         const formattedDate = formatGameDate(gameDate);
 
         const locationText = formatLocationSection((created as any).locationName, (created as any).locationLink);

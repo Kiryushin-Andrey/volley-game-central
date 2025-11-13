@@ -144,7 +144,7 @@ export async function checkAndAnnounceGameRegistrations(): Promise<void> {
     registrationWindowStart.setHours(registrationWindowStart.getHours() + 23);
     
     // Find games whose registration opened in the last hour
-    // Skip games with withPositions flag set to true and readonly games
+    // Skip games with withPositions flag set to true, readonly games, and games with priority players
     const upcomingGames = await db.select()
       .from(games)
       .where(
@@ -154,7 +154,8 @@ export async function checkAndAnnounceGameRegistrations(): Promise<void> {
           lte(games.dateTime, registrationWindowEnd),  // Less than or equal to X days fromXnow
           gt(games.dateTime, registrationWindowStart),  // Greater than 4 days 23 hours from now
           eq(games.withPositions, false),  // Skip games with withPositions = true
-          eq(games.readonly, false)  // Skip readonly games
+          eq(games.readonly, false),  // Skip readonly games
+          eq(games.withPriorityPlayers, false)  // Skip games with priority players
         )
       );
     
