@@ -148,20 +148,22 @@ export const PlayersList: React.FC<Props> = ({
                   />
                 )}
 
-                <div
-                  className={`paid-status ${registration.paid ? 'paid' : 'unpaid'}`}
-                  onClick={() => onTogglePaidStatus(registration.userId, registration.paid)}
-                  aria-label={registration.paid ? 'Paid' : 'Not paid'}
-                >
-                  {isPaidUpdating === registration.userId ? (
-                    <div className="mini-spinner"></div>
-                  ) : registration.paid ? (
-                    <FaCheck className="paid-icon" />
-                  ) : (
-                    <FaTimes className="unpaid-icon" />
-                  )}
-                  <span>{registration.paid ? 'Paid' : 'Unpaid'}</span>
-                </div>
+                {hasPaymentRequests && (
+                  <div
+                    className={`paid-status ${registration.paid ? 'paid' : 'unpaid'}`}
+                    onClick={() => onTogglePaidStatus(registration.userId, registration.paid)}
+                    aria-label={registration.paid ? 'Paid' : 'Not paid'}
+                  >
+                    {isPaidUpdating === registration.userId ? (
+                      <div className="mini-spinner"></div>
+                    ) : registration.paid ? (
+                      <FaCheck className="paid-icon" />
+                    ) : (
+                      <FaTimes className="unpaid-icon" />
+                    )}
+                    <span>{registration.paid ? 'Paid' : 'Unpaid'}</span>
+                  </div>
+                )}
               </div>
             )}
           </div>
