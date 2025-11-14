@@ -140,7 +140,7 @@ export class PriorityPlayersViewModel {
    */
   async deleteAssignment(
     id: number,
-    gameAdministratorId: number,
+    currentPriorityPlayers: PriorityPlayer[],
     confirmFn: () => Promise<boolean>
   ): Promise<boolean> {
     const confirmed = await confirmFn();
@@ -148,7 +148,8 @@ export class PriorityPlayersViewModel {
 
     try {
       await priorityPlayersApi.delete(id);
-      await this.loadPriorityPlayersForAdmin(gameAdministratorId);
+      const updatedPriorityPlayers = currentPriorityPlayers.filter(pp => pp.id !== id);
+      this.updateState({ priorityPlayers: updatedPriorityPlayers });
       return true;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete assignment';

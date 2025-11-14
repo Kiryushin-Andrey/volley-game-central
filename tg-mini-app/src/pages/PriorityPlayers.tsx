@@ -94,11 +94,7 @@ const PriorityPlayers: React.FC = () => {
       return window.confirm('Are you sure you want to delete this priority player assignment?');
     };
 
-    if (!adminId || Number.isNaN(adminId)) {
-      return;
-    }
-
-    const success = await viewModel.deleteAssignment(id, adminId, confirmFn);
+    const success = await viewModel.deleteAssignment(id, state.priorityPlayers, confirmFn);
 
     if (!success && inTelegram) {
       WebApp.showPopup({
