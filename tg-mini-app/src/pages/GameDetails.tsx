@@ -249,7 +249,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
               </div>
             )}
             
-            {(() => {
+            {!gameData.game.readonly && (() => {
               const gameCategory = classifyGame(gameData.game.dateTime, gameData.game.withPositions);
               return gameCategory !== 'other' ? (
                 <CategoryInfoIcon category={gameCategory} />
