@@ -32,7 +32,7 @@ export const UserSearchInput: React.FC<UserSearchInputProps> = ({
   // Fetch users when query changes
   useEffect(() => {
     const searchUsers = async () => {
-      if (query.length < 2) {
+      if (query.length < 1) {
         setUsers([]);
         setShowDropdown(false);
         return;
@@ -200,7 +200,7 @@ export const UserSearchInput: React.FC<UserSearchInputProps> = ({
                 </li>
               ))}
             </ul>
-          ) : query.length >= 2 ? (
+          ) : query.length >= 1 ? (
             <div className="no-results">No users found</div>
           ) : null}
         </div>
