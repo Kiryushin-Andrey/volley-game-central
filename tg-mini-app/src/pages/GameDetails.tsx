@@ -145,7 +145,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
 
   // Check if the game is in the past and has no payment requests
   const isPastGame = isGamePast(gameData.game.dateTime);
-  const hasPaymentRequests = gameData.game.collectorUser !== null && gameData.game.collectorUser !== undefined;
+  const hasPaymentRequests = !!gameData.game.collectorUser;
   const isGameAdmin = user.isAdmin || (gameData.game.isAssignedAdmin ?? false);
   const showAddParticipantButton =
     isGameAdmin && !hasPaymentRequests && (isPastGame || gameData.game.readonly);

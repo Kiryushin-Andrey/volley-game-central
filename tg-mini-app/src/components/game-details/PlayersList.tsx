@@ -145,7 +145,7 @@ export const PlayersList: React.FC<Props> = ({
                   />
                 )}
 
-                {!hasPaymentRequests && (
+                {hasPaymentRequests && (
                   <div
                     className={`paid-status ${registration.paid ? 'paid' : 'unpaid'}`}
                     onClick={() => onTogglePaidStatus(registration.userId, registration.paid)}
