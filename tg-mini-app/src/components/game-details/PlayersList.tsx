@@ -9,6 +9,7 @@ interface Props {
   currentUserId: number;
   isAdmin: boolean;
   isPastGame: boolean;
+  isReadonly?: boolean;
   isActionLoading: boolean;
   isPaidUpdating: number | null;
   hasPaymentRequests?: boolean;
@@ -23,6 +24,7 @@ export const PlayersList: React.FC<Props> = ({
   currentUserId,
   isAdmin,
   isPastGame,
+  isReadonly,
   isActionLoading,
   isPaidUpdating,
   hasPaymentRequests,
@@ -133,7 +135,7 @@ export const PlayersList: React.FC<Props> = ({
               );
             })()}
 
-            {isAdmin && isPastGame && !registration.isWaitlist && (
+            {isAdmin && (isPastGame || isReadonly) && !registration.isWaitlist && (
               <div className="admin-player-actions">
                 {!hasPaymentRequests && (
                   <RemovePlayerButton

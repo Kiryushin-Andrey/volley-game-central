@@ -380,6 +380,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
               currentUserId={user.id}
               isAdmin={isGameAdmin}
               isPastGame={isGamePast(gameData.game.dateTime)}
+              isReadonly={gameData.game.readonly}
               isActionLoading={action.isActionLoading}
               isPaidUpdating={action.isPaidUpdating}
               hasPaymentRequests={hasPaymentRequests}
