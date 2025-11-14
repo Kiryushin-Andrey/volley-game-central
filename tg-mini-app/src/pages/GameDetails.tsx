@@ -386,7 +386,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
               hasPaymentRequests={hasPaymentRequests}
               onRemovePlayer={(userId, guestName) => viewModel.handleRemovePlayer(userId, guestName)}
               onTogglePaidStatus={(userId, currentPaidStatus) => viewModel.handleTogglePaidStatus(userId, currentPaidStatus)}
-              canUnregister={() => viewModel.canUnregister()}
+              canUnregister={viewModel.canUnregister()}
               onShowUserInfo={isGameAdmin ? (user) => viewModel.handleShowPlayerInfo(user) : undefined}
             />
           </div>

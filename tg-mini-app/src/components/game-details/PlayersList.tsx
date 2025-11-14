@@ -15,7 +15,7 @@ interface Props {
   hasPaymentRequests?: boolean;
   onRemovePlayer: (userId: number, guestName?: string) => void | Promise<void>;
   onTogglePaidStatus: (userId: number, paid: boolean) => void;
-  canUnregister: () => boolean;
+  canUnregister: boolean;
   onShowUserInfo?: (user: UserPublicInfo) => void;
 }
 
@@ -107,23 +107,20 @@ export const PlayersList: React.FC<Props> = ({
             </div>
             {registration.userId === currentUserId && (() => {
               const isSelf = !registration.guestName;
-              const allowed = canUnregister();
-              const isDisabled = isActionLoading || !allowed;
+              const isDisabled = isActionLoading;
               const tooltip = isActionLoading
                 ? 'Please wait, action in progress'
-                : allowed
-                  ? (isSelf ? 'Leave this game' : 'Unregister this guest')
-                  : 'Unregistration is not allowed after the deadline';
+                : (isSelf ? 'Leave this game' : 'Unregister this guest');
               const aria = isSelf ? 'Unregister yourself' : `Unregister guest ${registration.guestName}`;
               return (
                 <div className="self-actions">
                   {isSelf && <div className="player-badge">You</div>}
-                  {!isPastGame && (
+                  {!isPastGame && canUnregister && (
                     <div className="admin-player-actions" title={tooltip}>
                       <RemovePlayerButton
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (allowed) onRemovePlayer(registration.userId, isSelf ? undefined : registration.guestName!);
+                          onRemovePlayer(registration.userId, isSelf ? undefined : registration.guestName!);
                         }}
                         disabled={isDisabled}
                         title={tooltip}
@@ -148,7 +145,7 @@ export const PlayersList: React.FC<Props> = ({
                   />
                 )}
 
-                {hasPaymentRequests && (
+                {!hasPaymentRequests && (
                   <div
                     className={`paid-status ${registration.paid ? 'paid' : 'unpaid'}`}
                     onClick={() => onTogglePaidStatus(registration.userId, registration.paid)}

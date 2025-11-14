@@ -639,6 +639,7 @@ export class GameDetailsViewModel {
   // Helper methods for UI state
   canUnregister(): boolean {
     if (!this.state.gameData.game) return false;
+    if (this.state.gameData.game.readonly) return false;
     if (isGamePast(this.state.gameData.game.dateTime)) return false;
     const deadlineHours = this.state.gameData.game.unregisterDeadlineHours || 5;
     return canLeaveGame(this.state.gameData.game.dateTime, false, deadlineHours);
