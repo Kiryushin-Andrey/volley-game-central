@@ -206,10 +206,11 @@ export async function createInstallation(apiKey: string, apiKeyName: string): Pr
 
 /**
  * Registers a device using the installation token and API key
+ * This is idempotent - if a device already exists, it's treated as success
  * @param installationToken The installation token
  * @param apiKey The API key (used as secret in the request body)
  * @param apiKeyName The API key name (used as User-Agent and description in Bunq API requests)
- * @returns True if successful, false otherwise
+ * @returns True if successful or device already exists, false otherwise
  */
 export async function registerDevice(installationToken: string, apiKey: string, apiKeyName: string): Promise<boolean> {
   try {
@@ -230,6 +231,19 @@ export async function registerDevice(installationToken: string, apiKey: string, 
 
     return response.status === 200;
   } catch (error: any) {
+    // Check if the error is "device already exists" - this is idempotent and should be treated as success
+    const errorData = error.response?.data;
+    if (errorData) {
+      // Bunq returns errors as an array of error objects
+      const errors = Array.isArray(errorData) ? errorData : (errorData.Error || []);
+      for (const err of errors) {
+        const errorDesc = err.error_description || err.error_description_translated || '';
+        if (errorDesc.toLowerCase().includes('device already exists')) {
+          console.log('Device already registered (idempotent), treating as success');
+          return true;
+        }
+      }
+    }
     console.error('Error registering device:', error.response?.data || error.message);
     return false;
   }
@@ -257,6 +271,16 @@ export async function createSession(installationToken: string, apiKey: string, p
     const signature = crypto.sign('sha256', Buffer.from(dataToSign), privateKey);
     const base64Signature = signature.toString('base64');
     
+    // Log the request details for debugging (without sensitive data)
+    console.log('Creating session with:', {
+      installationTokenLength: installationToken?.length,
+      apiKeyLength: apiKey?.length,
+      privateKeyLength: privateKey?.length,
+      dataToSign,
+      signatureLength: base64Signature?.length,
+      apiKeyName
+    });
+    
     const client = axios.create({
       baseURL: BUNQ_API_URL,
       headers: {
@@ -282,7 +306,15 @@ export async function createSession(installationToken: string, apiKey: string, p
     console.error('Session token not found in response');
     return null;
   } catch (error: any) {
-    console.error('Error creating session:', error.response?.data || error.message);
+    console.error('Error creating session:', {
+      message: error?.message,
+      response: error.response ? {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data
+      } : 'No response',
+      responseErrors: error.response?.data?.Error || error.response?.data
+    });
     return null;
   }
 }
@@ -400,12 +432,11 @@ async function refreshTokens(userId: number, password: string, credentials: Bunq
     
     let installationToken = credentials.installationToken;
     let privateKey = credentials.privateKey;
-    let installationResult: { installationToken: string; privateKey: string } | null = null;
     
     // Step 1: Ensure we have a valid installation token
     if (!installationToken || !privateKey) {
       console.log('Creating new installation token...');
-      installationResult = await createInstallation(credentials.apiKey, apiKeyName);
+      const installationResult = await createInstallation(credentials.apiKey, apiKeyName);
       if (!installationResult) {
         console.error('Failed to create installation token');
         return null;
@@ -414,28 +445,13 @@ async function refreshTokens(userId: number, password: string, credentials: Bunq
       privateKey = installationResult.privateKey;
     }
     
-    // Step 2: Register device (this is idempotent)
+    // Step 2: Register device (this is idempotent - returns true if device already exists)
     console.log('Registering device...');
-    let deviceRegistered = await registerDevice(installationToken, credentials.apiKey, apiKeyName);
+    const deviceRegistered = await registerDevice(installationToken, credentials.apiKey, apiKeyName);
     
     if (!deviceRegistered) {
-      console.error('Failed to register device, creating new installation token...');
-      // Try to create a new installation token and retry
-      const retryInstallationResult = await createInstallation(credentials.apiKey, apiKeyName);
-      if (!retryInstallationResult) {
-        console.error('Failed to create new installation token for retry');
-        return null;
-      }
-      installationToken = retryInstallationResult.installationToken;
-      privateKey = retryInstallationResult.privateKey;
-      installationResult = retryInstallationResult;
-      
-      console.log('Retrying device registration with new installation token...');
-      deviceRegistered = await registerDevice(installationToken, credentials.apiKey, apiKeyName);
-      if (!deviceRegistered) {
-        console.error('Failed to register device on retry');
-        return null;
-      }
+      console.error('Failed to register device');
+      return null;
     }
     
     // Step 3: Create session token

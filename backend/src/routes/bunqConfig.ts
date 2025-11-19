@@ -123,6 +123,10 @@ router.post('/enable', async (req, res) => {
       return res.status(400).json({ error: 'Failed to register device with Bunq API' });
     }
 
+    // Wait a moment after device registration to allow bunq's state to propagate
+    // This can help prevent "invalid code" errors when creating session immediately after registration
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
     console.log('Creating session token...');
     const sessionToken = await createSession(installationToken, apiKey, privateKey, apiKeyNameToUse);
     if (!sessionToken) {
