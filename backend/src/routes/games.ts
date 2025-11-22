@@ -501,7 +501,17 @@ router.get('/', async (req, res) => {
     // Parse query parameters
     const showPast = req.query.showPast === 'true';
     const showAll = req.query.showAll === 'true';
-    const category = req.query.category as GameCategory | undefined;
+    
+    // Parse categories - can be a single string or an array of strings
+    let categories: GameCategory[] | undefined;
+    if (req.query.categories) {
+      const categoriesParam = req.query.categories;
+      if (Array.isArray(categoriesParam)) {
+        categories = categoriesParam as GameCategory[];
+      } else if (typeof categoriesParam === 'string') {
+        categories = [categoriesParam as GameCategory];
+      }
+    }
 
     // Get current date for filtering
     const currentDate = new Date();
@@ -589,10 +599,15 @@ router.get('/', async (req, res) => {
     }
 
     // Apply category filter if specified (only for upcoming games)
-    if (category && !showPast) {
+    if (categories && categories.length > 0 && !showPast) {
       const validCategories: GameCategory[] = ['thursday-5-1', 'thursday-deti-plova', 'sunday', 'other'];
-      if (validCategories.includes(category)) {
-        filteredGames = filteredGames.filter((game) => classifyGame(game) === category);
+      const validSelectedCategories = categories.filter(cat => validCategories.includes(cat));
+      
+      if (validSelectedCategories.length > 0) {
+        filteredGames = filteredGames.filter((game) => {
+          const gameCategory = classifyGame(game);
+          return validSelectedCategories.includes(gameCategory);
+        });
       }
     }
 

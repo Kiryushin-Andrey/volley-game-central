@@ -18,7 +18,7 @@ export class GamesListViewModel {
   error: string | null = null;
   gameFilter: GameFilter = 'upcoming';
   showAll = false;
-  gameCategory: GameCategory | null = null;
+  selectedCategories: GameCategory[] = [];
   availableCategories: GameCategory[] = ['thursday-5-1', 'thursday-deti-plova', 'sunday', 'other'];
   hasBunqIntegration = false;
   unpaidItems: UnpaidRegistration[] = [];
@@ -38,11 +38,14 @@ export class GamesListViewModel {
       logDebug: typeof logDebug;
     }
   ) {
-    // initialize gameCategory from localStorage
+    // initialize selectedCategories from localStorage
     try {
-      const saved = localStorage.getItem('gameCategory');
-      if (saved && ['thursday-5-1', 'thursday-deti-plova', 'sunday', 'other'].includes(saved)) {
-        this.gameCategory = saved as GameCategory;
+      const saved = localStorage.getItem('selectedCategories');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.every(c => ['thursday-5-1', 'thursday-deti-plova', 'sunday', 'other'].includes(c))) {
+          this.selectedCategories = parsed as GameCategory[];
+        }
       }
     } catch {}
   }
@@ -59,11 +62,25 @@ export class GamesListViewModel {
   }
 
   // setters
-  setGameCategory(category: GameCategory) {
-    if (this.gameCategory === category) return;
-    this.gameCategory = category;
+  toggleCategory(category: GameCategory) {
+    const index = this.selectedCategories.indexOf(category);
+    if (index === -1) {
+      this.selectedCategories.push(category);
+    } else {
+      this.selectedCategories.splice(index, 1);
+    }
     try {
-      localStorage.setItem('gameCategory', category);
+      localStorage.setItem('selectedCategories', JSON.stringify(this.selectedCategories));
+    } catch {}
+    // Reload games with new category filter
+    this.loadGames();
+    this.emitChange();
+  }
+
+  setSelectedCategories(categories: GameCategory[]) {
+    this.selectedCategories = categories;
+    try {
+      localStorage.setItem('selectedCategories', JSON.stringify(this.selectedCategories));
     } catch {}
     // Reload games with new category filter
     this.loadGames();
@@ -139,24 +156,24 @@ export class GamesListViewModel {
 
       const showPast = this.gameFilter === 'past';
       
-      // Determine category to use - prefer saved, otherwise default to 'sunday' for upcoming games
-      let categoryToUse: GameCategory | undefined = undefined;
+      // Determine categories to use - prefer saved, otherwise default to ['sunday'] for upcoming games
+      let categoriesToUse: GameCategory[] | undefined = undefined;
       if (!showPast) {
-        // Set category if not already set
-        if (!this.gameCategory) {
-          // Default to 'sunday'
-          categoryToUse = 'sunday';
-          this.gameCategory = categoryToUse;
+        // Set categories if not already set
+        if (this.selectedCategories.length === 0) {
+          // Default to ['sunday']
+          categoriesToUse = ['sunday'];
+          this.selectedCategories = categoriesToUse;
           try {
-            localStorage.setItem('gameCategory', categoryToUse);
+            localStorage.setItem('selectedCategories', JSON.stringify(categoriesToUse));
           } catch {}
         } else {
-          // Use saved category
-          categoryToUse = this.gameCategory;
+          // Use saved categories
+          categoriesToUse = this.selectedCategories;
         }
       }
       
-      const fetchedGames = await this.deps.gamesApi.getAllGames(showPast, this.showAll, categoryToUse);
+      const fetchedGames = await this.deps.gamesApi.getAllGames(showPast, this.showAll, categoriesToUse);
 
       const gamesWithRequiredProps: GameWithStats[] = fetchedGames.map((game: any) => ({
         ...game,

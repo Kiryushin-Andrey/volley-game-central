@@ -1,0 +1,108 @@
+.category-multiselect {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+}
+
+.category-multiselect-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: var(--tg-theme-bg-color, #ffffff);
+  border: 1px solid var(--tg-theme-hint-color, #ccc);
+  border-radius: 8px;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.2s;
+
+  &:hover {
+    border-color: var(--tg-theme-link-color, #2481cc);
+  }
+}
+
+.category-multiselect-value {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  font-size: 14px;
+  color: var(--tg-theme-text-color, #000000);
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.category-multiselect-arrow {
+  font-size: 10px;
+  color: var(--tg-theme-hint-color, #999);
+  transition: transform 0.2s;
+  margin-left: 8px;
+
+  &.open {
+    transform: rotate(180deg);
+  }
+}
+
+.category-multiselect-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--tg-theme-bg-color, #ffffff);
+  border: 1px solid var(--tg-theme-hint-color, #ccc);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  overflow: hidden;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.category-multiselect-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  user-select: none;
+
+  &:hover {
+    background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+  }
+
+  input[type="checkbox"] {
+    display: none;
+  }
+}
+
+.category-multiselect-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--tg-theme-hint-color, #ccc);
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--tg-theme-bg-color, #ffffff);
+  background: var(--tg-theme-bg-color, #ffffff);
+  flex-shrink: 0;
+  transition: all 0.2s;
+
+  input:checked + & {
+    background: var(--tg-theme-button-color, #2481cc);
+    border-color: var(--tg-theme-button-color, #2481cc);
+    color: var(--tg-theme-button-text-color, #ffffff);
+  }
+}
+
+.category-multiselect-label {
+  flex: 1;
+  font-size: 14px;
+  color: var(--tg-theme-text-color, #000000);
+}
