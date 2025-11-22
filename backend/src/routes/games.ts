@@ -502,16 +502,8 @@ router.get('/', async (req, res) => {
     const showPast = req.query.showPast === 'true';
     const showAll = req.query.showAll === 'true';
     
-    // Parse categories - can be a single string or an array of strings
-    let categories: GameCategory[] | undefined;
-    if (req.query.categories) {
-      const categoriesParam = req.query.categories;
-      if (Array.isArray(categoriesParam)) {
-        categories = categoriesParam as GameCategory[];
-      } else if (typeof categoriesParam === 'string') {
-        categories = [categoriesParam as GameCategory];
-      }
-    }
+    // Parse categories - expect an array of strings
+    const categories = req.query.categories as GameCategory[] | undefined;
 
     // Get current date for filtering
     const currentDate = new Date();
