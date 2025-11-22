@@ -45,8 +45,15 @@
       justify-content: space-between;
       gap: 12px;
       padding: 12px;
-      background-color: var(--tg-theme-secondary-bg-color, #f8f9fa);
       border-radius: 8px;
+      
+      &.with-positions {
+        background-color: #fff8e1; // Light yellow for games with positions
+      }
+      
+      &.without-positions {
+        background-color: #e8f5e9; // Light green for games without positions
+      }
       
       .category-info-text {
         flex: 1;
