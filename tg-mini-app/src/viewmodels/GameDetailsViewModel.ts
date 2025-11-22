@@ -5,7 +5,7 @@ import { Game, User } from '../types';
 import type { UserPublicInfo } from '../types';
 import { ActionGuard } from '../utils/actionGuard';
 import { getUserRegistration } from '../utils/registrationsUtils';
-import { isGamePast, isGameUpcoming, canJoinGame, canLeaveGame, canRegisterGuest, DAYS_BEFORE_GAME_TO_JOIN, DAYS_BEFORE_GAME_TO_REGISTER_GUEST } from '../utils/gameDateUtils';
+import { isGamePast, isGameUpcoming, canJoinGame, canLeaveGame, canRegisterGuest, DAYS_BEFORE_GAME_TO_JOIN, DAYS_BEFORE_GAME_TO_REGISTER_GUEST, classifyGame, GameCategory } from '../utils/gameDateUtils';
 
 export interface GameDataState {
   game: Game | null;
@@ -121,6 +121,11 @@ export class GameDetailsViewModel {
   // Getters for current state
   get game(): Game | null {
     return this.state.gameData.game;
+  }
+
+  get gameCategory(): GameCategory | null {
+    if (!this.game) return null;
+    return classifyGame(this.game.dateTime, this.game.withPositions);
   }
 
   get isLoading(): boolean {

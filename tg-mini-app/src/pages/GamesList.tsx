@@ -2,14 +2,14 @@ import React, { memo } from 'react';
 import { Link } from 'react-router-dom';
 import { FaUsers, FaCog, FaPlus } from 'react-icons/fa';
 import { useGamesListViewModel } from './GamesListViewModel';
-import { GameCategory, getCategoryDisplayName } from '../utils/gameDateUtils';
 import { GameWithStats, User } from '../types';
 import { isGameUpcoming } from '../utils/gameDateUtils';
 import { resolveLocationLink } from '../utils/locationUtils';
 import { HalloweenDecorations } from '../components/HalloweenDecorations';
 import LoadingSpinner from '../components/LoadingSpinner';
 import UnpaidGamesList from '../components/UnpaidGamesList';
-import CategoryInfoIcon from '../components/CategoryInfoIcon';
+import CategoryMultiSelect from '../components/CategoryMultiSelect';
+import CategoryInfoBlock from '../components/CategoryInfoBlock';
 import './GamesList.scss';
 
 interface GamesListProps {
@@ -27,7 +27,7 @@ const GameItem = memo(({ game, onClick, formatDate }: {
   
   return (
     <div
-      className={`game-card ${game.isUserRegistered ? 'registered' : ''} ${isHalloween ? 'halloween-theme' : ''}`}
+      className={`game-card ${game.isUserRegistered ? 'registered' : ''} ${isHalloween ? 'halloween-theme' : ''} ${game.withPositions ? 'with-positions' : 'without-positions'}`}
       onClick={() => onClick(game.id)}
     >
       {isHalloween && <HalloweenDecorations variant="card" />}
@@ -155,7 +155,8 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
     );
   }
 
-  if (vm.loadingGames || vm.loadingUnpaid) {
+  // Show full-page loading only on initial load
+  if ((vm.loadingGames || vm.loadingUnpaid) && vm.games.length === 0) {
     return (
       <div className="games-list-container">
         <div className="games-loading">
@@ -201,25 +202,20 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
             <div className="filters-container">
             {vm.gameFilter === 'upcoming' && (
               <div className="category-filter-container">
-                <div className="category-dropdown-row">
-                  {vm.gameCategory && vm.gameCategory !== 'other' && (
-                    <CategoryInfoIcon category={vm.gameCategory} />
-                  )}
-                  <select
-                    id="gameCategory"
-                    className={`category-dropdown category-dropdown-${vm.gameCategory || ''}`}
-                    value={vm.gameCategory || ''}
-                    onChange={(e) => vm.setGameCategory(e.target.value as GameCategory)}
-                  >
-                    {vm.availableCategories.map((category) => {
-                      return (
-                        <option key={category} value={category}>
-                          {getCategoryDisplayName(category)}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
+                <CategoryMultiSelect
+                  selectedCategories={vm.selectedCategories}
+                  availableCategories={vm.availableCategories}
+                  onToggleCategory={(category) => vm.toggleCategory(category)}
+                />
+              </div>
+            )}
+            
+            {/* Category info blocks for non-admin users */}
+            {!user.isAdmin && vm.gameFilter === 'upcoming' && vm.selectedCategories.length > 0 && (
+              <div className="category-info-blocks">
+                {vm.selectedCategories.map(category => (
+                  <CategoryInfoBlock key={category} category={category} />
+                ))}
               </div>
             )}
             
@@ -306,11 +302,18 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
               )}
             </div>
           </div>
-          <GameItemsList
-            games={vm.games}
-            formatDate={vm.formatDate}
-            handleGameClick={vm.handleGameClick}
-          />
+          {vm.loadingGames ? (
+            <div className="games-loading">
+              <LoadingSpinner />
+              <p className="loading-text">Loading...</p>
+            </div>
+          ) : (
+            <GameItemsList
+              games={vm.games}
+              formatDate={vm.formatDate}
+              handleGameClick={vm.handleGameClick}
+            />
+          )}
         </>
       )}
 

@@ -400,6 +400,7 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   position: relative;
   overflow: hidden;
+  border-left-width: 4px;
 
   &:hover {
     transform: translateY(-2px);
@@ -414,6 +415,14 @@
   &.registered {
     border-color: var(--tg-theme-button-color);
     background: linear-gradient(135deg, var(--tg-theme-bg-color) 0%, rgba(36, 129, 204, 0.05) 100%);
+  }
+
+  &.with-positions {
+    border-left-color: #ffc107; // Yellow for games with positions
+  }
+
+  &.without-positions {
+    border-left-color: #4caf50; // Green for games without positions
   }
 }
 

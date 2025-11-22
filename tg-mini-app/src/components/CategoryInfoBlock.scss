@@ -1,0 +1,176 @@
+.category-info-blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.category-info-block {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  
+  &.with-positions {
+    background-color: #fff8e1; // Light yellow for games with positions
+  }
+  
+  &.without-positions {
+    background-color: #e8f5e9; // Light green for games without positions
+  }
+  
+  .category-info-text {
+    flex: 1;
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--tg-theme-text-color);
+  }
+  
+  .category-info-icon {
+    flex-shrink: 0;
+    font-size: 18px;
+    color: var(--tg-theme-hint-color, #999);
+    cursor: pointer;
+    transition: color 0.2s;
+    
+    &:hover {
+      color: var(--tg-theme-link-color, #2481cc);
+    }
+  }
+}
+
+// Dark theme support
+// For browser mode: uses prefers-color-scheme media query
+// For Telegram WebApp: Telegram sets CSS variables dynamically, so text color is handled automatically via var(--tg-theme-text-color)
+// We adjust background colors to be darker and more subtle in dark theme
+@media (prefers-color-scheme: dark) {
+  .category-info-block {
+    &.with-positions {
+      background-color: rgba(255, 193, 7, 0.2); // Darker yellow tint for dark theme
+      border: 1px solid rgba(255, 193, 7, 0.3);
+    }
+    
+    &.without-positions {
+      background-color: rgba(76, 175, 80, 0.2); // Darker green tint for dark theme
+      border: 1px solid rgba(76, 175, 80, 0.3);
+    }
+    
+    .category-info-text {
+      color: var(--tg-theme-text-color, #e5e7eb);
+    }
+    
+    .category-info-icon {
+      color: var(--tg-theme-hint-color, #9aa0a6);
+      
+      &:hover {
+        color: var(--tg-theme-link-color, #62aef7);
+      }
+    }
+  }
+}
+
+.category-info-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.category-info-dialog {
+  position: relative;
+  background: var(--tg-theme-bg-color, #ffffff);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  max-width: 500px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.category-info-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  
+  h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--tg-theme-text-color, #000000);
+    margin: 0;
+  }
+  
+  .close-button {
+    background: none;
+    border: none;
+    font-size: 28px;
+    line-height: 1;
+    color: var(--tg-theme-hint-color, #999999);
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    
+    &:hover {
+      background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
+      color: var(--tg-theme-text-color, #000000);
+    }
+    
+    &:focus {
+      outline: none;
+      background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
+      color: var(--tg-theme-text-color, #000000);
+    }
+  }
+}
+
+.category-info-dialog-content {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--tg-theme-text-color, #000000);
+  
+  p {
+    margin: 0;
+  }
+  
+  .formatted-text {
+    word-wrap: break-word;
+    
+    a.category-info-link {
+      color: var(--tg-theme-link-color, #2481cc);
+      text-decoration: none;
+      word-break: break-all;
+      
+      &:hover,
+      &:focus {
+        text-decoration: underline;
+      }
+      
+      &:active {
+        opacity: 0.8;
+      }
+    }
+  }
+}
+
+// Dark theme support
+@media (prefers-color-scheme: dark) {
+  .category-info-dialog {
+    background: var(--tg-theme-bg-color, #1e1e1e);
+  }
+}
