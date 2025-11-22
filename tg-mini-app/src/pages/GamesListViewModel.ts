@@ -46,6 +46,15 @@ export class GamesListViewModel {
         if (Array.isArray(parsed) && parsed.every(c => ['thursday-5-1', 'thursday-deti-plova', 'sunday', 'other'].includes(c))) {
           this.selectedCategories = parsed as GameCategory[];
         }
+      } else {
+        // Migrate from old single category storage
+        const oldCategory = localStorage.getItem('gameCategory');
+        if (oldCategory && ['thursday-5-1', 'thursday-deti-plova', 'sunday', 'other'].includes(oldCategory)) {
+          this.selectedCategories = [oldCategory as GameCategory];
+          // Save in new format and remove old key
+          localStorage.setItem('selectedCategories', JSON.stringify(this.selectedCategories));
+          localStorage.removeItem('gameCategory');
+        }
       }
     } catch {}
   }
