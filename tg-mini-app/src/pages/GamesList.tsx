@@ -154,7 +154,8 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
     );
   }
 
-  if (vm.loadingGames || vm.loadingUnpaid) {
+  // Show full-page loading only on initial load
+  if ((vm.loadingGames || vm.loadingUnpaid) && vm.games.length === 0) {
     return (
       <div className="games-list-container">
         <div className="games-loading">
@@ -291,11 +292,18 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
               )}
             </div>
           </div>
-          <GameItemsList
-            games={vm.games}
-            formatDate={vm.formatDate}
-            handleGameClick={vm.handleGameClick}
-          />
+          {vm.loadingGames ? (
+            <div className="games-loading">
+              <LoadingSpinner />
+              <p className="loading-text">Loading...</p>
+            </div>
+          ) : (
+            <GameItemsList
+              games={vm.games}
+              formatDate={vm.formatDate}
+              handleGameClick={vm.handleGameClick}
+            />
+          )}
         </>
       )}
 
