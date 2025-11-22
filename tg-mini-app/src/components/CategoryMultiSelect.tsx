@@ -43,7 +43,6 @@ const CategoryMultiSelect: React.FC<CategoryMultiSelectProps> = ({
       <div className="category-multiselect-chips">
         {selectedCategories.map((category) => (
           <span key={category} className="category-multiselect-chip">
-            {category !== 'other' && <CategoryInfoIcon category={category} />}
             <span className="category-multiselect-chip-label">
               {getCategoryDisplayName(category)}
             </span>
@@ -80,7 +79,6 @@ const CategoryMultiSelect: React.FC<CategoryMultiSelectProps> = ({
                 <span className="category-multiselect-checkbox">
                   {isChecked && '✓'}
                 </span>
-                {category !== 'other' && <CategoryInfoIcon category={category} />}
                 <span className="category-multiselect-label">
                   {getCategoryDisplayName(category)}
                 </span>
