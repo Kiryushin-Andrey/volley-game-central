@@ -9,29 +9,25 @@ interface CategoryInfoBlockProps {
 }
 
 const getCategoryDescription = (cat: GameCategory): string => {
+  const registrationRules = `
+
+Priority registration is given to players who consistently attend and have a good track record. Registration opens 10 days before the game for priority players, and 3 days before for everyone else.
+
+Payment is required via Bunq within 24 hours of registration to confirm your spot.`;
+
   switch (cat) {
     case 'thursday-5-1':
-      return `These are competitive games played on Thursday evenings with the 5-1 volleyball system. 
-      In this format, there is one setter who rotates through all positions, and five hitters who also rotate. 
-      This system requires players to understand rotational rules and be comfortable playing specific positions. 
-      These games are more structured and competitive, ideal for experienced players who want to improve their skills 
-      and enjoy strategic team play.`;
-    
+      return 'Thursday games with a 5-1 system (one designated setter). More competitive format with assigned positions and rotations. Recommended for experienced players familiar with volleyball positions and rotation rules.' + 
+        registrationRules;
     case 'thursday-deti-plova':
-      return `These are recreational games held on Thursday evenings at Deti Plova sports complex. 
-      Unlike the 5-1 games, these sessions don't use fixed positions - players rotate freely and the atmosphere 
-      is more casual. The focus is on having fun, getting exercise, and enjoying the game without the pressure 
-      of competitive play. Perfect for beginners, intermediate players, or anyone who prefers a relaxed volleyball experience.`;
-    
+      return 'The second hall on Thursdays is used 2 times per month. The first and third Thursday of the month. First and foremost, we use it for training (with a coach), and if there\'s time left, we play 1-2 games to practice the material we learned during training. Priority registration is given to the Deti Plova team (registration opens 10 days before the game). Open registration for everyone else for the remaining spots opens 3 days before the game.' + 
+        registrationRules;
     case 'sunday':
-      return `Sunday games are casual, recreational volleyball sessions without assigned positions. 
-      Players of all skill levels are welcome, and the emphasis is on fun, social interaction, and staying active. 
-      There's no strict rotation system, allowing players to move around and try different roles. 
-      These games provide a great way to spend Sunday while meeting other volleyball enthusiasts in a friendly environment.`;
-    
+      return 'Sunday games are casual and open to players of all levels. No fixed positions - players rotate freely. Great for beginners and those who prefer a more relaxed atmosphere. Focus is on fun and exercise rather than competitive play.' + 
+        registrationRules;
     case 'other':
-      return 'This game does not belong to any specific category.';
-    
+      return 'This game doesn\'t belong to a specific recurring series. Check the game details for more information.' + 
+        registrationRules;
     default:
       return 'No description available.';
   }
