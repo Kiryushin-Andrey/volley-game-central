@@ -1,6 +1,6 @@
-import React, { memo, useState } from 'react';
+import React, { memo } from 'react';
 import { Link } from 'react-router-dom';
-import { FaUsers, FaCog, FaPlus, FaInfoCircle } from 'react-icons/fa';
+import { FaUsers, FaCog, FaPlus } from 'react-icons/fa';
 import { useGamesListViewModel } from './GamesListViewModel';
 import { GameWithStats, User } from '../types';
 import { isGameUpcoming } from '../utils/gameDateUtils';
@@ -9,70 +9,12 @@ import { HalloweenDecorations } from '../components/HalloweenDecorations';
 import LoadingSpinner from '../components/LoadingSpinner';
 import UnpaidGamesList from '../components/UnpaidGamesList';
 import CategoryMultiSelect from '../components/CategoryMultiSelect';
-import CategoryInfoIcon from '../components/CategoryInfoIcon';
+import CategoryInfoBlock from '../components/CategoryInfoBlock';
 import './GamesList.scss';
 
 interface GamesListProps {
   user: User;
 }
-
-// Category info block component
-const CategoryInfoBlock = memo(({ category }: { category: string }) => {
-  const [showDialog, setShowDialog] = useState(false);
-  
-  const categoryInfo: Record<string, { short: string; withPositions: boolean }> = {
-    'thursday-5-1': {
-      short: 'Thursday: Competitive games with assigned positions (5-1 system)',
-      withPositions: true
-    },
-    'thursday-deti-plova': {
-      short: 'Thursday: Recreational games without assigned positions',
-      withPositions: false
-    },
-    'sunday': {
-      short: 'Sunday: Recreational games without assigned positions',
-      withPositions: false
-    }
-  };
-  
-  const oldCategoryInfo: Record<string, { short: string; full: string }> = {
-    'thursday-5-1': {
-      short: 'Thursday: Competitive games with assigned positions (5-1 system)',
-      full: 'Thursday games use the 5-1 volleyball system where players rotate through specific positions. This format is more competitive and requires understanding of positional play. Players should be comfortable with rotation rules and position-specific responsibilities.'
-    },
-    'thursday-deti-plova': {
-      short: 'Thursday: Recreational games without assigned positions',
-      full: 'Thursday Deti Plova games are casual, recreational volleyball sessions without fixed positions. Players can move freely and the focus is on fun and exercise rather than competitive play. Perfect for beginners and those who prefer a more relaxed atmosphere.'
-    },
-    'sunday': {
-      short: 'Sunday: Recreational games without assigned positions',
-      full: 'Sunday games are casual, recreational volleyball sessions without fixed positions. Players can move freely and the focus is on fun and exercise rather than competitive play. Perfect for beginners and those who prefer a more relaxed atmosphere.'
-    }
-  };
-  
-  const info = categoryInfo[category];
-  if (!info) return null;
-  
-  const blockClassName = `category-info-block ${info.withPositions ? 'with-positions' : 'without-positions'}`;
-  
-  return (
-    <>
-      <div className={blockClassName}>
-        <span className="category-info-text">{info.short}</span>
-        <FaInfoCircle 
-          className="category-info-icon" 
-          onClick={() => setShowDialog(true)}
-        />
-      </div>
-      {showDialog && (
-        <CategoryInfoIcon
-          category={category}
-          onClose={() => setShowDialog(false)}
-        />
-      )}
-    </>
-  );
-});
 
 // Games List Item component for displaying individual games
 const GameItem = memo(({ game, onClick, formatDate }: { 

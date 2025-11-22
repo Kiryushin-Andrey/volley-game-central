@@ -1,0 +1,42 @@
+.category-info-blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.category-info-block {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  
+  &.with-positions {
+    background-color: #fff8e1; // Light yellow for games with positions
+  }
+  
+  &.without-positions {
+    background-color: #e8f5e9; // Light green for games without positions
+  }
+  
+  .category-info-text {
+    flex: 1;
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--tg-theme-text-color);
+  }
+  
+  .category-info-icon {
+    flex-shrink: 0;
+    font-size: 18px;
+    color: var(--tg-theme-hint-color, #999);
+    cursor: pointer;
+    transition: color 0.2s;
+    
+    &:hover {
+      color: var(--tg-theme-link-color, #2481cc);
+    }
+  }
+}
