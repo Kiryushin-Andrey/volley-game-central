@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { GameCategory, getCategoryDisplayName } from '../utils/gameDateUtils';
-import CategoryInfoIcon from './CategoryInfoIcon';
 import './CategoryMultiSelect.scss';
 
 interface CategoryMultiSelectProps {
