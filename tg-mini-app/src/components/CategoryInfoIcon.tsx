@@ -1,15 +1,13 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { FaInfoCircle } from 'react-icons/fa';
+import React, { useRef, useEffect } from 'react';
 import { GameCategory, getCategoryDisplayName } from '../utils/gameDateUtils';
 import './CategoryInfoIcon.scss';
 
 interface CategoryInfoIconProps {
   category: GameCategory;
+  onClose: () => void;
 }
 
-const CategoryInfoIcon: React.FC<CategoryInfoIconProps> = ({ category }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const iconRef = useRef<HTMLDivElement>(null);
+const CategoryInfoIcon: React.FC<CategoryInfoIconProps> = ({ category, onClose }) => {
   const popupRef = useRef<HTMLDivElement>(null);
 
   const getCategoryDescription = (cat: GameCategory): string => {
@@ -48,57 +46,28 @@ WhatsApp Group (less active, but English-speaking): https://chat.whatsapp.com/DE
   const description = getCategoryDescription(category);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        iconRef.current &&
-        popupRef.current &&
-        !iconRef.current.contains(event.target as Node) &&
-        !popupRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    };
-
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setIsOpen(false);
+        onClose();
       }
     };
 
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('keydown', handleEscape);
-    }
+    document.addEventListener('keydown', handleEscape);
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEscape);
     };
-  }, [isOpen]);
+  }, [onClose]);
 
   return (
-    <div className="category-info-icon-container" ref={iconRef}>
-      <button
-        type="button"
-        className="category-info-icon-button"
-        onClick={(e) => {
-          e.stopPropagation();
-          setIsOpen(!isOpen);
-        }}
-        aria-label="Show category information"
-        aria-expanded={isOpen}
+    <div className="category-info-popup-overlay" onClick={onClose}>
+      <div
+        className="category-info-popup"
+        ref={popupRef}
+        onClick={(e) => e.stopPropagation()}
       >
-        <FaInfoCircle className="category-info-icon" />
-      </button>
-      {isOpen && (
-        <div className="category-info-popup-overlay" onClick={() => setIsOpen(false)}>
-          <div
-            className="category-info-popup"
-            ref={popupRef}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="category-info-popup-title">{getCategoryDisplayName(category)}</div>
-            <div className="category-info-popup-content">
+        <div className="category-info-popup-title">{getCategoryDisplayName(category)}</div>
+        <div className="category-info-popup-content">
               {description.split('\n').map((line, index) => {
                 if (!line.trim()) {
                   return <br key={index} />;
@@ -127,17 +96,15 @@ WhatsApp Group (less active, but English-speaking): https://chat.whatsapp.com/DE
                   </div>
                 );
               })}
-            </div>
-            <button
-              className="category-info-popup-close"
-              onClick={() => setIsOpen(false)}
-              aria-label="Close"
-            >
-              ×
-            </button>
-          </div>
         </div>
-      )}
+        <button
+          className="category-info-popup-close"
+          onClick={onClose}
+          aria-label="Close"
+        >
+          ×
+        </button>
+      </div>
     </div>
   );
 };
