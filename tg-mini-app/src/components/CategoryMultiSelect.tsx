@@ -34,14 +34,23 @@ const CategoryMultiSelect: React.FC<CategoryMultiSelectProps> = ({
     };
   }, [isOpen]);
 
-  const getDisplayText = () => {
+  const renderSelectedChips = () => {
     if (selectedCategories.length === 0) {
-      return 'Select categories';
+      return <span className="category-multiselect-placeholder">Select categories</span>;
     }
-    if (selectedCategories.length === 1) {
-      return getCategoryDisplayName(selectedCategories[0]);
-    }
-    return `${selectedCategories.length} categories selected`;
+    
+    return (
+      <div className="category-multiselect-chips">
+        {selectedCategories.map((category) => (
+          <span key={category} className="category-multiselect-chip">
+            {category !== 'other' && <CategoryInfoIcon category={category} />}
+            <span className="category-multiselect-chip-label">
+              {getCategoryDisplayName(category)}
+            </span>
+          </span>
+        ))}
+      </div>
+    );
   };
 
   const handleToggle = (category: GameCategory) => {
@@ -52,10 +61,7 @@ const CategoryMultiSelect: React.FC<CategoryMultiSelectProps> = ({
     <div className="category-multiselect" ref={dropdownRef}>
       <div className="category-multiselect-trigger" onClick={() => setIsOpen(!isOpen)}>
         <div className="category-multiselect-value">
-          {selectedCategories.length === 1 && selectedCategories[0] !== 'other' && (
-            <CategoryInfoIcon category={selectedCategories[0]} />
-          )}
-          <span>{getDisplayText()}</span>
+          {renderSelectedChips()}
         </div>
         <span className={`category-multiselect-arrow ${isOpen ? 'open' : ''}`}>▼</span>
       </div>

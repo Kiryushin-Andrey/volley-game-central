@@ -1,7 +1,6 @@
 .category-multiselect {
   position: relative;
   width: 100%;
-  max-width: 400px;
 }
 
 .category-multiselect-trigger {
@@ -24,16 +23,37 @@
 .category-multiselect-value {
   display: flex;
   align-items: center;
-  gap: 8px;
   flex: 1;
-  font-size: 14px;
-  color: var(--tg-theme-text-color, #000000);
+  min-width: 0;
+  overflow: hidden;
+}
 
-  span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
+.category-multiselect-placeholder {
+  font-size: 14px;
+  color: var(--tg-theme-hint-color, #999);
+}
+
+.category-multiselect-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.category-multiselect-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: var(--tg-theme-button-color, #2481cc);
+  color: var(--tg-theme-button-text-color, #ffffff);
+  border-radius: 12px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.category-multiselect-chip-label {
+  line-height: 1;
 }
 
 .category-multiselect-arrow {
