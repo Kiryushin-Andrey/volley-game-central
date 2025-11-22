@@ -7,7 +7,6 @@ import GuestRegistrationDialog from "../components/GuestRegistrationDialog";
 import BringBallDialog from "../components/BringBallDialog";
 import { UserSearchInput } from "../components/UserSearchInput";
 import { HalloweenDecorations } from "../components/HalloweenDecorations";
-import CategoryInfoIcon from "../components/CategoryInfoIcon";
 import { formatDisplayPricingInfo } from "../utils/pricingUtils";
 import { resolveLocationLink } from "../utils/locationUtils";
 import "./GameDetails.scss";
@@ -248,13 +247,6 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
                 })()}
               </div>
             )}
-            
-            {!gameData.game.readonly && (() => {
-              const gameCategory = classifyGame(gameData.game.dateTime, gameData.game.withPositions);
-              return gameCategory !== 'other' ? (
-                <CategoryInfoIcon category={gameCategory} />
-              ) : null;
-            })()}
           </div>
 
           {/* Admin-only: Game management buttons */}
