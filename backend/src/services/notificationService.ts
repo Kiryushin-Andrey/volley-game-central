@@ -34,15 +34,16 @@ function htmlToSms(message: string): string {
 export async function notifyUser(
   user: NotifiableUser,
   message: string,
-  options?: { allowSms?: boolean }
+  gameId?: number,
+  allowSms?: boolean
 ): Promise<NotifyChannel> {
   try {
     if (user.telegramId) {
-      await sendTelegramNotification(user.telegramId, message);
+      await sendTelegramNotification(user.telegramId, message, gameId);
       return 'telegram';
     }
-    const allowSms = options?.allowSms !== false; // default: true
-    if (allowSms && user.phoneNumber) {
+    const smsAllowed = allowSms !== false; // default: true
+    if (smsAllowed && user.phoneNumber) {
       const sms = htmlToSms(message);
       await sendSms(user.phoneNumber, sms);
       return 'sms';

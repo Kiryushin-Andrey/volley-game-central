@@ -227,14 +227,16 @@ router.post('/:gameId/register', async (req, res) => {
         await notifyUser(
           userDetails[0],
           `⏳ ${subject} been added to the waiting list for the volleyball game on ${formattedDate}. We'll notify you if a spot becomes available! Position on waitlist: ${position - game[0].maxPlayers + 1}`,
-          { allowSms: false }
+          game[0].id,
+          false
         );
       } else {
         const subject = getNotificationSubjectWithVerb(guestName, 'are');
         await notifyUser(
           userDetails[0],
           `✅ ${subject} registered for the volleyball game on ${formattedDate}. See you there! 🏐`,
-          { allowSms: false }
+          game[0].id,
+          false
         );
       }
     }
@@ -359,7 +361,8 @@ router.delete('/:gameId/register', async (req, res) => {
       await notifyUser(
         userDetails[0],
         `❌ ${subject} been unregistered from the volleyball game on ${formattedDate}. Hope to see you at another game soon! 🏐`,
-        { allowSms: false }
+        game[0].id,
+        false
       );
     }
 
@@ -399,6 +402,7 @@ router.delete('/:gameId/register', async (req, res) => {
           await notifyUser(
             promotedUser[0],
             `🎉 Good news! ${subject} been moved from the waiting list to the participants list for the volleyball game on ${formattedDate}. See you there! 🏐`,
+            game[0].id
           );
         }
       }

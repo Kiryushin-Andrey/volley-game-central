@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import { useAuthenticatedUser } from './hooks/useAuthenticatedUser';
 import GamesList from './pages/GamesList';
 import GameDetails from './pages/GameDetails';
@@ -16,6 +16,36 @@ import { logDebug, isDebugMode } from './debug';
 import { initAppTheme } from './utils/theme';
 import { authApi, userApi } from './services/api';
 import EditDisplayNameDialog from './components/EditDisplayNameDialog';
+import { getTelegramStartParam, parseGameIdFromStartParam } from './utils/telegram';
+
+/**
+ * Component to handle deep linking from Telegram start parameter
+ * Must be inside Router context to use useNavigate
+ */
+function DeepLinkHandler({ user }: { user: any }) {
+  const navigate = useNavigate();
+  const [hasHandledDeepLink, setHasHandledDeepLink] = React.useState(false);
+
+  React.useEffect(() => {
+    // Only process deep link once when user is authenticated and we haven't handled it yet
+    if (!user || hasHandledDeepLink) {
+      return;
+    }
+
+    const startParam = getTelegramStartParam();
+    if (startParam) {
+      const gameId = parseGameIdFromStartParam(startParam);
+
+      if (gameId) {
+        logDebug(`Deep linking to game ${gameId} from Telegram start parameter: ${startParam}`);
+        navigate(`/game/${gameId}`);
+        setHasHandledDeepLink(true);
+      }
+    }
+  }, [user, hasHandledDeepLink, navigate]);
+
+  return null;
+}
 
 function App() {
   const { user, isDevMode, isLoading } = useAuthenticatedUser();
@@ -181,10 +211,19 @@ function App() {
       logDebug({ user, isLoading });
       logDebug(`Telegram WebApp availability: ${Boolean(window.Telegram?.WebApp)}`);
       logDebug(`InitData: ${window.Telegram?.WebApp?.initData || 'none'}`);
-      
+
       if (window.Telegram?.WebApp?.initDataUnsafe) {
         logDebug('InitDataUnsafe:');
         logDebug(window.Telegram.WebApp.initDataUnsafe);
+      }
+
+      const startParam = getTelegramStartParam();
+      if (startParam) {
+        logDebug(`Telegram start parameter: ${startParam}`);
+        const gameId = parseGameIdFromStartParam(startParam);
+        if (gameId) {
+          logDebug(`Parsed game ID: ${gameId}`);
+        }
       }
     }
   }, [user, isLoading]);
@@ -192,6 +231,8 @@ function App() {
   // Always render the app container with content
   return (
     <Router>
+      {/* Handle deep linking from Telegram start parameter */}
+      <DeepLinkHandler user={user} />
       <div className="app-container">
         {/* Browser-only header */}
         {!isTelegramApp && (

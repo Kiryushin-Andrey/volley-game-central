@@ -55,20 +55,55 @@ To register for games, use the button below:`;
 });
 
 /**
+ * Build a bot URL with start parameter for deep linking to a specific game
+ *
+ * @param botUsername The bot's username
+ * @param gameId Optional game ID to deep link to
+ * @returns The bot URL with start parameter if gameId is provided
+ */
+export function buildBotUrl(botUsername: string, gameId?: number): string {
+  const baseUrl = `https://t.me/${botUsername}`;
+  if (!gameId) {
+    return baseUrl;
+  }
+  // Use game_{id} format for the start parameter to make it clear this is a game link
+  return `${baseUrl}?startapp=game_${gameId}`;
+}
+
+/**
  * Send a notification message to a user via Telegram
- * 
+ *
  * @param telegramId The Telegram ID of the user to send the notification to
  * @param message The message to send
+ * @param gameId Optional game ID for deep linking
  * @returns Promise that resolves when the message is sent
  */
-export async function sendTelegramNotification(telegramId: string, message: string): Promise<void> {
+export async function sendTelegramNotification(
+  telegramId: string,
+  message: string,
+  gameId?: number
+): Promise<void> {
   if (isDevMode()) {
     logDevMode(`[SUPPRESSED] Telegram notification to ${telegramId}: ${message}`);
     return;
   }
-  
+
   try {
-    await bot.telegram.sendMessage(telegramId, message, { parse_mode: 'HTML' });
+    const botInfo = await bot.telegram.getMe();
+    const botUsername = botInfo.username;
+    const botUrl = buildBotUrl(botUsername, gameId);
+
+    await bot.telegram.sendMessage(telegramId, message, {
+      parse_mode: 'HTML',
+      reply_markup: gameId ? {
+        inline_keyboard: [[
+          {
+            text: '🏐 View Game',
+            url: botUrl
+          }
+        ]]
+      } : undefined
+    });
     console.log(`Notification sent to user ${telegramId}`);
   } catch (error) {
     console.error(`Failed to send notification to user ${telegramId}:`, error);
@@ -78,31 +113,36 @@ export async function sendTelegramNotification(telegramId: string, message: stri
 
 /**
  * Send an announcement message to the configured Telegram group
- * 
+ *
  * @param message The message to send to the group
+ * @param gameId Optional game ID for deep linking
  * @param topicId Optional topic ID to send the message to (for forum groups)
  * @returns Promise that resolves when the message is sent
  */
-export async function sendGroupAnnouncement(message: string, topicId?: number): Promise<void> {
+export async function sendGroupAnnouncement(
+  message: string,
+  gameId?: number,
+  topicId?: number
+): Promise<void> {
   if (isDevMode()) {
     logDevMode(`[SUPPRESSED] Group announcement: ${message}`);
     return;
   }
-  
+
   if (!TELEGRAM_GROUP_ID) {
     console.warn('No Telegram group ID configured, skipping group announcement');
     return;
   }
-  
+
   try {
     const messageThreadId = topicId || TELEGRAM_TOPIC_ID;
     const logSuffix = messageThreadId ? ` (topic: ${messageThreadId})` : '';
     console.log(`Sending announcement to group ${TELEGRAM_GROUP_ID}${logSuffix}`);
-    
+
     const botInfo = await bot.telegram.getMe();
     const botUsername = botInfo.username;
-    const botUrl = `https://t.me/${botUsername}`;
-    
+    const botUrl = buildBotUrl(botUsername, gameId);
+
     await bot.telegram.sendMessage(TELEGRAM_GROUP_ID, message, {
       parse_mode: 'HTML',
       disable_notification: false,
@@ -163,20 +203,20 @@ export async function checkAndAnnounceGameRegistrations(): Promise<void> {
     for (const game of upcomingGames) {
       const gameDate = new Date(game.dateTime);
       const formattedDate = formatGameDate(gameDate);
-      
+
       const locationText = formatLocationSection((game as any).locationName, (game as any).locationLink);
 
       // Check if this is a Halloween game
       const isHalloween = (game as any).tag === 'halloween';
-      
+
       let message: string;
       if (isHalloween) {
         message = `<b>🎃👻 SPOOKY VOLLEYBALL NIGHT! 👻🎃</b>\n\n🦇 <b>Halloween Special Game Registration Open!</b> 🦇\n\nGet ready for a frightfully fun volleyball night on <b>${formattedDate}</b>${locationText}\n\n🕷️ Costumes encouraged! 🕸️\n🎃 Spooky vibes guaranteed! 🎃\n👻 Limited to ${game.maxPlayers} brave players! 👻\n\n<i>Dare to join? Click below if you're not too scared...</i> 😈`;
       } else {
         message = `<b>🏐 New Volleyball Game Registration Open!</b>\n\nRegistration is now open for the game on <b>${formattedDate}</b>${locationText}\n\nSpots are limited to ${game.maxPlayers} players. First come, first served!\n\nClick the button below to join:`;
       }
-      
-      await sendGroupAnnouncement(message);
+
+      await sendGroupAnnouncement(message, game.id);
     }
     
     console.log(`Checked for games with registration opening today, found ${upcomingGames.length} games`);
@@ -295,8 +335,8 @@ export async function checkAndSendGameReminders(): Promise<void> {
         }
         
         const message = `⏰ <b>Reminder: Volleyball Game Tomorrow!</b>\n\n${registrationText} on <b>${formattedGameDate}</b>.\n\n⏳ <b>Unregister deadline:</b> ${formattedDeadline}\n\nSee you there! 🏐`;
-        
-        await sendTelegramNotification(firstRegistration.telegramId, message);
+
+        await sendTelegramNotification(firstRegistration.telegramId, message, game.id);
         console.log(`Sent reminder to Telegram user ${firstRegistration.telegramId} (${firstRegistration.displayName || 'unknown'}) for game ${game.id}`);
       }
       
@@ -346,8 +386,8 @@ async function debugPostAllOpenRegistrations(): Promise<void> {
         : 'Waitlist only';
       
       const message = `<b>🏐 [DEBUG] Game Registration Open!</b>\n\n<b>${formattedDate}</b>\n${spotsText} (${game.registrationCount}/${game.maxPlayers})\n\nClick the button below to join:`;
-      
-      await sendGroupAnnouncement(message);
+
+      await sendGroupAnnouncement(message, game.id);
       console.log(`[DEBUG] Posted notification for game on ${formattedDate}`);
     }
   } catch (error) {

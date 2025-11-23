@@ -112,7 +112,7 @@ router.post('/', async (req, res) => {
         const locationText = formatLocationSection((created as any).locationName, (created as any).locationLink);
         const message = `<b>🏐 New Volleyball Game Registration Open!</b>\n\nRegistration is now open for the game on <b>${formattedDate}</b>${locationText}\n\nSpots are limited to ${created.maxPlayers} players. First come, first served!\n\nClick the button below to join:`;
 
-        await sendGroupAnnouncement(message);
+        await sendGroupAnnouncement(message, created.id);
       }
     } catch (announceErr) {
       console.error('Failed to send creation announcement:', announceErr);
@@ -209,6 +209,7 @@ router.put('/:gameId', async (req, res) => {
         await notifyUser(
           promotedRegistration.user,
           `🎉 Great news! The game capacity has been increased and ${subject} been moved from the waiting list to the participants list for the volleyball game on ${formattedDate}. See you there! 🏐`,
+          gameId
         );
       }
     }
@@ -224,7 +225,7 @@ router.put('/:gameId', async (req, res) => {
         const notificationMessage = `🔄 <b>Game Update:</b>\n\n• The game has been rescheduled from ${formattedOldDate} to ${formattedNewDate}`;
 
         for (const registration of allRegistrations) {
-          await notifyUser(registration.user, notificationMessage);
+          await notifyUser(registration.user, notificationMessage, gameId);
         }
       }
     }

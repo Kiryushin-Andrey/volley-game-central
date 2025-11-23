@@ -777,7 +777,8 @@ export const bunqService = {
       await notifyUser(
         user,
         `💳 Please pay <b>€${(totalAmount / 100).toFixed(2)}</b> for ${participantsText} for the volleyball game on ${formattedDate}.\n\n` +
-        (paymentRequestUrl ? `Pay here: <a href="${paymentRequestUrl}">${paymentRequestUrl}</a>` : 'Payment link is being prepared, please try again shortly.')
+        (paymentRequestUrl ? `Pay here: <a href="${paymentRequestUrl}">${paymentRequestUrl}</a>` : 'Payment link is being prepared, please try again shortly.'),
+        game.id
       );
 
       return {
