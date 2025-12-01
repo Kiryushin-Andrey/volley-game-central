@@ -71,12 +71,28 @@ npm run migrate
 
 5. **Start development servers:**
 
-Option A – run both the backend and frontend together from the project root (recommended):
+Option A – use the dev startup script (recommended for local development):
+```sh
+./dev-start.sh
+```
+
+This script:
+- Sets `DEV_MODE=true` to enable simplified authentication (phone + name, no SMS)
+- Suppresses all Telegram and SMS notifications
+- Starts PostgreSQL database automatically
+- Runs both backend and frontend concurrently
+
+You can optionally specify a preview host:
+```sh
+./dev-start.sh example.com
+```
+
+Option B – run both the backend and frontend together from the project root:
 ```sh
 npm run dev
 ```
 
-Option B – start each service in its own terminal:
+Option C – start each service in its own terminal:
 ```sh
 # Backend
 cd backend
