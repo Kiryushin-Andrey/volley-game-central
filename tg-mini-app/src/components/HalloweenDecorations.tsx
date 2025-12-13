@@ -3,6 +3,7 @@ import './HalloweenDecorations.scss';
 
 interface HalloweenDecorationsProps {
   variant?: 'card' | 'page';
+  showFallingLeaves?: boolean;
 }
 
 interface Position {
@@ -74,7 +75,7 @@ const generatePositions = (count: number, minDistance: number = 15): Position[] 
   return positions;
 };
 
-export const HalloweenDecorations: React.FC<HalloweenDecorationsProps> = ({ variant = 'card' }) => {
+export const HalloweenDecorations: React.FC<HalloweenDecorationsProps> = ({ variant = 'card', showFallingLeaves = false }) => {
   // Generate random positions once when component mounts
   const positions = useMemo(() => {
     const minDistance = variant === 'card' ? 20 : 15;
@@ -99,26 +100,64 @@ export const HalloweenDecorations: React.FC<HalloweenDecorationsProps> = ({ vari
     );
   }, [variant]);
 
+  // Generate random positions for falling leaves
+  const fallingLeaves = useMemo(() => {
+    if (!showFallingLeaves) return [];
+    
+    const leaves = ['🍂', '🍁'];
+    const leafCount = 8;
+    
+    return Array.from({ length: leafCount }, (_, i) => ({
+      emoji: leaves[i % 2],
+      left: `${10 + Math.random() * 80}%`, // Random position between 10-90%
+      animationDelay: `${i * 1.5}s`,
+      animationDuration: `${8 + Math.random() * 3}s`, // 8-11s
+      fontSize: `${20 + Math.random() * 6}px`, // 20-26px
+      opacity: 0.3 + Math.random() * 0.1, // 0.3-0.4
+    }));
+  }, [showFallingLeaves]);
+
   return (
-    <div className={`halloween-decorations-container ${variant === 'page' ? 'page-variant' : ''}`}>
-      {decorations.map((decoration, index) => {
-        const position = positions[index];
-        const animationDelay = `${(index * 0.5).toFixed(1)}s`;
-        
-        return (
-          <div
-            key={`${decoration.type}-${index}`}
-            className={`halloween-decoration ${decoration.type}`}
-            style={{
-              ...position,
-              animation: `${decoration.animation} ${3 + index * 0.3}s ease-in-out infinite`,
-              animationDelay,
-            }}
-          >
-            {decoration.emoji}
-          </div>
-        );
-      })}
-    </div>
+    <>
+      <div className={`halloween-decorations-container ${variant === 'page' ? 'page-variant' : ''}`}>
+        {decorations.map((decoration, index) => {
+          const position = positions[index];
+          const animationDelay = `${(index * 0.5).toFixed(1)}s`;
+          
+          return (
+            <div
+              key={`${decoration.type}-${index}`}
+              className={`halloween-decoration ${decoration.type}`}
+              style={{
+                ...position,
+                animation: `${decoration.animation} ${3 + index * 0.3}s ease-in-out infinite`,
+                animationDelay,
+              }}
+            >
+              {decoration.emoji}
+            </div>
+          );
+        })}
+      </div>
+      {showFallingLeaves && (
+        <div className="falling-leaves-layer">
+          {fallingLeaves.map((leaf, index) => (
+            <div
+              key={index}
+              className="leaf"
+              style={{
+                left: leaf.left,
+                animationDelay: leaf.animationDelay,
+                animationDuration: leaf.animationDuration,
+                fontSize: leaf.fontSize,
+                opacity: leaf.opacity,
+              }}
+            >
+              {leaf.emoji}
+            </div>
+          ))}
+        </div>
+      )}
+    </>
   );
 };

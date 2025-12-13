@@ -6,6 +6,7 @@ import { GameWithStats, User } from '../types';
 import { isGameUpcoming } from '../utils/gameDateUtils';
 import { resolveLocationLink } from '../utils/locationUtils';
 import { HalloweenDecorations } from '../components/HalloweenDecorations';
+import { NewYearDecorations } from '../components/NewYearDecorations';
 import LoadingSpinner from '../components/LoadingSpinner';
 import UnpaidGamesList from '../components/UnpaidGamesList';
 import CategoryMultiSelect from '../components/CategoryMultiSelect';
@@ -24,13 +25,15 @@ const GameItem = memo(({ game, onClick, formatDate }: {
 }) => {
   const isUpcomingGame = isGameUpcoming(game.dateTime);
   const isHalloween = game.tag === 'halloween';
+  const isNewYear = game.tag === 'newyear';
   
   return (
     <div
-      className={`game-card ${game.isUserRegistered ? 'registered' : ''} ${isHalloween ? 'halloween-theme' : ''} ${game.withPositions ? 'with-positions' : 'without-positions'}`}
+      className={`game-card ${game.isUserRegistered ? 'registered' : ''} ${isHalloween ? 'halloween-theme' : ''} ${isNewYear ? 'newyear-theme' : ''} ${game.withPositions ? 'with-positions' : 'without-positions'}`}
       onClick={() => onClick(game.id)}
     >
       {isHalloween && <HalloweenDecorations variant="card" />}
+      {isNewYear && <NewYearDecorations variant="card" />}
       <div className="game-header">
         <div className="game-header-top">
           <div className="game-date-location">
@@ -120,12 +123,14 @@ const GameItemsList = memo(({
     <div className="games-list">
       {games.map((game) => {
         const isHalloween = game.tag === 'halloween';
+        const isNewYear = game.tag === 'newyear';
         return (
           <div 
             key={game.id} 
-            className={`game-card-wrapper ${isHalloween ? 'halloween-wrapper' : ''}`}
+            className={`game-card-wrapper ${isHalloween ? 'halloween-wrapper' : ''} ${isNewYear ? 'newyear-wrapper' : ''}`}
           >
             {isHalloween && <div className="leaf-layer" />}
+            {isNewYear && <div className="snowflake-layer" />}
             <GameItem 
               game={game} 
               onClick={handleGameClick}

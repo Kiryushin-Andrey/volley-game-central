@@ -206,12 +206,15 @@ export async function checkAndAnnounceGameRegistrations(): Promise<void> {
 
       const locationText = formatLocationSection((game as any).locationName, (game as any).locationLink);
 
-      // Check if this is a Halloween game
+      // Check if this is a themed game
       const isHalloween = (game as any).tag === 'halloween';
+      const isNewYear = (game as any).tag === 'newyear';
 
       let message: string;
       if (isHalloween) {
         message = `<b>🎃👻 SPOOKY VOLLEYBALL NIGHT! 👻🎃</b>\n\n🦇 <b>Halloween Special Game Registration Open!</b> 🦇\n\nGet ready for a frightfully fun volleyball night on <b>${formattedDate}</b>${locationText}\n\n🕷️ Costumes encouraged! 🕸️\n🎃 Spooky vibes guaranteed! 🎃\n👻 Limited to ${game.maxPlayers} brave players! 👻\n\n<i>Dare to join? Click below if you're not too scared...</i> 😈`;
+      } else if (isNewYear) {
+        message = `<b>❄️🎄 FESTIVE VOLLEYBALL NIGHT! 🎄❄️</b>\n\n⛷️ <b>New Year Special Game Registration Open!</b> ⛷️\n\nGet ready for a festive volleyball night on <b>${formattedDate}</b>${locationText}\n\n❄️ Winter vibes! ❄️\n🎄 Festive fun guaranteed! 🎄\n☃️ Limited to ${game.maxPlayers} players! ☃️\n\n<i>Join us for a magical winter volleyball experience!</i> ⛸️`;
       } else {
         message = `<b>🏐 New Volleyball Game Registration Open!</b>\n\nRegistration is now open for the game on <b>${formattedDate}</b>${locationText}\n\nSpots are limited to ${game.maxPlayers} players. First come, first served!\n\nClick the button below to join:`;
       }

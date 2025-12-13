@@ -7,6 +7,7 @@ import GuestRegistrationDialog from "../components/GuestRegistrationDialog";
 import BringBallDialog from "../components/BringBallDialog";
 import { UserSearchInput } from "../components/UserSearchInput";
 import { HalloweenDecorations } from "../components/HalloweenDecorations";
+import { NewYearPageDecorations } from "../components/NewYearPageDecorations";
 import { formatDisplayPricingInfo } from "../utils/pricingUtils";
 import { resolveLocationLink } from "../utils/locationUtils";
 import "./GameDetails.scss";
@@ -100,22 +101,6 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
   }, [user.isAdmin, gameData.game?.isAssignedAdmin, gameData.game, viewModel]);
 
 
-  // Generate random positions for falling leaves - must be before early returns
-  const fallingLeaves = useMemo(() => {
-    if (!gameData.game || gameData.game.tag !== 'halloween') return [];
-    
-    const leaves = ['🍂', '🍁'];
-    const leafCount = 8;
-    
-    return Array.from({ length: leafCount }, (_, i) => ({
-      emoji: leaves[i % 2],
-      left: `${10 + Math.random() * 80}%`, // Random position between 10-90%
-      animationDelay: `${i * 1.5}s`,
-      animationDuration: `${8 + Math.random() * 3}s`, // 8-11s
-      fontSize: `${20 + Math.random() * 6}px`, // 20-26px
-      opacity: 0.3 + Math.random() * 0.1, // 0.3-0.4
-    }));
-  }, [gameData.game]);
 
   if (gameData.isLoading) {
     return <LoadingSpinner />;
@@ -157,30 +142,15 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
   } = viewModel.getMainButtonProps();
 
   const isHalloween = gameData.game.tag === 'halloween';
+  const isNewYear = gameData.game.tag === 'newyear';
 
   return (
-    <div className={`game-details-container ${isHalloween ? 'halloween-theme' : ''}`}>
+    <div className={`game-details-container ${isHalloween ? 'halloween-theme' : ''} ${isNewYear ? 'newyear-theme' : ''}`}>
       {isHalloween && (
-        <>
-          <HalloweenDecorations variant="page" />
-          <div className="falling-leaves-layer">
-            {fallingLeaves.map((leaf, index) => (
-              <div
-                key={index}
-                className="leaf"
-                style={{
-                  left: leaf.left,
-                  animationDelay: leaf.animationDelay,
-                  animationDuration: leaf.animationDuration,
-                  fontSize: leaf.fontSize,
-                  opacity: leaf.opacity,
-                }}
-              >
-                {leaf.emoji}
-              </div>
-            ))}
-          </div>
-        </>
+        <HalloweenDecorations variant="page" showFallingLeaves={true} />
+      )}
+      {isNewYear && (
+        <NewYearPageDecorations />
       )}
       {inTelegram && (
         <BackButton onClick={() => navigate("/")} />
@@ -292,6 +262,14 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
         <div className="halloween-note">
           <p>
             🎃 Halloween Special! Get ready for a spooky volleyball night! 👻🦇
+          </p>
+        </div>
+      )}
+
+      {isNewYear && (
+        <div className="newyear-note">
+          <p>
+            ❄️ New Year Special! Get ready for a festive volleyball night! 🎄☃️
           </p>
         </div>
       )}
