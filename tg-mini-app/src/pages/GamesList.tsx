@@ -7,6 +7,7 @@ import { isGameUpcoming } from '../utils/gameDateUtils';
 import { resolveLocationLink } from '../utils/locationUtils';
 import { HalloweenDecorations } from '../components/HalloweenDecorations';
 import { NewYearDecorations } from '../components/NewYearDecorations';
+import { March8Decorations } from '../components/March8Decorations';
 import LoadingSpinner from '../components/LoadingSpinner';
 import UnpaidGamesList from '../components/UnpaidGamesList';
 import CategoryMultiSelect from '../components/CategoryMultiSelect';
@@ -26,14 +27,16 @@ const GameItem = memo(({ game, onClick, formatDate }: {
   const isUpcomingGame = isGameUpcoming(game.dateTime);
   const isHalloween = game.tag === 'halloween';
   const isNewYear = game.tag === 'newyear';
-  
+  const isMarch8 = game.tag === 'march8';
+
   return (
     <div
-      className={`game-card ${game.isUserRegistered ? 'registered' : ''} ${isHalloween ? 'halloween-theme' : ''} ${isNewYear ? 'newyear-theme' : ''} ${game.withPositions ? 'with-positions' : 'without-positions'}`}
+      className={`game-card ${game.isUserRegistered ? 'registered' : ''} ${isHalloween ? 'halloween-theme' : ''} ${isNewYear ? 'newyear-theme' : ''} ${isMarch8 ? 'march8-theme' : ''} ${game.withPositions ? 'with-positions' : 'without-positions'}`}
       onClick={() => onClick(game.id)}
     >
       {isHalloween && <HalloweenDecorations variant="card" />}
       {isNewYear && <NewYearDecorations variant="card" />}
+      {isMarch8 && <March8Decorations variant="card" />}
       <div className="game-header">
         <div className="game-header-top">
           <div className="game-date-location">
@@ -124,13 +127,15 @@ const GameItemsList = memo(({
       {games.map((game) => {
         const isHalloween = game.tag === 'halloween';
         const isNewYear = game.tag === 'newyear';
+        const isMarch8 = game.tag === 'march8';
         return (
           <div 
             key={game.id} 
-            className={`game-card-wrapper ${isHalloween ? 'halloween-wrapper' : ''} ${isNewYear ? 'newyear-wrapper' : ''}`}
+            className={`game-card-wrapper ${isHalloween ? 'halloween-wrapper' : ''} ${isNewYear ? 'newyear-wrapper' : ''} ${isMarch8 ? 'march8-wrapper' : ''}`}
           >
             {isHalloween && <div className="leaf-layer" />}
             {isNewYear && <div className="snowflake-layer" />}
+            {isMarch8 && <div className="petal-layer" />}
             <GameItem 
               game={game} 
               onClick={handleGameClick}

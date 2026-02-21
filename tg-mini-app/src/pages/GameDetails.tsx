@@ -8,6 +8,7 @@ import BringBallDialog from "../components/BringBallDialog";
 import { UserSearchInput } from "../components/UserSearchInput";
 import { HalloweenDecorations } from "../components/HalloweenDecorations";
 import { NewYearPageDecorations } from "../components/NewYearPageDecorations";
+import { March8PageDecorations } from "../components/March8PageDecorations";
 import { formatDisplayPricingInfo } from "../utils/pricingUtils";
 import { resolveLocationLink } from "../utils/locationUtils";
 import "./GameDetails.scss";
@@ -143,14 +144,18 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
 
   const isHalloween = gameData.game.tag === 'halloween';
   const isNewYear = gameData.game.tag === 'newyear';
+  const isMarch8 = gameData.game.tag === 'march8';
 
   return (
-    <div className={`game-details-container ${isHalloween ? 'halloween-theme' : ''} ${isNewYear ? 'newyear-theme' : ''}`}>
+    <div className={`game-details-container ${isHalloween ? 'halloween-theme' : ''} ${isNewYear ? 'newyear-theme' : ''} ${isMarch8 ? 'march8-theme' : ''}`}>
       {isHalloween && (
         <HalloweenDecorations variant="page" showFallingLeaves={true} />
       )}
       {isNewYear && (
         <NewYearPageDecorations />
+      )}
+      {isMarch8 && (
+        <March8PageDecorations />
       )}
       {inTelegram && (
         <BackButton onClick={() => navigate("/")} />
@@ -261,7 +266,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
       {isHalloween && (
         <div className="halloween-note">
           <p>
-            🎃 Halloween Special! Get ready for a spooky volleyball night! 👻🦇
+            🎃 Halloween Special! Get ready for a spooky volleyball evening! 👻🦇
           </p>
         </div>
       )}
@@ -269,7 +274,15 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
       {isNewYear && (
         <div className="newyear-note">
           <p>
-            ❄️ New Year Special! Get ready for a festive volleyball night! 🎄☃️
+            ❄️ New Year Special! Get ready for a festive volleyball evening! 🎄☃️
+          </p>
+        </div>
+      )}
+
+      {isMarch8 && (
+        <div className="march8-note">
+          <p>
+            🌸 March 8 Special! Spring, flowers &amp; beauty — get ready for a lovely volleyball evening! 💐🌷
           </p>
         </div>
       )}
