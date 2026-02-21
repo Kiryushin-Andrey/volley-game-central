@@ -45,6 +45,12 @@ api.interceptors.response.use(
   }
 );
 
+/** Public endpoint: server build timestamp for reload-on-deploy detection */
+export const getBuildInfo = async (): Promise<{ buildTimestamp: string }> => {
+  const response = await api.get<{ buildTimestamp: string }>('/build-info');
+  return response.data;
+};
+
 // User-related API endpoints
 export const userApi = {
   /**

@@ -4,6 +4,8 @@
   "description": "Backend for Volley Game Central",
   "main": "dist/index.js",
   "scripts": {
+    "prebuild": "node scripts/inject-build-info.js",
+    "predev": "node scripts/inject-build-info.js",
     "dev": "npm run wait-for-db && npm run migrate && ts-node-dev --respawn src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",

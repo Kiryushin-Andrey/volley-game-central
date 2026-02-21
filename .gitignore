@@ -25,6 +25,9 @@ coverage/
 # TypeScript incremental build files
 *.tsbuildinfo
 
+# Backend build-time generated source (timestamp injected by scripts/inject-build-info.js)
+backend/src/buildInfo.generated.ts
+
 # Environment variable files (keep examples)
 .env
 .env.*

@@ -17,6 +17,7 @@ import cookieParser from 'cookie-parser';
 import { authMiddleware } from './middleware/auth';
 import { adminAuthMiddleware } from './middleware/adminAuth';
 import { adminOrAssignedAdminMiddleware } from './middleware/adminOrAssignedAdmin';
+import { BUILD_TIMESTAMP } from './buildInfo.generated';
 
 // Initialize Express app
 const app = express();
@@ -41,6 +42,10 @@ app.use(cookieParser());
 // Public routes
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
+});
+
+app.get('/build-info', (_req, res) => {
+  res.status(200).json({ buildTimestamp: BUILD_TIMESTAMP });
 });
 
 // Public webhooks (no auth)

@@ -14,7 +14,7 @@ import PhoneAuth from './components/auth/PhoneAuth';
 import './App.scss';
 import { logDebug, isDebugMode } from './debug';
 import { initAppTheme } from './utils/theme';
-import { authApi, userApi } from './services/api';
+import { authApi, userApi, getBuildInfo } from './services/api';
 import EditDisplayNameDialog from './components/EditDisplayNameDialog';
 import { getTelegramStartParam, parseGameIdFromStartParam } from './utils/telegram';
 
@@ -86,6 +86,31 @@ function App() {
   React.useEffect(() => {
     const cleanup = initAppTheme();
     return cleanup;
+  }, []);
+
+  // Poll server build info every minute; reload if backend was redeployed (new build timestamp)
+  React.useEffect(() => {
+    const initialBuildTimestampRef = { current: null as string | null };
+    const pollIntervalMs = 60 * 1000;
+
+    const checkBuildInfo = async () => {
+      try {
+        const { buildTimestamp } = await getBuildInfo();
+        if (initialBuildTimestampRef.current === null) {
+          initialBuildTimestampRef.current = buildTimestamp;
+          return;
+        }
+        if (initialBuildTimestampRef.current !== buildTimestamp) {
+          window.location.reload();
+        }
+      } catch {
+        // Ignore errors (e.g. offline); keep polling
+      }
+    };
+
+    void checkBuildInfo();
+    const intervalId = setInterval(() => void checkBuildInfo(), pollIntervalMs);
+    return () => clearInterval(intervalId);
   }, []);
 
   // Define content based on app state
