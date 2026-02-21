@@ -61,7 +61,6 @@ DATABASE_URL=postgresql://username:password@host:port/database
 #### Mini-App (.env)
 ```
 VITE_API_BASE_URL=https://your-backend-url.com
-VITE_TELEGRAM_BOT_TOKEN=your_bot_token_here
 ```
 
 ### 5. Update CORS Configuration

@@ -1,7 +1,13 @@
 export type PopupButton = { type: 'ok' | 'cancel' | 'destructive'; id?: string; text?: string };
 
+export type ShowPopupArgs = {
+  title: string;
+  message: string;
+  buttons?: PopupButton[];
+};
+
 // Imperative service wired by DialogProvider at runtime
-let _showPopup: ((args: { title: string; message: string; buttons?: PopupButton[] }, cb?: (id?: string) => void) => void) | null = null;
+let _showPopup: ((args: ShowPopupArgs, cb?: (id?: string) => void) => void) | null = null;
 let _showConfirm: ((message: string, cb: (confirmed: boolean) => void) => void) | null = null;
 
 export const dialogService = {
@@ -13,7 +19,7 @@ export const dialogService = {
     _showPopup = null;
     _showConfirm = null;
   },
-  showPopup(args: { title: string; message: string; buttons?: PopupButton[] }, cb?: (id?: string) => void) {
+  showPopup(args: ShowPopupArgs, cb?: (id?: string) => void) {
     if (_showPopup) return _showPopup(args, cb);
     // No provider mounted; no-op fallback
     alert(`${args.title}\n${args.message}`);

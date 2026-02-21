@@ -29,9 +29,9 @@ bot.on('text', (ctx) => {
     }
     
     // For regular text messages, inform about the bot's purpose and community groups
-    const message = `🤖 I'm just a Telegram bot for registering for volleyball games.
+    const message = `🤖 I'm the Telegram bot for registering for volleyball games.
 
-If you want to talk to people, join one of our community groups:
+Please join one of our community groups before registering for games:
 
 <b>Telegram Group</b> (mostly Russian-speaking)
 https://t.me/+nZxG6L8bbcxhMTg0
@@ -68,6 +68,23 @@ export function buildBotUrl(botUsername: string, gameId?: number): string {
   }
   // Use game_{id} format for the start parameter to make it clear this is a game link
   return `${baseUrl}?startapp=game_${gameId}`;
+}
+
+/**
+ * Check whether a Telegram user is in the volleyball group.
+ * Used when registering for games. If TELEGRAM_GROUP_ID is not set, returns true (check skipped).
+ */
+export async function checkTelegramGroupMembership(telegramId: string): Promise<boolean> {
+  if (!TELEGRAM_GROUP_ID) {
+    return true;
+  }
+  try {
+    const member = await bot.telegram.getChatMember(TELEGRAM_GROUP_ID, parseInt(telegramId, 10));
+    return ['creator', 'administrator', 'member'].includes(member.status);
+  } catch (err) {
+    console.error('Error checking Telegram group membership:', err);
+    return false;
+  }
 }
 
 /**

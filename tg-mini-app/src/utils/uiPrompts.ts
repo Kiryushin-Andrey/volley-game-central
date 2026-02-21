@@ -1,14 +1,14 @@
 import { isTelegramApp } from './telegram';
-import { dialogService, type PopupButton } from '../services/dialogService';
+import { dialogService, type ShowPopupArgs } from '../services/dialogService';
 
-export const showPopup = (args: { title: string; message: string; buttons?: PopupButton[] }, cb?: (id?: string) => void) => {
+export const showPopup = (args: ShowPopupArgs, cb?: (id?: string) => void) => {
   const wa = (window as any)?.Telegram?.WebApp;
   const buttons = args.buttons || [{ type: 'ok' }];
-  if (isTelegramApp() && wa?.showPopup) {
+  const hasCustomButtonText = args.buttons?.some((b) => b.text);
+  if (isTelegramApp() && wa?.showPopup && !hasCustomButtonText) {
     return wa.showPopup({ title: args.title, message: args.message, buttons }, cb);
   }
-  // Fallback: React-based modal via service
-  dialogService.showPopup({ title: args.title, message: args.message, buttons }, cb);
+  dialogService.showPopup(args, cb);
 };
 
 export const showConfirm = (message: string, cb: (confirmed: boolean) => void) => {

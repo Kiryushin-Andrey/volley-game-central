@@ -207,11 +207,37 @@ export class GameDetailsViewModel {
       logDebug(err);
       if (err.response?.status === 403) {
         const errData = err.response?.data;
-        if (errData?.registrationOpensAt) {
+        if (typeof errData !== 'object' || errData === null) {
+          showPopup({ title: 'Cannot register', message: 'You cannot register for this game. Please try again or contact the organizers.', buttons: [{ type: 'ok' }] });
+        } else if (errData?.registrationOpensAt) {
           const openDate = new Date(errData.registrationOpensAt);
           alert(`Registration is only possible starting ${openDate.toLocaleDateString()} (X days before the game).`);
+        } else if (errData?.code == 'TELEGRAM_GROUP_REQUIRED') {
+          const message = errData?.error || 'To register for games you must join our Telegram group.';
+          const link = import.meta.env.VITE_TELEGRAM_GROUP_INVITE_LINK;
+
+          if (link) {
+            showPopup({
+              title: 'Join the group',
+              message,
+              buttons: [
+                { type: 'ok', text: 'Join group', id: 'open_group' },
+                { type: 'cancel', text: 'Close', id: 'close' }
+              ]
+            }, (id) => {
+              if (id === 'open_group') {
+                const wa = (window as any)?.Telegram?.WebApp;
+                if (wa?.openLink) wa.openLink(link);
+                else if (typeof window !== 'undefined') window.open(link, '_blank');
+              }
+            });
+          } else {
+            showPopup({ title: 'Join the group', message, buttons: [{ type: 'ok' }] });
+          }
+        } else if (errData?.error) {
+          showPopup({ title: 'Cannot register', message: errData.error, buttons: [{ type: 'ok' }] });
         } else {
-          alert('You cannot register for this game yet due to timing restrictions.');
+          showPopup({ title: 'Cannot register', message: 'You cannot register for this game. Please try again or contact the organizers.', buttons: [{ type: 'ok' }] });
         }
       } else {
         alert('Failed to register for game. Please try again.');

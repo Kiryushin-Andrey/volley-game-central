@@ -5,6 +5,7 @@ import { gte, desc, inArray, eq, and, sql, lt, lte, asc, isNull, or } from 'driz
 import type { InferSelectModel } from 'drizzle-orm';
 import { REGISTRATION_OPEN_DAYS, GUEST_REGISTRATION_OPEN_DAYS, REGULAR_PLAYER_REGISTRATION_OPEN_DAYS } from '../constants';
 import { notifyUser } from '../services/notificationService';
+import { checkTelegramGroupMembership } from '../services/telegramService';
 import { getNotificationSubjectWithVerb } from '../utils/notificationUtils';
 import { formatGameDate } from '../utils/dateUtils';
 import { isUserAssignedToGameById } from '../middleware/adminOrAssignedAdmin';
@@ -103,6 +104,17 @@ router.post('/:gameId/register', async (req, res) => {
       return res.status(403).json({
         error: `You are blocked from registering for games: ${req.user.blockReason}`,
       });
+    }
+
+    // Enforce Telegram group: Telegram users must be in the volleyball group
+    if (req.user.telegramId) {
+      const inGroup = await checkTelegramGroupMembership(req.user.telegramId);
+      if (!inGroup) {
+        return res.status(403).json({
+          error: 'To register for games you must join our Telegram group.',
+          code: 'TELEGRAM_GROUP_REQUIRED'
+        });
+      }
     }
 
     // Check if game exists and has space

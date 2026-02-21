@@ -103,7 +103,7 @@ function App() {
   
   // If no authenticated user at all (neither Telegram nor JWT), show auth choice
   else if (!user) {
-    const botName = (import.meta.env.VITE_TELEGRAM_BOT_NAME as string | undefined);
+    const botName = import.meta.env.VITE_TELEGRAM_BOT_NAME;
     const telegramUrl = botName ? `https://t.me/${botName}` : undefined;
     content = (
       <div className="landing-container">
