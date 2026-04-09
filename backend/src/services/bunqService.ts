@@ -873,6 +873,23 @@ export const bunqService = {
       
       for (const [userId, userRegistrations] of unpaidUserGroups) {
         try {
+          const registrationIds = userRegistrations.map((r) => r.id);
+          const existingUnpaid = await db
+            .select({ id: paymentRequests.id })
+            .from(paymentRequests)
+            .where(
+              and(
+                inArray(paymentRequests.gameRegistrationId, registrationIds),
+                eq(paymentRequests.paid, false)
+              )
+            )
+            .limit(1);
+
+          // Idempotency: client retry (e.g. after HTTP 499) must not create duplicate Bunq inquiries
+          if (existingUnpaid.length > 0) {
+            continue;
+          }
+
           const userDetails = await db.select().from(users).where(eq(users.id, userId));
           
           if (!userDetails.length) {
@@ -942,7 +959,8 @@ export const bunqService = {
       }
 
       return {
-        success: requestsCreated > 0,
+        // True when nothing failed; 0 created is OK (nothing to do or idempotent replay)
+        success: errors.length === 0,
         requestsCreated,
         errors
       };
