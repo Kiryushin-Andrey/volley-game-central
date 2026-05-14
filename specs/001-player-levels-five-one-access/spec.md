@@ -7,14 +7,14 @@
 | **Feature branch** | `cursor/player-levels-five-one-spec-ee6d` |
 | **Status** | Draft (specification only) |
 | **Created** | 2026-05-14 |
-| **Scope** | Backend, database, Telegram mini-app (global admin UI; game create/edit form); **user notifications** (Telegram / `notifyUser` and in-app/API errors aligned with them) |
-| **Updated** | 2026-05-14 (no API backward compatibility; simultaneous FE/BE deploy) |
+| **Scope** | Backend, database, Telegram mini-app (global admin UI; game create/edit form); **FR-2 registration errors** (HTTP JSON + mini-app copy; **no** Telegram on failed register) |
+| **Updated** | 2026-05-14 (no Telegram on FR-2 registration denials) |
 
 ## Summary
 
 Introduce three internal player levels (`beginner`, `intermediate`, `advanced`) plus an **unassigned** default for new accounts. Levels control access only to games in the **with positions (5-1)** play mode. Levels must **not** appear anywhere in the UI for regular users and must **not** be exposed on general-purpose user APIs consumed by the mini-app. Only **global administrators** (`users.is_admin === true`, consistent with existing “global admin” patterns) may view and assign levels on a **dedicated admin page** listing all registered users. Whether FR-2 restrictions apply is controlled by a **hardcoded boolean in backend source** (default **off** until the team flips it in code for rollout). For **testing without code changes**, an **environment variable** may override that default (see FR-3). **No** database table, admin API, or mini-app control for this switch.
 
-**Notifications** are **in scope**: whenever player-level rules (FR-2) deny or defer registration for a **with positions** game while enforcement is **on** (FR-3), the product must define **user-facing messages** (API errors and Telegram where applicable) that explain the situation in plain language **without** naming internal levels (`beginner`, `intermediate`, `advanced`). Successful registration and waitlist flows continue to use the existing notification patterns (`notifyUser` in `backend/src/routes/games.ts`, `notificationService.ts`), extended only where needed for consistency with the new rules (e.g. include a formatted “opens at” date when the user is too early for roster or waitlist under FR-2).
+**FR-2 denials:** When player-level rules block registration for a **with positions** game with enforcement **on**, the product must return **clear HTTP error payloads** (and matching mini-app handling) **without** naming internal levels (`beginner`, `intermediate`, `advanced`). **Do not** send Telegram (or other push) for these failed registration attempts—same as other registration rejection paths today. **Successful** roster and waitlist registrations continue to use existing **`notifyUser`** patterns in `backend/src/routes/games.ts`.
 
 **Game configuration change:** Replace the two independent booleans (`with_positions`, `with_priority_players`) with a **single control**—a select whose options are **with positions** (5-1), **with priority players** (non–5-1 games that use the priority registration window), and **regular game** (neither). Exactly one mode applies per game, so priority timing and 5-1 positioning are never combined on the same row.
 
@@ -23,7 +23,7 @@ Introduce three internal player levels (`beginner`, `intermediate`, `advanced`) 
 ### Session 2026-05-14
 
 - Q: How must FR-2 (player level) interact with the existing registration-open window (`getRegistrationOpenDays` / `registrationOpensAt` for the game’s play mode)? → A: **All checks apply (logical AND).** The player must already be allowed by today’s registration timing rules for that game; FR-2 then **adds** beginner/intermediate constraints on top. For **with positions** games without priority mode, the general open instant is earlier than the intermediate FR-2 instant; the effective moment an intermediate user may first register is the **later** of the two instants (the stricter combined gate).
-- Q: Should repeated FR-2 registration failures spam Telegram? → A: **Dedupe short window:** do not send a second Telegram for the same user, same game, and same denial class within **60 seconds** (still return HTTP error every time).
+- Q: Should repeated FR-2 registration failures spam Telegram? → A: **No Telegram on FR-2 denials** (or any registration rejection). Only the HTTP response / mini-app surface informs the user; no dedupe logic required for push on denial.
 - Q: Should HTTP responses expose machine-readable codes for FR-2 denials (for the mini-app and tests)? → A: **Yes:** include stable `code` values (e.g. `FIVE_ONE_LEVEL_NOT_ELIGIBLE`, `FIVE_ONE_LEVEL_WINDOW`) plus `registrationOpensAt` when the denial is time-window based, mirroring the shape used for early registration errors today.
 - Q: Must create/update game APIs accept the old `with_positions` / `with_priority_players` request shape? → A: **No.** Backend and mini-app deploy **together**; only the new **play mode** field (single value) is accepted on write—no transitional dual-boolean payloads.
 - Q: Must the global-admin “all users” list API handle large user tables? → A: **Paginated admin API** (page or cursor) with default limit **100** rows and optional `q` search on display name / telegram username; the mini-app page loads pages (or infinite scroll) so the server never returns an unbounded full user set.
@@ -59,10 +59,10 @@ Introduce three internal player levels (`beginner`, `intermediate`, `advanced`) 
 
 11. **As a global admin creating or editing a game**, I choose **one** play mode from a single select: **with positions**, **with priority players**, or **regular game**—not two separate checkboxes.
 
-### P4 — Notifications (player-facing, privacy-safe)
+### P4 — Player-facing errors and success notifications
 
-12. **As a player** blocked or deferred by FR-2 when registering for a **with positions** game (enforcement on), I receive a **clear Telegram notification** (when the user has a deliverable Telegram or phone channel per existing `notifyUser` rules) and a **consistent API error** in the mini-app, so I understand what happened without seeing internal level names.
-13. **As a player** who successfully registers or joins the waitlist under the new rules, I receive the **same style of success/waitlist Telegram messages** as today, unless copy must be adjusted to avoid implying incorrect rules—any adjustment must still avoid internal level vocabulary.
+12. **As a player** blocked or deferred by FR-2 when registering for a **with positions** game (enforcement on), I see a **consistent API error** in the mini-app (and HTTP body) that explains the situation in plain language **without** internal level names—**no** Telegram or other push for this failure.
+13. **As a player** who successfully registers or joins the waitlist, I still receive the **same Telegram success/waitlist messages** as today (`notifyUser`), unless copy must be tweaked for accuracy—never with internal level vocabulary.
 
 ## Functional requirements
 
@@ -117,7 +117,7 @@ All endpoints must verify `req.user.isAdmin` (or shared middleware equivalent).
 - New route (e.g. `/player-levels` or `/admin/player-levels`) visible only when `user.isAdmin`, with a navigation entry in the same admin icon cluster as existing global-admin tools (see `GamesList.tsx` patterns).
 - Page implements the sort order in FR P3 **within the current page**; when paginating, apply global sort by **fetching or sorting server-side** so ordering is consistent across pages (recommended: server-side sort + cursor/page).
 - Global-admin game create/edit implements the **play mode** select per FR-0 (this is not a “player level” surface; it replaces two booleans with one control).
-- No changes to game cards, game details, category copy, or registration flows that **reveal player skill level** to non-admins. If the API returns a rejection for beginners, use a **generic** message that does not mention “beginner” or internal level names (e.g. “You cannot register for this game.”); see **FR-7** for Telegram alignment.
+- No changes to game cards, game details, category copy, or registration flows that **reveal player skill level** to non-admins. If the API returns a rejection for beginners, use a **generic** message that does not mention “beginner” or internal level names (e.g. “You cannot register for this game.”); see **FR-7** for the JSON error shape.
 
 ### FR-6 — Security and privacy
 
@@ -125,14 +125,13 @@ All endpoints must verify `req.user.isAdmin` (or shared middleware equivalent).
 - Server must enforce FR-2 on **every** player-driven registration path for **with positions** games when enforcement is **on** (FR-3) (primary entry: `POST /games/:gameId/register` in `backend/src/routes/games.ts`).
 - **Admin backfill / correction:** Routes used by global or assigned admins to add or adjust participants outside the normal player flow (including **past-game participant** endpoints in `backend/src/routes/gamesAdmin.ts`, e.g. `POST /:gameId/participants`) **must bypass all player-level checks** entirely, regardless of enforcement switch state.
 
-### FR-7 — Notifications (Telegram and API consistency)
+### FR-7 — API errors for FR-2 denials (no outbound notification on failure)
 
-- **In scope:** All player-visible outcomes of FR-2 on the normal registration path (`POST /games/:gameId/register` and any shared helper that enforces the same rules), including Telegram delivery via **`notifyUser`** (`backend/src/services/notificationService.ts`, used from `backend/src/routes/games.ts`) where the user is eligible for notifications today.
-- **Privacy:** User-facing strings (Telegram HTML and JSON `error` bodies) must **not** contain internal level identifiers or labels (`beginner`, `intermediate`, `advanced`, database enum values). Use neutral copy: e.g. for “too early for this game type” include the computed **registration opens at** timestamp/date; for “not eligible for this game type” use a short explanation that points to organizers or existing group norms without naming a stored level.
-- **Denial / deferral:** When FR-2 rejects a registration attempt, send a Telegram message **in addition to** the HTTP error response (unless `notifyUser` is suppressed in dev mode—then behavior matches existing notification suppression). Reuse one shared wording source where possible so API and Telegram do not drift. Apply **60-second deduplication** per (user, game, denial class) so rapid retries do not spam Telegram (see Clarifications session).
-- **HTTP shape:** FR-2 denials return stable `code` fields (`FIVE_ONE_LEVEL_NOT_ELIGIBLE`, `FIVE_ONE_LEVEL_WINDOW`, names finalizable in implementation) and include `registrationOpensAt` when the failure is time-based, consistent with existing early-registration JSON responses.
-- **Success unchanged:** Successful roster and waitlist registrations keep the existing success/waitlist notification behavior unless a wording tweak is required for factual accuracy; do not introduce level names there.
-- **Out of scope for notifications:** Marketing pushes, digest emails, and **admin-only** audit logs (optional later). Optional “notify user when an admin changes their level” is **not** required for the first delivery unless time permits—if implemented, messages must still follow the same **no internal level names** rule.
+- **FR-2 registration denials:** Return **only** an HTTP error response (e.g. **403**) with a JSON body that follows the same conventions as existing registration errors (`error` string, optional `code`, optional `registrationOpensAt` when time-based). The mini-app displays that message. **Do not** call **`notifyUser`** (or send any Telegram/push) solely because an FR-2 check failed—failed registration behaves like today’s other rejected register attempts (JSON only).
+- **Privacy:** `error` and any user-visible mini-app strings for these responses must **not** contain internal level identifiers or labels (`beginner`, `intermediate`, `advanced`, raw enum values). Use neutral copy; include **registrationOpensAt** when the denial is window-based.
+- **HTTP shape:** Use stable `code` values (e.g. `FIVE_ONE_LEVEL_NOT_ELIGIBLE`, `FIVE_ONE_LEVEL_WINDOW`, names finalizable in implementation) plus `registrationOpensAt` when applicable, consistent with existing early-registration JSON responses.
+- **Success unchanged:** After a **successful** insert, keep existing **`notifyUser`** success and waitlist messages; do not introduce level names there.
+- **Out of scope:** Telegram (or other push) on registration failure for FR-2 or elsewhere; marketing pushes; admin audit logs for denials.
 
 ## Success criteria (measurable)
 
@@ -141,7 +140,7 @@ All endpoints must verify `req.user.isAdmin` (or shared middleware equivalent).
 - With enforcement **on** (constant or env), an automated test matrix covers: beginner blocked; intermediate before T-3 days blocked for roster but can waitlist after T-3 when full; intermediate at T-3 with spots can roster; advanced/unassigned always pass level gate (subject only to existing timing rules).
 - Non-admin API consumers never receive `player_level` in JSON for scoped manual review (contract test or snapshot of DTOs).
 - Global admin page loads users with correct ordering for a fixture dataset **through pagination** (no single response that assumes entire table fits in memory).
-- With enforcement **on** and restrictions firing, automated or manual QA confirms: (a) Telegram + API copy for FR-2 denials contain **no** internal level vocabulary; (b) successful register/waitlist still receives notifications consistent with pre-feature behavior; (c) FR-2 HTTP responses include stable `code` and time fields where specified.
+- With enforcement **on** and restrictions firing, automated or manual QA confirms: (a) FR-2 denial **JSON** (and mini-app copy) contain **no** internal level vocabulary; **no** `notifyUser` call on those failures; (b) successful register/waitlist still receives existing Telegram notifications; (c) FR-2 HTTP responses include stable `code` and time fields where specified.
 
 ## Key entities
 
@@ -153,11 +152,11 @@ All endpoints must verify `req.user.isAdmin` (or shared middleware equivalent).
 
 - **User level changed after registration**: Do not retroactively remove existing registrations; restrictions apply at **registration attempt** time only (unless product later requests migration jobs).
 - **Clock skew**: Use server time consistently with existing registration checks.
-- **Repeated FR-2 failures:** HTTP errors return every time; Telegram obeys **60s dedupe** per user/game/denial-class (Clarifications session).
+- **Repeated FR-2 failures:** Each attempt returns HTTP error JSON; no outbound notification on denial.
 
 ## Implementation notes (repository context)
 
-- Registration and waitlist ordering live in `backend/src/routes/games.ts` (`POST /:gameId/register`); `getRegistrationOpenDays` and related helpers branch on priority vs non-priority—those branches map to play mode after FR-0. Registration notifications and new FR-2 denial notifications should route through **`notifyUser`** like existing register success/failure patterns in the same file.
+- Registration and waitlist ordering live in `backend/src/routes/games.ts` (`POST /:gameId/register`); `getRegistrationOpenDays` and related helpers branch on priority vs non-priority—those branches map to play mode after FR-0. On **success**, keep using **`notifyUser`** as today. On **FR-2 denial**, return JSON only—**do not** invoke `notifyUser` for that outcome.
 - Game admin create/update: `backend/src/routes/gamesAdmin.ts`; form state: `tg-mini-app/src/viewmodels/GameFormViewModel.ts` and `GameFormFields.tsx`.
 - Global admin checks in UI: `user.isAdmin` in `tg-mini-app/src/pages/*`.
 - User admin patterns: `backend/src/routes/usersAdmin.ts` for precedent on admin-only user operations.
@@ -167,4 +166,4 @@ All endpoints must verify `req.user.isAdmin` (or shared middleware equivalent).
 
 - Showing level to assigned day administrators.
 - Per-game overrides, appeals, or self-service level requests.
-- **Surfacing internal level names** (`beginner`, `intermediate`, `advanced`, raw enum values) in user-facing Telegram or mini-app copy—disallowed; use FR-7-style explanatory text instead.
+- **Surfacing internal level names** (`beginner`, `intermediate`, `advanced`, raw enum values) in user-facing **API or mini-app** copy—disallowed; use FR-7-style neutral `error` text instead.

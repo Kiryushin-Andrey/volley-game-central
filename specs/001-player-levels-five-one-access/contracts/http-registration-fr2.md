@@ -2,6 +2,8 @@
 
 Applies to `POST /games/:gameId/register` when **enforcement is on** (hardcoded default + optional `FIVE_ONE_LEVEL_RESTRICTIONS_ENABLED` env per FR-3), game `play_mode === 'with_positions'`, and FR-2 blocks the attempt.
 
+**No Telegram** (or other push) is sent for this failure—only the HTTP response below and mini-app handling.
+
 ## Error envelope (403)
 
 Align with existing early-registration JSON in `games.ts`:
@@ -19,7 +21,5 @@ Align with existing early-registration JSON in `games.ts`:
 |--------|------|
 | `FIVE_ONE_LEVEL_NOT_ELIGIBLE` | Beginner (or policy “not eligible”) — **omit** `registrationOpensAt` if N/A |
 | `FIVE_ONE_LEVEL_WINDOW` | Intermediate (or similar) **before** allowed instant — **include** `registrationOpensAt` |
-
-**Telegram:** Same human text as `error` (or templated variant) via `notifyUser`, subject to **60s dedupe** per user/game/code.
 
 **Note:** Field names (`gameDateTime`, etc.) should match existing registration denial payloads for client reuse.

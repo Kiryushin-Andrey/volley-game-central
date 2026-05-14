@@ -23,7 +23,7 @@ Confirm columns: `users.player_level`, `games.play_mode` (or equivalent).
 
 ## 3. Seed data for manual matrix
 
-- Create or pick three users (Telegram-linked if testing `notifyUser`): assign levels **beginner**, **intermediate**, **advanced** via admin API or SQL.
+- Create or pick three users (Telegram-linked if testing **success** `notifyUser`): assign levels **beginner**, **intermediate**, **advanced** via admin API or SQL.
 - Leave one user **NULL** level (unassigned).
 - Create a future **with positions** game with open registration per existing rules.
 
@@ -37,10 +37,9 @@ Confirm columns: `users.player_level`, `games.play_mode` (or equivalent).
 
 Cross-check **403 JSON** includes `code` and optional `registrationOpensAt` (time-window denials).
 
-## 5. Telegram
+## 5. Successful registration Telegram
 
-- Successful register: unchanged messages.
-- FR-2 denial: message sent **once** within 60s for repeated identical failures (spam test).
+- Unchanged: after insert, `notifyUser` still sends roster vs waitlist messages.
 
 ## 6. Enforcement OFF
 

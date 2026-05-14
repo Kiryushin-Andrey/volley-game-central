@@ -8,9 +8,9 @@
 
 ## Summary
 
-Add optional **player skill levels** on users, **enforcement of FR-2** for **5-1 (with positions)** games when a **hardcoded backend flag** (with **env override** for testing) is on, **FR-2** checks on `POST /games/:gameId/register` (stacked with existing timing), **privacy-safe Telegram + JSON errors**, **paginated global-admin APIs** for listing/updating levels, a **mini-app admin page** for levels, and refactor **game configuration** to a **single play mode** replacing `with_positions` + `with_priority_players`. Admin backfill routes skip all level checks. **No** persisted global settings row for enforcement.
+Add optional **player skill levels** on users, **enforcement of FR-2** for **5-1 (with positions)** games when a **hardcoded backend flag** (with **env override** for testing) is on, **FR-2** checks on `POST /games/:gameId/register` (stacked with existing timing), **privacy-safe JSON errors** for FR-2 denials (mini-app only—**no** Telegram on failed register), **paginated global-admin APIs** for listing/updating levels, a **mini-app admin page** for levels, and refactor **game configuration** to a **single play mode** replacing `with_positions` + `with_priority_players`. Admin backfill routes skip all level checks. **No** persisted global settings row for enforcement.
 
-Technical approach: PostgreSQL + Drizzle migrations; Express route helpers shared by registration; optional in-process dedupe cache for FR-2 Telegram (document multi-instance caveat in [research.md](./research.md)); React mini-app pages and API client updates.
+Technical approach: PostgreSQL + Drizzle migrations; Express route helpers shared by registration; React mini-app pages and API client updates.
 
 ## Technical Context
 
@@ -28,7 +28,7 @@ Technical approach: PostgreSQL + Drizzle migrations; Express route helpers share
 
 **Performance Goals**: Admin user list p95 &lt; 500ms for default page (100 rows) with indexed sort columns; registration path adds O(1) settings read (cached in memory after first fetch acceptable).
 
-**Constraints**: Do not expose `player_level` on non-admin user DTOs; no internal level names in Telegram or public error strings; FR-2 AND existing registration-open checks.
+**Constraints**: Do not expose `player_level` on non-admin user DTOs; no internal level names in public error strings; FR-2 AND existing registration-open checks; **no** `notifyUser` on FR-2 registration denial.
 
 **Scale/Scope**: Hundreds to low thousands of users; pagination mandatory for admin directory.
 
@@ -69,7 +69,7 @@ backend/
 ├── drizzle/             # New SQL migrations
 ├── src/
 │   ├── db/schema.ts     # users, games (+ play_mode migration)
-│   ├── routes/games.ts  # Registration + FR-2 + notifyUser
+│   ├── routes/games.ts  # Registration + FR-2; notifyUser on success only
 │   ├── routes/gamesAdmin.ts
 │   ├── routes/usersAdmin.ts  # Extend or add level routes
 │   ├── services/notificationService.ts

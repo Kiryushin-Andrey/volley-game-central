@@ -30,13 +30,11 @@ Consolidates implementation decisions for [spec.md](./spec.md). No open NEEDS CL
 
 **Rationale:** Matches clarified spec; avoids widening early access.
 
-## 5. Telegram deduplication (60s)
+## 5. FR-2 registration denials: no push notification
 
-**Decision:** Use an **in-process** `Map` keyed by `${userId}:${gameId}:${denialCode}` with expiry timestamp; skip second `notifyUser` if key exists and `now < expiry`.
+**Decision:** On FR-2 failure, return HTTP error JSON only—**no** `notifyUser` / Telegram (same pattern as existing rejected registration attempts that do not notify).
 
-**Rationale:** Zero new infrastructure; sufficient for single Node instance.
-
-**Alternatives considered:** Redis — defer unless horizontally scaled; document in plan risks.
+**Rationale:** Product preference; avoids outbound noise and dedupe logic on failures.
 
 ## 6. Admin user list global sort + pagination
 
