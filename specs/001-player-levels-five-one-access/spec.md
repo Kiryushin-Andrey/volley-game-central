@@ -7,15 +7,19 @@
 | **Feature branch** | `cursor/player-levels-five-one-spec-ee6d` |
 | **Status** | Draft (specification only) |
 | **Created** | 2026-05-14 |
-| **Scope** | Backend, database, Telegram mini-app (global admin UI only) |
+| **Scope** | Backend, database, Telegram mini-app (global admin UI; game create/edit form) |
+| **Updated** | 2026-05-14 (game type select; admin bypass) |
 
 ## Summary
 
-Introduce three internal player levels (`beginner`, `intermediate`, `advanced`) plus an **unassigned** default for new accounts. Levels control access to **5-1 games** (games where `with_positions` / “5-1” is enabled in the existing data model). Levels must **not** appear anywhere in the UI for regular users and must **not** be exposed on general-purpose user APIs consumed by the mini-app. Only **global administrators** (`users.is_admin === true`, consistent with existing “global admin” patterns) may view and assign levels on a **dedicated admin page** listing all registered users. A **global toggle** must allow enabling or disabling all level-based restrictions for 5-1 games without a deployment, defaulting to **restrictions off** until operators explicitly turn them on.
+Introduce three internal player levels (`beginner`, `intermediate`, `advanced`) plus an **unassigned** default for new accounts. Levels control access only to games in the **with positions (5-1)** play mode. Levels must **not** appear anywhere in the UI for regular users and must **not** be exposed on general-purpose user APIs consumed by the mini-app. Only **global administrators** (`users.is_admin === true`, consistent with existing “global admin” patterns) may view and assign levels on a **dedicated admin page** listing all registered users. A **global toggle** must allow enabling or disabling all level-based restrictions for 5-1 games without a deployment, defaulting to **restrictions off** until operators explicitly turn them on.
+
+**Game configuration change:** Replace the two independent booleans (`with_positions`, `with_priority_players`) with a **single control**—a select whose options are **with positions** (5-1), **with priority players** (non–5-1 games that use the priority registration window), and **regular game** (neither). Exactly one mode applies per game, so priority timing and 5-1 positioning are never combined on the same row.
 
 ## Definitions
 
-- **5-1 game**: Any game where the existing `with_positions` flag is true (see `games.with_positions` in `backend/src/db/schema.ts` and registration logic in `backend/src/routes/games.ts`).
+- **Game play mode** (exactly one per game): **With positions** (5-1 scheme), **with priority players** (standard game using priority-player registration windows), or **regular game** (standard game without priority windows). This replaces the current pair of flags on `games` (see `backend/src/db/schema.ts`).
+- **5-1 game**: Any game whose play mode is **with positions** (5-1). Player-level restrictions (FR-2) apply only to this mode when the global toggle is on.
 - **Global admin**: User with `is_admin` true; same authorization model as pages guarded with `user.isAdmin` in the mini-app (e.g. `GameAdministrators.tsx`).
 - **Player level**: One of `beginner`, `intermediate`, `advanced`, or **null / unassigned** (no level stored).
 
@@ -24,7 +28,7 @@ Introduce three internal player levels (`beginner`, `intermediate`, `advanced`) 
 ### P1 — Access rules when restrictions are enabled globally
 
 1. **As a global admin**, I can turn 5-1 level restrictions on or off globally so we can roll out enforcement at a chosen time without code changes.
-2. **As an advanced player** (when restrictions are on), I can join 5-1 games under the same registration timing rules as today (including waitlist behavior when full).
+2. **As an advanced player** (when restrictions are on), I can join 5-1 games under the same registration timing rules as today for that play mode (including waitlist behavior when full).
 3. **As an intermediate player** (when restrictions are on), I can join a 5-1 game only starting **3 calendar days** before the game’s scheduled start time, and only if there is still at least one non-waitlist spot available; if the game is full, I may still join the **waitlist** (same ordering semantics as existing waitlist: first-come by `created_at`).
 4. **As a beginner** (when restrictions are on), I **cannot** register for a 5-1 game (neither active roster nor waitlist) via the normal player registration flow.
 5. **As a user with no level assigned** (when restrictions are on), I have the **same access as advanced** (unrestricted 5-1 access relative to these new rules), so legacy users and newcomers are not locked out until an admin assigns a restrictive level.
@@ -40,16 +44,27 @@ Introduce three internal player levels (`beginner`, `intermediate`, `advanced`) 
 9. **As a global admin**, the user list shows **unassigned** users first (any stable order within that group is acceptable; alphabetical by display name is recommended), then **advanced**, then **intermediate**, then **beginner**; within each of those three groups, users are sorted **alphabetically** by primary display name (case-insensitive), matching the product wording “from advanced to beginners” with unassigned on top.
 10. **As the system**, new users are created **without** a level; no automatic assignment on signup.
 
+11. **As a global admin creating or editing a game**, I choose **one** play mode from a single select: **with positions**, **with priority players**, or **regular game**—not two separate checkboxes.
+
 ## Functional requirements
 
-### FR-1 — Data model
+### FR-0 — Game play mode (schema and UI)
+
+- Replace the independent `with_positions` and `with_priority_players` columns with a **single persisted field** (recommended: enum / constrained varchar on `games`), or enforce a single effective mode with a DB constraint and migration from the two legacy booleans.
+- Allowed values map to the product select: **with positions** (5-1), **with priority players**, **regular game**.
+- **Invariant:** A game is never both “with positions” and “with priority players”; those capabilities are mutually exclusive by design.
+- **Mini-app:** In game create/edit (e.g. `tg-mini-app/src/components/GameFormFields.tsx`), replace the two checkboxes with **one** `<select>` (or an equally exclusive control) bound to that field.
+- **API:** Create/update game payloads expose one mode value; server rejects ambiguous or combined legacy shapes if any transitional API remains.
+- **Data migration:** Map existing rows: `(with_positions=true)` → with positions; `(with_positions=false, with_priority_players=true)` → with priority players; `(false, false)` → regular game. If any legacy row has both booleans true (should be rare), migrate to **with positions** and log or fix in a one-off migration note.
+
+### FR-1 — Data model (users and system)
 
 - Persist optional player level on the user record (e.g. nullable enum column on `users`), default **null** for new and existing rows until backfilled or set by an admin.
 - Persist a single global boolean (or equivalent) such as **`five_one_level_restrictions_enabled`**, default **`false`**, so production behavior matches “restrictions postponed” until toggled.
 
 ### FR-2 — Restriction logic (only when global toggle is **true**)
 
-Apply **only** when the target game is a 5-1 game (`with_positions === true`). Non–5-1 games are unaffected.
+Apply **only** when the target game’s play mode is **with positions** (5-1). Games in **with priority players** or **regular game** modes are unaffected by player-level rules (they continue to use the existing registration timing logic for those modes only).
 
 | Level / state | Join active roster | Join waitlist |
 | --- | --- | --- |
@@ -60,7 +75,7 @@ Apply **only** when the target game is a 5-1 game (`with_positions === true`). N
 
 **Timing detail:** Use the same “calendar day subtraction” approach as existing registration windows (`setDate(getDate() - N)` relative to `game.date_time`), not wall-clock 72 hours, unless implementation audit shows existing product uses a different rule—in that case align with the dominant registration-open behavior in `games.ts` for consistency.
 
-**Interaction with existing registration windows:** Evaluate player-level rules together with current `getRegistrationOpenDays` / priority-player logic. The spec requires that **advanced** and **unassigned** users are not more restricted than they are today by these new rules. [NEEDS CLARIFICATION] **Exact composition order** when both priority-based windows and intermediate 5-1 windows apply (e.g. take the more permissive window vs the stricter window) should be decided during implementation and covered by tests.
+**Composition with priority windows:** Not applicable on a single game: **with positions** and **with priority players** are separate play modes (FR-0). Intermediate player rules (FR-2) apply **only** on **with positions** games, alongside the normal registration-open logic already used for 5-1 games in that mode. Priority-player timing applies **only** on **with priority players** games and does not interact with player-level gates.
 
 ### FR-3 — Global toggle
 
@@ -80,15 +95,18 @@ All endpoints must verify `req.user.isAdmin` (or shared middleware equivalent).
 
 - New route (e.g. `/player-levels` or `/admin/player-levels`) visible only when `user.isAdmin`, with a navigation entry in the same admin icon cluster as existing global-admin tools (see `GamesList.tsx` patterns).
 - Page implements the sort order in FR P3.
-- No changes to game cards, game details, category copy, or registration buttons that reveal level text to non-admins. If the API returns a rejection for beginners, use a **generic** message that does not mention “beginner” or internal level names (e.g. “You cannot register for this game.”).
+- Global-admin game create/edit implements the **play mode** select per FR-0 (this is not a “player level” surface; it replaces two booleans with one control).
+- No changes to game cards, game details, category copy, or registration flows that **reveal player skill level** to non-admins. If the API returns a rejection for beginners, use a **generic** message that does not mention “beginner” or internal level names (e.g. “You cannot register for this game.”).
 
 ### FR-6 — Security and privacy
 
 - Do not include `player_level` in responses for normal authenticated routes used by the mini-app home/game flows (auth `/me`, game lists, registrations, etc.).
-- Server must enforce FR-2 on **every** player-driven registration path for 5-1 games when the toggle is on (primary entry: `POST /games/:gameId/register` in `backend/src/routes/games.ts`). [NEEDS CLARIFICATION] Whether **admin bulk / past-game participant correction** routes should ignore level rules is assumed **yes** (organizer override); confirm with product owner.
+- Server must enforce FR-2 on **every** player-driven registration path for **with positions** games when the toggle is on (primary entry: `POST /games/:gameId/register` in `backend/src/routes/games.ts`).
+- **Admin backfill / correction:** Routes used by global or assigned admins to add or adjust participants outside the normal player flow (including **past-game participant** endpoints in `backend/src/routes/gamesAdmin.ts`, e.g. `POST /:gameId/participants`) **must bypass all player-level checks** entirely, regardless of global toggle state.
 
 ## Success criteria (measurable)
 
+- Game create/edit exposes exactly one play-mode control; persisted data never represents an illegal combination of “5-1” and “priority” on the same game.
 - With toggle **off**, integration tests show 5-1 registration behavior unchanged from baseline for beginner/intermediate/advanced labels if assigned.
 - With toggle **on**, an automated test matrix covers: beginner blocked; intermediate before T-3 days blocked for roster but can waitlist after T-3 when full; intermediate at T-3 with spots can roster; advanced/unassigned always pass level gate (subject only to existing timing rules).
 - Non-admin API consumers never receive `player_level` in JSON for scoped manual review (contract test or snapshot of DTOs).
@@ -98,7 +116,7 @@ All endpoints must verify `req.user.isAdmin` (or shared middleware equivalent).
 
 - **User**: extended with optional `player_level`.
 - **System setting**: single boolean controlling enforcement.
-- **Game**: unchanged; 5-1 inferred from `with_positions`.
+- **Game**: one **play mode** field (replacing the pair `with_positions` + `with_priority_players`); 5-1 behavior and level gates key off the **with positions** mode only.
 
 ## Edge cases
 
@@ -108,9 +126,11 @@ All endpoints must verify `req.user.isAdmin` (or shared middleware equivalent).
 
 ## Implementation notes (repository context)
 
-- Registration and waitlist ordering live in `backend/src/routes/games.ts` (`POST /:gameId/register`).
+- Registration and waitlist ordering live in `backend/src/routes/games.ts` (`POST /:gameId/register`); `getRegistrationOpenDays` and related helpers branch on priority vs non-priority—those branches map to play mode after FR-0.
+- Game admin create/update: `backend/src/routes/gamesAdmin.ts`; form state: `tg-mini-app/src/viewmodels/GameFormViewModel.ts` and `GameFormFields.tsx`.
 - Global admin checks in UI: `user.isAdmin` in `tg-mini-app/src/pages/*`.
 - User admin patterns: `backend/src/routes/usersAdmin.ts` for precedent on admin-only user operations.
+- **Game administrators** (`game_administrators.with_positions`) remain a boolean axis for “5-1 vs non–5-1 day assignment”; align it with the new play mode naming in UI copy only, or keep boolean semantics where `true` means “5-1 track” for that assignment (implementation detail).
 
 ## Out of scope (unless later specified)
 
