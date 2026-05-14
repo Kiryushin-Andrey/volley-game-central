@@ -8,7 +8,7 @@
 | **Status** | Draft (specification only) |
 | **Created** | 2026-05-14 |
 | **Scope** | Backend, database, Telegram mini-app (global admin UI; game create/edit form); **user notifications** (Telegram / `notifyUser` and in-app/API errors aligned with them) |
-| **Updated** | 2026-05-14 (enforcement: hardcoded flag + env override; no persisted global toggle) |
+| **Updated** | 2026-05-14 (no API backward compatibility; simultaneous FE/BE deploy) |
 
 ## Summary
 
@@ -25,7 +25,7 @@ Introduce three internal player levels (`beginner`, `intermediate`, `advanced`) 
 - Q: How must FR-2 (player level) interact with the existing registration-open window (`getRegistrationOpenDays` / `registrationOpensAt` for the game’s play mode)? → A: **All checks apply (logical AND).** The player must already be allowed by today’s registration timing rules for that game; FR-2 then **adds** beginner/intermediate constraints on top. For **with positions** games without priority mode, the general open instant is earlier than the intermediate FR-2 instant; the effective moment an intermediate user may first register is the **later** of the two instants (the stricter combined gate).
 - Q: Should repeated FR-2 registration failures spam Telegram? → A: **Dedupe short window:** do not send a second Telegram for the same user, same game, and same denial class within **60 seconds** (still return HTTP error every time).
 - Q: Should HTTP responses expose machine-readable codes for FR-2 denials (for the mini-app and tests)? → A: **Yes:** include stable `code` values (e.g. `FIVE_ONE_LEVEL_NOT_ELIGIBLE`, `FIVE_ONE_LEVEL_WINDOW`) plus `registrationOpensAt` when the denial is time-window based, mirroring the shape used for early registration errors today.
-- Q: How long should create/update game APIs accept the legacy dual-boolean payload? → A: **One release:** accept `with_positions` / `with_priority_players` on write by normalizing server-side to the single play mode, then remove in a follow-up release documented in changelog.
+- Q: Must create/update game APIs accept the old `with_positions` / `with_priority_players` request shape? → A: **No.** Backend and mini-app deploy **together**; only the new **play mode** field (single value) is accepted on write—no transitional dual-boolean payloads.
 - Q: Must the global-admin “all users” list API handle large user tables? → A: **Paginated admin API** (page or cursor) with default limit **100** rows and optional `q` search on display name / telegram username; the mini-app page loads pages (or infinite scroll) so the server never returns an unbounded full user set.
 - Q: Should the 5-1 enforcement switch be stored in the database or exposed via admin API? → A: **No.** Use a **hardcoded backend default** (flip in source + deploy for rollout) and an optional **environment variable** to override the default for testing; no persisted settings entity and no HTTP/mini-app control.
 
@@ -72,7 +72,7 @@ Introduce three internal player levels (`beginner`, `intermediate`, `advanced`) 
 - Allowed values map to the product select: **with positions** (5-1), **with priority players**, **regular game**.
 - **Invariant:** A game is never both “with positions” and “with priority players”; those capabilities are mutually exclusive by design.
 - **Mini-app:** In game create/edit (e.g. `tg-mini-app/src/components/GameFormFields.tsx`), replace the two checkboxes with **one** `<select>` (or an equally exclusive control) bound to that field.
-- **API:** Create/update game payloads expose one mode value. For **one release**, accept legacy dual booleans on write and normalize server-side to a single play mode; thereafter reject ambiguous combined shapes (see Clarifications session).
+- **API:** Create/update game payloads accept **only** the new single play-mode field (e.g. `playMode` / agreed name). **Do not** accept `with_positions` / `with_priority_players` on write; backend and mini-app ship in the same deploy.
 - **Data migration:** Map existing rows: `(with_positions=true)` → with positions; `(with_positions=false, with_priority_players=true)` → with priority players; `(false, false)` → regular game. If any legacy row has both booleans true (should be rare), migrate to **with positions** and log or fix in a one-off migration note.
 
 ### FR-1 — Data model (users)
@@ -136,7 +136,7 @@ All endpoints must verify `req.user.isAdmin` (or shared middleware equivalent).
 
 ## Success criteria (measurable)
 
-- Game create/edit exposes exactly one play-mode control; persisted data never represents an illegal combination of “5-1” and “priority” on the same game.
+- Game create/edit API and mini-app use **only** the new play-mode shape; requests using removed fields alone are rejected (e.g. **400**).
 - With enforcement **off** (default constant and no enabling env), integration tests show 5-1 registration behavior unchanged from baseline for beginner/intermediate/advanced labels if assigned.
 - With enforcement **on** (constant or env), an automated test matrix covers: beginner blocked; intermediate before T-3 days blocked for roster but can waitlist after T-3 when full; intermediate at T-3 with spots can roster; advanced/unassigned always pass level gate (subject only to existing timing rules).
 - Non-admin API consumers never receive `player_level` in JSON for scoped manual review (contract test or snapshot of DTOs).

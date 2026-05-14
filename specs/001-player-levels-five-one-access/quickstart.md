@@ -53,8 +53,4 @@ Unset env (if used) and use constant `false`: all levels behave as **pre-feature
 
 ## 8. Game form
 
-- Create/edit game shows **single** play mode select; persisted value round-trips.
-
-## 9. Legacy API (during compat window)
-
-POST/PATCH game with only legacy booleans still maps to `play_mode` correctly.
+- Create/edit game sends **only** the new play-mode field; persisted value round-trips.

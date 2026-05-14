@@ -41,7 +41,7 @@ Technical approach: PostgreSQL + Drizzle migrations; Express route helpers share
 | Gate | Status | Notes |
 |------|--------|--------|
 | Security / privacy (levels hidden from non-admins) | **Pass** | FR-6, FR-4 |
-| Backward compatibility (legacy game booleans one release) | **Pass** | Clarifications 2026-05-14 |
+| Simultaneous deploy (no dual game API) | **Pass** | Spec FR-0 + Clarifications |
 | Simplicity / YAGNI | **Pass** | No new microservices; extend existing routes |
 | Testability of acceptance criteria | **Pass** | Matrix enumerated in spec success criteria |
 

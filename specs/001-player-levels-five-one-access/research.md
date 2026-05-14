@@ -4,9 +4,9 @@ Consolidates implementation decisions for [spec.md](./spec.md). No open NEEDS CL
 
 ## 1. Game play mode storage
 
-**Decision:** Add a single PostgreSQL column `game_play_mode` (or `play_mode`) using a **text check constraint** or **native enum** with exactly three values: `with_positions`, `with_priority_players`, `regular`. Migrate data from legacy booleans; drop legacy columns after dual-read window if desired.
+**Decision:** Add a single PostgreSQL column `game_play_mode` (or `play_mode`) using a **text check constraint** or **native enum** with exactly three values: `with_positions`, `with_priority_players`, `regular`. **Data migration** maps existing boolean columns into `play_mode`, then **drops** the old columns in the same rollout as the API change.
 
-**Rationale:** Matches spec FR-0; single source of truth; simpler queries than two booleans + CHECK.
+**Rationale:** Matches spec FR-0; single source of truth; simultaneous frontend/backend deploy—no dual request shapes.
 
 **Alternatives considered:** Keep two booleans with DB CHECK `(with_positions AND NOT with_priority_players) OR (...)` — rejected as error-prone at API layer.
 
@@ -50,8 +50,10 @@ Consolidates implementation decisions for [spec.md](./spec.md). No open NEEDS CL
 
 **Rationale:** Clarifications session; enables mini-app branching without string matching.
 
-## 8. Legacy game API compatibility
+## 8. Game admin API shape
 
-**Decision:** One release: `gamesAdmin` create/update accepts **either** new `playMode` field **or** legacy `withPositions`/`withPriorityPlayers`; server normalizes to single enum using precedence: `with_positions` if legacy `with_positions===true`, else `with_priority_players` if true, else `regular`.
+**Decision:** `gamesAdmin` create/update accepts **only** the new play-mode field. **Reject** requests that send only `withPositions` / `withPriorityPlayers` (or omit the new field)—**400** with a clear error.
 
-**Rationale:** Matches clarify answer; mobile/web rollout buffer.
+**Rationale:** Product ships backend and mini-app together; avoids transitional branching and test matrices for dual payloads.
+
+**Alternatives considered:** One-release dual-read of booleans — **rejected** by updated product direction.

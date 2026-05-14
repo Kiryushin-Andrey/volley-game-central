@@ -16,7 +16,7 @@ Derived from [spec.md](./spec.md) and [research.md](./research.md).
 | ~~`with_positions`~~ | — | Remove after migration + API cutover | Derived: `play_mode === 'with_positions'` |
 | ~~`with_priority_players`~~ | — | Remove after migration + API cutover | Derived: `play_mode === 'with_priority_players'` |
 
-**Migration:** Map rows per spec; `(true,true)` legacy → `with_positions`.
+**Migration (database only):** Map existing rows: `(with_positions=true)` → with positions; `(with_positions=false, with_priority_players=true)` → with priority players; `(false, false)` → regular game. If any row has both booleans true (rare), migrate to **with positions** and log. **API** does not read the old columns after deploy—only `play_mode` (or chosen name) on write.
 
 **Application helpers:** `isWithPositions(game) => game.playMode === 'with_positions'` for `classifyGame`, Telegram filters, `getRegistrationOpenDays` branches.
 
