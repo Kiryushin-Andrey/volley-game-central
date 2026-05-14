@@ -51,20 +51,6 @@ Use `null` or explicit `"clear"` only if JSON schema allows—prefer **`null`** 
 
 **400** invalid level string.
 
-## GET/PUT `/admin/settings/five-one-level-restrictions` (indicative)
-
-**GET 200**
-
-```json
-{ "enabled": false }
-```
-
-**PUT body**
-
-```json
-{ "enabled": true }
-```
-
-**403** if not global admin.
+**Note:** There is **no** HTTP API for turning 5-1 enforcement on or off; that is controlled only by backend constant + env (see spec FR-3).
 
 Exact paths should align with existing `usersAdmin` / new router naming during implementation.

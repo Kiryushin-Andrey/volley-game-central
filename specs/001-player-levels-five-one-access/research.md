@@ -10,13 +10,13 @@ Consolidates implementation decisions for [spec.md](./spec.md). No open NEEDS CL
 
 **Alternatives considered:** Keep two booleans with DB CHECK `(with_positions AND NOT with_priority_players) OR (...)` — rejected as error-prone at API layer.
 
-## 2. Global enforcement toggle storage
+## 2. Global enforcement switch (no persistence)
 
-**Decision:** Introduce a small **`system_settings`** table (`key` text PK, `value` jsonb or text, `updated_at`) with row `five_one_level_restrictions_enabled` → boolean string or JSON `true`/`false`. Default `false` on insert via migration seed.
+**Decision:** **Hardcoded boolean** in backend source (e.g. `backend/src/constants.ts`), default **`false`**. Optional env **`FIVE_ONE_LEVEL_RESTRICTIONS_ENABLED`**: when set, parse truthy/falsy and **override** the constant so staging/local can test “on” without a code edit. When env is unset, use the constant only. Document in `backend/.env.example`.
 
-**Rationale:** No existing config table; avoids env-only toggles; global admins can flip at runtime.
+**Rationale:** Product owner preference: no separate DB entity; rollout = edit constant + deploy; tests use env.
 
-**Alternatives considered:** Dedicated `app_config` single-row table — acceptable equivalent; key-value scales for future flags.
+**Alternatives considered:** `system_settings` table — **rejected** by updated spec.
 
 ## 3. `player_level` column
 

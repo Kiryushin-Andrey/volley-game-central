@@ -11,16 +11,23 @@ npm run generate   # after schema.ts edits
 npm run migrate    # or dev script which migrates
 ```
 
-Confirm columns: `users.player_level`, `games.play_mode`, `system_settings` row for toggle.
+Confirm columns: `users.player_level`, `games.play_mode` (or equivalent).
 
-## 2. Seed data for manual matrix
+## 2. Turn enforcement **on** for testing
+
+**Option A — env (no code change):** set `FIVE_ONE_LEVEL_RESTRICTIONS_ENABLED=true` (or `1` / `yes` per implementation) in `.env` / deployment env and restart the backend.
+
+**Option B — constant:** set the hardcoded default to **true** in `backend/src/constants.ts` (or chosen module), rebuild/restart.
+
+**Option C — off:** unset the env variable and use constant `false` to confirm pre-feature behaviour for 5-1 registration.
+
+## 3. Seed data for manual matrix
 
 - Create or pick three users (Telegram-linked if testing `notifyUser`): assign levels **beginner**, **intermediate**, **advanced** via admin API or SQL.
 - Leave one user **NULL** level (unassigned).
 - Create a future **with positions** game with open registration per existing rules.
-- Set `five_one_level_restrictions_enabled` **true** in `system_settings`.
 
-## 3. Registration matrix (toggle ON)
+## 4. Registration matrix (enforcement ON)
 
 | User level | Before T−3 | At/after T−3, spots | At/after T−3, full |
 |------------|------------|---------------------|-------------------|
@@ -30,24 +37,24 @@ Confirm columns: `users.player_level`, `games.play_mode`, `system_settings` row 
 
 Cross-check **403 JSON** includes `code` and optional `registrationOpensAt` (time-window denials).
 
-## 4. Telegram
+## 5. Telegram
 
 - Successful register: unchanged messages.
 - FR-2 denial: message sent **once** within 60s for repeated identical failures (spam test).
 
-## 5. Toggle OFF
+## 6. Enforcement OFF
 
-Set toggle false: all levels behave as **pre-feature** for 5-1 registration.
+Unset env (if used) and use constant `false`: all levels behave as **pre-feature** for 5-1 registration.
 
-## 6. Admin UI
+## 7. Admin UI
 
 - Global admin: open player-levels route; confirm pagination, search, sort buckets (unassigned → advanced → intermediate → beginner).
 - Non-admin: route 403 / redirect.
 
-## 7. Game form
+## 8. Game form
 
 - Create/edit game shows **single** play mode select; persisted value round-trips.
 
-## 8. Legacy API (during compat window)
+## 9. Legacy API (during compat window)
 
 POST/PATCH game with only legacy booleans still maps to `play_mode` correctly.

@@ -20,15 +20,14 @@ Derived from [spec.md](./spec.md) and [research.md](./research.md).
 
 **Application helpers:** `isWithPositions(game) => game.playMode === 'with_positions'` for `classifyGame`, Telegram filters, `getRegistrationOpenDays` branches.
 
-## Entity: `system_settings` (new)
+## Enforcement switch (not stored)
 
-| Field | Type | Constraints | Notes |
-|-------|------|---------------|--------|
-| `key` | text | PRIMARY KEY | e.g. `five_one_level_restrictions_enabled` |
-| `value` | jsonb or text | NOT NULL | Boolean or `{"enabled":true}` |
-| `updated_at` | timestamptz | default now() | Optional audit |
+| Mechanism | Location | Notes |
+|-----------|----------|--------|
+| Default | `backend/src/constants.ts` (or equivalent) | Boolean constant; ship `false` until flipped |
+| Override | `process.env.FIVE_ONE_LEVEL_RESTRICTIONS_ENABLED` | When set, overrides constant for truthy values |
 
-**Seed:** Insert `five_one_level_restrictions_enabled` = false if missing on migrate.
+No table, no column, no admin API.
 
 ## Relationships
 
@@ -38,10 +37,9 @@ Derived from [spec.md](./spec.md) and [research.md](./research.md).
 ## Validation rules
 
 - Admin PATCH level: only `beginner` | `intermediate` | `advanced` | `null`.
-- Global toggle: only global admin (`is_admin`).
 - `play_mode`: reject unknown enum labels on write.
 
 ## State transitions
 
-- **Toggle off → on:** Existing registrations unchanged; new registrations evaluated under FR-2.
+- **Constant/env change on deploy:** Existing registrations unchanged; new registrations evaluated under FR-2 when effective enforcement is on.
 - **Level change:** Does not remove existing `game_registrations`; affects **next** registration attempt only.

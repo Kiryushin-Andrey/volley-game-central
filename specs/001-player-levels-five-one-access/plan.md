@@ -8,7 +8,7 @@
 
 ## Summary
 
-Add optional **player skill levels** on users, a **global toggle** to enforce **5-1 (with positions)** registration rules, **FR-2** checks on `POST /games/:gameId/register` (stacked with existing timing), **privacy-safe Telegram + JSON errors**, **paginated global-admin APIs** for listing/updating levels, a **mini-app admin page** for levels, and refactor **game configuration** to a **single play mode** replacing `with_positions` + `with_priority_players`. Admin backfill routes skip all level checks.
+Add optional **player skill levels** on users, **enforcement of FR-2** for **5-1 (with positions)** games when a **hardcoded backend flag** (with **env override** for testing) is on, **FR-2** checks on `POST /games/:gameId/register` (stacked with existing timing), **privacy-safe Telegram + JSON errors**, **paginated global-admin APIs** for listing/updating levels, a **mini-app admin page** for levels, and refactor **game configuration** to a **single play mode** replacing `with_positions` + `with_priority_players`. Admin backfill routes skip all level checks. **No** persisted global settings row for enforcement.
 
 Technical approach: PostgreSQL + Drizzle migrations; Express route helpers shared by registration; optional in-process dedupe cache for FR-2 Telegram (document multi-instance caveat in [research.md](./research.md)); React mini-app pages and API client updates.
 
@@ -18,7 +18,7 @@ Technical approach: PostgreSQL + Drizzle migrations; Express route helpers share
 
 **Primary Dependencies**: Express 4.x, Drizzle ORM 0.29, PostgreSQL (`pg` / Neon), Vite, React Router 6, Telegraf / `notifyUser` notification path
 
-**Storage**: PostgreSQL (existing); new columns on `users`, `games`; new `system_settings` (or equivalent) key-value table for global toggle
+**Storage**: PostgreSQL (existing); new columns on `users`, `games`. Enforcement on/off: **source constant + optional env** only (see FR-3 in spec).
 
 **Testing**: No unified automated test harness in repo today; add **focused integration or manual scripts** for registration matrix (documented in [quickstart.md](./quickstart.md)). Prefer adding minimal backend test runner only if introduced as part of this effort—otherwise manual + staging.
 
@@ -68,12 +68,12 @@ specs/001-player-levels-five-one-access/
 backend/
 ├── drizzle/             # New SQL migrations
 ├── src/
-│   ├── db/schema.ts     # users, games, system_settings
+│   ├── db/schema.ts     # users, games (+ play_mode migration)
 │   ├── routes/games.ts  # Registration + FR-2 + notifyUser
 │   ├── routes/gamesAdmin.ts
 │   ├── routes/usersAdmin.ts  # Extend or add level routes
 │   ├── services/notificationService.ts
-│   └── utils/           # Optional: fiveOneLevelGate.ts, messageDedupe.ts
+│   └── utils/           # Optional: fiveOneLevelGate.ts, messageDedupe.ts, isFiveOneRestrictionsEnabled()
 └── package.json
 
 tg-mini-app/

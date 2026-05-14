@@ -8,13 +8,13 @@
 | **Status** | Draft (specification only) |
 | **Created** | 2026-05-14 |
 | **Scope** | Backend, database, Telegram mini-app (global admin UI; game create/edit form); **user notifications** (Telegram / `notifyUser` and in-app/API errors aligned with them) |
-| **Updated** | 2026-05-14 (Speckit clarify: stacking, API codes, Telegram dedupe, legacy API, admin list pagination) |
+| **Updated** | 2026-05-14 (enforcement: hardcoded flag + env override; no persisted global toggle) |
 
 ## Summary
 
-Introduce three internal player levels (`beginner`, `intermediate`, `advanced`) plus an **unassigned** default for new accounts. Levels control access only to games in the **with positions (5-1)** play mode. Levels must **not** appear anywhere in the UI for regular users and must **not** be exposed on general-purpose user APIs consumed by the mini-app. Only **global administrators** (`users.is_admin === true`, consistent with existing “global admin” patterns) may view and assign levels on a **dedicated admin page** listing all registered users. A **global toggle** must allow enabling or disabling all level-based restrictions for 5-1 games without a deployment, defaulting to **restrictions off** until operators explicitly turn them on.
+Introduce three internal player levels (`beginner`, `intermediate`, `advanced`) plus an **unassigned** default for new accounts. Levels control access only to games in the **with positions (5-1)** play mode. Levels must **not** appear anywhere in the UI for regular users and must **not** be exposed on general-purpose user APIs consumed by the mini-app. Only **global administrators** (`users.is_admin === true`, consistent with existing “global admin” patterns) may view and assign levels on a **dedicated admin page** listing all registered users. Whether FR-2 restrictions apply is controlled by a **hardcoded boolean in backend source** (default **off** until the team flips it in code for rollout). For **testing without code changes**, an **environment variable** may override that default (see FR-3). **No** database table, admin API, or mini-app control for this switch.
 
-**Notifications** are **in scope**: whenever player-level rules (FR-2) deny or defer registration for a **with positions** game while the global toggle is on, the product must define **user-facing messages** (API errors and Telegram where applicable) that explain the situation in plain language **without** naming internal levels (`beginner`, `intermediate`, `advanced`). Successful registration and waitlist flows continue to use the existing notification patterns (`notifyUser` in `backend/src/routes/games.ts`, `notificationService.ts`), extended only where needed for consistency with the new rules (e.g. include a formatted “opens at” date when the user is too early for roster or waitlist under FR-2).
+**Notifications** are **in scope**: whenever player-level rules (FR-2) deny or defer registration for a **with positions** game while enforcement is **on** (FR-3), the product must define **user-facing messages** (API errors and Telegram where applicable) that explain the situation in plain language **without** naming internal levels (`beginner`, `intermediate`, `advanced`). Successful registration and waitlist flows continue to use the existing notification patterns (`notifyUser` in `backend/src/routes/games.ts`, `notificationService.ts`), extended only where needed for consistency with the new rules (e.g. include a formatted “opens at” date when the user is too early for roster or waitlist under FR-2).
 
 **Game configuration change:** Replace the two independent booleans (`with_positions`, `with_priority_players`) with a **single control**—a select whose options are **with positions** (5-1), **with priority players** (non–5-1 games that use the priority registration window), and **regular game** (neither). Exactly one mode applies per game, so priority timing and 5-1 positioning are never combined on the same row.
 
@@ -27,11 +27,12 @@ Introduce three internal player levels (`beginner`, `intermediate`, `advanced`) 
 - Q: Should HTTP responses expose machine-readable codes for FR-2 denials (for the mini-app and tests)? → A: **Yes:** include stable `code` values (e.g. `FIVE_ONE_LEVEL_NOT_ELIGIBLE`, `FIVE_ONE_LEVEL_WINDOW`) plus `registrationOpensAt` when the denial is time-window based, mirroring the shape used for early registration errors today.
 - Q: How long should create/update game APIs accept the legacy dual-boolean payload? → A: **One release:** accept `with_positions` / `with_priority_players` on write by normalizing server-side to the single play mode, then remove in a follow-up release documented in changelog.
 - Q: Must the global-admin “all users” list API handle large user tables? → A: **Paginated admin API** (page or cursor) with default limit **100** rows and optional `q` search on display name / telegram username; the mini-app page loads pages (or infinite scroll) so the server never returns an unbounded full user set.
+- Q: Should the 5-1 enforcement switch be stored in the database or exposed via admin API? → A: **No.** Use a **hardcoded backend default** (flip in source + deploy for rollout) and an optional **environment variable** to override the default for testing; no persisted settings entity and no HTTP/mini-app control.
 
 ## Definitions
 
 - **Game play mode** (exactly one per game): **With positions** (5-1 scheme), **with priority players** (standard game using priority-player registration windows), or **regular game** (standard game without priority windows). This replaces the current pair of flags on `games` (see `backend/src/db/schema.ts`).
-- **5-1 game**: Any game whose play mode is **with positions** (5-1). Player-level restrictions (FR-2) apply only to this mode when the global toggle is on.
+- **5-1 game**: Any game whose play mode is **with positions** (5-1). Player-level restrictions (FR-2) apply only to this mode when enforcement is on (FR-3).
 - **Global admin**: User with `is_admin` true; same authorization model as pages guarded with `user.isAdmin` in the mini-app (e.g. `GameAdministrators.tsx`).
 - **Player level**: One of `beginner`, `intermediate`, `advanced`, or **null / unassigned** (no level stored).
 
@@ -39,11 +40,11 @@ Introduce three internal player levels (`beginner`, `intermediate`, `advanced`) 
 
 ### P1 — Access rules when restrictions are enabled globally
 
-1. **As a global admin**, I can turn 5-1 level restrictions on or off globally so we can roll out enforcement at a chosen time without code changes.
-2. **As an advanced player** (when restrictions are on), I can join 5-1 games under the same registration timing rules as today for that play mode (including waitlist behavior when full).
-3. **As an intermediate player** (when restrictions are on), I can join a 5-1 game only starting **3 calendar days** before the game’s scheduled start time, and only if there is still at least one non-waitlist spot available; if the game is full, I may still join the **waitlist** (same ordering semantics as existing waitlist: first-come by `created_at`).
-4. **As a beginner** (when restrictions are on), I **cannot** register for a 5-1 game (neither active roster nor waitlist) via the normal player registration flow.
-5. **As a user with no level assigned** (when restrictions are on), I have the **same access as advanced** (unrestricted 5-1 access relative to these new rules), so legacy users and newcomers are not locked out until an admin assigns a restrictive level.
+1. **As an operator**, I enable or disable 5-1 level enforcement by **changing the hardcoded flag** (and redeploying) when we are ready to roll out; I can use an **env override** in staging or locally to exercise “on” behaviour without editing the default constant.
+2. **As an advanced player** (when enforcement is on), I can join 5-1 games under the same registration timing rules as today for that play mode (including waitlist behavior when full).
+3. **As an intermediate player** (when enforcement is on), I can join a 5-1 game only starting **3 calendar days** before the game’s scheduled start time, and only if there is still at least one non-waitlist spot available; if the game is full, I may still join the **waitlist** (same ordering semantics as existing waitlist: first-come by `created_at`).
+4. **As a beginner** (when enforcement is on), I **cannot** register for a 5-1 game (neither active roster nor waitlist) via the normal player registration flow.
+5. **As a user with no level assigned** (when enforcement is on), I have the **same access as advanced** (unrestricted 5-1 access relative to these new rules), so legacy users and newcomers are not locked out until an admin assigns a restrictive level.
 
 ### P2 — Administration and privacy
 
@@ -60,7 +61,7 @@ Introduce three internal player levels (`beginner`, `intermediate`, `advanced`) 
 
 ### P4 — Notifications (player-facing, privacy-safe)
 
-12. **As a player** blocked or deferred by FR-2 when registering for a **with positions** game (restrictions on), I receive a **clear Telegram notification** (when the user has a deliverable Telegram or phone channel per existing `notifyUser` rules) and a **consistent API error** in the mini-app, so I understand what happened without seeing internal level names.
+12. **As a player** blocked or deferred by FR-2 when registering for a **with positions** game (enforcement on), I receive a **clear Telegram notification** (when the user has a deliverable Telegram or phone channel per existing `notifyUser` rules) and a **consistent API error** in the mini-app, so I understand what happened without seeing internal level names.
 13. **As a player** who successfully registers or joins the waitlist under the new rules, I receive the **same style of success/waitlist Telegram messages** as today, unless copy must be adjusted to avoid implying incorrect rules—any adjustment must still avoid internal level vocabulary.
 
 ## Functional requirements
@@ -74,14 +75,14 @@ Introduce three internal player levels (`beginner`, `intermediate`, `advanced`) 
 - **API:** Create/update game payloads expose one mode value. For **one release**, accept legacy dual booleans on write and normalize server-side to a single play mode; thereafter reject ambiguous combined shapes (see Clarifications session).
 - **Data migration:** Map existing rows: `(with_positions=true)` → with positions; `(with_positions=false, with_priority_players=true)` → with priority players; `(false, false)` → regular game. If any legacy row has both booleans true (should be rare), migrate to **with positions** and log or fix in a one-off migration note.
 
-### FR-1 — Data model (users and system)
+### FR-1 — Data model (users)
 
 - Persist optional player level on the user record (e.g. nullable enum column on `users`), default **null** for new and existing rows until backfilled or set by an admin.
-- Persist a single global boolean (or equivalent) such as **`five_one_level_restrictions_enabled`**, default **`false`**, so production behavior matches “restrictions postponed” until toggled.
+- **Do not** add any database column or table for “restrictions enabled”; see FR-3.
 
-### FR-2 — Restriction logic (only when global toggle is **true**)
+### FR-2 — Restriction logic (only when enforcement is **on**)
 
-Apply **only** when the target game’s play mode is **with positions** (5-1). Games in **with priority players** or **regular game** modes are unaffected by player-level rules (they continue to use the existing registration timing logic for those modes only).
+Apply **only** when the target game’s play mode is **with positions** (5-1) **and** FR-3 reports enforcement **on**. Games in **with priority players** or **regular game** modes are unaffected by player-level rules (they continue to use the existing registration timing logic for those modes only).
 
 | Level / state | Join active roster | Join waitlist |
 | --- | --- | --- |
@@ -96,17 +97,18 @@ Apply **only** when the target game’s play mode is **with positions** (5-1). G
 
 **Stacking with general registration-open:** FR-2 is evaluated only after the player passes existing checks (blocked user, Telegram group, readonly, **and** `now >= registrationOpenDate` from `getRegistrationOpenDays` for self vs guest). FR-2 never **widens** who may register earlier than those rules; it only **narrows** beginner (always) or intermediate (until its FR-2 instant, and roster vs waitlist per the table).
 
-### FR-3 — Global toggle
+### FR-3 — Enforcement switch (code + env, not persisted)
 
-- When **`five_one_level_restrictions_enabled` is `false`**, **no** beginner/intermediate/unassigned differentiation applies for 5-1 games; behavior matches the system **before** this feature for registration eligibility.
-- When **`true`**, FR-2 applies.
-- Only global admins may read or update the toggle (same as level assignment APIs).
+- **Default:** A **compile-time or source-level constant** in the backend (e.g. in `backend/src/constants.ts` or adjacent) defines whether 5-1 level restrictions are active; ship with **`false`** until operators flip it to **`true`** and deploy.
+- **Override for testing:** If an environment variable is set (recommended name: `FIVE_ONE_LEVEL_RESTRICTIONS_ENABLED`), it **overrides** the hardcoded default when present (e.g. `1` / `true` / `yes` → on; empty or unset → use hardcoded default). Document the variable in `backend/.env.example`.
+- When enforcement is **off**, **no** beginner/intermediate/unassigned differentiation applies for 5-1 games; behavior matches the system **before** this feature for registration eligibility.
+- When enforcement is **on**, FR-2 applies.
+- **No** HTTP or mini-app surface to change this switch; **no** global-admin API for it.
 
 ### FR-4 — APIs (indicative)
 
 - **Admin**: list users with id, display identifiers used elsewhere, and `player_level` + maybe `telegram_username` for disambiguation—mirror fields already used on other admin surfaces; do **not** add level fields to public user DTOs. List endpoint is **paginated** (see Clarifications session) with optional search.
 - **Admin**: set user’s level to `beginner` | `intermediate` | `advanced` | `null` (clear).
-- **Admin**: get/set global restriction toggle.
 
 All endpoints must verify `req.user.isAdmin` (or shared middleware equivalent).
 
@@ -120,8 +122,8 @@ All endpoints must verify `req.user.isAdmin` (or shared middleware equivalent).
 ### FR-6 — Security and privacy
 
 - Do not include `player_level` in responses for normal authenticated routes used by the mini-app home/game flows (auth `/me`, game lists, registrations, etc.).
-- Server must enforce FR-2 on **every** player-driven registration path for **with positions** games when the toggle is on (primary entry: `POST /games/:gameId/register` in `backend/src/routes/games.ts`).
-- **Admin backfill / correction:** Routes used by global or assigned admins to add or adjust participants outside the normal player flow (including **past-game participant** endpoints in `backend/src/routes/gamesAdmin.ts`, e.g. `POST /:gameId/participants`) **must bypass all player-level checks** entirely, regardless of global toggle state.
+- Server must enforce FR-2 on **every** player-driven registration path for **with positions** games when enforcement is **on** (FR-3) (primary entry: `POST /games/:gameId/register` in `backend/src/routes/games.ts`).
+- **Admin backfill / correction:** Routes used by global or assigned admins to add or adjust participants outside the normal player flow (including **past-game participant** endpoints in `backend/src/routes/gamesAdmin.ts`, e.g. `POST /:gameId/participants`) **must bypass all player-level checks** entirely, regardless of enforcement switch state.
 
 ### FR-7 — Notifications (Telegram and API consistency)
 
@@ -135,17 +137,17 @@ All endpoints must verify `req.user.isAdmin` (or shared middleware equivalent).
 ## Success criteria (measurable)
 
 - Game create/edit exposes exactly one play-mode control; persisted data never represents an illegal combination of “5-1” and “priority” on the same game.
-- With toggle **off**, integration tests show 5-1 registration behavior unchanged from baseline for beginner/intermediate/advanced labels if assigned.
-- With toggle **on**, an automated test matrix covers: beginner blocked; intermediate before T-3 days blocked for roster but can waitlist after T-3 when full; intermediate at T-3 with spots can roster; advanced/unassigned always pass level gate (subject only to existing timing rules).
+- With enforcement **off** (default constant and no enabling env), integration tests show 5-1 registration behavior unchanged from baseline for beginner/intermediate/advanced labels if assigned.
+- With enforcement **on** (constant or env), an automated test matrix covers: beginner blocked; intermediate before T-3 days blocked for roster but can waitlist after T-3 when full; intermediate at T-3 with spots can roster; advanced/unassigned always pass level gate (subject only to existing timing rules).
 - Non-admin API consumers never receive `player_level` in JSON for scoped manual review (contract test or snapshot of DTOs).
 - Global admin page loads users with correct ordering for a fixture dataset **through pagination** (no single response that assumes entire table fits in memory).
-- With toggle **on** and restrictions firing, automated or manual QA confirms: (a) Telegram + API copy for FR-2 denials contain **no** internal level vocabulary; (b) successful register/waitlist still receives notifications consistent with pre-feature behavior; (c) FR-2 HTTP responses include stable `code` and time fields where specified.
+- With enforcement **on** and restrictions firing, automated or manual QA confirms: (a) Telegram + API copy for FR-2 denials contain **no** internal level vocabulary; (b) successful register/waitlist still receives notifications consistent with pre-feature behavior; (c) FR-2 HTTP responses include stable `code` and time fields where specified.
 
 ## Key entities
 
 - **User**: extended with optional `player_level`.
-- **System setting**: single boolean controlling enforcement.
 - **Game**: one **play mode** field (replacing the pair `with_positions` + `with_priority_players`); 5-1 behavior and level gates key off the **with positions** mode only.
+- **Enforcement switch**: not an entity—backend constant + optional env override (FR-3).
 
 ## Edge cases
 

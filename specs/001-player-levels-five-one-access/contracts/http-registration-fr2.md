@@ -1,6 +1,6 @@
 # HTTP contracts: Registration FR-2 errors
 
-Applies to `POST /games/:gameId/register` when global toggle **enabled**, game `play_mode === 'with_positions'`, and FR-2 blocks the attempt.
+Applies to `POST /games/:gameId/register` when **enforcement is on** (hardcoded default + optional `FIVE_ONE_LEVEL_RESTRICTIONS_ENABLED` env per FR-3), game `play_mode === 'with_positions'`, and FR-2 blocks the attempt.
 
 ## Error envelope (403)
 
