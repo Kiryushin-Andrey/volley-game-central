@@ -1,6 +1,6 @@
 # Quickstart: Verifying player levels & 5-1 access
 
-Local verification assumes [README.md](../../README.md) Docker/backend + mini-app dev flows already work.
+Local verification assumes [README.md](../../README.md) Docker/backend + mini-app dev flows already work. For **browser E2E with Playwright and Cursor’s browser/Playwright MCP**, follow [e2e-playwright-mcp.md](./e2e-playwright-mcp.md).
 
 ## 1. Apply migrations
 

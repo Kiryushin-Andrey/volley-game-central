@@ -7,8 +7,8 @@
 | **Feature branch** | `cursor/player-levels-five-one-spec-ee6d` |
 | **Status** | Draft (specification only) |
 | **Created** | 2026-05-14 |
-| **Scope** | Backend, database, Telegram mini-app (global admin UI; game create/edit form; **game details join UX for blocked users**); **FR-2 registration errors** (HTTP JSON + mini-app copy; **no** Telegram on failed register) |
-| **Updated** | 2026-05-14 (blocked user: hide Join + inline reason; API second line) |
+| **Scope** | Backend, database, Telegram mini-app (global admin UI; game create/edit form; **game details join UX for blocked users**); **FR-2 registration errors** (HTTP JSON + mini-app copy; **no** Telegram on failed register); **E2E browser verification** (Playwright + Playwright/browser MCP—see [e2e-playwright-mcp.md](./e2e-playwright-mcp.md)) |
+| **Updated** | 2026-05-14 (E2E plan: Playwright + browser MCP) |
 
 ## Summary
 
@@ -154,6 +154,7 @@ All endpoints must verify `req.user.isAdmin` (or shared middleware equivalent).
 - Global admin page loads users with correct ordering for a fixture dataset **through pagination** (no single response that assumes entire table fits in memory).
 - With enforcement **on** and restrictions firing, automated or manual QA confirms: (a) FR-2 denial **JSON** (and mini-app copy) contain **no** internal level vocabulary; **no** `notifyUser` call on those failures; (b) successful register/waitlist still receives existing Telegram notifications; (c) FR-2 HTTP responses include stable `code` and time fields where specified.
 - For a user with `blockReason` set: game details shows **no** Join button and an **inline** reason note before any register call; direct API register still returns **403** with block message.
+- **E2E (Playwright + browser MCP):** Documented scenarios in [e2e-playwright-mcp.md](./e2e-playwright-mcp.md) pass in Chromium against local dev (or preview) once implemented—minimum smoke: blocked join (E1), admin player-levels page load (E5).
 
 ## Key entities
 

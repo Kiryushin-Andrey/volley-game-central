@@ -10,7 +10,7 @@
 
 Add optional **player skill levels** on users, **enforcement of FR-2** for **5-1 (with positions)** games when a **hardcoded backend flag** (with **env override** for testing) is on, **FR-2** checks on `POST /games/:gameId/register` (stacked with existing timing), **privacy-safe JSON errors** for FR-2 denials (mini-app only—**no** Telegram on failed register), **blocked-user join UX** (hide Join + inline reason; API 403 unchanged), **paginated global-admin APIs** for listing/updating levels, a **mini-app admin page** for levels, and refactor **game configuration** to a **single play mode** replacing `with_positions` + `with_priority_players`. Admin backfill routes skip all level checks. **No** persisted global settings row for enforcement.
 
-Technical approach: PostgreSQL + Drizzle migrations; Express route helpers shared by registration; React mini-app pages and API client updates.
+Technical approach: PostgreSQL + Drizzle migrations; Express route helpers shared by registration; React mini-app pages and API client updates; **Playwright E2E + browser MCP** for acceptance verification ([e2e-playwright-mcp.md](./e2e-playwright-mcp.md)).
 
 ## Technical Context
 
@@ -20,9 +20,9 @@ Technical approach: PostgreSQL + Drizzle migrations; Express route helpers share
 
 **Storage**: PostgreSQL (existing); new columns on `users`, `games`. Enforcement on/off: **source constant + optional env** only (see FR-3 in spec).
 
-**Testing**: No unified automated test harness in repo today; add **focused integration or manual scripts** for registration matrix (documented in [quickstart.md](./quickstart.md)). Prefer adding minimal backend test runner only if introduced as part of this effort—otherwise manual + staging.
+**Testing**: No unified automated test harness in repo today. Plan **browser E2E** with **Playwright**, driven interactively via **Playwright / browser MCP** in Cursor and optionally committed `*.spec.ts` for CI later—see [e2e-playwright-mcp.md](./e2e-playwright-mcp.md). Keep [quickstart.md](./quickstart.md) for manual/API checks. Backend unit/integration tests remain optional (add minimal runner only if introduced in this effort).
 
-**Target Platform**: Linux server (Docker/backend), Telegram WebApp (client)
+**Target Platform**: Linux server (Docker/backend), Telegram WebApp (client); E2E runs against **Vite dev or preview** in a real browser (Chromium via Playwright).
 
 **Project Type**: Web application — `backend/` (API) + `tg-mini-app/` (React SPA)
 
@@ -43,7 +43,7 @@ Technical approach: PostgreSQL + Drizzle migrations; Express route helpers share
 | Security / privacy (levels hidden from non-admins) | **Pass** | FR-6, FR-4 |
 | Simultaneous deploy (no dual game API) | **Pass** | Spec FR-0 + Clarifications |
 | Simplicity / YAGNI | **Pass** | No new microservices; extend existing routes |
-| Testability of acceptance criteria | **Pass** | Matrix enumerated in spec success criteria |
+| Testability of acceptance criteria | **Pass** | Matrix in spec + [e2e-playwright-mcp.md](./e2e-playwright-mcp.md) |
 
 **Post–Phase 1 re-check:** Design artifacts ([data-model.md](./data-model.md), [contracts/](./contracts/)) preserve the gates above.
 
@@ -58,6 +58,7 @@ specs/001-player-levels-five-one-access/
 ├── research.md          # Phase 0
 ├── data-model.md        # Phase 1
 ├── quickstart.md        # Phase 1
+├── e2e-playwright-mcp.md  # E2E + MCP testing plan
 ├── contracts/           # Phase 1 HTTP contracts
 └── tasks.md             # From /speckit-tasks (not created here)
 ```
@@ -77,6 +78,7 @@ backend/
 └── package.json
 
 tg-mini-app/
+├── e2e/                 # Playwright + specs (add during implementation; see e2e-playwright-mcp.md)
 ├── src/
 │   ├── components/GameFormFields.tsx
 │   ├── pages/           # New: PlayerLevels admin page
@@ -86,7 +88,7 @@ tg-mini-app/
 └── package.json
 ```
 
-**Structure Decision**: Dual-package monorepo already in use; all implementation stays under `backend/src` and `tg-mini-app/src` with Drizzle migrations under `backend/drizzle/`.
+**Structure Decision**: Dual-package monorepo already in use; all implementation stays under `backend/src` and `tg-mini-app/src` with Drizzle migrations under `backend/drizzle/`; Playwright E2E under `tg-mini-app/e2e/` when added.
 
 ## Complexity Tracking
 
@@ -100,6 +102,7 @@ No constitution violations requiring justification. **No complexity overrides.**
 | 1 | Data model | [data-model.md](./data-model.md) |
 | 1 | Contracts | [contracts/](./contracts/) |
 | 1 | Quickstart | [quickstart.md](./quickstart.md) |
+| 1 | E2E / MCP plan | [e2e-playwright-mcp.md](./e2e-playwright-mcp.md) |
 
 ## Next command
 

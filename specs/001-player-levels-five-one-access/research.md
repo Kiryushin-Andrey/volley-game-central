@@ -61,3 +61,9 @@ Consolidates implementation decisions for [spec.md](./spec.md). No open NEEDS CL
 **Decision:** Mini-app hides **Join Game** (and self-serve guest entry) when `blockReason` is set; show the reason in the same inline info pattern as registration-not-open. Backend **403** on register when blocked remains mandatory.
 
 **Rationale:** Treats API enforcement as second line of defense; avoids popup-only discovery after tapping Join.
+
+## 10. E2E testing (Playwright + browser MCP)
+
+**Decision:** Add Playwright under `tg-mini-app/e2e/`; use **browser automation MCP** in Cursor for interactive acceptance during development; align committed specs with scenario checklist in [e2e-playwright-mcp.md](./e2e-playwright-mcp.md).
+
+**Rationale:** Product asked to plan MCP-driven browser verification; Playwright gives stable selectors, traces, and future CI hooks.
