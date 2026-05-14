@@ -4,7 +4,8 @@
   "description": "Backend for Volley Game Central",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "npm run wait-for-db && npm run migrate && ts-node-dev --respawn src/index.ts",
+    "dev": "DEV_MODE=true npm run wait-for-db && DEV_MODE=true npm run migrate && DEV_MODE=true npx ts-node-dev --respawn src/index.ts",
+    "dev:telegram": "npm run wait-for-db && npm run migrate && npx ts-node-dev --respawn src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "generate": "drizzle-kit generate:pg --config=drizzle.config.ts",

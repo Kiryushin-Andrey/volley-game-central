@@ -9,13 +9,13 @@ Volley Game Central is a Telegram Mini App for organizing volleyball games. Two 
 ### Starting services
 
 1. **PostgreSQL**: `docker compose up -d postgres` (port 5432, user/pass: `postgres/postgres`, db: `volley_game_central`)
-2. **Backend**: `cd backend && DEV_MODE=true npx ts-node-dev --respawn src/index.ts` (port 3000). The Telegram bot token error on startup is expected and harmless in dev mode.
+2. **Backend**: `cd backend && npm run dev` (port 3000). The `dev` script sets **DEV_MODE** for simplified local auth. The Telegram bot token error on startup is expected and harmless when no token is configured.
 3. **Frontend**: `cd tg-mini-app && npm run dev` (port 3001). Proxies `/api` -> backend, `/webhooks` -> backend.
-4. **All together**: `DEV_MODE=true npm run dev` from root, or `./dev-start.sh`.
+4. **All together**: `npm run dev` from root, or `./dev-start.sh`.
 
 ### Key caveats
 
-- **DEV_MODE=true** must be set as an environment variable (not in `.env`) to enable simplified auth (phone + name, no SMS/Telegram needed). The `dev-start.sh` script and `npm run dev:local` handle this.
+- **DEV_MODE** is enabled by default for `npm run dev` in `backend/` and for the root `npm run dev` stack. It is not read from `.env` (the backend script sets the env var). Use root `npm run dev:telegram` or `cd backend && npm run dev:telegram` to run without simplified dev auth. `./dev-start.sh` still exports `DEV_MODE=true` for consistency.
 - **Backend requires a build before migrations**: `npm run migrate` (in `backend/`) runs from `dist/`, so `npm run build` (i.e. `tsc`) must run first. The `npm run dev` script handles this automatically via `ts-node-dev`.
 - **JWT_SECRET** must be set in `backend/.env` for auth to work. Any string works for local dev.
 - **TELEGRAM_BOT_TOKEN** is optional in dev; the bot will log an error on startup but the API server still runs fine.

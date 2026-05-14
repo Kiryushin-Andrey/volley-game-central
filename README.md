@@ -92,9 +92,11 @@ Option B – run both the backend and frontend together from the project root:
 npm run dev
 ```
 
+This starts Postgres, runs migrations, and runs the backend with **DEV_MODE** enabled (simplified phone + name login, no SMS/Telegram required). To run the backend with production-style auth instead (Telegram init data + SMS), use `npm run dev:telegram`.
+
 Option C – start each service in its own terminal:
 ```sh
-# Backend
+# Backend (includes DEV_MODE for local auth)
 cd backend
 npm run dev
 
