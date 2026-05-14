@@ -8,7 +8,7 @@
 
 ## Summary
 
-Add optional **player skill levels** on users, **enforcement of FR-2** for **5-1 (with positions)** games when a **hardcoded backend flag** (with **env override** for testing) is on, **FR-2** checks on `POST /games/:gameId/register` (stacked with existing timing), **privacy-safe JSON errors** for FR-2 denials (mini-app only—**no** Telegram on failed register), **paginated global-admin APIs** for listing/updating levels, a **mini-app admin page** for levels, and refactor **game configuration** to a **single play mode** replacing `with_positions` + `with_priority_players`. Admin backfill routes skip all level checks. **No** persisted global settings row for enforcement.
+Add optional **player skill levels** on users, **enforcement of FR-2** for **5-1 (with positions)** games when a **hardcoded backend flag** (with **env override** for testing) is on, **FR-2** checks on `POST /games/:gameId/register` (stacked with existing timing), **privacy-safe JSON errors** for FR-2 denials (mini-app only—**no** Telegram on failed register), **blocked-user join UX** (hide Join + inline reason; API 403 unchanged), **paginated global-admin APIs** for listing/updating levels, a **mini-app admin page** for levels, and refactor **game configuration** to a **single play mode** replacing `with_positions` + `with_priority_players`. Admin backfill routes skip all level checks. **No** persisted global settings row for enforcement.
 
 Technical approach: PostgreSQL + Drizzle migrations; Express route helpers shared by registration; React mini-app pages and API client updates.
 

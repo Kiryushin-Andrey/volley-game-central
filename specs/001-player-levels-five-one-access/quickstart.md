@@ -37,19 +37,23 @@ Confirm columns: `users.player_level`, `games.play_mode` (or equivalent).
 
 Cross-check **403 JSON** includes `code` and optional `registrationOpensAt` (time-window denials).
 
-## 5. Successful registration Telegram
+## 5. Blocked user (join hidden)
+
+- Use an account with `blockReason` set. Open an upcoming game you are **not** registered for: **no** Join button; inline text shows the block reason (same area as early-registration message). Confirm `POST .../register` still returns **403** if called directly.
+
+## 6. Successful registration Telegram
 
 - Unchanged: after insert, `notifyUser` still sends roster vs waitlist messages.
 
-## 6. Enforcement OFF
+## 7. Enforcement OFF
 
 Unset env (if used) and use constant `false`: all levels behave as **pre-feature** for 5-1 registration.
 
-## 7. Admin UI
+## 8. Admin UI
 
 - Global admin: open player-levels route; confirm pagination, search, sort buckets (unassigned → advanced → intermediate → beginner).
 - Non-admin: route 403 / redirect.
 
-## 8. Game form
+## 9. Game form
 
 - Create/edit game sends **only** the new play-mode field; persisted value round-trips.

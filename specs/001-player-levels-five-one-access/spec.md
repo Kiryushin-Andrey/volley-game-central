@@ -7,8 +7,8 @@
 | **Feature branch** | `cursor/player-levels-five-one-spec-ee6d` |
 | **Status** | Draft (specification only) |
 | **Created** | 2026-05-14 |
-| **Scope** | Backend, database, Telegram mini-app (global admin UI; game create/edit form); **FR-2 registration errors** (HTTP JSON + mini-app copy; **no** Telegram on failed register) |
-| **Updated** | 2026-05-14 (no Telegram on FR-2 registration denials) |
+| **Scope** | Backend, database, Telegram mini-app (global admin UI; game create/edit form; **game details join UX for blocked users**); **FR-2 registration errors** (HTTP JSON + mini-app copy; **no** Telegram on failed register) |
+| **Updated** | 2026-05-14 (blocked user: hide Join + inline reason; API second line) |
 
 ## Summary
 
@@ -28,6 +28,7 @@ Introduce three internal player levels (`beginner`, `intermediate`, `advanced`) 
 - Q: Must create/update game APIs accept the old `with_positions` / `with_priority_players` request shape? → A: **No.** Backend and mini-app deploy **together**; only the new **play mode** field (single value) is accepted on write—no transitional dual-boolean payloads.
 - Q: Must the global-admin “all users” list API handle large user tables? → A: **Paginated admin API** (page or cursor) with default limit **100** rows and optional `q` search on display name / telegram username; the mini-app page loads pages (or infinite scroll) so the server never returns an unbounded full user set.
 - Q: Should the 5-1 enforcement switch be stored in the database or exposed via admin API? → A: **No.** Use a **hardcoded backend default** (flip in source + deploy for rollout) and an optional **environment variable** to override the default for testing; no persisted settings entity and no HTTP/mini-app control.
+- Q: When a user is blocked (`blockReason`), how should join behave in the mini-app? → A: **Hide Join Game** (and self-serve guest entry) **completely**; show an **inline note** with the reason using the **same pattern** as registration-not-yet-open; keep **403** on register as the **second line of defense**.
 
 ## Definitions
 
@@ -63,6 +64,11 @@ Introduce three internal player levels (`beginner`, `intermediate`, `advanced`) 
 
 12. **As a player** blocked or deferred by FR-2 when registering for a **with positions** game (enforcement on), I see a **consistent API error** in the mini-app (and HTTP body) that explains the situation in plain language **without** internal level names—**no** Telegram or other push for this failure.
 13. **As a player** who successfully registers or joins the waitlist, I still receive the **same Telegram success/waitlist messages** as today (`notifyUser`), unless copy must be tweaked for accuracy—never with internal level vocabulary.
+
+### P5 — Blocked users (game join UX)
+
+14. **As a blocked user** (`blockReason` set on my session / user profile), when I open an upcoming game I am **not** registered for, I **do not** see a **Join Game** button at all; instead I see an **inline note** with the block reason, using the **same presentation pattern** as when registration is not open yet (e.g. the existing info text area used for “registration opens on …” on game details).
+15. **As a blocked user**, I **cannot** trigger self-registration via the primary join flow; if a request still reaches the API, I receive **403** with the existing error payload (**second line of defense**—unchanged server behavior).
 
 ## Functional requirements
 
@@ -118,6 +124,7 @@ All endpoints must verify `req.user.isAdmin` (or shared middleware equivalent).
 - Page implements the sort order in FR P3 **within the current page**; when paginating, apply global sort by **fetching or sorting server-side** so ordering is consistent across pages (recommended: server-side sort + cursor/page).
 - Global-admin game create/edit implements the **play mode** select per FR-0 (this is not a “player level” surface; it replaces two booleans with one control).
 - No changes to game cards, game details, category copy, or registration flows that **reveal player skill level** to non-admins. If the API returns a rejection for beginners, use a **generic** message that does not mention “beginner” or internal level names (e.g. “You cannot register for this game.”); see **FR-7** for the JSON error shape.
+- **Blocked users (`user.blockReason`):** On game details for upcoming games, do **not** show **Join Game** when the user is blocked and **not** registered for that game. Show the block reason in the **same inline info region** used for “registration not open yet” (`getInfoText()` pattern in `GameDetailsViewModel.ts`). Remove the **popup-on-tap** blocked flow for join. Apply the same **hide + note** pattern to **add guest** (or equivalent self-serve guest entry) when the acting user is blocked—no CTA that would only 403.
 
 ### FR-6 — Security and privacy
 
@@ -133,6 +140,11 @@ All endpoints must verify `req.user.isAdmin` (or shared middleware equivalent).
 - **Success unchanged:** After a **successful** insert, keep existing **`notifyUser`** success and waitlist messages; do not introduce level names there.
 - **Out of scope:** Telegram (or other push) on registration failure for FR-2 or elsewhere; marketing pushes; admin audit logs for denials.
 
+### FR-8 — Blocked users: join UX (defense in depth)
+
+- **Mini-app:** When `blockReason` is present on the authenticated user, **Join Game** must not appear for the join path; the info line explains why (include the reason text administrators set—this is **not** a hidden skill level). Mirror the UX of **registration window closed** (no primary CTA, explanatory copy visible without opening a dialog).
+- **Backend:** Keep existing **403** on `POST /games/:gameId/register` (and any guest-register path) when `req.user.blockReason` is set—**no relaxation**; the UI change is additive so mistaken or forged clients still fail closed.
+
 ## Success criteria (measurable)
 
 - Game create/edit API and mini-app use **only** the new play-mode shape; requests using removed fields alone are rejected (e.g. **400**).
@@ -141,6 +153,7 @@ All endpoints must verify `req.user.isAdmin` (or shared middleware equivalent).
 - Non-admin API consumers never receive `player_level` in JSON for scoped manual review (contract test or snapshot of DTOs).
 - Global admin page loads users with correct ordering for a fixture dataset **through pagination** (no single response that assumes entire table fits in memory).
 - With enforcement **on** and restrictions firing, automated or manual QA confirms: (a) FR-2 denial **JSON** (and mini-app copy) contain **no** internal level vocabulary; **no** `notifyUser` call on those failures; (b) successful register/waitlist still receives existing Telegram notifications; (c) FR-2 HTTP responses include stable `code` and time fields where specified.
+- For a user with `blockReason` set: game details shows **no** Join button and an **inline** reason note before any register call; direct API register still returns **403** with block message.
 
 ## Key entities
 
@@ -158,6 +171,7 @@ All endpoints must verify `req.user.isAdmin` (or shared middleware equivalent).
 
 - Registration and waitlist ordering live in `backend/src/routes/games.ts` (`POST /:gameId/register`); `getRegistrationOpenDays` and related helpers branch on priority vs non-priority—those branches map to play mode after FR-0. On **success**, keep using **`notifyUser`** as today. On **FR-2 denial**, return JSON only—**do not** invoke `notifyUser` for that outcome.
 - Game admin create/update: `backend/src/routes/gamesAdmin.ts`; form state: `tg-mini-app/src/viewmodels/GameFormViewModel.ts` and `GameFormFields.tsx`.
+- **Blocked join UX:** `tg-mini-app/src/viewmodels/GameDetailsViewModel.ts` — extend `getMainButtonProps()` / `getInfoText()` (or shared helpers) so blocked + not-registered hides Join and surfaces reason like early-registration copy; align guest affordances with FR-5 bullets.
 - Global admin checks in UI: `user.isAdmin` in `tg-mini-app/src/pages/*`.
 - User admin patterns: `backend/src/routes/usersAdmin.ts` for precedent on admin-only user operations.
 - **Game administrators** (`game_administrators.with_positions`) remain a boolean axis for “5-1 vs non–5-1 day assignment”; align it with the new play mode naming in UI copy only, or keep boolean semantics where `true` means “5-1 track” for that assignment (implementation detail).

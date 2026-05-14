@@ -55,3 +55,9 @@ Consolidates implementation decisions for [spec.md](./spec.md). No open NEEDS CL
 **Rationale:** Product ships backend and mini-app together; avoids transitional branching and test matrices for dual payloads.
 
 **Alternatives considered:** One-release dual-read of booleans — **rejected** by updated product direction.
+
+## 9. Blocked users: join affordances
+
+**Decision:** Mini-app hides **Join Game** (and self-serve guest entry) when `blockReason` is set; show the reason in the same inline info pattern as registration-not-open. Backend **403** on register when blocked remains mandatory.
+
+**Rationale:** Treats API enforcement as second line of defense; avoids popup-only discovery after tapping Join.
