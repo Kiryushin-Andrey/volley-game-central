@@ -1,23 +1,21 @@
 # Ralph loop state
 
-Used by `scripts/ralph-player-levels-loop.sh`.
+Orchestrator: `scripts/ralph-player-levels-loop.sh` (references only — no embedded PRD/E2E).
 
 | File | Purpose |
 |------|---------|
-| `player-levels-state.json` | Tracks completed issues (#20–#22), E2E suites A–D, final pass |
-| `logs/` | Agent stdout per implementation / E2E / final iteration |
-| `screenshots/` | Browser E2E screenshots (Suite A–D) |
-| `STEERING.md` | Optional human overrides (create from `STEERING.example.md`) |
+| `player-levels-state.json` | Completed issues + E2E suites A–D |
+| `logs/` | Agent output per iteration |
+| `screenshots/` | E2E screenshots (see E2E doc) |
+| `STEERING.md` | Optional overrides (`STEERING.example.md`) |
 
-## E2E mapping
+Context files (read by the agent each pass):
 
-| Issue | Suite | Promise |
-|-------|-------|---------|
-| #20 | A | `RALPH_E2E_COMPLETE SUITE_A` |
-| #21 | B | `RALPH_E2E_COMPLETE SUITE_B` |
-| #22 | C | `RALPH_E2E_COMPLETE SUITE_C` |
-| Final | D | `RALPH_E2E_COMPLETE SUITE_D` |
+- `CONTEXT.md`
+- `docs/prd/player-levels-and-game-format.md`
+- `docs/testing/e2e-player-levels-browser-agent.md`
 
-Plan: `docs/testing/e2e-player-levels-browser-agent.md`
+Child issues are discovered via `gh` (body contains `## Parent` → parent issue URL).
+Order: issue number ascending. E2E suites A/B/C = 1st/2nd/3rd child (see E2E doc §11).
 
-Reset: delete `player-levels-state.json` to re-run all slices.
+Override: `RALPH_CHILD_ISSUES="20 21 22"` or `RALPH_PARENT_ISSUE=8`.

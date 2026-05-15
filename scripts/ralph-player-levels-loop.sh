@@ -8,7 +8,8 @@ set -euo pipefail
 
 REPO="${RALPH_REPO:-Kiryushin-Andrey/volley-game-central}"
 PARENT_ISSUE="${RALPH_PARENT_ISSUE:-8}"
-ISSUE_NUMBERS=(20 21 22)
+# Child slices: discovered from GitHub (## Parent → #${PARENT_ISSUE}). Override: RALPH_CHILD_ISSUES="20 21 22"
+ISSUE_NUMBERS=()
 BRANCH="${RALPH_BRANCH:-cursor/player-levels-c8a4}"
 BASE="${RALPH_BASE:-main}"
 
@@ -44,7 +45,52 @@ while [[ $# -gt 0 ]]; do
 done
 
 issue_url() { echo "https://github.com/${REPO}/issues/$1"; }
-suite_for() { case "$1" in 20) echo A;; 21) echo B;; 22) echo C;; esac; }
+
+# Issues whose body has "## Parent" linking to PARENT_ISSUE (to-issues template).
+discover_child_issues() {
+  gh issue list --repo "$REPO" --state all --limit 200 --json number,body \
+    | jq -r --argjson parent "$PARENT_ISSUE" '
+        .[]
+        | select(.number != $parent)
+        | select(.body | test("## Parent[\\s\\S]*?/issues/" + ($parent | tostring) + "\\b"))
+        | .number
+      ' | sort -n
+}
+
+load_child_issues() {
+  if [[ -n "${RALPH_CHILD_ISSUES:-}" ]]; then
+    read -ra ISSUE_NUMBERS <<<"$RALPH_CHILD_ISSUES"
+    return
+  fi
+  mapfile -t ISSUE_NUMBERS < <(discover_child_issues)
+  if [[ ${#ISSUE_NUMBERS[@]} -eq 0 ]]; then
+    echo "No child issues found for parent #${PARENT_ISSUE} (expected ## Parent link in body)." >&2
+    exit 1
+  fi
+}
+
+issue_suite_index() {
+  local target="$1" i=0 n
+  for n in "${ISSUE_NUMBERS[@]}"; do
+    [[ "$n" == "$target" ]] && { echo "$i"; return 0; }
+    i=$((i + 1))
+  done
+  return 1
+}
+
+# 1st child → Suite A, 2nd → B, … (see ${E2E} §11)
+suite_for() {
+  local idx
+  idx="$(issue_suite_index "$1")" || return 1
+  printf '%c' $((65 + idx))
+}
+
+closes_clause() {
+  local parts=() n
+  for n in "${ISSUE_NUMBERS[@]}"; do parts+=("Closes #${n}"); done
+  local IFS=', '
+  echo "${parts[*]}"
+}
 
 has_promise() {
   local log="$1" promise="$2"
@@ -134,7 +180,7 @@ Ralph loop — final pass.
 
 $(refs_block)
 
-Run unit tests; Suite D in ${E2E}; one draft PR ${BRANCH} → ${BASE} (Closes #20, #21, #22).
+Run unit tests; Suite D in ${E2E}; one draft PR ${BRANCH} → ${BASE} ($(closes_clause)).
 Progress: ${STATE}
 
 Output on its own lines when done:
@@ -142,6 +188,8 @@ RALPH_E2E_COMPLETE SUITE_D
 RALPH_ALL_COMPLETE
 EOF
 }
+
+LAST_LOG=""
 
 run_until_promise() {
   local max="$1" title="$2" promise="$3"
@@ -156,9 +204,9 @@ run_until_promise() {
     prompt="$("${build[@]}")"
     log="${LOGS}/${title}-iter${i}-$(date +%Y%m%d-%H%M%S).log"
     run_agent "${title}-iter${i}" "$prompt" "$log" || true
+    LAST_LOG="$log"
     if [[ -f "$log" ]] && has_promise "$log" "$promise"; then
       echo "OK: $promise"
-      REPLY_LOG="$log"
       return 0
     fi
     echo "missing: $promise (see $log)"
@@ -176,6 +224,8 @@ main() {
     [[ -f "$f" ]] || { echo "missing: $f" >&2; exit 1; }
   done
   init_state
+  load_child_issues
+  echo "Parent #${PARENT_ISSUE} → child issues: ${ISSUE_NUMBERS[*]}"
 
   if ! $DRY_RUN; then
     git fetch origin "$BASE" "$BRANCH" 2>/dev/null || true
@@ -203,10 +253,8 @@ main() {
     exit 0
   fi
 
-  local flog
   run_until_promise 10 "final" "RALPH_ALL_COMPLETE" prompt_final || exit 1
-  flog="${REPLY_LOG:-}"
-  if [[ -n "$flog" ]] && has_promise "$flog" "RALPH_E2E_COMPLETE SUITE_D"; then
+  if has_promise "$LAST_LOG" "RALPH_E2E_COMPLETE SUITE_D"; then
     mark_suite D
   fi
   mark_final
