@@ -1,6 +1,6 @@
 # Ralph loop state
 
-Orchestrator: discover child issues (skill **ralph-cloud-loop**), then `scripts/ralph-loop.py`.
+Orchestrator: find child issues, **order by dependency** (read + reason — skill **ralph-cloud-loop**), then `scripts/ralph-loop.py`.
 
 | File | Purpose |
 |------|---------|
@@ -22,7 +22,7 @@ python3 scripts/ralph-loop.py \
   [--backend local|cloud] [--push] …
 ```
 
-Child issue numbers come from the orchestrator (`gh` + `## Parent` link). The script does not call GitHub.
+Child issue numbers and **order** come from the orchestrator (reads issue text, reasons about dependencies). The script does not call GitHub.
 
 ## Local backend
 

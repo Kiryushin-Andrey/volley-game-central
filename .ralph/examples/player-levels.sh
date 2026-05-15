@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Example Ralph loop flags for the player-levels epic (parent #8).
-# Discover children first (ralph-cloud-loop skill), then pass --child-issues.
+# Order children by dependency (ralph-cloud-loop skill steps 1–2), then pass --child-issues.
 # Usage:
 #   source .ralph/examples/player-levels.sh
 #   python3 scripts/ralph-loop.py "${RALPH_LOOP_ARGS[@]}" --child-issues 20 21 22 --backend cloud --push

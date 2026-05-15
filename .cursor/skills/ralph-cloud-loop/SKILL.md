@@ -1,103 +1,122 @@
 ---
 name: ralph-cloud-loop
-description: Runs the generic Ralph loop with cloud orchestrator and separate cloud child sessions per step. Orchestrator discovers child GitHub issues via gh, then runs scripts/ralph-loop.py. Use for Ralph loop, epic automation, or unattended multi-issue agent runs.
+description: Runs the generic Ralph loop with cloud orchestrator and separate cloud child sessions per step. Orchestrator discovers child GitHub issues, orders them by reading and reasoning about dependencies, then runs scripts/ralph-loop.py. Use for Ralph loop, epic automation, or unattended multi-issue agent runs.
 ---
 
 # Ralph cloud loop
 
-The **orchestrator** (you, or a Cloud Agent session) discovers child issues, then runs `scripts/ralph-loop.py`, which spawns a **new** Cloud Agent per implementation and per E2E pass. The Python script does **not** call GitHub; only `git` (+ `CURSOR_API_KEY` for cloud backend).
+The **orchestrator** discovers child slice issues, **orders them by dependency** (by reading issue text — not numeric sort, not regex on section headings), then runs `scripts/ralph-loop.py`. The script runs slices **one at a time** in that order. It does not call GitHub.
 
 ## Your job before `ralph-loop.py`
 
-Collect these, then run the script once in the **foreground**:
-
-| Input | Example |
-|-------|---------|
-| Parent issue # | `8` |
-| Child issue #s (ordered) | `20 21 22` |
-| Integration branch | `cursor/player-levels-c8a4` |
-| PRD path | `docs/prd/player-levels-and-game-format.md` |
-| E2E plan path | `docs/testing/e2e-player-levels-browser-agent.md` |
+| Input | You supply |
+|-------|------------|
+| Parent issue # | Epic / PRD issue |
+| Child issue #s | **Dependency-ordered** list for `--child-issues` |
+| Integration branch | Single PR branch |
+| PRD + E2E paths | Repo paths for this epic |
 
 Optional: `--push`, `--from N`, `--skip-e2e`, `--cloud-env KEY=VAL`.
 
-## Step 1 — Discover child issues (orchestrator only)
+---
 
-Slice issues created via `/to-issues` include a **## Parent** link to the epic. Discover with `gh` (needs `gh auth` or `GH_TOKEN` in this environment — **not** required for `ralph-loop.py` itself):
+## Step 1 — Find child slices
 
-```bash
-REPO="$(gh repo view --json nameWithOwner -q .)"   # or owner/repo
-PARENT=8
+Collect every GitHub issue that belongs to this epic (slice / vertical-slice work under the parent). Use whatever works in your environment:
 
-gh issue list --repo "$REPO" --state all --limit 200 --json number,body \
-  | jq -r --argjson parent "$PARENT" '
-      .[]
-      | select(.number != $parent)
-      | select(.body | test("## Parent[\\s\\S]*?/issues/" + ($parent | tostring) + "\\b"))
-      | .number
-    ' | sort -n
+- `gh issue list` / `gh issue view` on the parent and linked issues
+- Repo copies under `docs/issues/` if present
+- Parent issue body or PRD “implementation slices” section
+
+Do **not** assume issue numbers sort correctly. Do **not** parse markdown headings mechanically (e.g. do not rely on a fixed `## Blocked by` format).
+
+---
+
+## Step 2 — Order slices by dependency (reasoning)
+
+For **each** child issue, read the full description (and title). Build a mental dependency graph:
+
+- What must exist before this slice can be implemented or E2E-tested?
+- Which slices only touch disjoint areas and can run in any order relative to each other?
+- Which slice integrates or depends on behavior introduced by others?
+
+**Rules for the list you pass to `--child-issues`:**
+
+1. **Every blocker must appear earlier** than the issue that depends on it.
+2. **Parallel-safe slices** (no dependency between them): pick one order; put them consecutively before anything that needs both. The loop is serial — you are choosing a safe sequence, not spawning parallel agents.
+3. **E2E suite mapping**: `ralph-loop.py` maps 1st child → Suite A, 2nd → B, etc. If the E2E doc says Suite X runs after slice Y, ensure that slice’s index matches (re-read E2E §11 if unsure).
+4. If two orderings are valid, prefer the order documented in the PRD or parent issue when stated; otherwise prefer foundational/data-model slices before UI-only or policy layers that assume them.
+
+**Before step 3, write a short ordering note** (in your reply or orchestrator log), for example:
+
+```text
+Ordering: #20 (game format) and #21 (admin levels) — independent, run 20 then 21.
+#22 (restrictions) needs format + player levels → last.
+→ --child-issues 20 21 22
 ```
 
-Sanity-check the list (count, order = slice order for E2E suites A/B/C). If discovery fails, read `docs/issues/` or the parent issue and list numbers manually.
+If dependencies are unclear, read related issues again or ask the user — do not guess an order that could run a dependent slice first.
 
-**Record the space-separated numbers** for `--child-issues`.
+---
 
-## Step 2 — Run the loop
+## Step 3 — Run the loop
 
 ```bash
 cd "$(git rev-parse --show-toplevel)"
 
 python3 scripts/ralph-loop.py \
   --backend cloud \
-  --parent-issue "$PARENT" \
-  --child-issues 20 21 22 \
-  --branch cursor/player-levels-c8a4 \
-  --prd docs/prd/player-levels-and-game-format.md \
-  --e2e docs/testing/e2e-player-levels-browser-agent.md \
+  --parent-issue <PARENT> \
+  --child-issues <ordered numbers> \
+  --branch <branch> \
+  --prd <path> \
+  --e2e <path> \
   --push
 ```
 
-Do **not** implement slices in the orchestrator session — only run the script. Do **not** background the script.
+Run in the **foreground**. Do **not** implement slices in the orchestrator session.
 
-### Example profile (player-levels)
+### Example (player-levels)
 
-Discover children (step 1), then:
+After reasoning: format (#20) and admin (#21) before restrictions (#22):
 
 ```bash
 source .ralph/examples/player-levels.sh
-# RALPH_LOOP_ARGS has parent, branch, prd, e2e — add discovered children:
-python3 scripts/ralph-loop.py "${RALPH_LOOP_ARGS[@]}" --child-issues 20 21 22 --backend cloud --push
+python3 scripts/ralph-loop.py "${RALPH_LOOP_ARGS[@]}" \
+  --child-issues 20 21 22 \
+  --backend cloud --push
 ```
 
-## Start from laptop (orchestrator in cloud)
+(`RALPH_LOOP_ARGS` does not include children — you add them after step 2.)
+
+---
+
+## Start from laptop
 
 ```bash
 export CURSOR_API_KEY=...
-python3 scripts/launch-ralph-orchestrator.py --branch cursor/my-feature -- \
-  --parent-issue 8 --child-issues 20 21 22 \
-  --prd docs/prd/my-feature.md --e2e docs/testing/e2e-my-feature.md --push
+python3 scripts/launch-ralph-orchestrator.py --branch <branch> -- \
+  --parent-issue 8 --prd … --e2e … --backend cloud --push
 ```
 
-The launch prompt tells the cloud orchestrator to follow this skill (discover if `--child-issues` omitted from args).
+Omit `--child-issues` so the cloud orchestrator runs steps 1–2 from this skill, then adds the ordered list to the command.
+
+---
 
 ## Secrets
 
-| Secret | Who needs it |
-|--------|----------------|
-| `CURSOR_API_KEY` | Orchestrator + child sessions (`--backend cloud`) |
-| `GH_TOKEN` / `gh auth` | **Orchestrator only** (step 1 discovery) |
-| GitHub App (Cursor) | git clone/push in cloud VMs — no extra PAT usually |
+| Secret | Who |
+|--------|-----|
+| `CURSOR_API_KEY` | Orchestrator + child sessions |
+| `gh` / GitHub access | Orchestrator (read issues for steps 1–2) |
+| Cursor GitHub App | git clone/push in cloud VMs |
+
+---
 
 ## After the run
 
-Report exit code and `cloud_sessions` from `.ralph/ralph-state.json`. Sessions: [cursor.com/agents](https://cursor.com/agents).
+Report: exit code, your **ordering note**, and `cloud_sessions` from `.ralph/ralph-state.json`.
 
 ## Resume
 
-Re-run discovery if needed, then:
-
-```bash
-python3 scripts/ralph-loop.py ... --from 21
-```
-
-(state in `.ralph/ralph-state.json`)
+Re-derive order if dependencies changed, then `python3 scripts/ralph-loop.py ... --from <N>`.

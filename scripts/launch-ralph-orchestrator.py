@@ -70,8 +70,10 @@ def main() -> None:
     discover_step = ""
     if not has_children:
         discover_step = """
-2. **Discover child issues** (skill ralph-cloud-loop, step 1): run `gh` + `jq` to list slice
-   issues whose body links to the parent epic, then build `--child-issues N N N` for step 3.
+2. **Discover and order child issues** (skill ralph-cloud-loop, steps 1–2): read each slice
+   issue (gh and/or docs/issues/), reason about dependencies — do not sort by issue number
+   or parse fixed markdown headings — then pass dependency-ordered `--child-issues` to step 3.
+   Include a short ordering note in your final report.
 """
     else:
         discover_step = "\n2. Child issues are already in the command below.\n"
@@ -80,7 +82,7 @@ def main() -> None:
 
 Run in the **foreground**. Do not implement product slices yourself.
 
-1. Verify `CURSOR_API_KEY`. For discovery you need `gh` (and `jq`) with GitHub access.
+1. Verify `CURSOR_API_KEY`. For steps 1–2 you need a way to read GitHub issues (e.g. `gh`).
 {discover_step}
 3. Ensure the integration branch exists on GitHub, then run:
 
