@@ -1,7 +1,7 @@
 import { gamesApi, bunqApi } from '../services/api';
 import { showPopup, showConfirm } from '../utils/uiPrompts';
 import { logDebug } from '../debug';
-import { Game, User } from '../types';
+import { Game, User, type FiveOneRegistrationRestriction } from '../types';
 import type { UserPublicInfo } from '../types';
 import { ActionGuard } from '../utils/actionGuard';
 import { getUserRegistration } from '../utils/registrationsUtils';
@@ -153,11 +153,32 @@ export class GameDetailsViewModel {
     return this.state.bunq.isCheckingBunq;
   }
 
+  private static formatRegistrationRestriction(
+    restriction: FiveOneRegistrationRestriction | null | undefined,
+  ): string | null {
+    if (!restriction) return null;
+    let msg = restriction.message;
+    if (
+      restriction.code === 'FIVE_ONE_LEVEL_WINDOW' &&
+      restriction.registrationOpensAt
+    ) {
+      const openDate = new Date(restriction.registrationOpensAt);
+      msg += ` Registration opens ${openDate.toLocaleString()}.`;
+    }
+    return msg;
+  }
+
   async loadGame(id: number): Promise<void> {
     try {
       this.setGameData({ isLoading: true });
       const fetchedGame = await gamesApi.getGame(id);
-      this.setGameData({ game: fetchedGame, error: null, registrationRestriction: null });
+      this.setGameData({
+        game: fetchedGame,
+        error: null,
+        registrationRestriction: GameDetailsViewModel.formatRegistrationRestriction(
+          fetchedGame.registrationRestriction,
+        ),
+      });
     } catch (err) {
       this.setGameData({ error: 'Failed to load game details' });
       logDebug('Error loading game:');
@@ -480,7 +501,15 @@ export class GameDetailsViewModel {
   // Main action handlers
   private handleRegister(): void {
     if (!this.state.gameData.game || this.state.action.isActionLoading) return;
-    if (this.user.blockReason || this.state.gameData.registrationRestriction) {
+    if (this.user.blockReason) {
+      showPopup({
+        title: 'Registration blocked',
+        message: `You cannot register because: ${this.user.blockReason}`,
+        buttons: [{ type: 'ok' }],
+      });
+      return;
+    }
+    if (this.state.gameData.registrationRestriction) {
       return;
     }
     // Show the bring ball dialog
@@ -580,7 +609,15 @@ export class GameDetailsViewModel {
 
   async handleGuestRegister(): Promise<void> {
     if (!this.state.gameData.game || this.state.action.isActionLoading) return;
-    if (this.user.blockReason || this.state.gameData.registrationRestriction) {
+    if (this.user.blockReason) {
+      showPopup({
+        title: 'Guest registration blocked',
+        message: `You cannot add guests because: ${this.user.blockReason}`,
+        buttons: [{ type: 'ok' }],
+      });
+      return;
+    }
+    if (this.state.gameData.registrationRestriction) {
       return;
     }
     
@@ -698,10 +735,6 @@ export class GameDetailsViewModel {
     const userRegistration = game.registrations.find((reg) => reg.userId === this.user.id);
     const deadlineHours = game.unregisterDeadlineHours || 5;
 
-    if (!userRegistration && this.user.blockReason && isGameUpcoming(game.dateTime)) {
-      segments.push(`You cannot register: ${this.user.blockReason}`);
-    }
-
     if (userRegistration) {
       if (
         !isGamePast(game.dateTime) &&
@@ -738,7 +771,7 @@ export class GameDetailsViewModel {
       return false;
     }
 
-    if (this.user.blockReason || this.state.gameData.registrationRestriction) {
+    if (this.state.gameData.registrationRestriction) {
       return false;
     }
     
@@ -767,9 +800,7 @@ export class GameDetailsViewModel {
     // Find user's own registration (exclude their guests)
     const userRegistration = getUserRegistration(this.state.gameData.game, this.user.id);
 
-    const hideSelfServeRegistration =
-      !!this.user.blockReason ||
-      !!this.state.gameData.registrationRestriction;
+    const hideSelfServeRegistration = !!this.state.gameData.registrationRestriction;
 
     if (userRegistration) {
       // Check if user can leave the game (up to X hours before or anytime if waitlisted)

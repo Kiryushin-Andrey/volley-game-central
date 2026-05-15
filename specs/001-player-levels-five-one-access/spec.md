@@ -65,10 +65,12 @@ Introduce three internal player levels (`beginner`, `intermediate`, `advanced`) 
 12. **As a player** blocked or deferred by FR-2 when registering for a **with positions** game (enforcement on), I see a **consistent API error** in the mini-app (and HTTP body) that explains the situation in plain language **without** internal level names—**no** Telegram or other push for this failure.
 13. **As a player** who successfully registers or joins the waitlist, I still receive the **same Telegram success/waitlist messages** as today (`notifyUser`), unless copy must be tweaked for accuracy—never with internal level vocabulary.
 
-### P5 — Blocked users (game join UX)
+### P5 — FR-2 “blocked from joining” UX (game details)
 
-14. **As a blocked user** (`blockReason` set on my session / user profile), when I open an upcoming game I am **not** registered for, I **do not** see a **Join Game** button at all; instead I see an **inline note** with the block reason, using the **same presentation pattern** as when registration is not open yet (e.g. the existing info text area used for “registration opens on …” on game details).
-15. **As a blocked user**, I **cannot** trigger self-registration via the primary join flow; if a request still reaches the API, I receive **403** with the existing error payload (**second line of defense**—unchanged server behavior).
+14. **As a player** who is **not eligible** to self-register for a **with positions** game under FR-2 when enforcement is on (e.g. **beginner**, or **intermediate** when the game is still more than three calendar days away), when I open that game and general registration is already open, I **do not** see **Join Game**; I see an **inline note** in the same region as “registration not yet open,” with neutral copy (no internal level names).
+15. **As that player**, if I still call `POST /games/:gameId/register`, I receive **403** with the FR-2 JSON error (**second line of defense**).
+
+*Note:* Admin **`blockReason`** blocking is unchanged: API **403** on register; mini-app may still use a popup on join attempt unless separately specified.
 
 ## Functional requirements
 
@@ -124,7 +126,8 @@ All endpoints must verify `req.user.isAdmin` (or shared middleware equivalent).
 - Page implements the sort order in FR P3 **within the current page**; when paginating, apply global sort by **fetching or sorting server-side** so ordering is consistent across pages (recommended: server-side sort + cursor/page).
 - Global-admin game create/edit implements the **play mode** select per FR-0 (this is not a “player level” surface; it replaces two booleans with one control).
 - No changes to game cards, game details, category copy, or registration flows that **reveal player skill level** to non-admins. If the API returns a rejection for beginners, use a **generic** message that does not mention “beginner” or internal level names (e.g. “You cannot register for this game.”); see **FR-7** for the JSON error shape.
-- **Blocked users (`user.blockReason`):** On game details for upcoming games, do **not** show **Join Game** when the user is blocked and **not** registered for that game. Show the block reason in the **same inline info region** used for “registration not open yet” (`getInfoText()` pattern in `GameDetailsViewModel.ts`). Remove the **popup-on-tap** blocked flow for join. Apply the same **hide + note** pattern to **add guest** (or equivalent self-serve guest entry) when the acting user is blocked—no CTA that would only 403.
+- **FR-2 join affordances:** On game details, when the viewer would fail FR-2 for self-registration (beginner; intermediate before T−3 days) and general registration is already open, **hide Join Game** and show an inline note via `getInfoText()` (server may supply `registrationRestriction` on `GET /games/:id` so the client does not need `player_level`). Hide **add guest** for the same state when self-serve guest registration would hit the same gate.
+- **`blockReason`:** Unchanged from pre-feature unless specified elsewhere; not the same as FR-2 “blocked from joining.”
 
 ### FR-6 — Security and privacy
 
@@ -140,10 +143,11 @@ All endpoints must verify `req.user.isAdmin` (or shared middleware equivalent).
 - **Success unchanged:** After a **successful** insert, keep existing **`notifyUser`** success and waitlist messages; do not introduce level names there.
 - **Out of scope:** Telegram (or other push) on registration failure for FR-2 or elsewhere; marketing pushes; admin audit logs for denials.
 
-### FR-8 — Blocked users: join UX (defense in depth)
+### FR-8 — FR-2 join UX on game details (defense in depth)
 
-- **Mini-app:** When `blockReason` is present on the authenticated user, **Join Game** must not appear for the join path; the info line explains why (include the reason text administrators set—this is **not** a hidden skill level). Mirror the UX of **registration window closed** (no primary CTA, explanatory copy visible without opening a dialog).
-- **Backend:** Keep existing **403** on `POST /games/:gameId/register` (and any guest-register path) when `req.user.blockReason` is set—**no relaxation**; the UI change is additive so mistaken or forged clients still fail closed.
+- **Mini-app:** When FR-2 would deny self-registration for the current viewer on a **with positions** game (enforcement on), and the general registration window is already open, **do not** show **Join Game**; show neutral inline copy in the same info region as “registration not open yet.” Use `registrationRestriction` from `GET /games/:gameId` (or equivalent) so **`player_level` is not exposed** to the client.
+- **Backend:** Continue to enforce FR-2 on `POST /games/:gameId/register` with **403** JSON when the UI gate is bypassed.
+- **`blockReason`:** Keep existing **403** on register; no requirement to hide Join for `blockReason` in this feature (popup on attempt remains acceptable).
 
 ## Success criteria (measurable)
 

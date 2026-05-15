@@ -35,6 +35,13 @@ export interface CollectorUser {
   avatarUrl?: string | null;
 }
 
+/** FR-2 preview for current viewer on game details (no skill level exposed). */
+export interface FiveOneRegistrationRestriction {
+  code: 'FIVE_ONE_LEVEL_NOT_ELIGIBLE' | 'FIVE_ONE_LEVEL_WINDOW';
+  message: string;
+  registrationOpensAt?: string;
+}
+
 export interface Game {
   id: number;
   dateTime: string;
@@ -57,6 +64,7 @@ export interface Game {
   registrationOpenDays?: number;
   registrationOpensAt?: string;
   isPriorityPlayer?: boolean;
+  registrationRestriction?: FiveOneRegistrationRestriction | null;
 }
 
 export interface GameRegistration {

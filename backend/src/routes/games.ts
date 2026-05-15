@@ -15,7 +15,10 @@ import {
   isWithPositionsPlayMode,
   isWithPriorityPlayersPlayMode,
 } from '../types/gamePlayMode';
-import { evaluateFiveOneLevelAccess } from '../services/fiveOneLevelAccess';
+import {
+  evaluateFiveOneLevelAccess,
+  getFiveOneRegistrationRestrictionPreview,
+} from '../services/fiveOneLevelAccess';
 import type { GamePlayMode } from '../types/gamePlayMode';
 
 const router = Router();
@@ -522,6 +525,22 @@ router.get('/:gameId', async (req, res) => {
     const registrationOpenDate = new Date(game[0].dateTime);
     registrationOpenDate.setDate(registrationOpenDate.getDate() - registrationOpenDays);
 
+    const selfRegistration = registrationsWithWaitlistStatus.find(
+      (reg) =>
+        reg.userId === req.user!.id &&
+        (reg.guestName === null || reg.guestName === undefined),
+    );
+
+    const registrationRestriction =
+      !selfRegistration && req.user
+        ? getFiveOneRegistrationRestrictionPreview({
+            playMode: game[0].playMode,
+            playerLevel: req.user.playerLevel ?? null,
+            gameDateTime: new Date(game[0].dateTime),
+            generalRegistrationOpensAt: registrationOpenDate,
+          })
+        : null;
+
     // Ensure legacy field not leaked; respond with new fields
     const { locationAddress: _deprecated, ...restGame } = game[0] as any;
     res.json({
@@ -532,6 +551,7 @@ router.get('/:gameId', async (req, res) => {
       registrationOpenDays,
       registrationOpensAt: registrationOpenDate.toISOString(),
       isPriorityPlayer,
+      registrationRestriction,
     });
   } catch (error) {
     console.error('Error fetching game:', error);

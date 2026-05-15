@@ -65,3 +65,49 @@ export function evaluateFiveOneLevelAccess(params: {
 
   return { allowed: true };
 }
+
+/** Client-safe preview for game details (no player level exposed). */
+export type FiveOneRegistrationRestriction = {
+  code: 'FIVE_ONE_LEVEL_NOT_ELIGIBLE' | 'FIVE_ONE_LEVEL_WINDOW';
+  message: string;
+  registrationOpensAt?: string;
+};
+
+/**
+ * Whether self-serve join should be hidden with an inline note (game details GET).
+ * General registration-open messaging takes precedence until that window opens.
+ */
+export function getFiveOneRegistrationRestrictionPreview(params: {
+  playMode: GamePlayMode;
+  playerLevel: PlayerSkillLevel | null;
+  gameDateTime: Date;
+  generalRegistrationOpensAt: Date;
+  now?: Date;
+}): FiveOneRegistrationRestriction | null {
+  const now = params.now ?? new Date();
+  const access = evaluateFiveOneLevelAccess({
+    playMode: params.playMode,
+    playerLevel: params.playerLevel,
+    gameDateTime: params.gameDateTime,
+    now,
+  });
+
+  if (access.allowed) {
+    return null;
+  }
+
+  if (now < params.generalRegistrationOpensAt) {
+    return null;
+  }
+
+  const result: FiveOneRegistrationRestriction = {
+    code: access.code,
+    message: access.message,
+  };
+
+  if (access.code === 'FIVE_ONE_LEVEL_WINDOW') {
+    result.registrationOpensAt = access.registrationOpensAt.toISOString();
+  }
+
+  return result;
+}
