@@ -43,7 +43,7 @@ To execute: `/speckit.git.commit`
 
 **Purpose**: Enforcement switch wiring and shared configuration surface for local/staging tests
 
-- [ ] T001 Add default constant and env-backed reader for `FIVE_ONE_LEVEL_RESTRICTIONS_ENABLED` in `backend/src/constants.ts` (or a small dedicated module under `backend/src/config/`) and ensure `backend/.env.example` documents the variable
+- [x] T001 Add default constant and env-backed reader for `FIVE_ONE_LEVEL_RESTRICTIONS_ENABLED` in `backend/src/constants.ts` (or a small dedicated module under `backend/src/config/`) and ensure `backend/.env.example` documents the variable
 
 ---
 
@@ -53,10 +53,10 @@ To execute: `/speckit.git.commit`
 
 **⚠️ CRITICAL**: No user story work should ship until `play_mode` and `player_level` exist in the database and backend reads are consistent
 
-- [ ] T002 Add Drizzle migration under `backend/drizzle/` (next index after `0030_add_with_priority_players_to_games`, e.g. `0031_player_level_and_play_mode.sql`) implementing `users.player_level`, `games.play_mode`, backfill from `with_positions` / `with_priority_players`, and removal of legacy boolean columns per [data-model.md](./data-model.md)
-- [ ] T003 [P] Update `backend/src/db/schema.ts` for `users.player_level` and `games.play_mode`; remove deprecated boolean columns from the Drizzle schema after the migration
-- [ ] T004 [P] Regenerate or update Drizzle metadata in `backend/drizzle/meta/` after schema changes (`npm` scripts in `backend/package.json`)
-- [ ] T005 Replace all backend references to `withPositions` / `withPriorityPlayers` with `play_mode` semantics across `backend/src/` (at minimum `backend/src/routes/games.ts`, `backend/src/routes/gamesAdmin.ts`, `backend/src/services/gameService.ts`, `backend/src/services/telegramService.ts`, and related middleware/types)
+- [x] T002 Add Drizzle migration under `backend/drizzle/` (next index after `0030_add_with_priority_players_to_games`, e.g. `0031_player_level_and_play_mode.sql`) implementing `users.player_level`, `games.play_mode`, backfill from `with_positions` / `with_priority_players`, and removal of legacy boolean columns per [data-model.md](./data-model.md)
+- [x] T003 [P] Update `backend/src/db/schema.ts` for `users.player_level` and `games.play_mode`; remove deprecated boolean columns from the Drizzle schema after the migration
+- [x] T004 [P] Regenerate or update Drizzle metadata in `backend/drizzle/meta/` after schema changes (`npm` scripts in `backend/package.json`)
+- [x] T005 Replace all backend references to `withPositions` / `withPriorityPlayers` with `play_mode` semantics across `backend/src/` (at minimum `backend/src/routes/games.ts`, `backend/src/routes/gamesAdmin.ts`, `backend/src/services/gameService.ts`, `backend/src/services/telegramService.ts`, and related middleware/types)
 
 **Checkpoint**: Foundation ready — user stories can proceed (US2/US3 may overlap in parallel after T005)
 
@@ -70,9 +70,9 @@ To execute: `/speckit.git.commit`
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] Implement FR-2 eligibility evaluation (beginner / intermediate window / intermediate roster vs waitlist / advanced / unassigned) in a focused helper under `backend/src/` (e.g. `backend/src/services/fiveOneLevelAccess.ts` or co-located helpers in `backend/src/routes/games.ts`) using `games.play_mode === 'with_positions'` and the enforcement reader from T001
-- [ ] T007 [US1] Integrate the FR-2 gate into `POST /:gameId/register` (and any waitlist registration handler) in `backend/src/routes/games.ts` after existing registration-open checks per [spec.md](./spec.md) FR-2
-- [ ] T008 [US1] On FR-2 denial, return HTTP 403 JSON shaped per [contracts/http-registration-fr2.md](./contracts/http-registration-fr2.md); do **not** call `notifyUser` on this path
+- [x] T006 [US1] Implement FR-2 eligibility evaluation (beginner / intermediate window / intermediate roster vs waitlist / advanced / unassigned) in a focused helper under `backend/src/` (e.g. `backend/src/services/fiveOneLevelAccess.ts` or co-located helpers in `backend/src/routes/games.ts`) using `games.play_mode === 'with_positions'` and the enforcement reader from T001
+- [x] T007 [US1] Integrate the FR-2 gate into `POST /:gameId/register` (and any waitlist registration handler) in `backend/src/routes/games.ts` after existing registration-open checks per [spec.md](./spec.md) FR-2
+- [x] T008 [US1] On FR-2 denial, return HTTP 403 JSON shaped per [contracts/http-registration-fr2.md](./contracts/http-registration-fr2.md); do **not** call `notifyUser` on this path
 
 **Checkpoint**: Backend enforcement for FR-2 is complete when combined with foundational `play_mode` data
 
@@ -86,11 +86,11 @@ To execute: `/speckit.git.commit`
 
 ### Implementation for User Story 2
 
-- [ ] T009 [US2] Implement paginated `GET` (directory) and `PATCH` (assign level) routes per [contracts/http-admin-player-levels.md](./contracts/http-admin-player-levels.md) in `backend/src/routes/` (new file or extension of an existing admin module) and register them in `backend/src/index.ts` behind global-admin auth
-- [ ] T010 [US2] Audit serializers / DTO builders in `backend/src/routes/` (e.g. games, users, profile) so `player_level` is excluded except on the dedicated admin responses
-- [ ] T011 [US2] Add admin UI page under `tg-mini-app/src/pages/` listing users with server-driven sort (unassigned first, then advanced → intermediate → beginner, then alphabetical within group) and level assignment controls wired to new APIs
-- [ ] T012 [US2] Extend `tg-mini-app/src/services/api.ts` with typed client functions for the admin directory and PATCH
-- [ ] T013 [US2] Add routing and a global-admin-only navigation entry in `tg-mini-app/src/App.tsx` and the appropriate admin menu surface (e.g. `tg-mini-app/src/pages/GamesList.tsx` or existing admin shell)
+- [x] T009 [US2] Implement paginated `GET` (directory) and `PATCH` (assign level) routes per [contracts/http-admin-player-levels.md](./contracts/http-admin-player-levels.md) in `backend/src/routes/` (new file or extension of an existing admin module) and register them in `backend/src/index.ts` behind global-admin auth
+- [x] T010 [US2] Audit serializers / DTO builders in `backend/src/routes/` (e.g. games, users, profile) so `player_level` is excluded except on the dedicated admin responses
+- [x] T011 [US2] Add admin UI page under `tg-mini-app/src/pages/` listing users with server-driven sort (unassigned first, then advanced → intermediate → beginner, then alphabetical within group) and level assignment controls wired to new APIs
+- [x] T012 [US2] Extend `tg-mini-app/src/services/api.ts` with typed client functions for the admin directory and PATCH
+- [x] T013 [US2] Add routing and a global-admin-only navigation entry in `tg-mini-app/src/App.tsx` and the appropriate admin menu surface (e.g. `tg-mini-app/src/pages/GamesList.tsx` or existing admin shell)
 
 **Checkpoint**: Admin can manage levels without leaking levels to regular players
 
@@ -104,11 +104,11 @@ To execute: `/speckit.git.commit`
 
 ### Implementation for User Story 3
 
-- [ ] T014 [US3] Update `backend/src/routes/gamesAdmin.ts` (and shared validation/types) to accept **only** `playMode` on writes and reject deprecated `with_positions` / `with_priority_players` boolean fields
-- [ ] T015 [US3] Refactor `tg-mini-app/src/viewmodels/GameFormViewModel.ts` to hold a single `playMode` value instead of two booleans
-- [ ] T016 [US3] Replace the two checkboxes with one select in `tg-mini-app/src/components/GameFormFields.tsx` and map options to the backend enum
-- [ ] T017 [US3] Ensure user creation paths in `backend/src/` default `player_level` to `null` for new registrations per [data-model.md](./data-model.md)
-- [ ] T018 [US3] Update shared mini-app types and helpers (`tg-mini-app/src/types/index.ts`, `tg-mini-app/src/utils/gameDateUtils.ts`, and any `classifyGame` consumers) to the new `playMode` shape
+- [x] T014 [US3] Update `backend/src/routes/gamesAdmin.ts` (and shared validation/types) to accept **only** `playMode` on writes and reject deprecated `with_positions` / `with_priority_players` boolean fields
+- [x] T015 [US3] Refactor `tg-mini-app/src/viewmodels/GameFormViewModel.ts` to hold a single `playMode` value instead of two booleans
+- [x] T016 [US3] Replace the two checkboxes with one select in `tg-mini-app/src/components/GameFormFields.tsx` and map options to the backend enum
+- [x] T017 [US3] Ensure user creation paths in `backend/src/` default `player_level` to `null` for new registrations per [data-model.md](./data-model.md)
+- [x] T018 [US3] Update shared mini-app types and helpers (`tg-mini-app/src/types/index.ts`, `tg-mini-app/src/utils/gameDateUtils.ts`, and any `classifyGame` consumers) to the new `playMode` shape
 
 **Checkpoint**: Authoring pipeline and client are aligned on `play_mode` / `playMode`
 
@@ -122,7 +122,7 @@ To execute: `/speckit.git.commit`
 
 ### Implementation for User Story 4
 
-- [ ] T019 [US4] Parse FR-2 error payloads in `tg-mini-app/src/viewmodels/GameDetailsViewModel.ts` (and guest/registration paths that share the same client) to show user-visible messages without exposing internal level names, reusing patterns for “registration not yet open” where appropriate
+- [x] T019 [US4] Parse FR-2 error payloads in `tg-mini-app/src/viewmodels/GameDetailsViewModel.ts` (and guest/registration paths that share the same client) to show user-visible messages without exposing internal level names, reusing patterns for “registration not yet open” where appropriate
 
 **Checkpoint**: Players understand denials without backend-only errors
 
@@ -136,7 +136,7 @@ To execute: `/speckit.git.commit`
 
 ### Implementation for User Story 5
 
-- [ ] T020 [US5] Update `tg-mini-app/src/viewmodels/GameDetailsViewModel.ts` (and any related UI components) so blocked users never see the Join action and instead see inline `blockReason` text; remove or bypass popup-based join attempts for blocked state
+- [x] T020 [US5] Update `tg-mini-app/src/viewmodels/GameDetailsViewModel.ts` (and any related UI components) so blocked users never see the Join action and instead see inline `blockReason` text; remove or bypass popup-based join attempts for blocked state
 
 **Checkpoint**: Blocked UX matches spec FR-8
 
@@ -146,9 +146,9 @@ To execute: `/speckit.git.commit`
 
 **Purpose**: E2E harness, stable selectors, and manual regression sweep
 
-- [ ] T021 Add Playwright scaffolding to `tg-mini-app/` (`playwright.config.ts`, `e2e/` smoke spec, npm scripts) following [e2e-playwright-mcp.md](./e2e-playwright-mcp.md)
-- [ ] T022 [P] Add `data-testid` attributes needed for MCP-driven flows on join CTA, registration status copy, blocked banner, admin user table, and play-mode select in the relevant `tg-mini-app/src/components/` and page files
-- [ ] T023 Execute the scenarios in [quickstart.md](./quickstart.md) and fix any regressions found in `backend/src/` or `tg-mini-app/src/`
+- [x] T021 Add Playwright scaffolding to `tg-mini-app/` (`playwright.config.ts`, `e2e/` smoke spec, npm scripts) following [e2e-playwright-mcp.md](./e2e-playwright-mcp.md)
+- [x] T022 [P] Add `data-testid` attributes needed for MCP-driven flows on join CTA, registration status copy, blocked banner, admin user table, and play-mode select in the relevant `tg-mini-app/src/components/` and page files
+- [x] T023 Execute the scenarios in [quickstart.md](./quickstart.md) and fix any regressions found in `backend/src/` or `tg-mini-app/src/`
 
 ---
 
@@ -259,4 +259,4 @@ To execute: `/speckit.git.commit`
 | US4 (P4) | 1 (T019) |
 | US5 (P5) | 1 (T020) |
 | Setup + Foundational + Polish | 8 (T001–T005, T021–T023) |
-| Format validation | All lines use `- [ ] Tnnn …` with `[USn]` only on story-phase tasks; `[P]` only on T003, T004, T022 |
+| Format validation | All lines use `- [x] Tnnn …` with `[USn]` only on story-phase tasks; `[P]` only on T003, T004, T022 |
