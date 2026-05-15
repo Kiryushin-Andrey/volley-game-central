@@ -32,6 +32,18 @@ Requires Cursor CLI (`agent`) on your machine.
 
 Each **implementation pass**, **E2E pass**, and **final pass** starts a **new** Cloud Agent session via the [Cloud Agents API](https://cursor.com/docs/cloud-agent/api/endpoints). Sessions appear at [cursor.com/agents](https://cursor.com/agents) and in the Cursor desktop app (Agents / Cloud).
 
+### Run without keeping your laptop open
+
+Use a **cloud orchestrator** (one session) that runs the Python loop in the foreground; it spawns **child** sessions per step:
+
+```bash
+export CURSOR_API_KEY=...
+python3 scripts/launch-ralph-cloud-orchestrator.py -- \
+  --parent-issue 8 --branch cursor/player-levels-c8a4 --push
+```
+
+Or invoke skill **`ralph-cloud-loop`** from a Cloud Agent. See `.cursor/skills/ralph-cloud-loop/SKILL.md`.
+
 ```bash
 export CURSOR_API_KEY=...   # from Cursor Dashboard → Integrations
 
