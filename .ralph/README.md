@@ -1,81 +1,56 @@
 # Ralph loop state
 
-Orchestrator: `scripts/ralph-player-levels-loop.py` (references only — no embedded PRD/E2E).
+Orchestrator: `scripts/ralph-loop.py` — generic driver; pass epic-specific paths on the command line.
 
 | File | Purpose |
 |------|---------|
-| `player-levels-state.json` | Completed issues, E2E suites, cloud session URLs |
-| `logs/` | Agent output per iteration (local CLI or cloud SSE) |
-| `screenshots/` | E2E screenshots (see E2E doc) |
+| `ralph-state.json` | Completed issues, E2E suites, cloud session URLs |
+| `logs/` | Agent output per iteration |
+| `screenshots/` | E2E screenshots (path referenced in your E2E doc) |
 | `STEERING.md` | Optional overrides (`STEERING.example.md`) |
+| `examples/player-levels.sh` | Example flags for the player-levels epic |
 
-Context files (read by the agent each pass):
-
-- `CONTEXT.md`
-- `docs/prd/player-levels-and-game-format.md`
-- `docs/testing/e2e-player-levels-browser-agent.md`
-
-Child issues are discovered via `gh` (body contains `## Parent` → parent issue URL).
-Order: issue number ascending. E2E suites A/B/C = 1st/2nd/3rd child (see E2E doc §11).
-
-## Local backend (default)
+## Required arguments
 
 ```bash
-./scripts/ralph-player-levels-loop.py --help
-./scripts/ralph-player-levels-loop.py --dry-run
-./scripts/ralph-player-levels-loop.py --push
+python3 scripts/ralph-loop.py \
+  --parent-issue <N> \
+  --branch <integration-branch> \
+  --prd <path-to-prd.md> \
+  --e2e <path-to-e2e-plan.md> \
+  [--backend local|cloud] [--push] …
 ```
 
-Requires Cursor CLI (`agent`) on your machine.
+The script discovers child issues from GitHub (`## Parent` → parent issue) or `--child-issues`.
+
+## Local backend
+
+```bash
+./scripts/ralph-loop.py --help
+source .ralph/examples/player-levels.sh
+python3 scripts/ralph-loop.py "${RALPH_LOOP_ARGS[@]}" --dry-run
+```
+
+Requires Cursor CLI (`agent`).
 
 ## Cloud backend
 
-Each **implementation pass**, **E2E pass**, and **final pass** starts a **new** Cloud Agent session via the [Cloud Agents API](https://cursor.com/docs/cloud-agent/api/endpoints). Sessions appear at [cursor.com/agents](https://cursor.com/agents) and in the Cursor desktop app (Agents / Cloud).
-
-### Run without keeping your laptop open
-
-Use a **cloud orchestrator** (one session) that runs the Python loop in the foreground; it spawns **child** sessions per step:
+Each implementation, E2E, and final pass spawns a **new** Cloud Agent. Run the orchestrator in cloud so your laptop can sleep:
 
 ```bash
 export CURSOR_API_KEY=...
-python3 scripts/launch-ralph-cloud-orchestrator.py -- \
-  --parent-issue 8 --branch cursor/player-levels-c8a4 --push
+python3 scripts/launch-ralph-orchestrator.py --branch cursor/my-feature -- \
+  $(source .ralph/examples/player-levels.sh 2>/dev/null; printf '%s\n' "${RALPH_LOOP_ARGS[@]}") \
+  --backend cloud --push
 ```
 
-Or invoke skill **`ralph-cloud-loop`** from a Cloud Agent. See `.cursor/skills/ralph-cloud-loop/SKILL.md`.
+Or skill **`ralph-cloud-loop`**. See `.cursor/skills/ralph-cloud-loop/SKILL.md`.
 
-```bash
-export CURSOR_API_KEY=...   # from Cursor Dashboard → Integrations
+## Migration
 
-# Push integration branch first so cloud agents can check it out
-git push -u origin cursor/player-levels-c8a4
+Renamed from `ralph-player-levels-loop.py` / `player-levels-state.json`:
 
-./scripts/ralph-player-levels-loop.py \
-  --backend cloud \
-  --branch cursor/player-levels-c8a4 \
-  --push
+- `scripts/ralph-loop.py`
+- `.ralph/ralph-state.json`
 
-# Optional: env vars per session (secrets are better in dashboard)
-./scripts/ralph-player-levels-loop.py --backend cloud \
-  --cloud-env DEV_MODE=true \
-  --cloud-env POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED=true
-```
-
-Prerequisites:
-
-- Paid Cursor plan, GitHub app with write access to the repo
-- [Cloud agent environment](https://cursor.com/docs/cloud-agent/setup) configured (`.cursor/environment.json` or dashboard snapshot) so E2E can run in the VM
-- Integration branch exists on GitHub (`--push` before or during the loop)
-
-Session URLs are stored in `player-levels-state.json` under `cloud_sessions` and printed at the end of the run.
-
-## Common flags
-
-| Flag | Purpose |
-|------|---------|
-| `--parent-issue` / `-p` | Parent epic (default 8) |
-| `--child-issues 20 21 22` | Override GitHub discovery |
-| `--branch` | Integration branch |
-| `--from N` | Resume: skip lower issue numbers |
-| `--skip-e2e` | Implementation only |
-| `--dry-run` | Print prompts, no agents |
+Old shims forward to the new names. To resume, rename state file or pass `--state-file .ralph/player-levels-state.json`.

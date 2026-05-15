@@ -1,0 +1,11 @@
+{
+  "parent_issue": 8,
+  "branch": "cursor/my-feature",
+  "prd": "docs/prd/my-feature.md",
+  "e2e": "docs/testing/e2e-my-feature.md",
+  "backend": "cloud",
+  "completed_issues": [],
+  "completed_e2e_suites": [],
+  "cloud_sessions": [],
+  "final_complete": false
+}

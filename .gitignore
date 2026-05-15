@@ -80,7 +80,9 @@ docker-data/
 *.zip
 
 # Ralph loop runtime (see .ralph/README.md)
+.ralph/ralph-state.json
 .ralph/player-levels-state.json
 .ralph/logs/
 .ralph/screenshots/
 .ralph/STEERING.md
+__pycache__/
