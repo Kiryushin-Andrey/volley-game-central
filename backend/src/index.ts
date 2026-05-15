@@ -10,6 +10,7 @@ import usersAdminRoutes from './routes/usersAdmin';
 import gameAdministratorsRoutes from './routes/gameAdministrators';
 import gameAdministratorsMeRoutes from './routes/gameAdministratorsMe';
 import priorityPlayersRoutes from './routes/priorityPlayers';
+import playerLevelsAdminRoutes from './routes/playerLevelsAdmin';
 import authRoutes from './routes/auth';
 import webhookRoutes from './routes/webhooks';
 import './services/telegramService'; // Import to ensure the bot is initialized
@@ -61,6 +62,7 @@ app.use('/users/me/bunq', authMiddleware, adminOrAssignedAdminMiddleware, bunqRo
 
 app.use('/games/admin', authMiddleware, adminOrAssignedAdminMiddleware, gamesAdminRoutes);
 app.use('/users/admin', authMiddleware, adminOrAssignedAdminMiddleware, usersAdminRoutes);
+app.use('/admin/users', authMiddleware, adminAuthMiddleware, playerLevelsAdminRoutes);
 app.use('/users/admin/id/:collectorUserId/bunq', authMiddleware, adminAuthMiddleware, bunqRoutes);
 app.use('/game-administrators/me', authMiddleware, gameAdministratorsMeRoutes);
 app.use('/game-administrators', authMiddleware, adminAuthMiddleware, gameAdministratorsRoutes);
