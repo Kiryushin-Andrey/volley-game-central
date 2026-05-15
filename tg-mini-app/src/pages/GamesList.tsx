@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { Link } from 'react-router-dom';
-import { FaUsers, FaCog, FaPlus } from 'react-icons/fa';
+import { FaUsers, FaCog, FaPlus, FaGraduationCap } from 'react-icons/fa';
 import { useGamesListViewModel } from './GamesListViewModel';
 import { GameWithStats, User } from '../types';
 import { isGameUpcoming } from '../utils/gameDateUtils';
@@ -31,7 +31,7 @@ const GameItem = memo(({ game, onClick, formatDate }: {
 
   return (
     <div
-      className={`game-card ${game.isUserRegistered ? 'registered' : ''} ${isHalloween ? 'halloween-theme' : ''} ${isNewYear ? 'newyear-theme' : ''} ${isMarch8 ? 'march8-theme' : ''} ${game.withPositions ? 'with-positions' : 'without-positions'}`}
+      className={`game-card ${game.isUserRegistered ? 'registered' : ''} ${isHalloween ? 'halloween-theme' : ''} ${isNewYear ? 'newyear-theme' : ''} ${isMarch8 ? 'march8-theme' : ''} ${game.playMode === 'with_positions' ? 'with-positions' : 'without-positions'}`}
       onClick={() => onClick(game.id)}
     >
       {isHalloween && <HalloweenDecorations variant="card" />}
@@ -258,6 +258,13 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
                     </div>
                     {user.isAdmin && (
                       <div className="admin-icon-buttons">
+                        <Link
+                          to="/player-levels"
+                          className="icon-button"
+                          title="Player levels"
+                        >
+                          <FaGraduationCap />
+                        </Link>
                         <Link
                           to="/game-administrators"
                           className="icon-button"
