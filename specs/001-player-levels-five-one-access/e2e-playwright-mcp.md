@@ -65,7 +65,7 @@ tg-mini-app/
 
 ## Stability guidelines
 
-- Prefer **`data-testid`** on: join CTA (`game-details-join-button`), info banner (`game-details-info-text`), add-guest button, admin user table, play-mode select.
+- Prefer **`data-testid`** on: join CTA (`join-game-button`), leave (`leave-game-button`), info banner (`game-details-info-text`), add-guest (`add-guest-button`), admin user table, play-mode select.
 - Avoid time flakes: seed `date_time` so **general registration is open** but intermediate FR-2 window is **not** (e.g. game 7 days out, intermediate user).
 - **Parallelism:** isolated storage state per role (beginner / intermediate / admin).
 
