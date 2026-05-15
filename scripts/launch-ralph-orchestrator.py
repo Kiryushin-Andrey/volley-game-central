@@ -47,7 +47,7 @@ def main() -> None:
     parser.add_argument(
         "loop_args",
         nargs=argparse.REMAINDER,
-        help="Args for ralph-loop.py (must include --parent-issue, --prd, --e2e; prefix with --)",
+        help="Args for ralph-loop.py (--parent-issue, --child-issues, --prd, --e2e, …; prefix with --)",
     )
     ns = parser.parse_args()
     api_key = ns.cursor_api_key or os.environ.get("CURSOR_API_KEY")
@@ -64,22 +64,36 @@ def main() -> None:
 
     loop_cmd = " ".join(shlex.quote(a) for a in ["python3", "scripts/ralph-loop.py", *loop_argv])
 
+    has_children = any(
+        loop_argv[i] == "--child-issues" for i in range(len(loop_argv) - 1)
+    )
+    discover_step = ""
+    if not has_children:
+        discover_step = """
+2. **Discover child issues** (skill ralph-cloud-loop, step 1): run `gh` + `jq` to list slice
+   issues whose body links to the parent epic, then build `--child-issues N N N` for step 3.
+"""
+    else:
+        discover_step = "\n2. Child issues are already in the command below.\n"
+
     prompt = f"""You are the Ralph loop **orchestrator** Cloud Agent.
 
-Run the orchestrator in the **foreground** from the repository root. Do not implement product code yourself.
+Run in the **foreground**. Do not implement product slices yourself.
 
-1. Verify `CURSOR_API_KEY` and `gh auth status`.
-2. Ensure the integration branch exists on GitHub.
-3. Run:
+1. Verify `CURSOR_API_KEY`. For discovery you need `gh` (and `jq`) with GitHub access.
+{discover_step}
+3. Ensure the integration branch exists on GitHub, then run:
 
 ```bash
 cd "$(git rev-parse --show-toplevel)"
 {loop_cmd}
 ```
 
-4. When finished, report exit code and `cloud_sessions` from `.ralph/ralph-state.json`.
+(If step 2 applied, append the discovered numbers to `--child-issues`.)
 
-This session orchestrates child Cloud Agents (one per impl/E2E pass). See `.cursor/skills/ralph-cloud-loop/SKILL.md`.
+4. Report exit code and `cloud_sessions` from `.ralph/ralph-state.json`.
+
+Full workflow: `.cursor/skills/ralph-cloud-loop/SKILL.md`
 """
 
     if ns.repo_url:

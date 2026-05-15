@@ -2,17 +2,20 @@
 """
 Ralph loop — generic orchestrator for a parent GitHub issue and its child slices.
 
-1. Finds child issues (## Parent link or --child-issues).
+1. Runs over --child-issues (discovered by the orchestrator agent before invoking this script).
 2. Per child: implementation pass → E2E pass (optional).
 3. Final pass: regression E2E + combined PR.
 
-Task content lives in repo files you pass (--prd, --e2e, --context) and GitHub issues.
-The script only knows issue numbers and file paths — not domain logic.
+Task content lives in repo files (--prd, --e2e, --context) and GitHub issue URLs in prompts.
+This script does not call the GitHub API; use skill ralph-cloud-loop for child discovery.
 
 Completion lines the agent must print:
   RALPH_ISSUE_COMPLETE #<n>
   RALPH_E2E_COMPLETE SUITE_X
   RALPH_ALL_COMPLETE
+
+Prerequisites: git; Cursor CLI for --backend local; CURSOR_API_KEY for --backend cloud.
+Child issue discovery: orchestrator only (see skill ralph-cloud-loop).
 """
 
 from __future__ import annotations
@@ -32,10 +35,6 @@ from typing import Callable, Literal, Sequence
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from ralph_cloud import CloudAgentClient, repo_slug_to_url  # noqa: E402
-
-
-def _body_links_parent(body: str, parent: int) -> bool:
-    return bool(re.search(rf"## Parent[\s\S]*?/issues/{parent}\b", body))
 
 
 def detect_repo_slug(root: Path) -> str:
@@ -62,7 +61,7 @@ class Config:
     repo: str
     repo_url: str
     parent_issue: int
-    child_issues: list[int] | None
+    child_issues: list[int]
     branch: str
     base: str
     context: Path
@@ -118,14 +117,10 @@ def parse_args(argv: Sequence[str] | None = None) -> Config:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  %(prog)s --parent-issue 8 --branch cursor/my-feature \\
+  %(prog)s --parent-issue 8 --child-issues 20 21 22 --branch cursor/my-feature \\
     --prd docs/prd/my-feature.md --e2e docs/testing/e2e-my-feature.md --dry-run
 
-  %(prog)s --backend cloud --push \\
-    --parent-issue 8 --branch cursor/my-feature \\
-    --prd docs/prd/my-feature.md --e2e docs/testing/e2e-my-feature.md
-
-See .ralph/examples/ for ready-made flag sets (e.g. player-levels).
+See .ralph/examples/ and skill ralph-cloud-loop for child discovery before running.
         """.strip(),
     )
     parser.add_argument(
@@ -149,8 +144,9 @@ See .ralph/examples/ for ready-made flag sets (e.g. player-levels).
         "--child-issues",
         type=int,
         nargs="+",
+        required=True,
         metavar="N",
-        help="Child issue numbers (default: discover via ## Parent link on GitHub)",
+        help="Child slice issue numbers in run order (ascending issue # recommended)",
     )
     parser.add_argument(
         "--branch",
@@ -324,46 +320,10 @@ class RalphLoop:
     def issue_url(self, number: int) -> str:
         return f"https://github.com/{self.cfg.repo}/issues/{number}"
 
-    def discover_child_issues(self) -> list[int]:
-        result = subprocess.run(
-            [
-                "gh",
-                "issue",
-                "list",
-                "--repo",
-                self.cfg.repo,
-                "--state",
-                "all",
-                "--limit",
-                "200",
-                "--json",
-                "number,body",
-            ],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-        parent = self.cfg.parent_issue
-        numbers: list[int] = []
-        for item in json.loads(result.stdout):
-            n = item["number"]
-            body = item.get("body") or ""
-            if n == parent:
-                continue
-            if _body_links_parent(body, parent):
-                numbers.append(n)
-        return sorted(numbers)
-
     def load_child_issues(self) -> None:
-        if self.cfg.child_issues is not None:
-            self.issue_numbers = sorted(self.cfg.child_issues)
-            return
-        self.issue_numbers = self.discover_child_issues()
+        self.issue_numbers = sorted(self.cfg.child_issues)
         if not self.issue_numbers:
-            raise SystemExit(
-                f"No child issues found for parent #{self.cfg.parent_issue} "
-                "(expected ## Parent link in issue body)."
-            )
+            raise SystemExit("--child-issues must list at least one issue number.")
 
     def suite_for(self, issue_number: int) -> str:
         try:
@@ -386,6 +346,7 @@ class RalphLoop:
         else:
             self.state = {
                 "parent_issue": self.cfg.parent_issue,
+                "child_issues": self.issue_numbers,
                 "branch": self.cfg.branch,
                 "prd": str(self.cfg.prd),
                 "e2e": str(self.cfg.e2e),
@@ -603,9 +564,8 @@ RALPH_ALL_COMPLETE
             )
 
     def run(self) -> None:
-        for cmd in ("git", "gh"):
-            if shutil.which(cmd) is None:
-                raise SystemExit(f"need: {cmd}")
+        if shutil.which("git") is None:
+            raise SystemExit("need: git")
         if (
             not self.cfg.dry_run
             and not self.cfg.is_cloud
@@ -617,8 +577,8 @@ RALPH_ALL_COMPLETE
             if not (self.root / path).is_file():
                 raise SystemExit(f"missing: {path}")
 
-        self.init_state()
         self.load_child_issues()
+        self.init_state()
         print(
             f"Backend: {self.cfg.backend} | repo: {self.cfg.repo} | "
             f"Parent #{self.cfg.parent_issue} → children: "
