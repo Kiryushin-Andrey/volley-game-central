@@ -128,15 +128,15 @@ To execute: `/speckit.git.commit`
 
 ---
 
-## Phase 7: User Story 5 — Blocked users join UX (Priority: P5)
+## Phase 7: User Story 5 — FR-2 join UX on game details (Priority: P5)
 
-**Goal**: When `blockReason` is set, hide the Join affordance entirely and show an inline explanation; `POST /games/:gameId/register` continues to return 403 as defense in depth
+**Goal**: When FR-2 blocks self-registration (beginner; intermediate before T−3 on 5-1 with enforcement on) and general registration is open, hide Join and show inline note via `registrationRestriction` on GET game; `POST` register remains 403
 
-**Independent Test**: Blocked fixture user opens game details — no Join button, visible reason; direct API call still 403
+**Independent Test**: Beginner on 5-1 game details — no Join, inline message; intermediate >3 days out — same; admin `blockReason` is out of scope for hide-Join
 
 ### Implementation for User Story 5
 
-- [x] T020 [US5] Update `tg-mini-app/src/viewmodels/GameDetailsViewModel.ts` (and any related UI components) so blocked users never see the Join action and instead see inline `blockReason` text; remove or bypass popup-based join attempts for blocked state
+- [x] T020 [US5] Update `tg-mini-app/src/viewmodels/GameDetailsViewModel.ts` (and related UI) so FR-2-blocked viewers hide Join and show inline copy from `registrationRestriction` on GET game; keep `blockReason` on popup + API 403
 
 **Checkpoint**: Blocked UX matches spec FR-8
 

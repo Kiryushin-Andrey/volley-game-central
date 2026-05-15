@@ -56,11 +56,13 @@ Consolidates implementation decisions for [spec.md](./spec.md). No open NEEDS CL
 
 **Alternatives considered:** One-release dual-read of booleans — **rejected** by updated product direction.
 
-## 9. Blocked users: join affordances
+## 9. FR-2 join affordances on game details
 
-**Decision:** Mini-app hides **Join Game** (and self-serve guest entry) when `blockReason` is set; show the reason in the same inline info pattern as registration-not-open. Backend **403** on register when blocked remains mandatory.
+**Decision:** When FR-2 would deny self-registration (beginner; intermediate before T−3 on **with positions** games with enforcement on) and the general registration window is already open, mini-app **hides Join Game** and shows neutral inline copy. Backend returns `registrationRestriction` on `GET /games/:id` so the client need not expose `player_level`. **403** on `POST` register remains mandatory.
 
-**Rationale:** Treats API enforcement as second line of defense; avoids popup-only discovery after tapping Join.
+**Rationale:** Same UX pattern as “registration not open yet”; API is second line of defense.
+
+**Admin `blockReason`:** Not conflated with FR-2; existing **403** on register; Join hide not required (popup acceptable).
 
 ## 10. E2E testing (Playwright + browser MCP)
 

@@ -28,7 +28,7 @@ Introduce three internal player levels (`beginner`, `intermediate`, `advanced`) 
 - Q: Must create/update game APIs accept the old `with_positions` / `with_priority_players` request shape? → A: **No.** Backend and mini-app deploy **together**; only the new **play mode** field (single value) is accepted on write—no transitional dual-boolean payloads.
 - Q: Must the global-admin “all users” list API handle large user tables? → A: **Paginated admin API** (page or cursor) with default limit **100** rows and optional `q` search on display name / telegram username; the mini-app page loads pages (or infinite scroll) so the server never returns an unbounded full user set.
 - Q: Should the 5-1 enforcement switch be stored in the database or exposed via admin API? → A: **No.** Use a **hardcoded backend default** (flip in source + deploy for rollout) and an optional **environment variable** to override the default for testing; no persisted settings entity and no HTTP/mini-app control.
-- Q: When a user is blocked (`blockReason`), how should join behave in the mini-app? → A: **Hide Join Game** (and self-serve guest entry) **completely**; show an **inline note** with the reason using the **same pattern** as registration-not-yet-open; keep **403** on register as the **second line of defense**.
+- Q: When FR-2 blocks a player (beginner, or intermediate before T−3 on 5-1 with enforcement on), how should join behave in the mini-app? → A: **Hide Join Game** (and self-serve guest when gated) with an **inline note** like registration-not-yet-open; server supplies `registrationRestriction` on `GET /games/:id`; **403** on register remains **second line of defense**. Admin **`blockReason`** is separate (popup/API **403** acceptable).
 
 ## Definitions
 
@@ -157,8 +157,8 @@ All endpoints must verify `req.user.isAdmin` (or shared middleware equivalent).
 - Non-admin API consumers never receive `player_level` in JSON for scoped manual review (contract test or snapshot of DTOs).
 - Global admin page loads users with correct ordering for a fixture dataset **through pagination** (no single response that assumes entire table fits in memory).
 - With enforcement **on** and restrictions firing, automated or manual QA confirms: (a) FR-2 denial **JSON** (and mini-app copy) contain **no** internal level vocabulary; **no** `notifyUser` call on those failures; (b) successful register/waitlist still receives existing Telegram notifications; (c) FR-2 HTTP responses include stable `code` and time fields where specified.
-- For a user with `blockReason` set: game details shows **no** Join button and an **inline** reason note before any register call; direct API register still returns **403** with block message.
-- **E2E (Playwright + browser MCP):** Documented scenarios in [e2e-playwright-mcp.md](./e2e-playwright-mcp.md) pass in Chromium against local dev (or preview) once implemented—minimum smoke: blocked join (E1), admin player-levels page load (E5).
+- With enforcement **on**, beginner (and intermediate before T−3 on 5-1): game details shows **no** Join when general registration is open; inline FR-2 note; `GET` includes `registrationRestriction`; `POST` register returns FR-2 **403**.
+- **E2E (Playwright + browser MCP):** Scenarios in [e2e-playwright-mcp.md](./e2e-playwright-mcp.md)—minimum committed smoke: landing (`smoke.spec.ts`); planned FR-2 join hidden (**E1–E2**), admin levels (**E6**).
 
 ## Key entities
 

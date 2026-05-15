@@ -37,9 +37,16 @@ Confirm columns: `users.player_level`, `games.play_mode` (or equivalent).
 
 Cross-check **403 JSON** includes `code` and optional `registrationOpensAt` (time-window denials).
 
-## 5. Blocked user (join hidden)
+## 5. FR-2 join hidden (game details UI)
 
-- Use an account with `blockReason` set. Open an upcoming game you are **not** registered for: **no** Join button; inline text shows the block reason (same area as early-registration message). Confirm `POST .../register` still returns **403** if called directly.
+With enforcement **on**, use a **beginner** (or **intermediate** on a 5-1 game still **>3 calendar days** away). Pick a game where **general registration is already open** (same timing rules as today). Open game details while **not** registered:
+
+- **No** Join Game button (and no self-serve add-guest when that path is gated).
+- Inline info text shows neutral copy (no words `beginner` / `intermediate` / `advanced`).
+- `GET /games/:id` includes `registrationRestriction` with the expected `code`.
+- `POST .../register` still returns **403** with the same FR-2 `code` (second line of defense).
+
+**Admin `blockReason` (separate):** Join may still show; popup on tap is OK. Confirm `POST .../register` returns **403** with the block message if called directly.
 
 ## 6. Successful registration Telegram
 
@@ -49,11 +56,15 @@ Cross-check **403 JSON** includes `code` and optional `registrationOpensAt` (tim
 
 Unset env (if used) and use constant `false`: all levels behave as **pre-feature** for 5-1 registration.
 
-## 8. Admin UI
+## 8. Browser E2E (Playwright / MCP)
+
+Follow scenario IDs **E1–E7** in [e2e-playwright-mcp.md](./e2e-playwright-mcp.md). Minimum smoke today: `tg-mini-app/e2e/smoke.spec.ts` (landing only); FR-2 scenarios are planned in `fr2-join-hidden.spec.ts`.
+
+## 9. Admin UI
 
 - Global admin: open player-levels route; confirm pagination, search, sort buckets (unassigned → advanced → intermediate → beginner).
 - Non-admin: route 403 / redirect.
 
-## 9. Game form
+## 10. Game form
 
 - Create/edit game sends **only** the new play-mode field; persisted value round-trips.
