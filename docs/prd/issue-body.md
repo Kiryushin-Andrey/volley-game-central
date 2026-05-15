@@ -1,15 +1,8 @@
----
-title: Player levels and game format refactor
-labels:
-  - enhancement
-  - ready-for-agent
-branch: cursor/player-levels-c8a4
-domain_glossary: CONTEXT.md
----
-
 # Player levels and game format refactor
 
-> **Tracker:** [GitHub Issue #8](https://github.com/Kiryushin-Andrey/volley-game-central/issues/8) (`enhancement`, `ready-for-agent` when label exists).
+**Implementation branch:** `cursor/player-levels-c8a4`  
+**Domain glossary:** `CONTEXT.md` (repo root)  
+**Full PRD file:** `docs/prd/player-levels-and-game-format.md`
 
 ## Problem Statement
 
@@ -130,33 +123,31 @@ Add nullable `player_level` enum column: `beginner` | `intermediate` | `advanced
 
 ### Backend modules to build or modify
 
-1. **Registration routes** — integrate eligibility module in `POST /games/:id/register` (and guest path); respect grandfathering via existing registration row check.
+1. **Registration routes** — integrate eligibility module in self-serve register (and guest path); respect grandfathering via existing registration row check.
 2. **Game detail route** — return `canSelfRegister` (and keep `registrationOpensAt` as the effective date for the current user on positions games).
-3. **Player levels admin routes** (new, `isAdmin` middleware):
-   - `GET /admin/users` — all users with public profile fields + `playerLevel`, sorted for admin list.
-   - `PATCH /admin/users/:id/player-level` — body `{ playerLevel: 'beginner' | 'intermediate' | 'advanced' }`; reject null/clear.
-4. **Games admin / games routes** — accept and persist `gameFormat`; update `getRegistrationOpenDays` to branch on `gameFormat` instead of booleans.
+3. **Player levels admin routes** (new, global-admin middleware): list all users with `playerLevel`; PATCH level (non-null enum only).
+4. **Games admin / games routes** — accept and persist `gameFormat`; update registration-open-days logic to branch on `gameFormat` instead of booleans.
 5. **Telegram / game services** — replace boolean checks with format helpers where announcements or filters reference positions or priority.
 6. **Constants / config** — parse `POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED`.
 
 ### Frontend modules to build or modify
 
-1. **Players hub page** — route `/players`, links to `/game-administrators` and `/player-levels`.
-2. **Player levels page** — route `/player-levels`; grouped list component reusing participant row styling; level pills; name filter; wires to admin user API.
-3. **Player info dialog** — level selector when opened from player levels page only; immediate PATCH on change.
-4. **Game form** — replace two toggles with three-option select bound to `gameFormat`.
-5. **Game details view model** — hide join button using `canSelfRegister` from API; hide guest affordances when host cannot self-register.
-6. **Types / API client** — `gameFormat` on `Game`; remove deprecated booleans from client types after migration.
+1. **Players hub page** — `/players`, links to game administrators and player levels.
+2. **Player levels page** — grouped list, level pills, name filter, admin user API.
+3. **Player info dialog** — level selector on player-levels page only; immediate PATCH on change.
+4. **Game form** — three-option select bound to `gameFormat`.
+5. **Game details view model** — hide join button using `canSelfRegister`; hide guest affordances when host cannot self-register.
+6. **Types / API client** — `gameFormat` on `Game`; remove deprecated booleans after migration.
 7. **Games list toolbar** — point Players icon to `/players`.
 
 **Note:** `game_administrators.withPositions` remains a separate concept (which day/slot assignment); it is not the same as **game format** on a game instance.
 
 ### API contracts (summary)
 
-- **Game** resource includes `gameFormat: 'recreational' | 'positions' | 'priority_players'` (no `withPositions` / `withPriorityPlayers` in API responses after migration).
+- **Game** resource includes `gameFormat: 'recreational' | 'positions' | 'priority_players'`.
 - **Game detail** includes `canSelfRegister: boolean` for the authenticated user.
 - **User (admin list)** includes `playerLevel: null | 'beginner' | 'intermediate' | 'advanced'`.
-- **PATCH player level** — admin only; non-null enum only.
+- **PATCH player level** — global admin only; non-null enum only.
 
 ### UI specifics
 
@@ -170,11 +161,11 @@ Add nullable `player_level` enum column: `beginner` | `intermediate` | `advanced
 
 **Modules to test (recommended):**
 
-1. **`positionsGameRegistrationEligibility`** (new unit tests) — matrix of level × format × restrictions × dates × grandfathering × guest/host; highest value, isolated.
+1. **`positionsGameRegistrationEligibility`** (new unit tests) — matrix of level × format × restrictions × dates × grandfathering × guest/host.
 2. **`gameFormat` helpers** (new unit tests) — legacy boolean migration mapping including `true/true` → `recreational`.
-3. **Registration route integration** (optional, lighter) — a few supertest cases for 403 vs 201 on positions game when restrictions on.
+3. **Registration route integration** (optional) — a few HTTP cases for 403 vs 201 on positions game when restrictions on.
 
-**Prior art:** The repo currently has no automated backend test suite in `package.json`; introduce a minimal test runner (e.g. Node test runner or Vitest in backend) for the new pure modules first.
+**Prior art:** No automated backend test suite today; introduce a minimal test runner for the new pure modules first.
 
 **Not prioritized for automated tests in v1:** React page layout, pill colors, dialog immediate-save UX (manual QA).
 
@@ -183,15 +174,12 @@ Add nullable `player_level` enum column: `beginner` | `intermediate` | `advanced
 - Clearing a player level back to unassigned via admin UI.
 - Per-game or per-day level overrides.
 - Showing levels to non-admin users (including error messages that mention “beginner”).
-- Changing `game_administrators` assignment model to use `gameFormat` enum (stays day + `withPositions` for slot).
-- Enabling GitHub Issues or admin UI for the restrictions env toggle (env only).
+- Changing `game_administrators` assignment model to use `gameFormat` enum.
+- Admin UI for the restrictions env toggle (env only).
 - Auto-removing players from games when level or restrictions change.
 - Level-based restrictions on guest skill (only host eligibility).
-- Pagination/server-side search for player levels list (club size ~300; client filter only).
+- Pagination/server-side search for player levels list (~300 users; client filter only).
 
 ## Further Notes
 
-- Domain glossary: `CONTEXT.md` at repo root (from grill-with-docs session).
-- Feature branch: `cursor/player-levels-c8a4`.
-- Related remote branch name spotted: `cursor/player-levels-five-one-spec-ee6d` — confirm not duplicate work before implementing.
-- When GitHub Issues are enabled, create an issue from this file and label `enhancement` + `ready-for-agent`; remove other open triage state labels per triage skill.
+- Confirm whether branch `cursor/player-levels-five-one-spec-ee6d` duplicates this work before implementing.
