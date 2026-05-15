@@ -15,13 +15,16 @@ Progress is gated by lines the Agent must print when done:
   RALPH_E2E_COMPLETE SUITE_X
   RALPH_ALL_COMPLETE
 
-Prerequisites: git, gh, Cursor CLI (`agent`).
+Prerequisites:
+  Local backend: git, gh, Cursor CLI (`agent`).
+  Cloud backend: git, gh, CURSOR_API_KEY (see --backend cloud).
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -30,15 +33,24 @@ import time
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Sequence
+from typing import Callable, Literal, Sequence
+
+# ralph_cloud.py lives next to this script
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from ralph_cloud import CloudAgentClient, repo_slug_to_url  # noqa: E402
+
 
 def _body_links_parent(body: str, parent: int) -> bool:
     return bool(re.search(rf"## Parent[\s\S]*?/issues/{parent}\b", body))
 
 
+Backend = Literal["local", "cloud"]
+
+
 @dataclass
 class Config:
     repo: str
+    repo_url: str
     parent_issue: int
     child_issues: list[int] | None
     branch: str
@@ -47,7 +59,12 @@ class Config:
     prd: Path
     e2e: Path
     state_dir: Path
+    backend: Backend
     agent_cmd: str
+    cursor_api_key: str | None
+    cloud_poll_interval: float
+    cloud_env: dict[str, str]
+    cloud_create_pr_on_final: bool
     max_impl: int
     max_e2e: int
     dry_run: bool
@@ -71,6 +88,22 @@ class Config:
     def screenshots_dir(self) -> Path:
         return self.state_dir / "screenshots"
 
+    @property
+    def is_cloud(self) -> bool:
+        return self.backend == "cloud"
+
+
+def _parse_cloud_env(values: list[str]) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for item in values:
+        if "=" not in item:
+            raise SystemExit(f"--cloud-env must be KEY=VALUE, got: {item!r}")
+        key, val = item.split("=", 1)
+        if not key:
+            raise SystemExit(f"--cloud-env key empty: {item!r}")
+        out[key] = val
+    return out
+
 
 def parse_args(argv: Sequence[str] | None = None) -> Config:
     parser = argparse.ArgumentParser(
@@ -79,15 +112,23 @@ def parse_args(argv: Sequence[str] | None = None) -> Config:
         epilog="""
 Examples:
   %(prog)s --dry-run
+  %(prog)s --backend cloud --cursor-api-key "$CURSOR_API_KEY" --push
   %(prog)s --parent-issue 8 --branch cursor/player-levels-c8a4
-  %(prog)s --from 21 --push
-  %(prog)s --child-issues 20 21 22 --skip-e2e
+  %(prog)s --from 21 --child-issues 20 21 22 --skip-e2e
+
+Cloud backend: each implementation pass and each E2E pass starts a new Cloud Agent
+session (visible at cursor.com/agents and in the Cursor desktop app).
         """.strip(),
     )
     parser.add_argument(
         "--repo",
         default="Kiryushin-Andrey/volley-game-central",
         help="GitHub owner/repo (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--repo-url",
+        default=None,
+        help="Full GitHub repo URL (default: https://github.com/<--repo>)",
     )
     parser.add_argument(
         "-p",
@@ -138,9 +179,38 @@ Examples:
         help="Progress logs and state JSON (default: %(default)s)",
     )
     parser.add_argument(
+        "--backend",
+        choices=("local", "cloud"),
+        default="local",
+        help="Run agent locally via CLI or as separate Cloud Agent sessions (default: %(default)s)",
+    )
+    parser.add_argument(
         "--agent-cmd",
         default="agent",
-        help="Cursor CLI command (default: %(default)s)",
+        help="Cursor CLI command when --backend local (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--cursor-api-key",
+        default=None,
+        help="Cursor API key for --backend cloud (else CURSOR_API_KEY env)",
+    )
+    parser.add_argument(
+        "--cloud-poll-interval",
+        type=float,
+        default=15.0,
+        help="Seconds between run status polls if SSE ends early (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--cloud-env",
+        action="append",
+        default=[],
+        metavar="KEY=VALUE",
+        help="Env var for each cloud session (repeatable). Also set secrets in dashboard.",
+    )
+    parser.add_argument(
+        "--cloud-create-pr-on-final",
+        action="store_true",
+        help="Cloud only: set autoCreatePR on the final pass (default: off; final prompt still asks for a draft PR)",
     )
     parser.add_argument(
         "--max",
@@ -177,11 +247,17 @@ Examples:
     parser.add_argument(
         "--push",
         action="store_true",
-        help="git push after each milestone",
+        help="git push after each milestone (ensure branch exists on GitHub for cloud)",
     )
     ns = parser.parse_args(argv)
+    api_key = ns.cursor_api_key or os.environ.get("CURSOR_API_KEY")
+    if ns.backend == "cloud" and not ns.dry_run and not api_key:
+        raise SystemExit(
+            "Cloud backend requires --cursor-api-key or CURSOR_API_KEY environment variable."
+        )
     return Config(
         repo=ns.repo,
+        repo_url=ns.repo_url or repo_slug_to_url(ns.repo),
         parent_issue=ns.parent_issue,
         child_issues=ns.child_issues,
         branch=ns.branch,
@@ -190,7 +266,12 @@ Examples:
         prd=ns.prd,
         e2e=ns.e2e,
         state_dir=ns.state_dir,
+        backend=ns.backend,
         agent_cmd=ns.agent_cmd,
+        cursor_api_key=api_key,
+        cloud_poll_interval=ns.cloud_poll_interval,
+        cloud_env=_parse_cloud_env(ns.cloud_env),
+        cloud_create_pr_on_final=ns.cloud_create_pr_on_final,
         max_impl=ns.max_impl,
         max_e2e=ns.max_e2e,
         dry_run=ns.dry_run,
@@ -207,6 +288,18 @@ class RalphLoop:
         self.issue_numbers: list[int] = []
         self.state: dict = {}
         self.last_log: Path | None = None
+        self._cloud: CloudAgentClient | None = None
+
+    def cloud_client(self, *, auto_create_pr: bool = False) -> CloudAgentClient:
+        assert self.cfg.cursor_api_key
+        return CloudAgentClient(
+            self.cfg.cursor_api_key,
+            self.cfg.repo_url,
+            self.cfg.branch,
+            poll_interval=self.cfg.cloud_poll_interval,
+            env_vars=self.cfg.cloud_env or None,
+            auto_create_pr=auto_create_pr,
+        )
 
     # --- GitHub ----------------------------------------------------------------
 
@@ -280,14 +373,19 @@ class RalphLoop:
             self.state = {
                 "parent_issue": self.cfg.parent_issue,
                 "branch": self.cfg.branch,
+                "backend": self.cfg.backend,
                 "completed_issues": [],
                 "completed_e2e_suites": [],
+                "cloud_sessions": [],
                 "final_complete": False,
             }
             self._write_state()
 
         if "completed_e2e_suites" not in self.state:
             self.state["completed_e2e_suites"] = []
+            self._write_state()
+        if "cloud_sessions" not in self.state:
+            self.state["cloud_sessions"] = []
             self._write_state()
 
     def _write_state(self) -> None:
@@ -316,6 +414,11 @@ class RalphLoop:
         self.state["final_complete"] = True
         self._write_state()
 
+    def record_cloud_session(self, title: str, url: str) -> None:
+        sessions = self.state.setdefault("cloud_sessions", [])
+        sessions.append({"title": title, "url": url, "at": datetime.now().isoformat()})
+        self._write_state()
+
     # --- Agent -----------------------------------------------------------------
 
     @staticmethod
@@ -325,11 +428,14 @@ class RalphLoop:
         pattern = re.compile(rf"^\s*{re.escape(promise)}\s*$", re.MULTILINE)
         return bool(pattern.search(log_path.read_text(errors="replace")))
 
-    def run_agent(self, title: str, prompt: str, log_path: Path) -> None:
-        if self.cfg.dry_run:
-            print(f"=== {title} ===")
-            print(prompt)
-            return
+    def _cloud_preamble(self) -> str:
+        return (
+            "You are a Cursor Cloud Agent in an isolated VM. "
+            "This is a fresh session — read every file listed below from the repo. "
+            "Commit and push to the integration branch when done.\n\n"
+        )
+
+    def run_agent_local(self, title: str, prompt: str, log_path: Path) -> None:
         print(f"=== {title} ===")
         log_path.parent.mkdir(parents=True, exist_ok=True)
         with log_path.open("w") as log_file:
@@ -344,6 +450,25 @@ class RalphLoop:
                 sys.stdout.write(line)
                 log_file.write(line)
             proc.wait()
+
+    def run_agent_cloud(
+        self, title: str, prompt: str, log_path: Path, *, auto_create_pr: bool
+    ) -> None:
+        client = self.cloud_client(auto_create_pr=auto_create_pr)
+        session = client.run_prompt(title, self._cloud_preamble() + prompt, log_path)
+        self.record_cloud_session(title, session.url)
+
+    def run_agent(
+        self, title: str, prompt: str, log_path: Path, *, auto_create_pr: bool = False
+    ) -> None:
+        if self.cfg.dry_run:
+            print(f"=== {title} ({self.cfg.backend}) ===")
+            print(prompt)
+            return
+        if self.cfg.is_cloud:
+            self.run_agent_cloud(title, prompt, log_path, auto_create_pr=auto_create_pr)
+        else:
+            self.run_agent_local(title, prompt, log_path)
 
     def maybe_push(self) -> None:
         if self.cfg.dry_run or not self.cfg.push:
@@ -418,6 +543,8 @@ RALPH_ALL_COMPLETE
         title: str,
         promise: str,
         prompt_fn: Callable[[], str],
+        *,
+        auto_create_pr: bool = False,
     ) -> None:
         i = 1
         while True:
@@ -427,9 +554,14 @@ RALPH_ALL_COMPLETE
             stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
             log_path = self.cfg.logs_dir / f"{title}-iter{i}-{stamp}.log"
             try:
-                self.run_agent(f"{title}-iter{i}", prompt, log_path)
-            except OSError:
-                pass
+                self.run_agent(
+                    f"{title}-iter{i}",
+                    prompt,
+                    log_path,
+                    auto_create_pr=auto_create_pr,
+                )
+            except (OSError, RuntimeError) as exc:
+                print(f"agent error: {exc}", file=sys.stderr)
             self.last_log = log_path
             if self.cfg.dry_run:
                 print(f"(dry-run) would wait for: {promise}")
@@ -467,7 +599,11 @@ RALPH_ALL_COMPLETE
         for cmd in ("git", "gh"):
             if shutil.which(cmd) is None:
                 raise SystemExit(f"need: {cmd}")
-        if not self.cfg.dry_run and shutil.which(self.cfg.agent_cmd) is None:
+        if (
+            not self.cfg.dry_run
+            and not self.cfg.is_cloud
+            and shutil.which(self.cfg.agent_cmd) is None
+        ):
             raise SystemExit(f"need: {self.cfg.agent_cmd}")
 
         for path in (self.cfg.context, self.cfg.prd, self.cfg.e2e):
@@ -477,11 +613,15 @@ RALPH_ALL_COMPLETE
         self.init_state()
         self.load_child_issues()
         print(
+            f"Backend: {self.cfg.backend} | "
             f"Parent #{self.cfg.parent_issue} → child issues: "
             + " ".join(str(n) for n in self.issue_numbers)
         )
+        if self.cfg.is_cloud:
+            print(f"Repo: {self.cfg.repo_url} @ {self.cfg.branch}")
+            print("Each pass creates a new Cloud Agent session (cursor.com/agents).")
 
-        if not self.cfg.dry_run:
+        if not self.cfg.dry_run and not self.cfg.is_cloud:
             self.ensure_branch()
 
         for n in self.issue_numbers:
@@ -515,11 +655,22 @@ RALPH_ALL_COMPLETE
         if self.state.get("final_complete"):
             return
 
-        self.run_until_promise(10, "final", "RALPH_ALL_COMPLETE", self.prompt_final)
+        self.run_until_promise(
+            10,
+            "final",
+            "RALPH_ALL_COMPLETE",
+            self.prompt_final,
+            auto_create_pr=self.cfg.cloud_create_pr_on_final,
+        )
         if self.last_log and self.has_promise(self.last_log, "RALPH_E2E_COMPLETE SUITE_D"):
             self.mark_suite("D")
         self.mark_final()
         self.maybe_push()
+
+        if self.cfg.is_cloud and self.state.get("cloud_sessions"):
+            print("\nCloud sessions (open in browser or Cursor desktop):")
+            for entry in self.state["cloud_sessions"]:
+                print(f"  - {entry['title']}: {entry['url']}")
 
 
 def main(argv: Sequence[str] | None = None) -> None:
