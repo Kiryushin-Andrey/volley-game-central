@@ -10,10 +10,11 @@ Override the directory with `--prompts-dir` on either script.
 | `cloud-preamble.md` | Prepended to every cloud child pass |
 | `workflow.md` | Shared “read PRD / progress / one task” block |
 | `feedback-block.md` | Feedback loops list (body: `{feedback_loops}`) |
-| `completion-single.md` | Pass done sigil for slice passes |
+| `completion-single.md` | Pass done sigil (final / simple passes) |
+| `completion-slice.md` | ITEM vs SLICE sigils for per-issue passes |
 | `completion-with-alt.md` | Final pass (primary + `COMPLETE` alt) |
 | `refs-block.md` | Required files list per pass |
-| `slice.md` | Per child: implement + E2E suite (one session) |
+| `slice.md` | Per pass: one PRD item + targeted E2E; repeat until slice sigil |
 | `final.md` | Final regression + PR pass |
 | `orchestrator.md` | Cloud orchestrator agent |
 | `orchestrator-discover-children.md` | Orchestrator step 2 when children unknown |

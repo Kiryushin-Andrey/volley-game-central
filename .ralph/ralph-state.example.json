@@ -6,6 +6,7 @@
   "e2e": "docs/testing/e2e-my-feature.md",
   "backend": "cloud",
   "completed_issues": [],
+  "issue_item_passes": { "20": 2 },
   "completed_e2e_suites": [],
   "cloud_sessions": [],
   "final_complete": false,

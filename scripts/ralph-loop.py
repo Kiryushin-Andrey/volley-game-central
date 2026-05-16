@@ -7,14 +7,16 @@ same prompt shape each iteration, PRD + progress file for context, one task per 
 feedback loops before commit, completion sigils the harness can detect.
 
 1. Runs over --child-issues (discovered by the orchestrator before invoking this script).
-2. Per child: one pass — implement, run that slice's E2E suite, fix, commit (same session).
+2. Per child issue: repeat passes until the slice is done — one PRD item per pass
+   (RALPH_ITEM_COMPLETE), then RALPH_SLICE_COMPLETE when all items + full Suite pass.
 3. Final pass: regression E2E + combined PR.
 
 Task content: --prd, --e2e, --context, GitHub issue URLs, and .ralph/progress.txt.
 This script does not call the GitHub API; use skill ralph-cloud-loop for child discovery.
 
 Completion (own line, or wrapped in <promise>…</promise>):
-  RALPH_SLICE_COMPLETE #<n>   (per child: impl + E2E suite in one session)
+  RALPH_ITEM_COMPLETE #<n>    one PRD item done; more items remain on issue #n
+  RALPH_SLICE_COMPLETE #<n>   all PRD items on #n done + E2E Suite passed
   RALPH_ALL_COMPLETE  (or <promise>COMPLETE</promise> on the final pass)
 
 Use --once for human-in-the-loop (single attempt per pass). Cap AFK cost with --max-iterations.
@@ -394,7 +396,11 @@ class RalphLoop:
             }
             self._write_state()
 
-        for key, default in (("completed_e2e_suites", []), ("cloud_sessions", [])):
+        for key, default in (
+            ("completed_e2e_suites", []),
+            ("cloud_sessions", []),
+            ("issue_item_passes", {}),
+        ):
             if key not in self.state:
                 self.state[key] = default
                 self._write_state()
@@ -452,6 +458,27 @@ class RalphLoop:
             if f"<promise>{variant}</promise>" in text:
                 return True
         return False
+
+    def promise_item(self, n: int) -> str:
+        return f"RALPH_ITEM_COMPLETE #{n}"
+
+    def promise_slice(self, n: int) -> str:
+        return f"RALPH_SLICE_COMPLETE #{n}"
+
+    def log_has_item_complete(self, log_path: Path, n: int) -> bool:
+        return self.has_promise(log_path, self.promise_item(n))
+
+    def log_has_slice_complete(self, log_path: Path, n: int) -> bool:
+        if self.has_promise(log_path, self.promise_slice(n)):
+            return True
+        # Legacy: separate impl-only sigil before combined passes
+        return self.has_promise(log_path, f"RALPH_ISSUE_COMPLETE #{n}")
+
+    def record_item_pass(self, n: int) -> None:
+        counts = self.state.setdefault("issue_item_passes", {})
+        key = str(n)
+        counts[key] = int(counts.get(key, 0)) + 1
+        self._write_state()
 
     def _check_iteration_budget(self) -> None:
         cap = self.cfg.max_total_iterations
@@ -563,7 +590,6 @@ class RalphLoop:
 
     def prompt_slice(self, n: int) -> str:
         suite = self.suite_for(n)
-        promise = f"RALPH_SLICE_COMPLETE #{n}"
         return self.prompts.render(
             "slice",
             issue_number=str(n),
@@ -576,8 +602,64 @@ class RalphLoop:
             screenshots_dir=self._path_str(self.cfg.screenshots_dir),
             progress_file=self._path_str(self.cfg.progress_file),
             branch=self.cfg.branch,
-            completion_block=self._completion_block(promise),
+            completion_block=self.prompts.render(
+                "completion-slice",
+                issue_number=str(n),
+                suite=suite,
+            ),
         )
+
+    def run_until_issue_complete(self, n: int, suite: str) -> None:
+        """Run slice passes until RALPH_SLICE_COMPLETE #n (one PRD item per pass)."""
+        item_pass = 0
+        while not self.issue_done(n):
+            item_pass += 1
+            attempt = 0
+            while True:
+                self._check_iteration_budget()
+                attempt += 1
+                if self.cfg.max_slice > 0 and attempt > self.cfg.max_slice:
+                    raise SystemExit(
+                        f"max retries for issue #{n} item pass {item_pass}: "
+                        f"expected {self.promise_item(n)} or {self.promise_slice(n)}"
+                    )
+                title = f"issue-{n}-item{item_pass}-iter{attempt}"
+                stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+                log_path = self.cfg.logs_dir / f"{title}-{stamp}.log"
+                try:
+                    self.run_agent(
+                        title,
+                        self.prompt_slice(n),
+                        log_path,
+                    )
+                except (OSError, RuntimeError) as exc:
+                    print(f"agent error: {exc}", file=sys.stderr)
+                self.last_log = log_path
+
+                if self.cfg.dry_run:
+                    print(
+                        f"(dry-run) would wait for {self.promise_item(n)} "
+                        f"or {self.promise_slice(n)}"
+                    )
+                    return
+
+                if self.log_has_slice_complete(log_path, n):
+                    print(f"OK: {self.promise_slice(n)}")
+                    self.mark_suite(suite)
+                    self.mark_issue(n)
+                    return
+
+                if self.log_has_item_complete(log_path, n):
+                    print(f"OK: {self.promise_item(n)} (more items may remain on #{n})")
+                    self.record_item_pass(n)
+                    self.maybe_push()
+                    break
+
+                print(
+                    f"missing: {self.promise_item(n)} or {self.promise_slice(n)} "
+                    f"(see {log_path})"
+                )
+                time.sleep(3)
 
     def prompt_final(self) -> str:
         return self.prompts.render(
@@ -688,15 +770,7 @@ class RalphLoop:
                 continue
 
             suite = self.suite_for(n)
-
-            self.run_until_promise(
-                self.cfg.max_slice,
-                f"issue-{n}-slice",
-                f"RALPH_SLICE_COMPLETE #{n}",
-                lambda n=n: self.prompt_slice(n),
-            )
-            self.mark_suite(suite)
-            self.mark_issue(n)
+            self.run_until_issue_complete(n, suite)
             self.maybe_push()
 
         if self.state.get("final_complete"):
