@@ -22,7 +22,7 @@ Agent instructions live in **`.ralph/prompts/*.md`** (not embedded in Python). E
 | Integration branch | Single PR branch |
 | PRD + E2E paths | Repo paths for this epic |
 
-Optional: `--push`, `--from N`, `--skip-e2e`, `--cloud-env KEY=VAL`, `--max-iterations N` (cap AFK cost), `--once` (HITL / single attempt per pass), `--feedback-loop` (override default typecheck builds).
+Optional: `--push`, `--from N`, `--cloud-env KEY=VAL`, `--max-iterations N` (cap AFK cost), `--once` (HITL / single attempt per pass), `--max-slice N` (retries per child), `--feedback-loop` (override default typecheck builds).
 
 ---
 
@@ -50,7 +50,7 @@ For **each** child issue, read the full description (and title). Build a mental 
 
 1. **Every blocker must appear earlier** than the issue that depends on it.
 2. **Parallel-safe slices** (no dependency between them): pick one order; put them consecutively before anything that needs both. The loop is serial — you are choosing a safe sequence, not spawning parallel agents.
-3. **E2E suite mapping**: `ralph-loop.py` maps 1st child → Suite A, 2nd → B, etc. If the E2E doc says Suite X runs after slice Y, ensure that slice’s index matches (re-read E2E §11 if unsure).
+3. **E2E suite mapping**: Each child pass runs **implement + that suite’s E2E in one session**. 1st child → Suite A, 2nd → B, etc. If the E2E doc says Suite X runs after slice Y, ensure that slice’s index matches (re-read E2E §11 if unsure).
 4. If two orderings are valid, prefer the order documented in the PRD or parent issue when stated; otherwise prefer foundational/data-model slices before UI-only or policy layers that assume them.
 
 **Before step 3, write a short ordering note** (in your reply or orchestrator log), for example:

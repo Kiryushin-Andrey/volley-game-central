@@ -7,15 +7,14 @@ same prompt shape each iteration, PRD + progress file for context, one task per 
 feedback loops before commit, completion sigils the harness can detect.
 
 1. Runs over --child-issues (discovered by the orchestrator before invoking this script).
-2. Per child: implementation pass → E2E pass (optional).
+2. Per child: one pass — implement, run that slice's E2E suite, fix, commit (same session).
 3. Final pass: regression E2E + combined PR.
 
 Task content: --prd, --e2e, --context, GitHub issue URLs, and .ralph/progress.txt.
 This script does not call the GitHub API; use skill ralph-cloud-loop for child discovery.
 
 Completion (own line, or wrapped in <promise>…</promise>):
-  RALPH_ISSUE_COMPLETE #<n>
-  RALPH_E2E_COMPLETE SUITE_X
+  RALPH_SLICE_COMPLETE #<n>   (per child: impl + E2E suite in one session)
   RALPH_ALL_COMPLETE  (or <promise>COMPLETE</promise> on the final pass)
 
 Use --once for human-in-the-loop (single attempt per pass). Cap AFK cost with --max-iterations.
@@ -88,10 +87,8 @@ class Config:
     cloud_poll_interval: float
     cloud_env: dict[str, str]
     cloud_create_pr_on_final: bool
-    max_impl: int
-    max_e2e: int
+    max_slice: int
     dry_run: bool
-    skip_e2e: bool
     from_issue: int
     push: bool
     once: bool
@@ -133,7 +130,7 @@ def _parse_cloud_env(values: list[str]) -> dict[str, str]:
 
 def parse_args(argv: Sequence[str] | None = None) -> Config:
     parser = argparse.ArgumentParser(
-        description="Ralph loop: child GitHub issues + E2E verification (generic epic driver).",
+        description="Ralph loop: child GitHub slices (implement + E2E per session) + final pass.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -250,27 +247,16 @@ See .ralph/examples/ and skill ralph-cloud-loop for child discovery before runni
     )
     parser.add_argument(
         "--max",
-        "--max-impl",
-        dest="max_impl",
-        type=int,
-        default=0,
-        help="Max retries per implementation pass; 0 = unlimited (default: %(default)s)",
-    )
-    parser.add_argument(
-        "--max-e2e",
+        "--max-slice",
+        dest="max_slice",
         type=int,
         default=5,
-        help="Max retries per E2E pass (default: %(default)s)",
+        help="Max retries per child slice pass (impl + E2E); 0 = unlimited (default: %(default)s)",
     )
     parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Print prompts only",
-    )
-    parser.add_argument(
-        "--skip-e2e",
-        action="store_true",
-        help="Skip browser E2E passes",
     )
     parser.add_argument(
         "--from",
@@ -332,10 +318,8 @@ See .ralph/examples/ and skill ralph-cloud-loop for child discovery before runni
         cloud_poll_interval=ns.cloud_poll_interval,
         cloud_env=_parse_cloud_env(ns.cloud_env),
         cloud_create_pr_on_final=ns.cloud_create_pr_on_final,
-        max_impl=ns.max_impl,
-        max_e2e=ns.max_e2e,
+        max_slice=ns.max_slice,
         dry_run=ns.dry_run,
-        skip_e2e=ns.skip_e2e,
         from_issue=ns.from_issue,
         push=ns.push,
         once=ns.once,
@@ -577,30 +561,20 @@ class RalphLoop:
             base=self.cfg.base,
         )
 
-    def prompt_impl(self, n: int) -> str:
+    def prompt_slice(self, n: int) -> str:
         suite = self.suite_for(n)
-        promise = f"RALPH_ISSUE_COMPLETE #{n}"
+        promise = f"RALPH_SLICE_COMPLETE #{n}"
         return self.prompts.render(
-            "impl",
+            "slice",
             issue_number=str(n),
+            suite=suite,
             workflow_block=self._ralph_workflow_block(),
             refs_block=self.refs_block(n),
             prd=self._path_str(self.cfg.prd),
             context=self._path_str(self.cfg.context),
-            suite=suite,
-            e2e=self._path_str(self.cfg.e2e),
-            completion_block=self._completion_block(promise),
-        )
-
-    def prompt_e2e(self, suite: str, n: int) -> str:
-        promise = f"RALPH_E2E_COMPLETE SUITE_{suite}"
-        return self.prompts.render(
-            "e2e",
-            suite=suite,
-            workflow_block=self._ralph_workflow_block(),
-            refs_block=self.refs_block(n),
             e2e=self._path_str(self.cfg.e2e),
             screenshots_dir=self._path_str(self.cfg.screenshots_dir),
+            progress_file=self._path_str(self.cfg.progress_file),
             branch=self.cfg.branch,
             completion_block=self._completion_block(promise),
         )
@@ -702,7 +676,7 @@ class RalphLoop:
         print(f"Progress log: {self.cfg.progress_file}")
         if self.cfg.is_cloud:
             print(f"Remote: {self.cfg.repo_url} @ {self.cfg.branch}")
-            print("Each pass creates a new Cloud Agent session (cursor.com/agents).")
+            print("Each child slice creates one Cloud Agent session (implement + E2E).")
 
         if not self.cfg.dry_run and not self.cfg.is_cloud:
             self.ensure_branch()
@@ -716,24 +690,14 @@ class RalphLoop:
             suite = self.suite_for(n)
 
             self.run_until_promise(
-                self.cfg.max_impl,
-                f"issue-{n}-impl",
-                f"RALPH_ISSUE_COMPLETE #{n}",
-                lambda n=n: self.prompt_impl(n),
+                self.cfg.max_slice,
+                f"issue-{n}-slice",
+                f"RALPH_SLICE_COMPLETE #{n}",
+                lambda n=n: self.prompt_slice(n),
             )
-            self.maybe_push()
-
-            if not self.cfg.skip_e2e:
-                self.run_until_promise(
-                    self.cfg.max_e2e,
-                    f"e2e-{suite}",
-                    f"RALPH_E2E_COMPLETE SUITE_{suite}",
-                    lambda suite=suite, n=n: self.prompt_e2e(suite, n),
-                )
-                self.mark_suite(suite)
-                self.maybe_push()
-
+            self.mark_suite(suite)
             self.mark_issue(n)
+            self.maybe_push()
 
         if self.state.get("final_complete"):
             return

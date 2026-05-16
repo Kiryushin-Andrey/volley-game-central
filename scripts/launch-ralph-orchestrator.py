@@ -2,7 +2,7 @@
 """
 Start one Cloud Agent that runs the Ralph loop orchestrator in the foreground.
 
-Each implementation / E2E step is still a separate child Cloud Agent session.
+Each child slice is one Cloud Agent session (implement + E2E); the final pass is separate.
 """
 
 from __future__ import annotations
