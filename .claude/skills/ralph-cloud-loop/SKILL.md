@@ -5,7 +5,11 @@ description: Runs the generic Ralph loop with cloud orchestrator and separate cl
 
 # Ralph cloud loop
 
+Ralph pattern: [getting started](https://www.aihero.dev/getting-started-with-ralph) · [11 tips](https://www.aihero.dev/tips-for-ai-coding-with-ralph-wiggum)
+
 The **orchestrator** discovers child slice issues, **orders them by dependency** (by reading issue text — not numeric sort, not regex on section headings), then runs `scripts/ralph-loop.py`. The script runs slices **one at a time** in that order. It does not call GitHub.
+
+Each child pass reads **PRD + `.ralph/progress.txt`**, runs **feedback loops** before commit, appends to **progress.txt**, and emits a completion sigil (`RALPH_*` or `<promise>…</promise>`).
 
 ## Your job before `ralph-loop.py`
 
@@ -16,7 +20,7 @@ The **orchestrator** discovers child slice issues, **orders them by dependency**
 | Integration branch | Single PR branch |
 | PRD + E2E paths | Repo paths for this epic |
 
-Optional: `--push`, `--from N`, `--skip-e2e`, `--cloud-env KEY=VAL`.
+Optional: `--push`, `--from N`, `--skip-e2e`, `--cloud-env KEY=VAL`, `--max-iterations N` (cap AFK cost), `--once` (HITL / single attempt per pass), `--feedback-loop` (override default typecheck builds).
 
 ---
 
@@ -71,10 +75,11 @@ python3 scripts/ralph-loop.py \
   --branch <branch> \
   --prd <path> \
   --e2e <path> \
-  --push
+  --push \
+  --max-iterations 50
 ```
 
-Run in the **foreground**. Do **not** implement slices in the orchestrator session.
+Run in the **foreground**. Do **not** implement slices in the orchestrator session. Prefer `--max-iterations` on unattended runs.
 
 ### Example (player-levels)
 
@@ -115,7 +120,7 @@ Omit `--child-issues` so the cloud orchestrator runs steps 1–2 from this skill
 
 ## After the run
 
-Report: exit code, your **ordering note**, and `cloud_sessions` from `.ralph/ralph-state.json`.
+Report: exit code, your **ordering note**, `cloud_sessions` from `.ralph/ralph-state.json`, and whether `.ralph/progress.txt` was updated (commit it if the agent did).
 
 ## Resume
 

@@ -8,5 +8,6 @@
   "completed_issues": [],
   "completed_e2e_suites": [],
   "cloud_sessions": [],
-  "final_complete": false
+  "final_complete": false,
+  "progress_file": ".ralph/progress.txt"
 }

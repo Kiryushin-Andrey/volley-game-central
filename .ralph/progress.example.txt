@@ -1,0 +1,10 @@
+# Ralph progress (session log)
+# Append after each pass. Concise bullets; grammar optional.
+# Delete this file when the epic sprint is done.
+
+# Example entry:
+# ## 2026-05-16 — issue #20 impl
+# - PRD item: game format field on create-game form
+# - Decisions: stored as enum in DB; default INTERMEDIATE
+# - Files: backend/src/..., tg-mini-app/src/...
+# - Blockers: none

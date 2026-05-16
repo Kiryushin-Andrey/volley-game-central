@@ -2,20 +2,25 @@
 """
 Ralph loop — generic orchestrator for a parent GitHub issue and its child slices.
 
-1. Runs over --child-issues (discovered by the orchestrator agent before invoking this script).
+Follows the Ralph Wiggum pattern (https://www.aihero.dev/getting-started-with-ralph):
+same prompt shape each iteration, PRD + progress file for context, one task per pass,
+feedback loops before commit, completion sigils the harness can detect.
+
+1. Runs over --child-issues (discovered by the orchestrator before invoking this script).
 2. Per child: implementation pass → E2E pass (optional).
 3. Final pass: regression E2E + combined PR.
 
-Task content lives in repo files (--prd, --e2e, --context) and GitHub issue URLs in prompts.
+Task content: --prd, --e2e, --context, GitHub issue URLs, and .ralph/progress.txt.
 This script does not call the GitHub API; use skill ralph-cloud-loop for child discovery.
 
-Completion lines the agent must print:
+Completion (own line, or wrapped in <promise>…</promise>):
   RALPH_ISSUE_COMPLETE #<n>
   RALPH_E2E_COMPLETE SUITE_X
-  RALPH_ALL_COMPLETE
+  RALPH_ALL_COMPLETE  (or <promise>COMPLETE</promise> on the final pass)
+
+Use --once for human-in-the-loop (single attempt per pass). Cap AFK cost with --max-iterations.
 
 Prerequisites: git; Cursor CLI for --backend local; CURSOR_API_KEY for --backend cloud.
-Child issue discovery: orchestrator only (see skill ralph-cloud-loop).
 """
 
 from __future__ import annotations
@@ -35,6 +40,17 @@ from typing import Callable, Literal, Sequence
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from ralph_cloud import CloudAgentClient, repo_slug_to_url  # noqa: E402
+
+# Default feedback loops (override with --feedback-loop or .ralph/STEERING.md).
+DEFAULT_FEEDBACK_LOOPS: tuple[str, ...] = (
+    "Backend TypeScript: cd backend && npm run build",
+    "Frontend TypeScript: cd tg-mini-app && npm run build",
+)
+
+PROGRESS_HEADER = """# Ralph progress (session log)
+# Append after each pass. Concise bullets; grammar optional.
+# Delete this file when the epic sprint is done.
+"""
 
 
 def detect_repo_slug(root: Path) -> str:
@@ -81,10 +97,17 @@ class Config:
     skip_e2e: bool
     from_issue: int
     push: bool
+    once: bool
+    max_total_iterations: int
+    feedback_loops: tuple[str, ...]
 
     @property
     def logs_dir(self) -> Path:
         return self.state_dir / "logs"
+
+    @property
+    def progress_file(self) -> Path:
+        return self.state_dir / "progress.txt"
 
     @property
     def steering_file(self) -> Path:
@@ -259,6 +282,25 @@ See .ralph/examples/ and skill ralph-cloud-loop for child discovery before runni
         action="store_true",
         help="git push after each milestone",
     )
+    parser.add_argument(
+        "--once",
+        action="store_true",
+        help="HITL mode: one agent attempt per pass (no retry until promise)",
+    )
+    parser.add_argument(
+        "--max-iterations",
+        type=int,
+        default=0,
+        metavar="N",
+        help="Cap total agent invocations across the run; 0 = unlimited (default)",
+    )
+    parser.add_argument(
+        "--feedback-loop",
+        action="append",
+        default=[],
+        metavar="DESC",
+        help="Feedback loop to run before commit (repeatable; replaces defaults if any set)",
+    )
     ns = parser.parse_args(argv)
     api_key = ns.cursor_api_key or os.environ.get("CURSOR_API_KEY")
     if ns.backend == "cloud" and not ns.dry_run and not api_key:
@@ -267,6 +309,7 @@ See .ralph/examples/ and skill ralph-cloud-loop for child discovery before runni
         )
     state_dir = ns.state_dir
     state_file = ns.state_file or (state_dir / "ralph-state.json")
+    feedback = tuple(ns.feedback_loop) if ns.feedback_loop else DEFAULT_FEEDBACK_LOOPS
     return Config(
         repo=ns.repo or "",
         repo_url=ns.repo_url or "",
@@ -291,6 +334,9 @@ See .ralph/examples/ and skill ralph-cloud-loop for child discovery before runni
         skip_e2e=ns.skip_e2e,
         from_issue=ns.from_issue,
         push=ns.push,
+        once=ns.once,
+        max_total_iterations=ns.max_iterations,
+        feedback_loops=feedback,
     )
 
 
@@ -305,6 +351,7 @@ class RalphLoop:
         self.issue_numbers: list[int] = []
         self.state: dict = {}
         self.last_log: Path | None = None
+        self.agent_runs = 0
 
     def cloud_client(self, *, auto_create_pr: bool = False) -> CloudAgentClient:
         assert self.cfg.cursor_api_key
@@ -363,6 +410,10 @@ class RalphLoop:
                 self.state[key] = default
                 self._write_state()
 
+        progress = self.cfg.progress_file
+        if not progress.exists():
+            progress.write_text(PROGRESS_HEADER, encoding="utf-8")
+
     def _write_state(self) -> None:
         path = self.cfg.state_file
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -395,18 +446,75 @@ class RalphLoop:
         sessions.append({"title": title, "url": url, "at": datetime.now().isoformat()})
         self._write_state()
 
-    @staticmethod
-    def has_promise(log_path: Path, promise: str) -> bool:
+    def _promise_variants(self, promise: str) -> list[str]:
+        variants = [promise]
+        if promise == "RALPH_ALL_COMPLETE":
+            variants.append("COMPLETE")
+        return variants
+
+    def has_promise(self, log_path: Path, promise: str) -> bool:
         if not log_path.is_file():
             return False
-        pattern = re.compile(rf"^\s*{re.escape(promise)}\s*$", re.MULTILINE)
-        return bool(pattern.search(log_path.read_text(errors="replace")))
+        text = log_path.read_text(errors="replace")
+        for variant in self._promise_variants(promise):
+            line_pat = re.compile(rf"^\s*{re.escape(variant)}\s*$", re.MULTILINE)
+            if line_pat.search(text):
+                return True
+            if f"<promise>{variant}</promise>" in text:
+                return True
+        return False
+
+    def _check_iteration_budget(self) -> None:
+        cap = self.cfg.max_total_iterations
+        if cap > 0 and self.agent_runs >= cap:
+            raise SystemExit(
+                f"Stopped: reached --max-iterations ({cap}). "
+                "Resume later or raise the cap for AFK runs."
+            )
+
+    def _feedback_block(self) -> str:
+        lines = ["Before committing, run feedback loops for the code you touched:"]
+        for item in self.cfg.feedback_loops:
+            lines.append(f"- {item}")
+        lines.append(
+            "Do not commit if a loop you ran fails. Fix issues first. "
+            "Prefer one logical change per commit."
+        )
+        return "\n".join(lines)
+
+    def _ralph_workflow_block(self) -> str:
+        return f"""Ralph workflow (each pass is a fresh context — read these first):
+1. {self.cfg.prd} — scope and acceptance criteria for this epic.
+2. {self.cfg.progress_file} — what prior passes did (append when you finish).
+3. {self.cfg.state_file} — machine progress (do not edit unless fixing mistakes).
+
+Work style:
+- ONLY ONE TASK this pass: the slice described below — not the whole epic.
+- If the slice has several PRD items, pick the highest-priority / riskiest one only.
+- After implementing: run feedback loops, commit, push to {self.cfg.branch}, append to progress.txt.
+- Progress entries: task done, key decisions, files changed, blockers for next pass. Be concise.
+
+{self._feedback_block()}
+"""
+
+    def _completion_line(self, promise: str) -> str:
+        variants = self._promise_variants(promise)
+        primary = variants[0]
+        if len(variants) > 1:
+            alt = variants[1]
+            return (
+                f"Output on its own line when done:\n"
+                f"{primary}\n"
+                f"(or <promise>{alt}</promise> if the entire epic is finished)"
+            )
+        return f"Output on its own line when done:\n{primary}\n(or <promise>{primary}</promise>)"
 
     def _cloud_preamble(self) -> str:
         return (
             "You are a Cursor Cloud Agent in an isolated VM. "
-            "This is a fresh session — read every file listed below from the repo. "
-            "Commit and push to the integration branch when done.\n\n"
+            "This is a fresh session — read every file listed below from the repo "
+            f"(especially {self.cfg.progress_file}). "
+            "One task this pass; run feedback loops before commit; push when done.\n\n"
         )
 
     def run_agent_local(self, title: str, prompt: str, log_path: Path) -> None:
@@ -460,6 +568,7 @@ class RalphLoop:
             f"- {self.cfg.context}",
             f"- {self.cfg.prd}  (parent #{self.cfg.parent_issue})",
             f"- {self.cfg.e2e}",
+            f"- {self.cfg.progress_file}",
         ]
         if self.cfg.steering_file.is_file():
             lines.append(f"- {self.cfg.steering_file}  (steering — highest priority)")
@@ -473,40 +582,45 @@ class RalphLoop:
 
     def prompt_impl(self, n: int) -> str:
         suite = self.suite_for(n)
+        promise = f"RALPH_ISSUE_COMPLETE #{n}"
         return f"""Ralph loop — implementation pass, issue #{n}.
 
+{self._ralph_workflow_block()}
 {self.refs_block(n)}
 
 Implement per GitHub issue #{n} and {self.cfg.prd}. Follow {self.cfg.context} for terms.
-Commit and push to {self.cfg.branch}. Next automated step: E2E Suite {suite} ({self.cfg.e2e}).
+If issue #{n} spans multiple PRD items, complete only the single highest-priority item this pass.
+Next automated step after this slice: E2E Suite {suite} ({self.cfg.e2e}).
 
-Output on its own line when done:
-RALPH_ISSUE_COMPLETE #{n}
+{self._completion_line(promise)}
 """
 
     def prompt_e2e(self, suite: str, n: int) -> str:
+        promise = f"RALPH_E2E_COMPLETE SUITE_{suite}"
         return f"""Ralph loop — E2E pass, Suite {suite}.
 
+{self._ralph_workflow_block()}
 {self.refs_block(n)}
 
 Execute Suite {suite} from {self.cfg.e2e} (§6–§8). Screenshots: {self.cfg.screenshots_dir}/.
-Minimal fixes on {self.cfg.branch} only; commit and push if you change code.
+Minimal fixes on {self.cfg.branch} only. Run feedback loops if you change code; commit and push.
 
-Output on its own line when all Suite {suite} tests pass:
-RALPH_E2E_COMPLETE SUITE_{suite}
+{self._completion_line(promise)}
 """
 
     def prompt_final(self) -> str:
         return f"""Ralph loop — final pass.
 
+{self._ralph_workflow_block()}
 {self.refs_block()}
 
 Run unit tests; Suite D in {self.cfg.e2e}; one draft PR {self.cfg.branch} → {self.cfg.base} ({self.closes_clause()}).
-Progress: {self.cfg.state_file}
+Update {self.cfg.prd} if items use passes:true/false — mark completed slices.
 
 Output on its own lines when done:
 RALPH_E2E_COMPLETE SUITE_D
 RALPH_ALL_COMPLETE
+(or <promise>COMPLETE</promise> when the epic is fully done)
 """
 
     def run_until_promise(
@@ -518,13 +632,16 @@ RALPH_ALL_COMPLETE
         *,
         auto_create_pr: bool = False,
     ) -> None:
+        effective_max = 1 if self.cfg.once else max_iters
         i = 1
         while True:
-            if max_iters > 0 and i > max_iters:
+            self._check_iteration_budget()
+            if effective_max > 0 and i > effective_max:
                 raise SystemExit(f"max iterations: {title}")
             prompt = prompt_fn()
             stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
             log_path = self.cfg.logs_dir / f"{title}-iter{i}-{stamp}.log"
+            self.agent_runs += 1
             try:
                 self.run_agent(
                     f"{title}-iter{i}",
@@ -579,11 +696,16 @@ RALPH_ALL_COMPLETE
 
         self.load_child_issues()
         self.init_state()
+        mode = "HITL (--once)" if self.cfg.once else "AFK"
+        cap = self.cfg.max_total_iterations
+        cap_s = str(cap) if cap > 0 else "unlimited"
         print(
-            f"Backend: {self.cfg.backend} | repo: {self.cfg.repo} | "
+            f"Backend: {self.cfg.backend} ({mode}) | repo: {self.cfg.repo} | "
             f"Parent #{self.cfg.parent_issue} → children: "
             + " ".join(str(n) for n in self.issue_numbers)
+            + f" | max agent runs: {cap_s}"
         )
+        print(f"Progress log: {self.cfg.progress_file}")
         if self.cfg.is_cloud:
             print(f"Remote: {self.cfg.repo_url} @ {self.cfg.branch}")
             print("Each pass creates a new Cloud Agent session (cursor.com/agents).")
