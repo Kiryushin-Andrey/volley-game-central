@@ -10,7 +10,6 @@ Override the directory with `--prompts-dir` on `ralph-loop.sh` or `launch-ralph-
 |----------|------|
 | `*-prompt.md` (this directory) | Full prompt for one agent session |
 | `partials/*.md` | Shared blocks included via `{{> name}}` |
-| `progress-header.md` | Initial `.ralph/progress.txt` (raw load, no Handlebars) |
 
 ## Syntax
 
@@ -33,7 +32,6 @@ Boolean context flags: `has_children`, `has_steering`, `has_issue`, `is_cloud`.
 | `loop-iteration-prompt.md` | Child issue: one PRD item + E2E + completion sigils |
 | `final-pass-prompt.md` | Epic: Suite D, unit tests, draft PR |
 | `orchestrator-prompt.md` | Cloud orchestrator (`{{#if has_children}}` for step 2) |
-| `progress-header.md` | Seed text for `.ralph/progress.txt` |
 
 ### Partials (`partials/`)
 

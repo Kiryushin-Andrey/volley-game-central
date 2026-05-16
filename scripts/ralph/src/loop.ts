@@ -8,6 +8,7 @@ import type { RalphConfig, RalphState } from "./types.js";
 import {
   logsDir,
   progressFile,
+  progressTemplateFile,
   screenshotsDir,
   steeringFile,
 } from "./types.js";
@@ -109,7 +110,11 @@ export class RalphLoop {
 
     const progress = progressFile(this.cfg);
     if (!existsSync(progress)) {
-      writeFileSync(progress, this.prompts.load("progress-header"), "utf-8");
+      const template = progressTemplateFile(this.cfg);
+      if (!existsSync(template)) {
+        throw new Error(`Progress template not found: ${template}`);
+      }
+      writeFileSync(progress, readFileSync(template, "utf-8"), "utf-8");
     }
   }
 

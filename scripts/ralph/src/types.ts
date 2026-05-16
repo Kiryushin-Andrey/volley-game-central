@@ -52,6 +52,10 @@ export function progressFile(cfg: RalphConfig): string {
   return join(cfg.stateDir, "progress.txt");
 }
 
+export function progressTemplateFile(cfg: RalphConfig): string {
+  return join(cfg.stateDir, "progress.template.txt");
+}
+
 export function steeringFile(cfg: RalphConfig): string {
   return join(cfg.stateDir, "STEERING.md");
 }
