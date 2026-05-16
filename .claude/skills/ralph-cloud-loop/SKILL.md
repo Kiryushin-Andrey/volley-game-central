@@ -1,19 +1,19 @@
 ---
 name: ralph-cloud-loop
-description: Runs the generic Ralph loop with cloud orchestrator and separate cloud child sessions per step. Orchestrator discovers child GitHub issues, orders them by reading and reasoning about dependencies, then runs scripts/ralph-loop.py. Use for Ralph loop, epic automation, or unattended multi-issue agent runs.
+description: Runs the generic Ralph loop with cloud orchestrator and separate cloud child sessions per step. Orchestrator discovers child GitHub issues, orders them by reading and reasoning about dependencies, then runs scripts/ralph-loop.sh. Use for Ralph loop, epic automation, or unattended multi-issue agent runs.
 ---
 
 # Ralph cloud loop
 
 Ralph pattern: [getting started](https://www.aihero.dev/getting-started-with-ralph) · [11 tips](https://www.aihero.dev/tips-for-ai-coding-with-ralph-wiggum)
 
-The **orchestrator** discovers child slice issues, **orders them by dependency** (by reading issue text — not numeric sort, not regex on section headings), then runs `scripts/ralph-loop.py`. The script runs slices **one at a time** in that order. It does not call GitHub.
+The **orchestrator** discovers child slice issues, **orders them by dependency** (by reading issue text — not numeric sort, not regex on section headings), then runs `scripts/ralph-loop.sh`. The script runs slices **one at a time** in that order. It does not call GitHub.
 
 Each child pass reads **PRD + `.ralph/progress.txt`**, runs **feedback loops** before commit, appends to **progress.txt**, and emits a completion sigil (`RALPH_*` or `<promise>…</promise>`).
 
-Agent instructions live in **`.ralph/prompts/*.md`** (not embedded in Python). Edit those files to tune behavior; use `--prompts-dir` to override.
+Agent instructions live in **`.ralph/prompts/*.md`** (not embedded in TypeScript). Edit those files to tune behavior; use `--prompts-dir` to override.
 
-## Your job before `ralph-loop.py`
+## Your job before `ralph-loop.sh`
 
 | Input | You supply |
 |-------|------------|
@@ -70,7 +70,7 @@ If dependencies are unclear, read related issues again or ask the user — do no
 ```bash
 cd "$(git rev-parse --show-toplevel)"
 
-python3 scripts/ralph-loop.py \
+./scripts/ralph-loop.sh \
   --backend cloud \
   --parent-issue <PARENT> \
   --child-issues <ordered numbers> \
@@ -89,7 +89,7 @@ After reasoning: format (#20) and admin (#21) before restrictions (#22):
 
 ```bash
 source .ralph/examples/player-levels.sh
-python3 scripts/ralph-loop.py "${RALPH_LOOP_ARGS[@]}" \
+./scripts/ralph-loop.sh "${RALPH_LOOP_ARGS[@]}" \
   --child-issues 20 21 22 \
   --backend cloud --push
 ```
@@ -102,7 +102,7 @@ python3 scripts/ralph-loop.py "${RALPH_LOOP_ARGS[@]}" \
 
 ```bash
 export CURSOR_API_KEY=...
-python3 scripts/launch-ralph-orchestrator.py --branch <branch> -- \
+./scripts/launch-ralph-orchestrator.sh --branch <branch> -- \
   --parent-issue 8 --prd … --e2e … --backend cloud --push
 ```
 
@@ -126,4 +126,4 @@ Report: exit code, your **ordering note**, `cloud_sessions` from `.ralph/ralph-s
 
 ## Resume
 
-Re-derive order if dependencies changed, then `python3 scripts/ralph-loop.py ... --from <N>`.
+Re-derive order if dependencies changed, then `./scripts/ralph-loop.sh ... --from <N>`.

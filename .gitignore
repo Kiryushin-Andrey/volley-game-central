@@ -86,4 +86,5 @@ docker-data/
 .ralph/screenshots/
 .ralph/STEERING.md
 __pycache__/
+scripts/ralph/node_modules/
 .ralph/progress.txt

@@ -1,6 +1,6 @@
 # Ralph prompt templates
 
-Edit these markdown files to change what agents see. Placeholders use `{name}` and are filled in by `scripts/ralph-loop.py` and `scripts/launch-ralph-orchestrator.py`.
+Edit these markdown files to change what agents see. Placeholders use `{name}` and are filled in by `scripts/ralph/src/*.ts` (via `ralph-loop.sh` / `launch-ralph-orchestrator.sh`).
 
 Override the directory with `--prompts-dir` on either script.
 
