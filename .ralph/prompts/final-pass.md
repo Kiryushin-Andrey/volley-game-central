@@ -1,4 +1,6 @@
-Ralph loop — final pass.
+{{#if is_cloud}}{{> cloud-preamble-partial}}
+
+{{/if}}Ralph loop — final pass.
 
 {{> workflow-partial}}
 {{> refs-block-partial}}

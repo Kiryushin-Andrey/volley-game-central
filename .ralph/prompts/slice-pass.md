@@ -1,4 +1,6 @@
-Ralph loop — slice pass, issue #{{issue_number}} (one PRD item + verify in this session).
+{{#if is_cloud}}{{> cloud-preamble-partial}}
+
+{{/if}}Ralph loop — slice pass, issue #{{issue_number}} (one PRD item + verify in this session).
 
 {{> workflow-partial}}
 {{> refs-block-partial}}

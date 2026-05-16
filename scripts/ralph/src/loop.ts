@@ -225,6 +225,7 @@ export class RalphLoop {
       has_steering: existsSync(steer),
       steering_file: steer,
       has_issue: issueNumber !== undefined,
+      is_cloud: this.cfg.backend === "cloud",
       feedback_loops: this.cfg.feedbackLoops.map((item) => `- ${item}`).join("\n"),
     };
     if (issueNumber !== undefined) {
@@ -232,12 +233,6 @@ export class RalphLoop {
       ctx.issue_url = this.issueUrl(issueNumber);
     }
     return ctx;
-  }
-
-  private cloudPreamble(): string {
-    return this.prompts.render("cloud-preamble-pass", {
-      progress_file: progressFile(this.cfg),
-    });
   }
 
   promptSlice(n: number): string {
@@ -288,7 +283,7 @@ export class RalphLoop {
     autoCreatePr: boolean,
   ): Promise<void> {
     const client = this.cloudClient(autoCreatePr);
-    const session = await client.runPrompt(title, this.cloudPreamble() + prompt, logPath);
+    const session = await client.runPrompt(title, prompt, logPath);
     this.recordCloudSession(title, session.url);
   }
 

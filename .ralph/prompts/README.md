@@ -22,14 +22,14 @@ Override the directory with `--prompts-dir` on `ralph-loop.sh` or `launch-ralph-
 
 Every `*.md` file here (except `README.md`) is registered as a Handlebars partial. Use `-partial` files only when included from **more than one** `-pass` template.
 
-Boolean context flags: `has_children`, `has_steering`, `has_issue`.
+Boolean context flags: `has_children`, `has_steering`, `has_issue`, `is_cloud`.
 
 ## Files
 
 | File | Role |
 |------|------|
 | `progress-header.md` | Initial `.ralph/progress.txt` (raw load) |
-| `cloud-preamble-pass.md` | Prepended to each cloud child session |
+| `cloud-preamble-partial.md` | Cloud VM intro (`{{#if is_cloud}}` in `slice-pass`, `final-pass`) |
 | `workflow-partial.md` | Workflow + feedback loops (in `slice-pass`, `final-pass`) |
 | `refs-block-partial.md` | Required files list (in `slice-pass`, `final-pass`) |
 | `slice-pass.md` | Child issue: one PRD item + E2E + completion sigils |
