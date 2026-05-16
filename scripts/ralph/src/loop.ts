@@ -1,4 +1,4 @@
-import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { dirname, join } from "node:path";
 import { CloudAgentClient } from "./cloud.js";
@@ -6,12 +6,21 @@ import {
   commandExists,
   commitPaths,
   detectRepoSlug,
-  ensureBranch,
+  gitLogHasPromise,
   maybePush,
   repoSlugToUrl,
+  syncSprintBranch,
 } from "./git.js";
 import { type PromptContext, PromptLoader } from "./prompts.js";
-import type { RalphConfig, RalphState } from "./types.js";
+import { emptyResume, readProgressResume, type ProgressResume } from "./progress-state.js";
+import {
+  promiseItem,
+  promiseSlice,
+  textHasItemComplete,
+  textHasPromise,
+  textHasSliceComplete,
+} from "./sigil.js";
+import type { RalphConfig } from "./types.js";
 import {
   logsDir,
   progressFile,
@@ -24,7 +33,8 @@ export class RalphLoop {
   cfg: RalphConfig;
   readonly prompts: PromptLoader;
   issueNumbers: number[] = [];
-  state: RalphState = {} as RalphState;
+  private resume: ProgressResume = emptyResume();
+  private readonly cloudSessions: { title: string; url: string }[] = [];
   lastLog: string | null = null;
   agentRuns = 0;
 
@@ -80,40 +90,32 @@ export class RalphLoop {
     return this.issueNumbers.map((n) => `Closes #${n}`).join(", ");
   }
 
-  initState(): void {
+  private resumeOpts() {
+    return {
+      root: this.root,
+      branch: this.cfg.branch,
+      verifyGit: this.cfg.verifyGitResume,
+    };
+  }
+
+  private reloadResumeFromBranch(): void {
+    this.resume = readProgressResume(progressFile(this.cfg), this.issueNumbers, this.resumeOpts());
+  }
+
+  private logResumePlan(): void {
+    const done = [...this.resume.completedIssues].sort((a, b) => a - b);
+    if (done.length) {
+      console.log(`Resume: skipping completed issues from progress.txt: ${done.join(", ")}`);
+    }
+    if (this.resume.finalComplete) {
+      console.log("Resume: RALPH_ALL_COMPLETE already in progress.txt — will skip child/final work.");
+    }
+  }
+
+  initProgress(): void {
     mkdirSync(this.cfg.stateDir, { recursive: true });
     mkdirSync(logsDir(this.cfg), { recursive: true });
     mkdirSync(screenshotsDir(this.cfg), { recursive: true });
-
-    const path = this.cfg.stateFile;
-    if (existsSync(path)) {
-      this.state = JSON.parse(readFileSync(path, "utf-8")) as RalphState;
-    } else {
-      this.state = {
-        parent_issue: this.cfg.parentIssue,
-        child_issues: this.issueNumbers,
-        branch: this.cfg.branch,
-        prd: this.cfg.prd,
-        e2e: this.cfg.e2e,
-        backend: this.cfg.backend,
-        completed_issues: [],
-        completed_e2e_suites: [],
-        cloud_sessions: [],
-        final_complete: false,
-      };
-      this.writeState();
-    }
-
-    for (const [key, defaultVal] of [
-      ["completed_e2e_suites", [] as string[]],
-      ["cloud_sessions", [] as RalphState["cloud_sessions"]],
-      ["issue_item_passes", {} as Record<string, number>],
-    ] as const) {
-      if (!(key in this.state)) {
-        (this.state as Record<string, unknown>)[key] = defaultVal;
-        this.writeState();
-      }
-    }
 
     const progress = progressFile(this.cfg);
     const progressRel = join(this.cfg.stateDir, "progress.txt");
@@ -135,91 +137,75 @@ export class RalphLoop {
     }
   }
 
-  private writeState(): void {
-    mkdirSync(this.cfg.stateDir, { recursive: true });
-    const tmp = `${this.cfg.stateFile}.tmp`;
-    writeFileSync(tmp, `${JSON.stringify(this.state, null, 2)}\n`, "utf-8");
-    writeFileSync(this.cfg.stateFile, readFileSync(tmp));
-  }
-
   issueDone(n: number): boolean {
-    return (this.state.completed_issues ?? []).includes(n);
+    return this.resume.completedIssues.has(n);
   }
 
-  markIssue(n: number): void {
-    const issues = this.state.completed_issues ?? [];
-    if (!issues.includes(n)) {
-      issues.push(n);
-      issues.sort((a, b) => a - b);
-    }
-    this.state.completed_issues = issues;
-    this.writeState();
+  finalDone(): boolean {
+    return this.resume.finalComplete;
   }
 
-  markSuite(letter: string): void {
-    const suites = this.state.completed_e2e_suites ?? [];
-    if (!suites.includes(letter)) {
-      suites.push(letter);
-    }
-    this.state.completed_e2e_suites = suites;
-    this.writeState();
+  private markIssueDone(n: number): void {
+    this.resume.completedIssues.add(n);
   }
 
-  markFinal(): void {
-    this.state.final_complete = true;
-    this.writeState();
+  private markFinalDone(): void {
+    this.resume.finalComplete = true;
   }
 
-  recordCloudSession(title: string, url: string): void {
-    const sessions = this.state.cloud_sessions ?? [];
-    sessions.push({ title, url, at: new Date().toISOString() });
-    this.state.cloud_sessions = sessions;
-    this.writeState();
+  private recordCloudSession(title: string, url: string): void {
+    this.cloudSessions.push({ title, url });
   }
 
-  private promiseVariants(promise: string): string[] {
-    const variants = [promise];
-    if (promise === "RALPH_ALL_COMPLETE") {
-      variants.push("COMPLETE");
-    }
-    return variants;
-  }
-
-  hasPromise(logPath: string, promise: string): boolean {
+  private logHasPromise(logPath: string, promise: string): boolean {
     if (!existsSync(logPath)) return false;
-    const text = readFileSync(logPath, "utf-8");
-    for (const variant of this.promiseVariants(promise)) {
-      const escaped = variant.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const linePat = new RegExp(`^\\s*${escaped}\\s*$`, "m");
-      if (linePat.test(text)) return true;
-      if (text.includes(`<promise>${variant}</promise>`)) return true;
+    return textHasPromise(readFileSync(logPath, "utf-8"), promise);
+  }
+
+  private logHasItemComplete(logPath: string, n: number): boolean {
+    if (!existsSync(logPath)) return false;
+    return textHasItemComplete(readFileSync(logPath, "utf-8"), n);
+  }
+
+  private logHasSliceComplete(logPath: string, n: number): boolean {
+    if (!existsSync(logPath)) return false;
+    return textHasSliceComplete(readFileSync(logPath, "utf-8"), n);
+  }
+
+  /**
+   * After agent log shows a sigil, pull sprint branch and confirm progress.txt
+   * (or git history when verifyGitResume) records the same milestone.
+   */
+  private confirmOnBranch(logPath: string, n: number, kind: "item" | "slice"): boolean {
+    const sigil = kind === "item" ? promiseItem(n) : promiseSlice(n);
+    if (kind === "slice" && !this.logHasSliceComplete(logPath, n)) return false;
+    if (kind === "item" && !this.logHasItemComplete(logPath, n)) return false;
+
+    if (!this.cfg.dryRun) {
+      syncSprintBranch(this.root, this.cfg.branch, this.cfg.base);
     }
+    this.reloadResumeFromBranch();
+
+    if (kind === "slice" && this.issueDone(n)) return true;
+    if (kind === "item") {
+      // Item passes do not mark issues complete; progress append is still required.
+      const progress = readFileSync(progressFile(this.cfg), "utf-8");
+      if (textHasItemComplete(progress, n)) return true;
+    }
+
+    if (this.cfg.verifyGitResume && gitLogHasPromise(this.root, this.cfg.branch, sigil)) {
+      console.warn(
+        `warn: ${sigil} in agent log and git history but not in progress.txt — ask agents to append sigils to progress.txt`,
+      );
+      if (kind === "slice") this.markIssueDone(n);
+      return true;
+    }
+
+    console.warn(
+      `warn: agent log has ${sigil} but progress.txt on ${this.cfg.branch} does not — ` +
+        "ensure the agent committed and pushed progress.txt",
+    );
     return false;
-  }
-
-  promiseItem(n: number): string {
-    return `RALPH_ITEM_COMPLETE #${n}`;
-  }
-
-  promiseSlice(n: number): string {
-    return `RALPH_SLICE_COMPLETE #${n}`;
-  }
-
-  logHasItemComplete(logPath: string, n: number): boolean {
-    return this.hasPromise(logPath, this.promiseItem(n));
-  }
-
-  logHasSliceComplete(logPath: string, n: number): boolean {
-    if (this.hasPromise(logPath, this.promiseSlice(n))) return true;
-    return this.hasPromise(logPath, `RALPH_ISSUE_COMPLETE #${n}`);
-  }
-
-  recordItemPass(n: number): void {
-    const counts = this.state.issue_item_passes ?? {};
-    const key = String(n);
-    counts[key] = (counts[key] ?? 0) + 1;
-    this.state.issue_item_passes = counts;
-    this.writeState();
   }
 
   private checkIterationBudget(): void {
@@ -232,7 +218,6 @@ export class RalphLoop {
     }
   }
 
-  /** Shared Handlebars context for workflow, refs-block, and partials. */
   private basePromptContext(issueNumber?: number): PromptContext {
     const steer = steeringFile(this.cfg);
     const ctx: PromptContext = {
@@ -240,7 +225,6 @@ export class RalphLoop {
       context: this.cfg.context,
       e2e: this.cfg.e2e,
       progress_file: progressFile(this.cfg),
-      state_file: this.cfg.stateFile,
       branch: this.cfg.branch,
       base: this.cfg.base,
       parent_issue: this.cfg.parentIssue,
@@ -328,7 +312,7 @@ export class RalphLoop {
     }
   }
 
-  async runUntilIssueComplete(n: number, suite: string): Promise<void> {
+  async runUntilIssueComplete(n: number): Promise<void> {
     let itemPass = 0;
     while (!this.issueDone(n)) {
       itemPass += 1;
@@ -338,7 +322,7 @@ export class RalphLoop {
         attempt += 1;
         if (this.cfg.maxSlice > 0 && attempt > this.cfg.maxSlice) {
           console.error(
-            `max retries for issue #${n} item pass ${itemPass}: expected ${this.promiseItem(n)} or ${this.promiseSlice(n)}`,
+            `max retries for issue #${n} item pass ${itemPass}: expected ${promiseItem(n)} or ${promiseSlice(n)}`,
           );
           process.exit(1);
         }
@@ -353,28 +337,26 @@ export class RalphLoop {
         this.lastLog = logPath;
 
         if (this.cfg.dryRun) {
-          console.log(
-            `(dry-run) would wait for ${this.promiseItem(n)} or ${this.promiseSlice(n)}`,
-          );
+          console.log(`(dry-run) would wait for ${promiseItem(n)} or ${promiseSlice(n)}`);
           return;
         }
 
         if (this.logHasSliceComplete(logPath, n)) {
-          console.log(`OK: ${this.promiseSlice(n)}`);
-          this.markSuite(suite);
-          this.markIssue(n);
-          return;
-        }
-
-        if (this.logHasItemComplete(logPath, n)) {
-          console.log(`OK: ${this.promiseItem(n)} (more items may remain on #${n})`);
-          this.recordItemPass(n);
-          maybePush(this.root, this.cfg.branch, this.cfg.push);
-          break;
+          if (this.confirmOnBranch(logPath, n, "slice")) {
+            console.log(`OK: ${promiseSlice(n)}`);
+            this.markIssueDone(n);
+            return;
+          }
+        } else if (this.logHasItemComplete(logPath, n)) {
+          if (this.confirmOnBranch(logPath, n, "item")) {
+            console.log(`OK: ${promiseItem(n)} (more items may remain on #${n})`);
+            maybePush(this.root, this.cfg.branch, this.cfg.push);
+            break;
+          }
         }
 
         console.log(
-          `missing: ${this.promiseItem(n)} or ${this.promiseSlice(n)} (see ${logPath})`,
+          `missing or unverified: ${promiseItem(n)} or ${promiseSlice(n)} (see ${logPath})`,
         );
         await sleep(3000);
       }
@@ -409,11 +391,24 @@ export class RalphLoop {
         console.log(`(dry-run) would wait for: ${promise}`);
         return;
       }
-      if (this.hasPromise(logPath, promise)) {
-        console.log(`OK: ${promise}`);
-        return;
+      if (this.logHasPromise(logPath, promise)) {
+        if (!this.cfg.dryRun) {
+          syncSprintBranch(this.root, this.cfg.branch, this.cfg.base);
+        }
+        this.reloadResumeFromBranch();
+        if (textHasPromise(readFileSync(progressFile(this.cfg), "utf-8"), promise)) {
+          console.log(`OK: ${promise}`);
+          return;
+        }
+        if (this.cfg.verifyGitResume && gitLogHasPromise(this.root, this.cfg.branch, promise)) {
+          console.warn(`warn: ${promise} in log and git but not progress.txt`);
+          console.log(`OK: ${promise}`);
+          return;
+        }
+        console.warn(`warn: ${promise} in agent log but not on branch progress.txt yet`);
+      } else {
+        console.log(`missing: ${promise} (see ${logPath})`);
       }
-      console.log(`missing: ${promise} (see ${logPath})`);
       i += 1;
       await sleep(3000);
     }
@@ -432,7 +427,15 @@ export class RalphLoop {
     requireRepoFiles([this.cfg.context, this.cfg.prd, this.cfg.e2e]);
 
     this.loadChildIssues();
-    this.initState();
+
+    if (!this.cfg.dryRun) {
+      syncSprintBranch(this.root, this.cfg.branch, this.cfg.base);
+    }
+
+    this.initProgress();
+    this.reloadResumeFromBranch();
+    this.logResumePlan();
+
     const mode = this.cfg.once ? "HITL (--once)" : "AFK";
     const capS =
       this.cfg.maxTotalIterations > 0
@@ -443,25 +446,22 @@ export class RalphLoop {
         `Parent #${this.cfg.parentIssue} → children: ${this.issueNumbers.join(" ")} | ` +
         `max agent runs: ${capS}`,
     );
-    console.log(`Progress log: ${progressFile(this.cfg)}`);
+    console.log(`Progress log: ${progressFile(this.cfg)} (branch resume source)`);
     if (this.cfg.backend === "cloud") {
       console.log(`Remote: ${this.cfg.repoUrl} @ ${this.cfg.branch}`);
       console.log("Each item pass is one Cloud Agent session (implement + targeted E2E).");
     }
 
-    if (!this.cfg.dryRun && this.cfg.backend === "local") {
-      ensureBranch(this.root, this.cfg.branch, this.cfg.base);
-    }
+    if (this.finalDone()) return;
 
     for (const n of this.issueNumbers) {
-      if (n < this.cfg.fromIssue) continue;
       if (this.issueDone(n)) continue;
-      const suite = this.suiteFor(n);
-      await this.runUntilIssueComplete(n, suite);
+      await this.runUntilIssueComplete(n);
       maybePush(this.root, this.cfg.branch, this.cfg.push);
     }
 
-    if (this.state.final_complete) return;
+    this.reloadResumeFromBranch();
+    if (this.finalDone()) return;
 
     await this.runUntilPromise(
       10,
@@ -470,15 +470,12 @@ export class RalphLoop {
       () => this.promptFinal(),
       this.cfg.cloudCreatePrOnFinal,
     );
-    if (this.lastLog && this.hasPromise(this.lastLog, "RALPH_E2E_COMPLETE SUITE_D")) {
-      this.markSuite("D");
-    }
-    this.markFinal();
+    this.markFinalDone();
     maybePush(this.root, this.cfg.branch, this.cfg.push);
 
-    if (this.cfg.backend === "cloud" && this.state.cloud_sessions?.length) {
+    if (this.cfg.backend === "cloud" && this.cloudSessions.length) {
       console.log("\nCloud sessions:");
-      for (const entry of this.state.cloud_sessions) {
+      for (const entry of this.cloudSessions) {
         console.log(`  - ${entry.title}: ${entry.url}`);
       }
     }

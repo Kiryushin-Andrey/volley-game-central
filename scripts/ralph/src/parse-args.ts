@@ -1,5 +1,4 @@
 import { parseArgs } from "node:util";
-import { join } from "node:path";
 import type { Backend, RalphConfig } from "./types.js";
 import { DEFAULT_PROMPTS_DIR } from "./prompts.js";
 
@@ -64,8 +63,8 @@ export function parseRalphArgs(argv: string[]): RalphConfig {
       prd: { type: "string" },
       e2e: { type: "string" },
       "state-dir": { type: "string", default: ".ralph" },
-      "state-file": { type: "string" },
       "prompts-dir": { type: "string", default: DEFAULT_PROMPTS_DIR },
+      "no-verify-git-resume": { type: "boolean", default: false },
       backend: { type: "string", default: "local" },
       "agent-cmd": { type: "string", default: "agent" },
       "cursor-api-key": { type: "string" },
@@ -75,7 +74,6 @@ export function parseRalphArgs(argv: string[]): RalphConfig {
       max: { type: "string" },
       "max-slice": { type: "string" },
       "dry-run": { type: "boolean", default: false },
-      from: { type: "string", default: "0" },
       push: { type: "boolean", default: false },
       once: { type: "boolean", default: false },
       "max-iterations": { type: "string", default: "0" },
@@ -139,8 +137,8 @@ export function parseRalphArgs(argv: string[]): RalphConfig {
     prd,
     e2e,
     stateDir,
-    stateFile: values["state-file"] ?? join(stateDir, "ralph-state.json"),
     promptsDir: values["prompts-dir"] ?? DEFAULT_PROMPTS_DIR,
+    verifyGitResume: !(values["no-verify-git-resume"] ?? false),
     backend,
     agentCmd: values["agent-cmd"] ?? "agent",
     cursorApiKey: apiKey,
@@ -149,7 +147,6 @@ export function parseRalphArgs(argv: string[]): RalphConfig {
     cloudCreatePrOnFinal: values["cloud-create-pr-on-final"] ?? false,
     maxSlice: Number(maxSliceRaw),
     dryRun,
-    fromIssue: Number(values.from ?? "0"),
     push: values.push ?? false,
     once: values.once ?? false,
     maxTotalIterations: Number(values["max-iterations"] ?? "0"),

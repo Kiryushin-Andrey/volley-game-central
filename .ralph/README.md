@@ -9,23 +9,23 @@ Pattern: [Getting started with Ralph](https://www.aihero.dev/getting-started-wit
 | File / folder | Purpose |
 |---------------|---------|
 | `prompts/` | Agent prompt templates (edit `.md` files; see `prompts/README.md`) |
-| `ralph-state.json` | Harness progress on the **machine running `ralph-loop`** (gitignored; not on the integration branch) |
-| `progress.template.txt` | Seed for new `progress.txt` (committed; edit header comments here) |
-| `progress.txt` | Session log for agents — **commit and push on the integration branch** each pass (cloud VMs only see the branch) |
-| `logs/` | Agent stdout per iteration (gitignored; stays on the loop host) |
+| `progress.template.txt` | Seed for new `progress.txt` (committed) |
+| `progress.txt` | **Sprint resume source** — agents append narrative + `RALPH_*` sigils; commit on integration branch each pass |
+| `logs/` | Agent stdout per iteration on the loop host (gitignored) |
 | `screenshots/` | E2E screenshots (gitignored) |
 | `STEERING.md` | Optional overrides (`STEERING.example.md`) |
 | `examples/player-levels.sh` | Example flags (add `--child-issues` after discovery) |
 
-## Cloud vs loop host
+There is **no** `ralph-state.json`. The harness resumes by reading `progress.txt` on the sprint branch (and optionally confirming sigils in recent `git log`).
 
-| Artifact | Loop host (orchestrator) | Integration branch (cloud child VMs) |
-|----------|--------------------------|--------------------------------------|
-| `ralph-state.json` | Written by the harness when sigils appear in logs | Not used — each child is a new VM |
-| `progress.txt` | Optional local copy if you run locally | **Source of truth** — agents append and must push |
-| `logs/` | SSE / local agent output for sigil detection | Not shared |
+## Cloud resume
 
-Child Cloud Agents do not share a filesystem with the process that runs `ralph-loop.ts`. They only share **git**. The harness advances issues using **completion lines in cloud logs**, not by reading `ralph-state.json` from the repo.
+1. Start a new orchestrator (fresh VM is fine) with the same `--branch` and `--child-issues`.
+2. Use `--push` so agents keep `progress.txt` on the remote branch.
+3. The harness runs `git pull` on the sprint branch, parses `RALPH_SLICE_COMPLETE #n` lines in `progress.txt`, and skips finished issues.
+4. If an agent put a sigil only in a commit message, `git log --grep` can still mark an issue done (warns that `progress.txt` should be updated).
+
+Disable git-log fallback with `--no-verify-git-resume`.
 
 ## Modes
 
@@ -55,8 +55,6 @@ cd scripts/ralph && npm install
 
 Child issue numbers and **order** come from the orchestrator. The script does not call GitHub.
 
-To change agent instructions, edit files under `.ralph/prompts/`.
-
 ## Local backend
 
 ```bash
@@ -75,4 +73,4 @@ See `.cursor/skills/ralph-cloud-loop/SKILL.md`.
   --parent-issue … --child-issues … --prd … --e2e … --backend cloud --push --max-iterations 50
 ```
 
-Use `--push` so seeded and agent-updated `progress.txt` reaches the branch. When the epic is done, remove `progress.txt` from the branch in a cleanup commit (or leave a short “epic complete” note).
+When the epic is done, remove or trim `progress.txt` on the branch in a cleanup commit.

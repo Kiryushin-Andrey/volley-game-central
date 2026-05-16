@@ -13,7 +13,6 @@ export interface RalphConfig {
   prd: string;
   e2e: string;
   stateDir: string;
-  stateFile: string;
   promptsDir: string;
   backend: Backend;
   agentCmd: string;
@@ -23,25 +22,12 @@ export interface RalphConfig {
   cloudCreatePrOnFinal: boolean;
   maxSlice: number;
   dryRun: boolean;
-  fromIssue: number;
   push: boolean;
   once: boolean;
   maxTotalIterations: number;
   feedbackLoops: readonly string[];
-}
-
-export interface RalphState {
-  parent_issue: number;
-  child_issues: number[];
-  branch: string;
-  prd: string;
-  e2e: string;
-  backend: Backend;
-  completed_issues: number[];
-  completed_e2e_suites: string[];
-  cloud_sessions: { title: string; url: string; at: string }[];
-  final_complete: boolean;
-  issue_item_passes?: Record<string, number>;
+  /** When true, treat slice/epic sigils in git log as resume hints if progress.txt lacks them. */
+  verifyGitResume: boolean;
 }
 
 export function logsDir(cfg: RalphConfig): string {

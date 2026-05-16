@@ -1,10 +1,14 @@
 # Ralph progress (session log)
-# Append after each pass. Concise bullets; grammar optional.
+# Append after each pass. Include RALPH_* sigils on their own lines when a milestone is done.
 # Delete this file when the epic sprint is done.
 
 # Example entry:
-# ## 2026-05-16 — issue #20 impl
+# ## 2026-05-16 — issue #20 item 1
 # - PRD item: game format field on create-game form
 # - Decisions: stored as enum in DB; default INTERMEDIATE
 # - Files: backend/src/..., tg-mini-app/src/...
 # - Blockers: none
+# RALPH_ITEM_COMPLETE #20
+
+# When issue #20 is fully done:
+# RALPH_SLICE_COMPLETE #20

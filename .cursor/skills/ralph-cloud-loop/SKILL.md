@@ -32,7 +32,7 @@ Entrypoints are shell wrappers around `tsx` (`scripts/ralph-loop.sh`, `scripts/l
 | Integration branch | Single PR branch |
 | PRD + E2E paths | Repo paths for this epic |
 
-Optional: `--push`, `--from N`, `--cloud-env KEY=VAL`, `--max-iterations N` (cap AFK cost), `--once` (HITL / single attempt per pass), `--max-slice N` (retries per child), `--feedback-loop` (override default typecheck builds).
+Optional: `--push` (required for cloud resume), `--cloud-env KEY=VAL`, `--max-iterations N` (cap AFK cost), `--once` (HITL / single attempt per pass), `--max-slice N` (retries per child), `--feedback-loop` (override default typecheck builds), `--no-verify-git-resume` (progress.txt only).
 
 ---
 
@@ -135,8 +135,8 @@ The orchestrator Cloud Agent must run `npm install` under `scripts/ralph` before
 
 ## After the run
 
-Report: exit code, your **ordering note**, `cloud_sessions` from `.ralph/ralph-state.json` on the loop host, and whether `.ralph/progress.txt` was pushed on the integration branch.
+Report: exit code, your **ordering note**, cloud session URLs from the loop output, and whether `.ralph/progress.txt` on the integration branch contains up-to-date `RALPH_*` sigils.
 
 ## Resume
 
-Re-derive order if dependencies changed, then `./scripts/ralph-loop.sh ... --from <N>`.
+Re-run the same command on a **fresh orchestrator VM** with the same `--branch` and `--child-issues`. The harness pulls the branch and skips issues already marked `RALPH_SLICE_COMPLETE #n` in `.ralph/progress.txt` (git log is a fallback unless `--no-verify-git-resume`).

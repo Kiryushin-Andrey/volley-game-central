@@ -43,6 +43,30 @@ export function ensureBranch(root: string, branch: string, base: string): void {
   }
 }
 
+/** Fetch and fast-forward the sprint branch so progress.txt matches remote. */
+export function syncSprintBranch(root: string, branch: string, base: string): void {
+  ensureBranch(root, branch, base);
+  const pull = spawnSync("git", ["pull", "--ff-only", "origin", branch], {
+    cwd: root,
+    stdio: "inherit",
+  });
+  if (pull.status !== 0) {
+    console.warn("warn: could not fast-forward sprint branch; using local tip");
+  }
+}
+
+/** Search recent commits on origin/<branch> for a completion sigil (body or subject). */
+export function gitLogHasPromise(root: string, branch: string, promise: string): boolean {
+  const ref = `origin/${branch}`;
+  const r = spawnSync(
+    "git",
+    ["log", ref, "-n", "80", "--format=%s%n%b", "--grep", promise],
+    { cwd: root, encoding: "utf-8", stdio: ["ignore", "pipe", "ignore"] },
+  );
+  if (r.status !== 0 || !r.stdout) return false;
+  return r.stdout.includes(promise);
+}
+
 export function maybePush(root: string, branch: string, enabled: boolean): void {
   if (!enabled) return;
   const r = spawnSync("git", ["push", "-u", "origin", branch], { cwd: root, stdio: "inherit" });

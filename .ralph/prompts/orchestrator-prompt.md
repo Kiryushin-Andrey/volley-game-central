@@ -20,7 +20,7 @@ cd "$(git rev-parse --show-toplevel)"
 
 (If step 2 applied, append the discovered numbers to `--child-issues`.)
 
-4. Report exit code, `cloud_sessions` from `.ralph/ralph-state.json`, and `.ralph/progress.txt`.
+4. Report exit code, cloud session URLs from the loop output, and whether `.ralph/progress.txt` on the branch has up-to-date sigils.
 
 Ralph tips: cap unattended runs with `--max-iterations`; child agents use PRD + progress.txt,
 feedback loops before commit, one task per pass. See https://www.aihero.dev/tips-for-ai-coding-with-ralph-wiggum

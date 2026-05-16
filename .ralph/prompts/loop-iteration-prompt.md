@@ -24,10 +24,10 @@ If checks fail, fix and re-run — stay in this session.
 Run feedback loops for any code you changed. Commit and push to {{branch}}.
 Append to {{progress_file}}: item completed, decisions, files changed, which PRD items remain for issue #{{issue_number}}.
 
-When one PRD item is done but more remain for issue #{{issue_number}} (commit + append progress first):
+Add these **on their own lines inside {{progress_file}}** (and in your final message), then commit and push with your code:
+
+When one PRD item is done but more remain for issue #{{issue_number}}:
 RALPH_ITEM_COMPLETE #{{issue_number}}
-(or <promise>RALPH_ITEM_COMPLETE #{{issue_number}}</promise>)
 
 When every PRD item for issue #{{issue_number}} is done AND Suite {{suite}} passes:
 RALPH_SLICE_COMPLETE #{{issue_number}}
-(or <promise>RALPH_SLICE_COMPLETE #{{issue_number}}</promise>)
