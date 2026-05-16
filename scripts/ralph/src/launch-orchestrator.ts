@@ -50,7 +50,10 @@ async function main(): Promise<void> {
   }
 
   const loopCmd = [
+    "cd scripts/ralph && npm install && cd ../.. &&",
     "npx",
+    "--prefix",
+    "scripts/ralph",
     "tsx",
     "scripts/ralph/src/ralph-loop.ts",
     ...loopArgv,

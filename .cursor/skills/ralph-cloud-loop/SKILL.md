@@ -13,6 +13,16 @@ Each child pass reads **PRD + `.ralph/progress.txt`**, runs **feedback loops** b
 
 Agent instructions live in **`.ralph/prompts/*.md`** (not embedded in TypeScript). Edit those files to tune behavior; use `--prompts-dir` to override.
 
+## Setup (TypeScript harness)
+
+Requires **Node.js 18+**. Install once per clone (orchestrator and local runs):
+
+```bash
+cd "$(git rev-parse --show-toplevel)/scripts/ralph" && npm install
+```
+
+Entrypoints are shell wrappers around `tsx` (`scripts/ralph-loop.sh`, `scripts/launch-ralph-orchestrator.sh`). Implementation lives in `scripts/ralph/src/`.
+
 ## Your job before `ralph-loop.sh`
 
 | Input | You supply |
@@ -69,6 +79,7 @@ If dependencies are unclear, read related issues again or ask the user — do no
 
 ```bash
 cd "$(git rev-parse --show-toplevel)"
+cd scripts/ralph && npm install && cd ../..
 
 ./scripts/ralph-loop.sh \
   --backend cloud \
@@ -107,6 +118,8 @@ export CURSOR_API_KEY=...
 ```
 
 Omit `--child-issues` so the cloud orchestrator runs steps 1–2 from this skill, then adds the ordered list to the command.
+
+The orchestrator Cloud Agent must run `npm install` under `scripts/ralph` before invoking the loop (see **Setup** above).
 
 ---
 
