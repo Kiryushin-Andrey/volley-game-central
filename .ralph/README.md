@@ -8,7 +8,7 @@ Pattern: [Getting started with Ralph](https://www.aihero.dev/getting-started-wit
 |---------------|---------|
 | `prompts/` | Agent prompt templates (edit `.md` files; see `prompts/README.md`) |
 | `ralph-state.json` | Machine progress: completed issues, E2E suites, cloud session URLs (gitignored) |
-| `progress.txt` | Human/agent session log — append each pass; **commit** so the next iteration skips exploration |
+| `progress.txt` | Human/agent session log — append each pass; commit/push during the sprint so the next iteration skips exploration (gitignored locally) |
 | `logs/` | Agent stdout per iteration (gitignored) |
 | `screenshots/` | E2E screenshots (gitignored) |
 | `STEERING.md` | Optional overrides (`STEERING.example.md`) |
