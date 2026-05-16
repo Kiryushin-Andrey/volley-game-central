@@ -5,8 +5,10 @@ Ralph workflow (each pass is a fresh context — read these first):
 
 Work style:
 - ONLY ONE PRD ITEM this pass on the current issue — not the whole issue, not the epic.
-- Read progress.txt; continue the next open item. Emit RALPH_ITEM_COMPLETE or RALPH_SLICE_COMPLETE per completion-slice.md.
+- Read progress.txt; continue the next open item. For slice passes, emit RALPH_ITEM_COMPLETE or RALPH_SLICE_COMPLETE when done.
 - After implementing: run feedback loops, commit, push to {{branch}}, append to progress.txt.
 - Progress entries: task done, key decisions, files changed, blockers for next pass. Be concise.
 
-{{> feedback-block}}
+Before committing, run feedback loops for the code you touched:
+{{feedback_loops}}
+Do not commit if a loop you ran fails. Fix issues first. Prefer one logical change per commit.

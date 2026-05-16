@@ -10,23 +10,21 @@ Override the directory with `--prompts-dir` on `ralph-loop.sh` or `launch-ralph-
 |-----------|---------|
 | Variable | `{{prd}}`, `{{issue_number}}` |
 | Conditional | `{{#if has_children}}…{{else}}…{{/if}}` |
-| Partial (include another `.md` file) | `{{> workflow}}`, `{{> refs-block}}` |
+| Partial (shared `.md` included from multiple parents) | `{{> workflow}}`, `{{> refs-block}}` |
 
-Partials are every `*.md` file in this folder (except `README.md`), registered by basename.
+Every `*.md` file here (except `README.md`) is registered as a Handlebars partial. Use partials only when the same block is included from **more than one** template; otherwise embed the text directly.
 
-Boolean context flags used today: `has_children`, `has_steering`, `has_issue`.
+Boolean context flags: `has_children`, `has_steering`, `has_issue`.
 
 ## Files
 
 | File | Used for |
 |------|----------|
-| `progress-header.md` | Initial `.ralph/progress.txt` |
+| `progress-header.md` | Initial `.ralph/progress.txt` (raw load, not composed) |
 | `cloud-preamble.md` | Prepended to every cloud child pass |
-| `workflow.md` | Shared workflow block (includes `{{> feedback-block}}`) |
-| `feedback-block.md` | Feedback loops list |
-| `completion-slice.md` | ITEM vs SLICE sigils (partial) |
-| `refs-block.md` | Required files list (optional steering / issue lines) |
-| `slice.md` | Per pass: one PRD item + E2E (composes partials) |
+| `workflow.md` | Shared workflow + feedback loops (`{{> …}}` from `slice`, `final`) |
+| `refs-block.md` | Required files list (`{{> …}}` from `slice`, `final`) |
+| `slice.md` | Per pass: one PRD item + E2E + completion sigils |
 | `final.md` | Final regression + PR pass |
 | `orchestrator.md` | Cloud orchestrator (`{{#if has_children}}` for step 2) |
 
