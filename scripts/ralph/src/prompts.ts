@@ -1,11 +1,18 @@
-import { readFileSync, existsSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import Handlebars from "handlebars";
 import { gitRoot } from "./git.js";
 
 export const DEFAULT_PROMPTS_DIR = join(gitRoot(), ".ralph", "prompts");
 
+/** Template context: strings, numbers, booleans for {{#if}}, etc. */
+export type PromptContext = Record<string, unknown>;
+
 export class PromptLoader {
   readonly dir: string;
+  private readonly hbs = Handlebars.create();
+  private readonly compiled = new Map<string, Handlebars.TemplateDelegate>();
+  private partialsRegistered = false;
 
   constructor(promptsDir?: string) {
     this.dir = promptsDir ?? DEFAULT_PROMPTS_DIR;
@@ -15,6 +22,7 @@ export class PromptLoader {
     return join(this.dir, `${name}.md`);
   }
 
+  /** Raw template source (no Handlebars). */
   load(name: string): string {
     const filePath = this.path(name);
     if (!existsSync(filePath)) {
@@ -25,13 +33,44 @@ export class PromptLoader {
     return `${readFileSync(filePath, "utf-8").trimEnd()}\n`;
   }
 
-  render(name: string, vars: Record<string, string>): string {
-    const template = this.load(name);
-    return template.replace(/\{(\w+)\}/g, (_, key: string) => {
-      if (!(key in vars)) {
-        throw new Error(`Missing placeholder in ${name}.md: {${key}}`);
+  private registerPartials(): void {
+    if (this.partialsRegistered) return;
+    if (!existsSync(this.dir)) {
+      throw new Error(`Prompts directory not found: ${this.dir}`);
+    }
+    for (const entry of readdirSync(this.dir, { withFileTypes: true })) {
+      if (!entry.isFile() || !entry.name.endsWith(".md") || entry.name === "README.md") {
+        continue;
       }
-      return vars[key];
-    });
+      const name = entry.name.replace(/\.md$/, "");
+      this.hbs.registerPartial(name, this.load(name));
+    }
+    this.partialsRegistered = true;
+  }
+
+  private compile(name: string): Handlebars.TemplateDelegate {
+    const cached = this.compiled.get(name);
+    if (cached) return cached;
+    this.registerPartials();
+    const template = this.hbs.compile(this.load(name), { noEscape: true });
+    this.compiled.set(name, template);
+    return template;
+  }
+
+  /** Render a template with Handlebars (variables, {{#if}}, {{> partial}}). */
+  render(name: string, context: PromptContext): string {
+    try {
+      const out = this.compile(name)(context);
+      return out.endsWith("\n") ? out : `${out}\n`;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new Error(`Failed to render ${name}.md: ${msg}`);
+    }
+  }
+
+  /** Clear compiled cache (e.g. after editing templates in a long-lived process). */
+  clearCache(): void {
+    this.compiled.clear();
+    this.partialsRegistered = false;
   }
 }

@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import { dirname, join } from "node:path";
 import { CloudAgentClient } from "./cloud.js";
 import { commandExists, detectRepoSlug, ensureBranch, maybePush, repoSlugToUrl } from "./git.js";
-import { PromptLoader } from "./prompts.js";
+import { type PromptContext, PromptLoader } from "./prompts.js";
 import type { RalphConfig, RalphState } from "./types.js";
 import {
   logsDir,
@@ -210,19 +210,28 @@ export class RalphLoop {
     }
   }
 
-  private feedbackBlock(): string {
-    const loops = this.cfg.feedbackLoops.map((item) => `- ${item}`).join("\n");
-    return this.prompts.render("feedback-block", { feedback_loops: loops });
-  }
-
-  private ralphWorkflowBlock(): string {
-    return this.prompts.render("workflow", {
+  /** Shared Handlebars context for workflow, refs-block, and partials. */
+  private basePromptContext(issueNumber?: number): PromptContext {
+    const steer = steeringFile(this.cfg);
+    const ctx: PromptContext = {
       prd: this.cfg.prd,
+      context: this.cfg.context,
+      e2e: this.cfg.e2e,
       progress_file: progressFile(this.cfg),
       state_file: this.cfg.stateFile,
       branch: this.cfg.branch,
-      feedback_block: this.feedbackBlock(),
-    });
+      base: this.cfg.base,
+      parent_issue: this.cfg.parentIssue,
+      has_steering: existsSync(steer),
+      steering_file: steer,
+      has_issue: issueNumber !== undefined,
+      feedback_loops: this.cfg.feedbackLoops.map((item) => `- ${item}`).join("\n"),
+    };
+    if (issueNumber !== undefined) {
+      ctx.issue_number = issueNumber;
+      ctx.issue_url = this.issueUrl(issueNumber);
+    }
+    return ctx;
   }
 
   private cloudPreamble(): string {
@@ -231,57 +240,18 @@ export class RalphLoop {
     });
   }
 
-  refsBlock(issue?: number): string {
-    let steeringLine = "";
-    if (existsSync(steeringFile(this.cfg))) {
-      steeringLine = `- ${steeringFile(this.cfg)}  (steering — highest priority)\n`;
-    }
-    let issueLine = "";
-    if (issue !== undefined) {
-      issueLine = `- GitHub issue #${issue}: ${this.issueUrl(issue)}\n`;
-    }
-    return this.prompts.render("refs-block", {
-      context: this.cfg.context,
-      prd: this.cfg.prd,
-      parent_issue: String(this.cfg.parentIssue),
-      e2e: this.cfg.e2e,
-      progress_file: progressFile(this.cfg),
-      steering_line: steeringLine,
-      issue_line: issueLine,
-      branch: this.cfg.branch,
-      base: this.cfg.base,
-    });
-  }
-
   promptSlice(n: number): string {
-    const suite = this.suiteFor(n);
     return this.prompts.render("slice", {
-      issue_number: String(n),
-      suite,
-      workflow_block: this.ralphWorkflowBlock(),
-      refs_block: this.refsBlock(n),
-      prd: this.cfg.prd,
-      context: this.cfg.context,
-      e2e: this.cfg.e2e,
+      ...this.basePromptContext(n),
+      suite: this.suiteFor(n),
       screenshots_dir: screenshotsDir(this.cfg),
-      progress_file: progressFile(this.cfg),
-      branch: this.cfg.branch,
-      completion_block: this.prompts.render("completion-slice", {
-        issue_number: String(n),
-        suite,
-      }),
     });
   }
 
   promptFinal(): string {
     return this.prompts.render("final", {
-      workflow_block: this.ralphWorkflowBlock(),
-      refs_block: this.refsBlock(),
-      e2e: this.cfg.e2e,
-      branch: this.cfg.branch,
-      base: this.cfg.base,
+      ...this.basePromptContext(),
       closes_clause: this.closesClause(),
-      prd: this.cfg.prd,
     });
   }
 

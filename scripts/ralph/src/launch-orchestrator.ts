@@ -63,12 +63,8 @@ async function main(): Promise<void> {
 
   const prompts = new PromptLoader(values["prompts-dir"]);
   const hasChildren = loopArgv.includes("--child-issues");
-  const discoverName = hasChildren
-    ? "orchestrator-children-known"
-    : "orchestrator-discover-children";
-  const discoverStep = prompts.load(discoverName);
   const prompt = prompts.render("orchestrator", {
-    discover_step: discoverStep,
+    has_children: hasChildren,
     loop_cmd: loopCmd,
   });
 
