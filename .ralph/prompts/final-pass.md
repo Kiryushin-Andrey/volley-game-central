@@ -1,7 +1,7 @@
 Ralph loop — final pass.
 
-{{> workflow}}
-{{> refs-block}}
+{{> workflow-partial}}
+{{> refs-block-partial}}
 
 Run unit tests; Suite D in {{e2e}}; one draft PR {{branch}} → {{base}} ({{closes_clause}}).
 Update {{prd}} if items use passes:true/false — mark completed slices.

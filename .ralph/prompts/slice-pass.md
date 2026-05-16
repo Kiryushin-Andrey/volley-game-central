@@ -1,7 +1,7 @@
 Ralph loop — slice pass, issue #{{issue_number}} (one PRD item + verify in this session).
 
-{{> workflow}}
-{{> refs-block}}
+{{> workflow-partial}}
+{{> refs-block-partial}}
 
 Read {{progress_file}} first. If prior passes left PRD items open for issue #{{issue_number}}, continue the next highest-priority item — do not repeat finished work.
 

@@ -235,13 +235,13 @@ export class RalphLoop {
   }
 
   private cloudPreamble(): string {
-    return this.prompts.render("cloud-preamble", {
+    return this.prompts.render("cloud-preamble-pass", {
       progress_file: progressFile(this.cfg),
     });
   }
 
   promptSlice(n: number): string {
-    return this.prompts.render("slice", {
+    return this.prompts.render("slice-pass", {
       ...this.basePromptContext(n),
       suite: this.suiteFor(n),
       screenshots_dir: screenshotsDir(this.cfg),
@@ -249,7 +249,7 @@ export class RalphLoop {
   }
 
   promptFinal(): string {
-    return this.prompts.render("final", {
+    return this.prompts.render("final-pass", {
       ...this.basePromptContext(),
       closes_clause: this.closesClause(),
     });

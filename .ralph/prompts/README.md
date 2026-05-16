@@ -4,28 +4,36 @@ Edit these markdown files to change what agents see. Templates use **[Handlebars
 
 Override the directory with `--prompts-dir` on `ralph-loop.sh` or `launch-ralph-orchestrator.sh`.
 
+## Naming
+
+| Suffix | Meaning | Example |
+|--------|---------|---------|
+| `-pass` | Full prompt for one agent session | `slice-pass.md`, `orchestrator-pass.md` |
+| `-partial` | Shared block included via `{{> …}}` from multiple passes | `workflow-partial.md` |
+| (none) | Static text not composed as a pass | `progress-header.md` |
+
 ## Syntax
 
 | Construct | Example |
 |-----------|---------|
 | Variable | `{{prd}}`, `{{issue_number}}` |
 | Conditional | `{{#if has_children}}…{{else}}…{{/if}}` |
-| Partial (shared `.md` included from multiple parents) | `{{> workflow}}`, `{{> refs-block}}` |
+| Partial | `{{> workflow-partial}}`, `{{> refs-block-partial}}` |
 
-Every `*.md` file here (except `README.md`) is registered as a Handlebars partial. Use partials only when the same block is included from **more than one** template; otherwise embed the text directly.
+Every `*.md` file here (except `README.md`) is registered as a Handlebars partial. Use `-partial` files only when included from **more than one** `-pass` template.
 
 Boolean context flags: `has_children`, `has_steering`, `has_issue`.
 
 ## Files
 
-| File | Used for |
-|------|----------|
-| `progress-header.md` | Initial `.ralph/progress.txt` (raw load, not composed) |
-| `cloud-preamble.md` | Prepended to every cloud child pass |
-| `workflow.md` | Shared workflow + feedback loops (`{{> …}}` from `slice`, `final`) |
-| `refs-block.md` | Required files list (`{{> …}}` from `slice`, `final`) |
-| `slice.md` | Per pass: one PRD item + E2E + completion sigils |
-| `final.md` | Final regression + PR pass |
-| `orchestrator.md` | Cloud orchestrator (`{{#if has_children}}` for step 2) |
+| File | Role |
+|------|------|
+| `progress-header.md` | Initial `.ralph/progress.txt` (raw load) |
+| `cloud-preamble-pass.md` | Prepended to each cloud child session |
+| `workflow-partial.md` | Workflow + feedback loops (in `slice-pass`, `final-pass`) |
+| `refs-block-partial.md` | Required files list (in `slice-pass`, `final-pass`) |
+| `slice-pass.md` | Child issue: one PRD item + E2E + completion sigils |
+| `final-pass.md` | Epic: Suite D, unit tests, draft PR |
+| `orchestrator-pass.md` | Cloud orchestrator (`{{#if has_children}}` for step 2) |
 
 Context fields are built in `scripts/ralph/src/loop.ts` and `launch-orchestrator.ts`.
