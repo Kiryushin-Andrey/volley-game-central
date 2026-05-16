@@ -236,7 +236,7 @@ export class RalphLoop {
   }
 
   promptSlice(n: number): string {
-    return this.prompts.render("slice-pass", {
+    return this.prompts.render("loop-iteration-prompt", {
       ...this.basePromptContext(n),
       suite: this.suiteFor(n),
       screenshots_dir: screenshotsDir(this.cfg),
@@ -244,7 +244,7 @@ export class RalphLoop {
   }
 
   promptFinal(): string {
-    return this.prompts.render("final-pass", {
+    return this.prompts.render("final-pass-prompt", {
       ...this.basePromptContext(),
       closes_clause: this.closesClause(),
     });

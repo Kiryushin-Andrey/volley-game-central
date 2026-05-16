@@ -63,7 +63,7 @@ async function main(): Promise<void> {
 
   const prompts = new PromptLoader(values["prompts-dir"]);
   const hasChildren = loopArgv.includes("--child-issues");
-  const prompt = prompts.render("orchestrator-pass", {
+  const prompt = prompts.render("orchestrator-prompt", {
     has_children: hasChildren,
     loop_cmd: loopCmd,
   });
