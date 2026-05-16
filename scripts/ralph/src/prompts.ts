@@ -4,6 +4,7 @@ import Handlebars from "handlebars";
 import { gitRoot } from "./git.js";
 
 export const DEFAULT_PROMPTS_DIR = join(gitRoot(), ".ralph", "prompts");
+export const PROMPTS_PARTIALS_SUBDIR = "partials";
 
 /** Template context: strings, numbers, booleans for {{#if}}, etc. */
 export type PromptContext = Record<string, unknown>;
@@ -22,6 +23,10 @@ export class PromptLoader {
     return join(this.dir, `${name}.md`);
   }
 
+  partialPath(name: string): string {
+    return join(this.dir, PROMPTS_PARTIALS_SUBDIR, `${name}.md`);
+  }
+
   /** Raw template source (no Handlebars). */
   load(name: string): string {
     const filePath = this.path(name);
@@ -33,17 +38,33 @@ export class PromptLoader {
     return `${readFileSync(filePath, "utf-8").trimEnd()}\n`;
   }
 
+  /** Raw partial source from `partials/<name>.md`. */
+  loadPartial(name: string): string {
+    const filePath = this.partialPath(name);
+    if (!existsSync(filePath)) {
+      throw new Error(
+        `Ralph prompt partial not found: ${filePath}\nExpected markdown files under ${join(this.dir, PROMPTS_PARTIALS_SUBDIR)}/`,
+      );
+    }
+    return `${readFileSync(filePath, "utf-8").trimEnd()}\n`;
+  }
+
   private registerPartials(): void {
     if (this.partialsRegistered) return;
     if (!existsSync(this.dir)) {
       throw new Error(`Prompts directory not found: ${this.dir}`);
     }
-    for (const entry of readdirSync(this.dir, { withFileTypes: true })) {
-      if (!entry.isFile() || !entry.name.endsWith(".md") || entry.name === "README.md") {
+    const partialsDir = join(this.dir, PROMPTS_PARTIALS_SUBDIR);
+    if (!existsSync(partialsDir)) {
+      this.partialsRegistered = true;
+      return;
+    }
+    for (const entry of readdirSync(partialsDir, { withFileTypes: true })) {
+      if (!entry.isFile() || !entry.name.endsWith(".md")) {
         continue;
       }
       const name = entry.name.replace(/\.md$/, "");
-      this.hbs.registerPartial(name, this.load(name));
+      this.hbs.registerPartial(name, this.loadPartial(name));
     }
     this.partialsRegistered = true;
   }

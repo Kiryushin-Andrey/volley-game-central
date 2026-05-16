@@ -4,13 +4,13 @@ Edit these markdown files to change what agents see. Templates use **[Handlebars
 
 Override the directory with `--prompts-dir` on `ralph-loop.sh` or `launch-ralph-orchestrator.sh`.
 
-## Naming
+## Layout
 
-| Suffix | Meaning | Example |
-|--------|---------|---------|
-| `-prompt` | Full prompt for one agent session | `loop-iteration-prompt.md`, `orchestrator-prompt.md` |
-| `-partial` | Shared block included via `{{> …}}` from multiple prompts | `workflow-partial.md` |
-| (none) | Static text not composed as a prompt | `progress-header.md` |
+| Location | Role |
+|----------|------|
+| `*-prompt.md` (this directory) | Full prompt for one agent session |
+| `partials/*.md` | Shared blocks included via `{{> name}}` |
+| `progress-header.md` | Initial `.ralph/progress.txt` (raw load, no Handlebars) |
 
 ## Syntax
 
@@ -18,22 +18,29 @@ Override the directory with `--prompts-dir` on `ralph-loop.sh` or `launch-ralph-
 |-----------|---------|
 | Variable | `{{prd}}`, `{{issue_number}}` |
 | Conditional | `{{#if has_children}}…{{else}}…{{/if}}` |
-| Partial | `{{> workflow-partial}}`, `{{> refs-block-partial}}` |
+| Partial | `{{> workflow}}`, `{{> refs-block}}` |
 
-Every `*.md` file here (except `README.md`) is registered as a Handlebars partial. Use `-partial` files only when included from **more than one** `-prompt` template.
+Partials are registered from `partials/` by basename (e.g. `workflow.md` → `{{> workflow}}`).
 
 Boolean context flags: `has_children`, `has_steering`, `has_issue`, `is_cloud`.
 
 ## Files
 
+### Prompts
+
 | File | Role |
 |------|------|
-| `progress-header.md` | Initial `.ralph/progress.txt` (raw load) |
-| `cloud-preamble-partial.md` | Cloud VM intro (`{{#if is_cloud}}` in `loop-iteration-prompt`, `final-pass-prompt`) |
-| `workflow-partial.md` | Workflow + feedback loops (in `loop-iteration-prompt`, `final-pass-prompt`) |
-| `refs-block-partial.md` | Required files list (in `loop-iteration-prompt`, `final-pass-prompt`) |
 | `loop-iteration-prompt.md` | Child issue: one PRD item + E2E + completion sigils |
 | `final-pass-prompt.md` | Epic: Suite D, unit tests, draft PR |
 | `orchestrator-prompt.md` | Cloud orchestrator (`{{#if has_children}}` for step 2) |
+| `progress-header.md` | Seed text for `.ralph/progress.txt` |
+
+### Partials (`partials/`)
+
+| File | Role |
+|------|------|
+| `cloud-preamble.md` | Cloud VM intro (`{{#if is_cloud}}` in loop + final prompts) |
+| `workflow.md` | Workflow + feedback loops |
+| `refs-block.md` | Required files list |
 
 Context fields are built in `scripts/ralph/src/loop.ts` and `launch-orchestrator.ts`.

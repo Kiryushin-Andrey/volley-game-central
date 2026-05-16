@@ -1,9 +1,9 @@
-{{#if is_cloud}}{{> cloud-preamble-partial}}
+{{#if is_cloud}}{{> cloud-preamble}}
 
 {{/if}}Ralph loop — slice pass, issue #{{issue_number}} (one PRD item + verify in this session).
 
-{{> workflow-partial}}
-{{> refs-block-partial}}
+{{> workflow}}
+{{> refs-block}}
 
 Read {{progress_file}} first. If prior passes left PRD items open for issue #{{issue_number}}, continue the next highest-priority item — do not repeat finished work.
 

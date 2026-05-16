@@ -1,9 +1,9 @@
-{{#if is_cloud}}{{> cloud-preamble-partial}}
+{{#if is_cloud}}{{> cloud-preamble}}
 
 {{/if}}Ralph loop — final pass.
 
-{{> workflow-partial}}
-{{> refs-block-partial}}
+{{> workflow}}
+{{> refs-block}}
 
 Run unit tests; Suite D in {{e2e}}; one draft PR {{branch}} → {{base}} ({{closes_clause}}).
 Update {{prd}} if items use passes:true/false — mark completed slices.
