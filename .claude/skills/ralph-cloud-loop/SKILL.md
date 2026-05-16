@@ -11,6 +11,8 @@ The **orchestrator** discovers child slice issues, **orders them by dependency**
 
 Each child pass reads **PRD + `.ralph/progress.txt`**, runs **feedback loops** before commit, appends to **progress.txt**, and emits a completion sigil (`RALPH_*` or `<promise>…</promise>`).
 
+Agent instructions live in **`.ralph/prompts/*.md`** (not embedded in Python). Edit those files to tune behavior; use `--prompts-dir` to override.
+
 ## Your job before `ralph-loop.py`
 
 | Input | You supply |

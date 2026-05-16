@@ -40,17 +40,13 @@ from typing import Callable, Literal, Sequence
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from ralph_cloud import CloudAgentClient, repo_slug_to_url  # noqa: E402
+from ralph_prompts import DEFAULT_PROMPTS_DIR, PromptLoader  # noqa: E402
 
 # Default feedback loops (override with --feedback-loop or .ralph/STEERING.md).
 DEFAULT_FEEDBACK_LOOPS: tuple[str, ...] = (
     "Backend TypeScript: cd backend && npm run build",
     "Frontend TypeScript: cd tg-mini-app && npm run build",
 )
-
-PROGRESS_HEADER = """# Ralph progress (session log)
-# Append after each pass. Concise bullets; grammar optional.
-# Delete this file when the epic sprint is done.
-"""
 
 
 def detect_repo_slug(root: Path) -> str:
@@ -85,6 +81,7 @@ class Config:
     e2e: Path
     state_dir: Path
     state_file: Path
+    prompts_dir: Path
     backend: Backend
     agent_cmd: str
     cursor_api_key: str | None
@@ -212,6 +209,12 @@ See .ralph/examples/ and skill ralph-cloud-loop for child discovery before runni
         help="Progress JSON path (default: <state-dir>/ralph-state.json)",
     )
     parser.add_argument(
+        "--prompts-dir",
+        type=Path,
+        default=DEFAULT_PROMPTS_DIR,
+        help="Directory of prompt markdown templates (default: %(default)s)",
+    )
+    parser.add_argument(
         "--backend",
         choices=("local", "cloud"),
         default="local",
@@ -322,6 +325,7 @@ See .ralph/examples/ and skill ralph-cloud-loop for child discovery before runni
         e2e=ns.e2e,
         state_dir=state_dir,
         state_file=state_file,
+        prompts_dir=ns.prompts_dir,
         backend=ns.backend,
         agent_cmd=ns.agent_cmd,
         cursor_api_key=api_key,
@@ -344,6 +348,7 @@ class RalphLoop:
     def __init__(self, cfg: Config, root: Path) -> None:
         self.cfg = cfg
         self.root = root
+        self.prompts = PromptLoader(cfg.prompts_dir)
         if not cfg.repo:
             self.cfg.repo = detect_repo_slug(root)
         if not cfg.repo_url:
@@ -412,7 +417,7 @@ class RalphLoop:
 
         progress = self.cfg.progress_file
         if not progress.exists():
-            progress.write_text(PROGRESS_HEADER, encoding="utf-8")
+            progress.write_text(self.prompts.load("progress-header"), encoding="utf-8")
 
     def _write_state(self) -> None:
         path = self.cfg.state_file
@@ -472,49 +477,36 @@ class RalphLoop:
                 "Resume later or raise the cap for AFK runs."
             )
 
+    def _path_str(self, path: Path) -> str:
+        return str(path)
+
     def _feedback_block(self) -> str:
-        lines = ["Before committing, run feedback loops for the code you touched:"]
-        for item in self.cfg.feedback_loops:
-            lines.append(f"- {item}")
-        lines.append(
-            "Do not commit if a loop you ran fails. Fix issues first. "
-            "Prefer one logical change per commit."
-        )
-        return "\n".join(lines)
+        loops = "\n".join(f"- {item}" for item in self.cfg.feedback_loops)
+        return self.prompts.render("feedback-block", feedback_loops=loops)
 
     def _ralph_workflow_block(self) -> str:
-        return f"""Ralph workflow (each pass is a fresh context — read these first):
-1. {self.cfg.prd} — scope and acceptance criteria for this epic.
-2. {self.cfg.progress_file} — what prior passes did (append when you finish).
-3. {self.cfg.state_file} — machine progress (do not edit unless fixing mistakes).
+        return self.prompts.render(
+            "workflow",
+            prd=self._path_str(self.cfg.prd),
+            progress_file=self._path_str(self.cfg.progress_file),
+            state_file=self._path_str(self.cfg.state_file),
+            branch=self.cfg.branch,
+            feedback_block=self._feedback_block(),
+        )
 
-Work style:
-- ONLY ONE TASK this pass: the slice described below — not the whole epic.
-- If the slice has several PRD items, pick the highest-priority / riskiest one only.
-- After implementing: run feedback loops, commit, push to {self.cfg.branch}, append to progress.txt.
-- Progress entries: task done, key decisions, files changed, blockers for next pass. Be concise.
-
-{self._feedback_block()}
-"""
-
-    def _completion_line(self, promise: str) -> str:
+    def _completion_block(self, promise: str) -> str:
         variants = self._promise_variants(promise)
         primary = variants[0]
         if len(variants) > 1:
-            alt = variants[1]
-            return (
-                f"Output on its own line when done:\n"
-                f"{primary}\n"
-                f"(or <promise>{alt}</promise> if the entire epic is finished)"
+            return self.prompts.render(
+                "completion-with-alt", primary=primary, alt=variants[1]
             )
-        return f"Output on its own line when done:\n{primary}\n(or <promise>{primary}</promise>)"
+        return self.prompts.render("completion-single", primary=primary)
 
     def _cloud_preamble(self) -> str:
-        return (
-            "You are a Cursor Cloud Agent in an isolated VM. "
-            "This is a fresh session — read every file listed below from the repo "
-            f"(especially {self.cfg.progress_file}). "
-            "One task this pass; run feedback loops before commit; push when done.\n\n"
+        return self.prompts.render(
+            "cloud-preamble",
+            progress_file=self._path_str(self.cfg.progress_file),
         )
 
     def run_agent_local(self, title: str, prompt: str, log_path: Path) -> None:
@@ -563,65 +555,67 @@ Work style:
             print("warn: push failed", file=sys.stderr)
 
     def refs_block(self, issue: int | None = None) -> str:
-        lines = [
-            "Read in the repo (required):",
-            f"- {self.cfg.context}",
-            f"- {self.cfg.prd}  (parent #{self.cfg.parent_issue})",
-            f"- {self.cfg.e2e}",
-            f"- {self.cfg.progress_file}",
-        ]
+        steering_line = ""
         if self.cfg.steering_file.is_file():
-            lines.append(f"- {self.cfg.steering_file}  (steering — highest priority)")
+            steering_line = (
+                f"- {self._path_str(self.cfg.steering_file)}  "
+                "(steering — highest priority)\n"
+            )
+        issue_line = ""
         if issue is not None:
-            lines.append(f"- GitHub issue #{issue}: {self.issue_url(issue)}")
-        lines.append(
-            f"Work on branch {self.cfg.branch} (base {self.cfg.base}). "
-            f"One PR for parent #{self.cfg.parent_issue}."
+            issue_line = f"- GitHub issue #{issue}: {self.issue_url(issue)}\n"
+        return self.prompts.render(
+            "refs-block",
+            context=self._path_str(self.cfg.context),
+            prd=self._path_str(self.cfg.prd),
+            parent_issue=str(self.cfg.parent_issue),
+            e2e=self._path_str(self.cfg.e2e),
+            progress_file=self._path_str(self.cfg.progress_file),
+            steering_line=steering_line,
+            issue_line=issue_line,
+            branch=self.cfg.branch,
+            base=self.cfg.base,
         )
-        return "\n".join(lines)
 
     def prompt_impl(self, n: int) -> str:
         suite = self.suite_for(n)
         promise = f"RALPH_ISSUE_COMPLETE #{n}"
-        return f"""Ralph loop — implementation pass, issue #{n}.
-
-{self._ralph_workflow_block()}
-{self.refs_block(n)}
-
-Implement per GitHub issue #{n} and {self.cfg.prd}. Follow {self.cfg.context} for terms.
-If issue #{n} spans multiple PRD items, complete only the single highest-priority item this pass.
-Next automated step after this slice: E2E Suite {suite} ({self.cfg.e2e}).
-
-{self._completion_line(promise)}
-"""
+        return self.prompts.render(
+            "impl",
+            issue_number=str(n),
+            workflow_block=self._ralph_workflow_block(),
+            refs_block=self.refs_block(n),
+            prd=self._path_str(self.cfg.prd),
+            context=self._path_str(self.cfg.context),
+            suite=suite,
+            e2e=self._path_str(self.cfg.e2e),
+            completion_block=self._completion_block(promise),
+        )
 
     def prompt_e2e(self, suite: str, n: int) -> str:
         promise = f"RALPH_E2E_COMPLETE SUITE_{suite}"
-        return f"""Ralph loop — E2E pass, Suite {suite}.
-
-{self._ralph_workflow_block()}
-{self.refs_block(n)}
-
-Execute Suite {suite} from {self.cfg.e2e} (§6–§8). Screenshots: {self.cfg.screenshots_dir}/.
-Minimal fixes on {self.cfg.branch} only. Run feedback loops if you change code; commit and push.
-
-{self._completion_line(promise)}
-"""
+        return self.prompts.render(
+            "e2e",
+            suite=suite,
+            workflow_block=self._ralph_workflow_block(),
+            refs_block=self.refs_block(n),
+            e2e=self._path_str(self.cfg.e2e),
+            screenshots_dir=self._path_str(self.cfg.screenshots_dir),
+            branch=self.cfg.branch,
+            completion_block=self._completion_block(promise),
+        )
 
     def prompt_final(self) -> str:
-        return f"""Ralph loop — final pass.
-
-{self._ralph_workflow_block()}
-{self.refs_block()}
-
-Run unit tests; Suite D in {self.cfg.e2e}; one draft PR {self.cfg.branch} → {self.cfg.base} ({self.closes_clause()}).
-Update {self.cfg.prd} if items use passes:true/false — mark completed slices.
-
-Output on its own lines when done:
-RALPH_E2E_COMPLETE SUITE_D
-RALPH_ALL_COMPLETE
-(or <promise>COMPLETE</promise> when the epic is fully done)
-"""
+        return self.prompts.render(
+            "final",
+            workflow_block=self._ralph_workflow_block(),
+            refs_block=self.refs_block(),
+            e2e=self._path_str(self.cfg.e2e),
+            branch=self.cfg.branch,
+            base=self.cfg.base,
+            closes_clause=self.closes_clause(),
+            prd=self._path_str(self.cfg.prd),
+        )
 
     def run_until_promise(
         self,

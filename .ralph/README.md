@@ -4,8 +4,9 @@ Orchestrator: find child issues, **order by dependency** (read + reason — skil
 
 Pattern: [Getting started with Ralph](https://www.aihero.dev/getting-started-with-ralph) · [11 tips](https://www.aihero.dev/tips-for-ai-coding-with-ralph-wiggum)
 
-| File | Purpose |
-|------|---------|
+| File / folder | Purpose |
+|---------------|---------|
+| `prompts/` | Agent prompt templates (edit `.md` files; see `prompts/README.md`) |
 | `ralph-state.json` | Machine progress: completed issues, E2E suites, cloud session URLs (gitignored) |
 | `progress.txt` | Human/agent session log — append each pass; **commit** so the next iteration skips exploration |
 | `logs/` | Agent stdout per iteration (gitignored) |
@@ -29,10 +30,13 @@ python3 scripts/ralph-loop.py \
   --branch <integration-branch> \
   --prd <path-to-prd.md> \
   --e2e <path-to-e2e-plan.md> \
-  [--backend local|cloud] [--push] [--once] [--max-iterations N] …
+  [--backend local|cloud] [--push] [--once] [--max-iterations N] \
+  [--prompts-dir .ralph/prompts] …
 ```
 
 Child issue numbers and **order** come from the orchestrator (reads issue text, reasons about dependencies). The script does not call GitHub.
+
+To change agent instructions, edit files under `.ralph/prompts/` rather than Python.
 
 ## Local backend
 

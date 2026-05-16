@@ -17,6 +17,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from ralph_cloud import CloudAgentClient, repo_slug_to_url  # noqa: E402
+from ralph_prompts import DEFAULT_PROMPTS_DIR, PromptLoader  # noqa: E402
 
 
 def _detect_repo_slug(root: Path) -> str:
@@ -45,6 +46,12 @@ def main() -> None:
     )
     parser.add_argument("--cursor-api-key", default=None)
     parser.add_argument(
+        "--prompts-dir",
+        type=Path,
+        default=DEFAULT_PROMPTS_DIR,
+        help="Directory of prompt markdown templates (default: %(default)s)",
+    )
+    parser.add_argument(
         "loop_args",
         nargs=argparse.REMAINDER,
         help="Args for ralph-loop.py (--parent-issue, --child-issues, --prd, --e2e, …; prefix with --)",
@@ -64,42 +71,15 @@ def main() -> None:
 
     loop_cmd = " ".join(shlex.quote(a) for a in ["python3", "scripts/ralph-loop.py", *loop_argv])
 
+    prompts = PromptLoader(ns.prompts_dir)
     has_children = any(
         loop_argv[i] == "--child-issues" for i in range(len(loop_argv) - 1)
     )
-    discover_step = ""
-    if not has_children:
-        discover_step = """
-2. **Discover and order child issues** (skill ralph-cloud-loop, steps 1–2): read each slice
-   issue (gh and/or docs/issues/), reason about dependencies — do not sort by issue number
-   or parse fixed markdown headings — then pass dependency-ordered `--child-issues` to step 3.
-   Include a short ordering note in your final report.
-"""
-    else:
-        discover_step = "\n2. Child issues are already in the command below.\n"
-
-    prompt = f"""You are the Ralph loop **orchestrator** Cloud Agent.
-
-Run in the **foreground**. Do not implement product slices yourself.
-
-1. Verify `CURSOR_API_KEY`. For steps 1–2 you need a way to read GitHub issues (e.g. `gh`).
-{discover_step}
-3. Ensure the integration branch exists on GitHub, then run:
-
-```bash
-cd "$(git rev-parse --show-toplevel)"
-{loop_cmd}
-```
-
-(If step 2 applied, append the discovered numbers to `--child-issues`.)
-
-4. Report exit code, `cloud_sessions` from `.ralph/ralph-state.json`, and `.ralph/progress.txt`.
-
-Ralph tips: cap unattended runs with `--max-iterations`; child agents use PRD + progress.txt,
-feedback loops before commit, one task per pass. See https://www.aihero.dev/tips-for-ai-coding-with-ralph-wiggum
-
-Full workflow: `.cursor/skills/ralph-cloud-loop/SKILL.md`
-"""
+    discover_name = (
+        "orchestrator-children-known" if has_children else "orchestrator-discover-children"
+    )
+    discover_step = prompts.load(discover_name)
+    prompt = prompts.render("orchestrator", discover_step=discover_step, loop_cmd=loop_cmd)
 
     if ns.repo_url:
         url = ns.repo_url
