@@ -9,13 +9,23 @@ Pattern: [Getting started with Ralph](https://www.aihero.dev/getting-started-wit
 | File / folder | Purpose |
 |---------------|---------|
 | `prompts/` | Agent prompt templates (edit `.md` files; see `prompts/README.md`) |
-| `ralph-state.json` | Machine progress: completed issues, per-issue item pass counts, E2E suites (gitignored) |
+| `ralph-state.json` | Harness progress on the **machine running `ralph-loop`** (gitignored; not on the integration branch) |
 | `progress.template.txt` | Seed for new `progress.txt` (committed; edit header comments here) |
-| `progress.txt` | Human/agent session log — append each pass; commit/push during the sprint (gitignored locally) |
-| `logs/` | Agent stdout per iteration (gitignored) |
+| `progress.txt` | Session log for agents — **commit and push on the integration branch** each pass (cloud VMs only see the branch) |
+| `logs/` | Agent stdout per iteration (gitignored; stays on the loop host) |
 | `screenshots/` | E2E screenshots (gitignored) |
 | `STEERING.md` | Optional overrides (`STEERING.example.md`) |
 | `examples/player-levels.sh` | Example flags (add `--child-issues` after discovery) |
+
+## Cloud vs loop host
+
+| Artifact | Loop host (orchestrator) | Integration branch (cloud child VMs) |
+|----------|--------------------------|--------------------------------------|
+| `ralph-state.json` | Written by the harness when sigils appear in logs | Not used — each child is a new VM |
+| `progress.txt` | Optional local copy if you run locally | **Source of truth** — agents append and must push |
+| `logs/` | SSE / local agent output for sigil detection | Not shared |
+
+Child Cloud Agents do not share a filesystem with the process that runs `ralph-loop.ts`. They only share **git**. The harness advances issues using **completion lines in cloud logs**, not by reading `ralph-state.json` from the repo.
 
 ## Modes
 
@@ -65,4 +75,4 @@ See `.cursor/skills/ralph-cloud-loop/SKILL.md`.
   --parent-issue … --child-issues … --prd … --e2e … --backend cloud --push --max-iterations 50
 ```
 
-When the epic is done, delete `progress.txt` (session-specific, not permanent docs).
+Use `--push` so seeded and agent-updated `progress.txt` reaches the branch. When the epic is done, remove `progress.txt` from the branch in a cleanup commit (or leave a short “epic complete” note).

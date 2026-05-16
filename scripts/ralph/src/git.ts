@@ -51,6 +51,24 @@ export function maybePush(root: string, branch: string, enabled: boolean): void 
   }
 }
 
+/** Stage paths (repo-relative), commit if there is a staged diff, optionally push. */
+export function commitPaths(
+  root: string,
+  relPaths: string[],
+  message: string,
+  branch: string,
+  push: boolean,
+): boolean {
+  const add = spawnSync("git", ["add", "--", ...relPaths], { cwd: root, stdio: "inherit" });
+  if (add.status !== 0) return false;
+  const empty = spawnSync("git", ["diff", "--cached", "--quiet"], { cwd: root, stdio: "ignore" });
+  if (empty.status === 0) return false;
+  const commit = spawnSync("git", ["commit", "-m", message], { cwd: root, stdio: "inherit" });
+  if (commit.status !== 0) return false;
+  maybePush(root, branch, push);
+  return true;
+}
+
 export function requireRepoFiles(root: string, paths: string[]): void {
   for (const rel of paths) {
     if (!existsSync(join(root, rel))) {

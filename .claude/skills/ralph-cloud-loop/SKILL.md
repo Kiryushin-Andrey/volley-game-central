@@ -135,7 +135,7 @@ The orchestrator Cloud Agent must run `npm install` under `scripts/ralph` before
 
 ## After the run
 
-Report: exit code, your **ordering note**, `cloud_sessions` from `.ralph/ralph-state.json`, and whether `.ralph/progress.txt` was updated (commit it if the agent did).
+Report: exit code, your **ordering note**, `cloud_sessions` from `.ralph/ralph-state.json` on the loop host, and whether `.ralph/progress.txt` was pushed on the integration branch.
 
 ## Resume
 

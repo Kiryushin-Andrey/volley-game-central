@@ -2,7 +2,14 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } fr
 import { spawn } from "node:child_process";
 import { dirname, join } from "node:path";
 import { CloudAgentClient } from "./cloud.js";
-import { commandExists, detectRepoSlug, ensureBranch, maybePush, repoSlugToUrl } from "./git.js";
+import {
+  commandExists,
+  commitPaths,
+  detectRepoSlug,
+  ensureBranch,
+  maybePush,
+  repoSlugToUrl,
+} from "./git.js";
 import { type PromptContext, PromptLoader } from "./prompts.js";
 import type { RalphConfig, RalphState } from "./types.js";
 import {
@@ -109,12 +116,22 @@ export class RalphLoop {
     }
 
     const progress = progressFile(this.cfg);
+    const progressRel = join(this.cfg.stateDir, "progress.txt");
     if (!existsSync(progress)) {
       const template = progressTemplateFile(this.cfg);
       if (!existsSync(template)) {
         throw new Error(`Progress template not found: ${template}`);
       }
       writeFileSync(progress, readFileSync(template, "utf-8"), "utf-8");
+      if (this.cfg.push && !this.cfg.dryRun) {
+        commitPaths(
+          this.root,
+          [progressRel],
+          "ralph: seed progress log",
+          this.cfg.branch,
+          true,
+        );
+      }
     }
   }
 
