@@ -241,20 +241,6 @@ export async function countRegistrations(gameId: number) {
   return result.rows[0].count as number;
 }
 
-export async function createAdminAssignment(dayOfWeek: number, withPositions: boolean, userId: number) {
-  const result = await pool.query(
-    `insert into game_administrators (day_of_week, with_positions, user_id)
-     values ($1,$2,$3)
-     returning id`,
-    [dayOfWeek, withPositions, userId]
-  );
-  return result.rows[0].id as number;
-}
-
-export async function setUserBlockReason(userId: number, blockReason: string | null) {
-  await pool.query(`update users set block_reason = $1 where id = $2`, [blockReason, userId]);
-}
-
 /** PUT /api/games/admin/:gameId — await immediately before clicking Save Changes on edit form. */
 export function waitForAdminGameUpdateResponse(page: Page, gameId: number) {
   return page.waitForResponse(

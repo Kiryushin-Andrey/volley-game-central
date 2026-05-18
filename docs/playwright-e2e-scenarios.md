@@ -16,7 +16,7 @@ Scope: browser-based tests for the Telegram Mini App running locally in dev mode
   - Toggle `Administrator` only for personas that need global admin rights.
   - Submit `Dev Login`.
 - Use isolated browser contexts for each persona so cookies do not leak between tests.
-- Prefer deterministic setup through backend APIs or database fixtures before each scenario. UI assertions should still cover the browser flow under test.
+- **Implementation rule:** Do not use direct database access or direct HTTP calls (including Playwright `request` fixtures) to perform setup or actions that a real user or administrator could complete through the visible UI. Use the UI instead. Exceptions are allowed only when no UI exists (for example, dev-only login bootstrap or wiping `E2E %` rows between tests in `cleanupE2eData`).
 
 ## Dev login personas
 
@@ -120,12 +120,3 @@ Payment amount display and non-Bunq paid-state UI can be covered only when the s
 - [ ] E2E-STATE-003: Global Admin edits game capacity downward and the UI preserves valid active/waitlist status for existing registrations.
 - [ ] E2E-STATE-004: Browser refresh keeps the authenticated session and current route for each logged-in persona.
 - [ ] E2E-STATE-005: Opening the app in a new browser context without cookies starts unauthenticated.
-
-## Suggested implementation order
-
-1. Dev login helpers and browser-context persona fixtures.
-2. Auth/session smoke tests.
-3. Game creation fixture helpers through UI plus API/database cleanup.
-4. Participant registration flows.
-5. Admin assignment flows.
-6. Negative access-control and API-failure recovery scenarios.

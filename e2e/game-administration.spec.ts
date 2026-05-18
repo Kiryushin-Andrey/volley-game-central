@@ -2,7 +2,6 @@ import { expect, test } from '@playwright/test';
 import {
   cleanupE2eData,
   countRegistrations,
-  createAdminAssignment,
   createDevUserViaApi,
   createGameViaUi,
   daysFromNow,
@@ -36,13 +35,32 @@ async function addParticipantViaUi(page: import('@playwright/test').Page, displa
   await expect(page.getByText(displayName)).toBeVisible();
 }
 
-async function createAdminAssignmentViaUi(page: import('@playwright/test').Page, userDisplayName: string) {
+type AdminAssignmentViaUiOptions = {
+  /** Game Administrators form value: Monday = 0 … Sunday = 6 */
+  dayOptionValue?: string;
+  withPositions?: boolean;
+};
+
+async function createAdminAssignmentViaUi(
+  page: import('@playwright/test').Page,
+  userDisplayName: string,
+  options?: AdminAssignmentViaUiOptions
+) {
+  const dayOptionValue = options?.dayOptionValue ?? '6';
+  const withPositions = options?.withPositions ?? false;
+
   await page.goto('/game-administrators');
   await expect(page.getByRole('heading', { name: 'Game Administrators' })).toBeVisible();
   await page.getByRole('button', { name: 'Add Assignment' }).click();
-  await page.getByLabel('Day of Week').selectOption('6');
+  await page.getByLabel('Day of Week').selectOption(dayOptionValue);
+  const positionsCheckbox = page.getByRole('checkbox', { name: /5-1 positions game/i });
+  if (withPositions) {
+    await positionsCheckbox.check();
+  } else {
+    await positionsCheckbox.uncheck();
+  }
   await page.getByPlaceholder('Search for a user...').fill(userDisplayName);
-  await page.getByText(userDisplayName).click();
+  await page.getByText(userDisplayName, { exact: true }).click();
   await page.getByRole('button', { name: 'Create' }).click();
   await expect(page.getByText(userDisplayName)).toBeVisible();
 }
@@ -189,10 +207,12 @@ test.describe('game administration scenarios', () => {
   });
 
   test('E2E-ADMIN-009 assigned admin receives error when creating a game on an unauthorized weekday', async ({ page, request }, testInfo) => {
+    const globalAdmin = await createDevUserViaApi(request, testInfo, 'Wrong Create Global', true);
     const assigned = await createDevUserViaApi(request, testInfo, 'Wrong Create Assigned');
-    await createAdminAssignment(0, false, assigned.id);
+    await devLoginAs(page, globalAdmin);
+    await createAdminAssignmentViaUi(page, assigned.displayName, { dayOptionValue: '0', withPositions: false });
 
-    await devLoginAs(page, assigned);
+    await switchToUser(page, assigned);
     await page.goto('/games/new');
     await expect(page.getByRole('heading', { name: 'Create New Game' })).toBeVisible();
 
@@ -217,9 +237,8 @@ test.describe('game administration scenarios', () => {
   test('E2E-ADMIN-010 assigned admin cannot save edits to a game outside their assignment', async ({ page, request }, testInfo) => {
     const globalAdmin = await createDevUserViaApi(request, testInfo, 'Wrong Edit Global', true);
     const assigned = await createDevUserViaApi(request, testInfo, 'Wrong Edit Assigned');
-    await createAdminAssignment(0, false, assigned.id);
-
     await devLoginAs(page, globalAdmin);
+    await createAdminAssignmentViaUi(page, assigned.displayName, { dayOptionValue: '0', withPositions: false });
     const game = await createGameViaUi(page, {
       title: e2eTitle(testInfo, 'Tuesday Outside Assignment'),
       dateTime: nextWeekday(2),

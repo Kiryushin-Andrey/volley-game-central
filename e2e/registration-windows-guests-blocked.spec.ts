@@ -6,8 +6,6 @@ import {
   daysFromNow,
   devLoginAs,
   e2eTitle,
-  nextWeekday,
-  setUserBlockReason,
   switchToUser,
   waitForBackend,
 } from './support/fixtures';
@@ -54,16 +52,39 @@ test.describe('registration windows, guests, and blocked users', () => {
   test('E2E-BLOCK-001 blocked user cannot join and cannot add a guest', async ({ page, request }, testInfo) => {
     const admin = await createDevUserViaApi(request, testInfo, 'Block Admin', true);
     const blocked = await createDevUserViaApi(request, testInfo, 'Blocked User');
-    await setUserBlockReason(blocked.id, 'E2E unpaid games policy');
-
     await devLoginAs(page, admin);
-    const game = await createGameViaUi(page, {
+
+    const joinableGame = await createGameViaUi(page, {
       title: e2eTitle(testInfo, 'Block Join'),
       dateTime: daysFromNow(2),
     });
 
+    const readonlyGame = await createGameViaUi(page, {
+      title: e2eTitle(testInfo, 'Block Setup Readonly'),
+      dateTime: daysFromNow(5),
+      readonly: true,
+    });
+
+    await page.goto(`/game/${readonlyGame.id}`);
+    await page.locator('.admin-actions').getByRole('button', { name: 'Add Participant' }).click();
+    await page.getByPlaceholder('Search users to add...').fill(blocked.displayName);
+    await page.getByText(blocked.displayName, { exact: true }).click();
+    await expect(page.getByText(blocked.displayName)).toBeVisible();
+
+    await page.locator('.player-item').filter({ hasText: blocked.displayName }).locator('.player-details').click();
+    await expect(page.getByRole('heading', { name: 'Player details' })).toBeVisible();
+
+    page.once('dialog', async (dialog) => {
+      expect(dialog.type()).toBe('prompt');
+      await dialog.accept('E2E unpaid games policy');
+    });
+    await page.locator('.player-info-dialog').getByRole('button', { name: 'Block' }).click();
+
+    await expect(page.locator('.player-info-dialog').getByText('Blocked: E2E unpaid games policy')).toBeVisible();
+    await page.locator('.player-info-dialog').getByRole('button', { name: 'Close' }).click();
+
     await switchToUser(page, blocked);
-    await page.goto(`/game/${game.id}`);
+    await page.goto(`/game/${joinableGame.id}`);
 
     await page.getByRole('button', { name: 'Join Game' }).click();
     await expect(page.locator('.dialog-overlay .dialog-title').filter({ hasText: 'Registration blocked' })).toBeVisible();
