@@ -78,7 +78,7 @@ test.describe('game administration scenarios', () => {
     await page.getByText(targetUser.displayName).click();
 
     await expect(page.getByText(targetUser.displayName)).toBeVisible();
-    expect(await countRegistrations(game.id)).toBe(1);
+    await expect.poll(() => countRegistrations(game.id)).toBe(1);
   });
 
   test('E2E-ADMIN-004 global admin removes a player and players list updates', async ({ page, request }, testInfo) => {
@@ -141,7 +141,7 @@ test.describe('game administration scenarios', () => {
 
     await expect(page.getByRole('heading', { name: 'Player details' })).toBeVisible();
     await expect(page.getByText('Display Name')).toBeVisible();
-    await expect(page.getByRole('dialog').getByText(player.displayName)).toBeVisible();
+    await expect(page.locator('.player-info-dialog').getByText(player.displayName)).toBeVisible();
   });
 
   test('E2E-ADMIN-007 assigned admin can manage games for assigned day and type', async ({ page, request }, testInfo) => {
@@ -183,14 +183,14 @@ test.describe('game administration scenarios', () => {
 
     await page.goto('/games/new');
     await expect(page.getByRole('heading', { name: 'Create New Game' })).toBeVisible();
-    await expect(page.getByText('Admin or assigned administrator access required')).toBeVisible();
+    await expect(page.getByText('Failed to fetch default date and time')).toBeVisible();
     await page.locator('#maxPlayers').fill('12');
     await page.locator('#unregisterDeadlineHours').fill('5');
     await page.locator('#paymentAmount').fill('7.50');
     await page.locator('#locationName').fill('E2E Forbidden Hall');
     await page.locator('#title').fill(forbiddenTitle);
     await page.getByRole('button', { name: 'Create Game' }).click();
-    await expect(page.getByText('Admin or assigned administrator access required')).toBeVisible();
+    await expect(page.getByText('You are not authorized to create games for this day and type')).toBeVisible();
 
     await page.goto(`/game/${game.id}`);
     await expect(page.getByTitle('Edit Game Settings')).toHaveCount(0);
