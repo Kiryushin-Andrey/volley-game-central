@@ -70,7 +70,7 @@ Spec: `e2e/games-home.spec.ts`
 - [x] E2E-HOME-012: Home error state shows `Error` and `Retry` when the games API fails, then recovers after retry.
 - [x] E2E-HOME-013: With default category filter (Sunday), participant sees `No games available` when the only upcoming game is a Thursday 5-1 game.
 - [x] E2E-HOME-014: Participant deselects all category options in the multi-select and sees `No games available` even when games exist for other categories.
-- [ ] E2E-HOME-015: Participant A with an unpaid past game (after admin sent payment requests) sees `Your unpaid games` on the upcoming home view, opens the entry, and **Pay now** opens the Bunq payment link in a new browser tab (or window).
+- [x] E2E-HOME-015: Participant A with an unpaid past game (after admin sent payment requests) sees `Your unpaid games` on the upcoming home view, opens the entry, and **Pay now** opens the Bunq payment link in a new browser tab (or window).
 
 ## Game details participant scenarios
 
@@ -203,13 +203,15 @@ Past or readonly games with `paymentAmount > 0`, Bunq enabled for the collecting
 - [x] E2E-BUNQ-PAY-007: Game with zero cost does not show send-payment-requests even when past and Bunq is enabled.
 - [x] E2E-BUNQ-PAY-008: Past game already marked fully paid on the games home does not show send-payment-requests on game details (`fully_paid` set via allowed DB helper in test).
 
-## Bunq payment status scenarios (planned)
+## Bunq payment status scenarios
+
+Spec: `e2e/bunq-status.spec.ts`
 
 Status surfaces: per-player `Paid` / `Unpaid` on game details (past/readonly, after requests sent), **Check payment status for this game** sync button on game details, paid/total counters on past game cards, and `Show fully paid games` on the past filter. Optional bulk route: `/check-payments` (password dialog on load; no in-app nav link today—use only if testing that screen explicitly).
 
-- [ ] E2E-BUNQ-STATUS-002: Global Admin clicks **Check payment status for this game**, enters the Bunq password, sees `Payment check completed`, and unpaid players update to `Paid` when the mock reports inquiry status `ACCEPTED`.
-- [ ] E2E-BUNQ-STATUS-003: Global Admin toggles a player from `Unpaid` to `Paid` and back via the paid-status control on the player row; counts on the games home past list update after refresh.
-- [ ] E2E-BUNQ-STATUS-004: When all active players are paid, the past game card shows matching paid/total counts (e.g. `2/2`); with `Show fully paid games` unchecked, the game is hidden from the past list until the toggle is enabled (extends HOME-009 with Bunq-driven fully-paid state via UI).
-- [ ] E2E-BUNQ-STATUS-005: Wrong password on per-game check keeps the password dialog open with `Invalid password`.
-- [ ] E2E-BUNQ-STATUS-006: Global Admin opens `/check-payments`, submits password on `Enter Bunq API Password`, sees completion feedback, and returns to games home; past unpaid games reflect updated statuses where the mock reports payment accepted.
-- [ ] E2E-BUNQ-STATUS-007: Participant A on a past game they joined does not see admin paid-status toggles or check-payment/sync controls; they may still see price and their own registration state.
+- [x] E2E-BUNQ-STATUS-002: Global Admin clicks **Check payment status for this game**, enters the Bunq password, sees `Payment check completed`, and unpaid players update to `Paid` when the mock reports inquiry status `ACCEPTED`.
+- [x] E2E-BUNQ-STATUS-003: Global Admin toggles a player from `Unpaid` to `Paid` and back via the paid-status control on the player row; counts on the games home past list update after refresh.
+- [x] E2E-BUNQ-STATUS-004: When all active players are paid, the past game card shows matching paid/total counts (e.g. `2/2`); with `Show fully paid games` unchecked, the game is hidden from the past list until the toggle is enabled (extends HOME-009 with Bunq-driven fully-paid state via UI).
+- [x] E2E-BUNQ-STATUS-005: Wrong password on per-game check keeps the password dialog open with `Invalid password`.
+- [x] E2E-BUNQ-STATUS-006: Global Admin opens `/check-payments`, submits password on `Enter Bunq API Password`, sees completion feedback, and returns to games home; past unpaid games reflect updated statuses where the mock reports payment accepted.
+- [x] E2E-BUNQ-STATUS-007: Participant A on a past game they joined does not see admin paid-status toggles or check-payment/sync controls; they may still see price and their own registration state.

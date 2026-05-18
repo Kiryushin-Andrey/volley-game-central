@@ -292,6 +292,16 @@ export async function resetBunqMock(): Promise<void> {
   }
 }
 
+export async function markBunqRequestInquiryAccepted(requestInquiryId: string): Promise<void> {
+  const res = await fetch(`${BUNQ_MOCK_CONTROL_ORIGIN}/request-inquiries/${requestInquiryId}/mark-accepted`, {
+    method: 'POST',
+    headers: { 'X-Bunq-Mock-Control-Token': BUNQ_MOCK_CONTROL_TOKEN },
+  });
+  if (!res.ok) {
+    throw new Error(`markBunqRequestInquiryAccepted failed: HTTP ${res.status} ${await res.text()}`);
+  }
+}
+
 export async function deliverBunqRequestInquiryAcceptedWebhook(
   requestInquiryId: string,
   targetUrlOverride?: string
@@ -469,6 +479,48 @@ export async function sendPaymentRequestsViaUi(page: Page, password = BUNQ_E2E_P
   await submitSendPaymentRequestsPassword(page, password);
   await dismissPaymentRequestsSentDialog(page);
   await expect(page.getByText('Payments collected by')).toBeVisible({ timeout: 30_000 });
+}
+
+export async function submitCheckPaymentStatusForGame(page: Page, password = BUNQ_E2E_PASSWORD): Promise<void> {
+  const checkButton = page.locator('.check-payments-button');
+  await expect(checkButton).toBeVisible({ timeout: 30_000 });
+
+  await expect
+    .poll(
+      async () => {
+        await checkButton.click();
+        return page.locator('.password-dialog-overlay #password').isVisible();
+      },
+      { timeout: 15_000, message: 'password dialog should open for per-game payment check' }
+    )
+    .toBe(true);
+
+  await page.locator('.password-dialog-overlay #password').fill(password);
+  await page.locator('.password-dialog-overlay').getByRole('button', { name: 'Submit' }).click();
+}
+
+export async function dismissPaymentCheckCompletedDialog(page: Page): Promise<void> {
+  const dialog = page.locator('.dialog-overlay').filter({ hasText: 'Payment check completed' });
+  await expect(dialog).toBeVisible({ timeout: 60_000 });
+  await dialog.locator('.dialog-btn.ok').click();
+}
+
+export async function confirmDialog(page: Page): Promise<void> {
+  await page.locator('.dialog-overlay .dialog-btn.ok').click();
+}
+
+export async function togglePlayerPaidStatusViaUi(
+  page: Page,
+  displayName: string,
+  options?: { confirm?: boolean }
+): Promise<void> {
+  const confirm = options?.confirm ?? true;
+  const row = page.locator('.player-item').filter({ hasText: displayName });
+  await row.locator('.paid-status').click();
+  if (confirm) {
+    await expect(page.locator('.dialog-overlay .dialog-message')).toContainText(/Mark|Unmark/);
+    await confirmDialog(page);
+  }
 }
 
 export async function getPaymentRequestIdForUserRegistration(gameId: number, userId: number): Promise<string | null> {

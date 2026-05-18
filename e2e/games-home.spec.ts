@@ -6,9 +6,13 @@ import {
   daysFromNow,
   devLogin,
   devLoginAs,
+  enableBunqIntegrationViaUi,
   e2eTitle,
+  moveGameToPastViaUi,
   nextWeekday,
   registerForGameViaUi,
+  resetBunqMock,
+  sendPaymentRequestsViaUi,
   switchToUser,
   updateGame,
   waitForBackend,
@@ -256,5 +260,46 @@ test.describe('games home scenarios', () => {
     await page.locator('label.category-multiselect-option').filter({ hasText: 'Sunday' }).click();
 
     await expect(page.getByText('No games available')).toBeVisible();
+  });
+
+  test('E2E-HOME-015 participant sees unpaid games block and Pay now opens payment link', async ({
+    page,
+    request,
+  }, testInfo) => {
+    await resetBunqMock();
+
+    const admin = await createDevUserViaApi(request, testInfo, 'Unpaid Home Admin', true);
+    const participant = await createDevUserViaApi(request, testInfo, 'Unpaid Home Participant');
+    const locationName = 'E2E Unpaid Home Hall';
+    const title = e2eTitle(testInfo, 'Unpaid Home Game');
+
+    await devLoginAs(page, admin);
+    const game = await createGameViaUi(page, {
+      title,
+      dateTime: daysFromNow(2),
+      locationName,
+    });
+
+    await registerForGameViaUi(page, participant, game.id);
+
+    await switchToUser(page, admin);
+    await moveGameToPastViaUi(page, game.id);
+    await enableBunqIntegrationViaUi(page);
+
+    await page.goto(`/game/${game.id}`);
+    await sendPaymentRequestsViaUi(page);
+
+    await switchToUser(page, participant);
+    await page.goto('/');
+
+    await expect(page.getByText('Your unpaid games')).toBeVisible();
+    const unpaidItem = page.locator('.unpaid-item').filter({ hasText: locationName });
+    await expect(unpaidItem).toBeVisible();
+
+    const popupPromise = page.waitForEvent('popup');
+    await unpaidItem.getByRole('button', { name: 'Pay now' }).click();
+    const popup = await popupPromise;
+    await expect(popup).toHaveURL(/bunq\.me\/e2e-mock/);
+    await popup.close();
   });
 });

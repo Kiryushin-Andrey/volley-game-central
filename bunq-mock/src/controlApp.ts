@@ -16,6 +16,17 @@ const MIN_ACCEPTED_BODY = {
   },
 };
 
+function markRequestInquiryAcceptedInState(state: BunqMockState, inquiryId: number): boolean {
+  for (const session of state.sessions.values()) {
+    const row = session.requestInquiries.get(inquiryId);
+    if (row) {
+      row.status = 'ACCEPTED';
+      return true;
+    }
+  }
+  return false;
+}
+
 function controlAuth(expectedToken: string | undefined) {
   return (req: express.Request, res: express.Response, next: express.NextFunction) => {
     if (!expectedToken) {
@@ -75,6 +86,8 @@ export function createControlApp(state: BunqMockState, options?: { controlToken?
       },
     };
 
+    markRequestInquiryAcceptedInState(state, idNum);
+
     try {
       const r = await fetch(targetUrl, {
         method: 'POST',
@@ -92,6 +105,17 @@ export function createControlApp(state: BunqMockState, options?: { controlToken?
       const message = e instanceof Error ? e.message : 'Unknown error';
       res.status(502).json({ error: 'Webhook delivery failed', detail: message, targetUrl });
     }
+  });
+
+  app.post('/request-inquiries/:inquiryId/mark-accepted', (req, res) => {
+    const idNum = parseInt(req.params.inquiryId, 10);
+    if (Number.isNaN(idNum)) {
+      return res.status(400).json({ error: 'inquiryId must be numeric' });
+    }
+    if (!markRequestInquiryAcceptedInState(state, idNum)) {
+      return res.status(404).json({ error: 'Request inquiry not found' });
+    }
+    res.json({ ok: true, inquiryId: idNum, status: 'ACCEPTED' });
   });
 
   app.get('/health', (_req, res) => {
