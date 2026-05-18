@@ -121,7 +121,7 @@ Spec: `e2e/game-form.spec.ts`
 - [x] E2E-FORM-007: Global Admin opens `Edit Game Settings` from game details, updates title/location/capacity/deadline/toggles, saves, and sees the updated details.
 - [x] E2E-FORM-008: Global Admin cancels editing and returns to game details without persisting changes.
 - [x] E2E-FORM-009: Required fields and numeric bounds prevent invalid game creation, including missing date, maximum players below minimum, and negative cost.
-- [ ] E2E-FORM-010: On a past game after payment requests were sent, Global Admin still opens **Edit Game Settings**, changes a field such as title, saves, and sees the update on game details (participant roster lock does not block metadata edits).
+- [x] E2E-FORM-010: On a past game after payment requests were sent, Global Admin still opens **Edit Game Settings**, changes a field such as title, saves, and sees the update on game details (participant roster lock does not block metadata edits).
 
 ## Game administration scenarios
 
@@ -137,10 +137,10 @@ Spec: `e2e/game-administration.spec.ts`
 - [x] E2E-ADMIN-008: Non-admin Participant A cannot reach create/edit/admin-only screens by direct URL and is redirected or blocked.
 - [x] E2E-ADMIN-009: Assigned Admin receives a 403 error when creating a game on a weekday outside their assignment.
 - [x] E2E-ADMIN-010: Assigned Admin receives a 403 error when saving edits to a game outside their assignment.
-- [ ] E2E-ADMIN-011: On a past paid game (Bunq enabled, Participant A registered): Global Admin adds Participant B via **Add Participant** before payment requests; sends payment requests; **Add Participant** is then unavailable while B remains on the roster.
-- [ ] E2E-ADMIN-012: On a past or readonly game: Global Admin removes a player before payment requests; after sending payment requests, **Remove player** is unavailable and active rows show **Paid** / **Unpaid** controls instead.
-- [ ] E2E-ADMIN-013: Global Admin opens player info for a user with outstanding payment requests, sees `Unpaid games` listing the game, and **Send payment reminder** completes with UI success feedback (do not assert SMS/Telegram delivery).
-- [ ] E2E-ADMIN-014: On a readonly past game with cost (Bunq enabled): before payment requests, **Add guest** with `Invited by` / inviter search adds a guest; after payment requests are sent, inviter search is absent and **Add guest** cannot add new entries (readonly or registration-closed error in the dialog).
+- [x] E2E-ADMIN-011: On a past paid game (Bunq enabled, Participant A registered): Global Admin adds Participant B via **Add Participant** before payment requests; sends payment requests; **Add Participant** is then unavailable while B remains on the roster.
+- [x] E2E-ADMIN-012: On a past or readonly game: Global Admin removes a player before payment requests; after sending payment requests, **Remove player** is unavailable and active rows show **Paid** / **Unpaid** controls instead.
+- [x] E2E-ADMIN-013: Global Admin opens player info for a user with outstanding payment requests, sees `Unpaid games` listing the game, and **Send payment reminder** completes with UI success feedback (do not assert SMS/Telegram delivery).
+- [x] E2E-ADMIN-014: On a readonly past game with cost (Bunq enabled): before payment requests, **Add guest** with `Invited by` / inviter search adds a guest; after payment requests are sent, inviter search is absent and **Add guest** cannot add new entries (readonly or registration-closed error in the dialog).
 
 ## Game administrator assignment scenarios
 

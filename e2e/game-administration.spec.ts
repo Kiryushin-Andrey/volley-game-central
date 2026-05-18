@@ -6,9 +6,13 @@ import {
   createGameViaUi,
   daysFromNow,
   devLoginAs,
+  enableBunqIntegrationViaUi,
   e2eTitle,
   formatGameDateTimeForInput,
+  moveGameToPastViaUi,
   nextWeekday,
+  resetBunqMock,
+  sendPaymentRequestsViaUi,
   switchToUser,
   waitForAdminGameCreateResponse,
   waitForAdminGameUpdateResponse,
@@ -258,5 +262,145 @@ test.describe('game administration scenarios', () => {
     expect(updateResponse.status()).toBe(403);
 
     await expect(page.locator('.error-message')).toContainText('not authorized to manage this game');
+  });
+});
+
+test.describe('game administration after payment requests', () => {
+  test.beforeEach(async ({ request }) => {
+    await waitForBackend(request);
+    await resetBunqMock();
+    await cleanupE2eData();
+  });
+
+  test('E2E-ADMIN-011 add participant before payment requests; locked after send', async ({ page, request }, testInfo) => {
+    const admin = await createDevUserViaApi(request, testInfo, 'Roster Lock Admin', true);
+    const participantA = await createDevUserViaApi(request, testInfo, 'Roster Lock A');
+    const participantB = await createDevUserViaApi(request, testInfo, 'Roster Lock B');
+
+    await devLoginAs(page, admin);
+    const game = await createGameViaUi(page, {
+      title: e2eTitle(testInfo, 'Roster Lock Add'),
+      dateTime: daysFromNow(2),
+    });
+
+    await moveGameToPastViaUi(page, game.id);
+    await enableBunqIntegrationViaUi(page);
+
+    await page.goto(`/game/${game.id}`);
+    await addParticipantViaUi(page, participantA.displayName);
+    await expect(page.getByTitle('Add Participant')).toBeVisible();
+    await addParticipantViaUi(page, participantB.displayName);
+
+    await sendPaymentRequestsViaUi(page);
+
+    await expect(page.getByTitle('Add Participant')).toHaveCount(0);
+    await expect(page.getByPlaceholder('Search users to add...')).toHaveCount(0);
+    await expect(page.locator('.player-item').filter({ hasText: participantB.displayName })).toBeVisible();
+  });
+
+  test('E2E-ADMIN-012 remove player before payment requests; paid controls after send', async ({ page, request }, testInfo) => {
+    const admin = await createDevUserViaApi(request, testInfo, 'Remove Lock Admin', true);
+    const player = await createDevUserViaApi(request, testInfo, 'Remove Lock Player');
+
+    await devLoginAs(page, admin);
+    const game = await createGameViaUi(page, {
+      title: e2eTitle(testInfo, 'Remove Lock Game'),
+      dateTime: daysFromNow(2),
+      readonly: true,
+    });
+
+    await page.goto(`/game/${game.id}`);
+    await addParticipantViaUi(page, player.displayName);
+    await removePlayerByName(page, player.displayName);
+    await expect(page.getByText(player.displayName)).toHaveCount(0);
+
+    await addParticipantViaUi(page, player.displayName);
+    await moveGameToPastViaUi(page, game.id);
+    await enableBunqIntegrationViaUi(page);
+
+    await page.goto(`/game/${game.id}`);
+    await sendPaymentRequestsViaUi(page);
+
+    const row = page.locator('.player-item').filter({ hasText: player.displayName });
+    await expect(row.getByRole('button', { name: 'Remove player' })).toHaveCount(0);
+    await expect(row.locator('.paid-status')).toContainText('Unpaid');
+  });
+
+  test('E2E-ADMIN-013 player info shows unpaid games and payment reminder succeeds', async ({ page, request }, testInfo) => {
+    const admin = await createDevUserViaApi(request, testInfo, 'Reminder Admin', true);
+    const participant = await createDevUserViaApi(request, testInfo, 'Reminder Participant');
+    const locationName = 'E2E Reminder Hall';
+
+    await devLoginAs(page, admin);
+    const game = await createGameViaUi(page, {
+      title: e2eTitle(testInfo, 'Reminder Game'),
+      dateTime: daysFromNow(2),
+      locationName,
+    });
+
+    await moveGameToPastViaUi(page, game.id);
+    await page.goto(`/game/${game.id}`);
+    await addParticipantViaUi(page, participant.displayName);
+    await enableBunqIntegrationViaUi(page);
+
+    await page.goto(`/game/${game.id}`);
+    await sendPaymentRequestsViaUi(page);
+
+    await page.locator('.player-item').filter({ hasText: participant.displayName }).locator('.player-details').click();
+    await expect(page.getByRole('heading', { name: 'Player details' })).toBeVisible();
+    await expect(page.locator('.player-info-dialog').getByText('Unpaid games')).toBeVisible();
+    await expect(page.locator('.player-info-dialog .unpaid-list')).toContainText(locationName);
+
+    const reminderPromise = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        new URL(response.url()).pathname === `/api/users/admin/id/${participant.id}/payment-reminder`
+    );
+    await page.locator('.player-info-dialog').getByRole('button', { name: 'Send payment reminder' }).click();
+    const reminderResponse = await reminderPromise;
+    expect(reminderResponse.ok()).toBeTruthy();
+
+    await expect(page.locator('.player-info-dialog .error')).toHaveCount(0);
+    await expect(page.locator('.player-info-dialog').getByRole('button', { name: 'Send payment reminder' })).toBeEnabled();
+  });
+
+  test('E2E-ADMIN-014 readonly past guest add locked after payment requests', async ({ page, request }, testInfo) => {
+    const admin = await createDevUserViaApi(request, testInfo, 'Guest Lock Admin', true);
+    const inviter = await createDevUserViaApi(request, testInfo, 'Guest Lock Inviter');
+
+    await devLoginAs(page, admin);
+    const game = await createGameViaUi(page, {
+      title: e2eTitle(testInfo, 'Guest Lock Game'),
+      dateTime: daysFromNow(2),
+      readonly: true,
+    });
+
+    await page.goto(`/game/${game.id}`);
+    await addParticipantViaUi(page, inviter.displayName);
+
+    const guestBefore = `GuestBefore${Date.now().toString(36)}`;
+    await page.getByRole('button', { name: 'Add guest' }).click();
+    await expect(page.getByRole('heading', { name: 'Register guest' })).toBeVisible();
+    await expect(page.getByText('Invited by:')).toBeVisible();
+    await page.getByPlaceholder('Search user (inviter)...').fill(inviter.displayName);
+    await page.locator('.guest-dialog .user-search-item').filter({ hasText: inviter.displayName }).click();
+    await page.getByLabel('Guest Name:').fill(guestBefore);
+    await page.getByRole('button', { name: 'Register Guest' }).click();
+    await expect(page.getByText(guestBefore)).toBeVisible();
+
+    await moveGameToPastViaUi(page, game.id);
+    await enableBunqIntegrationViaUi(page);
+    await page.goto(`/game/${game.id}`);
+    await sendPaymentRequestsViaUi(page);
+
+    const guestAfter = `GuestAfter${Date.now().toString(36)}`;
+    await page.getByRole('button', { name: 'Add guest' }).click();
+    await expect(page.getByRole('heading', { name: 'Register guest' })).toBeVisible();
+    await expect(page.getByText('Invited by:')).toHaveCount(0);
+    await expect(page.getByPlaceholder('Search user (inviter)...')).toHaveCount(0);
+    await page.getByLabel('Guest Name:').fill(guestAfter);
+    await page.getByRole('button', { name: 'Register Guest' }).click();
+    await expect(page.locator('.guest-dialog .error-message')).toContainText(/readonly|payment requests have been sent/i);
+    await expect(page.getByText(guestAfter)).toHaveCount(0);
   });
 });

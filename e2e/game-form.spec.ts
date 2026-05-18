@@ -3,10 +3,16 @@ import {
   cleanupE2eData,
   createDevUserViaApi,
   createGameViaUi,
+  daysFromNow,
   devLogin,
   devLoginAs,
+  enableBunqIntegrationViaUi,
   e2eTitle,
+  moveGameToPastViaUi,
+  resetBunqMock,
+  sendPaymentRequestsViaUi,
   waitForAdminGameCreateResponse,
+  waitForAdminGameUpdateResponse,
   waitForBackend,
 } from './support/fixtures';
 
@@ -171,5 +177,37 @@ test.describe('game creation and editing scenarios', () => {
     await expect(page.getByRole('heading', { name: 'Create New Game' })).toBeVisible();
     await page.goto('/');
     await expect(page.getByText(title)).toHaveCount(0);
+  });
+
+  test('E2E-FORM-010 global admin edits game metadata after payment requests were sent', async ({ page, request }, testInfo) => {
+    await resetBunqMock();
+
+    const admin = await createDevUserViaApi(request, testInfo, 'Post Pay Edit Admin', true);
+    const participant = await createDevUserViaApi(request, testInfo, 'Post Pay Edit Participant');
+    const originalTitle = e2eTitle(testInfo, 'Post Pay Original');
+    const updatedTitle = e2eTitle(testInfo, 'Post Pay Updated');
+
+    await devLoginAs(page, admin);
+    const game = await createGameViaUi(page, { title: originalTitle, dateTime: daysFromNow(2) });
+    await moveGameToPastViaUi(page, game.id);
+    await enableBunqIntegrationViaUi(page);
+
+    await page.goto(`/game/${game.id}`);
+    await page.locator('.admin-actions').getByRole('button', { name: 'Add Participant' }).click();
+    await page.getByPlaceholder('Search users to add...').fill(participant.displayName);
+    await page.getByText(participant.displayName, { exact: true }).click();
+    await sendPaymentRequestsViaUi(page);
+    await expect(page.getByTitle('Add Participant')).toHaveCount(0);
+
+    await page.getByTitle('Edit Game Settings').click();
+    await expect(page.getByRole('heading', { name: 'Edit Game Settings' })).toBeVisible();
+    await page.locator('#title').fill(updatedTitle);
+    const updatePromise = waitForAdminGameUpdateResponse(page, game.id);
+    await page.getByRole('button', { name: 'Save Changes' }).click();
+    await updatePromise;
+
+    await expect(page).toHaveURL(new RegExp(`/game/${game.id}$`));
+    await expect(page.getByText(updatedTitle)).toBeVisible();
+    await expect(page.getByText(originalTitle)).toHaveCount(0);
   });
 });

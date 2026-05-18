@@ -324,6 +324,56 @@ export async function deliverBunqRequestInquiryAcceptedWebhook(
 }
 
 /** Bunq payment_request_id after /games/admin/:id/payment-requests (primary registration row). */
+export const BUNQ_E2E_PASSWORD = 'BunqE2E!Pass9';
+export const BUNQ_E2E_API_KEY = 'e2e-bunq-api-key';
+export const BUNQ_E2E_API_KEY_NAME = 'E2E Bunq Client';
+
+export async function enableBunqIntegrationViaUi(page: Page): Promise<void> {
+  await page.goto('/bunq-settings');
+  await expect(page.getByRole('heading', { name: 'Bunq Settings' })).toBeVisible();
+  await expect(page.getByText('Loading...')).toHaveCount(0, { timeout: 30_000 });
+
+  if (await page.getByText(/Bunq integration is enabled/).isVisible().catch(() => false)) {
+    return;
+  }
+
+  await page.getByRole('button', { name: 'Enable Bunq Integration' }).click();
+  await page.locator('#apiKey').fill(BUNQ_E2E_API_KEY);
+  await page.locator('#apiKeyName').fill(BUNQ_E2E_API_KEY_NAME);
+  await page.locator('.credentials-form #password').fill(BUNQ_E2E_PASSWORD);
+  await page.getByRole('button', { name: 'Enable Integration' }).click();
+  await expect(page.getByText(/Bunq integration enabled successfully/i)).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByText(/Bunq integration is enabled/)).toBeVisible();
+}
+
+export async function moveGameToPastViaUi(page: Page, gameId: number, pastDate = daysFromNow(-2)): Promise<void> {
+  await page.goto(`/game/${gameId}/edit`);
+  await expect(page.getByRole('heading', { name: 'Edit Game Settings' })).toBeVisible();
+  const dateInput = page.getByPlaceholder('Select date and time');
+  await dateInput.fill(formatGameDateTimeForInput(pastDate));
+  await dateInput.press('Enter');
+  const updatePromise = waitForAdminGameUpdateResponse(page, gameId);
+  await page.getByRole('button', { name: 'Save Changes' }).click();
+  const updateResponse = await updatePromise;
+  expect(updateResponse.ok()).toBeTruthy();
+  if (page.url().includes('/edit')) {
+    await page.goto(`/game/${gameId}`);
+  }
+  await expect(page).toHaveURL(new RegExp(`/game/${gameId}$`));
+}
+
+export async function sendPaymentRequestsViaUi(page: Page): Promise<void> {
+  const sendBtn = page.getByTitle('Send payment requests to unpaid players');
+  await expect(sendBtn).toBeVisible({ timeout: 30_000 });
+  await sendBtn.click();
+  await page.locator('.password-dialog-overlay').getByLabel('Password:').fill(BUNQ_E2E_PASSWORD);
+  await page.locator('.password-dialog-overlay').getByRole('button', { name: 'Submit' }).click();
+  const paymentSentDialog = page.getByRole('dialog').filter({ hasText: 'Payment requests sent' });
+  await expect(paymentSentDialog.getByText(/payment requests sent successfully/i)).toBeVisible({ timeout: 60_000 });
+  await paymentSentDialog.getByRole('button', { name: 'OK' }).click();
+  await expect(page.getByText('Payments collected by')).toBeVisible({ timeout: 30_000 });
+}
+
 export async function getPaymentRequestIdForUserRegistration(gameId: number, userId: number): Promise<string | null> {
   const result = await pool.query(
     `select pr.payment_request_id::text as payment_request_id

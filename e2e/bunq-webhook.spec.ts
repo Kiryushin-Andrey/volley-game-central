@@ -6,16 +6,15 @@ import {
   daysFromNow,
   deliverBunqRequestInquiryAcceptedWebhook,
   devLoginAs,
+  enableBunqIntegrationViaUi,
   e2eTitle,
-  formatGameDateTimeForInput,
   getPaymentRequestIdForUserRegistration,
+  moveGameToPastViaUi,
   registerForGameViaUi,
   resetBunqMock,
-  waitForAdminGameUpdateResponse,
+  sendPaymentRequestsViaUi,
   waitForBackend,
 } from './support/fixtures';
-
-const BUNQ_E2E_PASSWORD = 'BunqE2E!Pass9';
 
 test.describe('Bunq mock and webhook-driven payments', () => {
   test.beforeEach(async ({ request }) => {
@@ -44,35 +43,10 @@ test.describe('Bunq mock and webhook-driven payments', () => {
       await devLoginAs(participantPage, participant);
       await registerForGameViaUi(participantPage, participant, game.id);
 
-      await adminPage.goto(`/game/${game.id}/edit`);
-      await expect(adminPage.getByRole('heading', { name: 'Edit Game Settings' })).toBeVisible();
-      const pastDate = daysFromNow(-2);
-      const dateInput = adminPage.getByPlaceholder('Select date and time');
-      await dateInput.fill(formatGameDateTimeForInput(pastDate));
-      await dateInput.press('Enter');
-      const updatePromise = waitForAdminGameUpdateResponse(adminPage, game.id);
-      await adminPage.getByRole('button', { name: 'Save Changes' }).click();
-      await updatePromise;
-      await expect(adminPage).toHaveURL(new RegExp(`/game/${game.id}$`));
-
-      await adminPage.goto('/bunq-settings');
-      await expect(adminPage.getByRole('heading', { name: 'Bunq Settings' })).toBeVisible();
-      await adminPage.getByRole('button', { name: 'Enable Bunq Integration' }).click();
-      await adminPage.locator('#apiKey').fill('e2e-bunq-api-key');
-      await adminPage.locator('#apiKeyName').fill('E2E Bunq Client');
-      await adminPage.locator('.credentials-form #password').fill(BUNQ_E2E_PASSWORD);
-      await adminPage.getByRole('button', { name: 'Enable Integration' }).click();
-      await expect(adminPage.getByText('Bunq integration enabled successfully')).toBeVisible({ timeout: 60_000 });
-
+      await moveGameToPastViaUi(adminPage, game.id);
+      await enableBunqIntegrationViaUi(adminPage);
       await adminPage.goto(`/game/${game.id}`);
-      const sendBtn = adminPage.getByTitle('Send payment requests to unpaid players');
-      await expect(sendBtn).toBeVisible({ timeout: 30_000 });
-      await sendBtn.click();
-      await adminPage.locator('.password-dialog-overlay').getByLabel('Password:').fill(BUNQ_E2E_PASSWORD);
-      await adminPage.locator('.password-dialog-overlay').getByRole('button', { name: 'Submit' }).click();
-      const paymentSentDialog = adminPage.getByRole('dialog').filter({ hasText: 'Payment requests sent' });
-      await expect(paymentSentDialog.getByText(/payment requests sent successfully/i)).toBeVisible({ timeout: 60_000 });
-      await paymentSentDialog.getByRole('button', { name: 'OK' }).click();
+      await sendPaymentRequestsViaUi(adminPage);
 
       const inquiryId = await getPaymentRequestIdForUserRegistration(game.id, participant.id);
       expect(inquiryId).toBeTruthy();
