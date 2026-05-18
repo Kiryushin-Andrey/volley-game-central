@@ -9,6 +9,9 @@ export POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-postgres}"
 export POSTGRES_DB="${POSTGRES_DB:-volley_game_central}"
 export MINI_APP_URL="${MINI_APP_URL:-http://127.0.0.1:3001}"
 export JWT_SECRET="${JWT_SECRET:-playwright-dev-secret}"
+export BUNQ_API_URL="${BUNQ_API_URL:-http://127.0.0.1:3998/v1}"
+export BUNQ_MOCK_WEBHOOK_TARGET="${BUNQ_MOCK_WEBHOOK_TARGET:-http://127.0.0.1:3001/webhooks/bunq}"
+export BUNQ_MOCK_CONTROL_TOKEN="${BUNQ_MOCK_CONTROL_TOKEN:-e2e-bunq-mock-secret}"
 export PLAYWRIGHT_DOCKER_DATA_ROOT="${PLAYWRIGHT_DOCKER_DATA_ROOT:-/tmp/volley-game-central-playwright-docker-vfs}"
 export PLAYWRIGHT_DOCKER_LOG="${PLAYWRIGHT_DOCKER_LOG:-/tmp/volley-game-central-playwright-dockerd.log}"
 export PLAYWRIGHT_USE_HOST_NETWORK_POSTGRES="${PLAYWRIGHT_USE_HOST_NETWORK_POSTGRES:-false}"
@@ -146,4 +149,5 @@ ensure_docker_daemon
 start_postgres
 
 npm run backend:build
-npx concurrently "cd backend && npm run dev" "npm run tg-mini-app:dev"
+(cd bunq-mock && npm install)
+npx concurrently "cd backend && npm run dev" "npm run tg-mini-app:dev" "npm run bunq-mock:dev"

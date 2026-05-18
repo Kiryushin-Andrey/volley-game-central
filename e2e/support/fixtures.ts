@@ -259,6 +259,65 @@ export async function cleanupE2eData() {
   await pool.query(`delete from users where display_name like 'E2E %'`);
 }
 
+const BUNQ_MOCK_CONTROL_ORIGIN = process.env.BUNQ_MOCK_CONTROL_ORIGIN ?? 'http://127.0.0.1:3999';
+const BUNQ_MOCK_CONTROL_TOKEN = process.env.BUNQ_MOCK_CONTROL_TOKEN ?? 'e2e-bunq-mock-secret';
+
+export async function resetBunqMock(): Promise<void> {
+  const res = await fetch(`${BUNQ_MOCK_CONTROL_ORIGIN}/reset`, {
+    method: 'POST',
+    headers: { 'X-Bunq-Mock-Control-Token': BUNQ_MOCK_CONTROL_TOKEN },
+  });
+  if (!res.ok) {
+    throw new Error(`resetBunqMock failed: HTTP ${res.status} ${await res.text()}`);
+  }
+}
+
+export async function deliverBunqRequestInquiryAcceptedWebhook(
+  requestInquiryId: string,
+  targetUrlOverride?: string
+): Promise<void> {
+  const res = await fetch(`${BUNQ_MOCK_CONTROL_ORIGIN}/webhooks/deliver-request-inquiry-accepted`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Bunq-Mock-Control-Token': BUNQ_MOCK_CONTROL_TOKEN,
+    },
+    body: JSON.stringify({
+      requestInquiryId,
+      ...(targetUrlOverride ? { targetUrlOverride } : {}),
+    }),
+  });
+  const body = (await res.json().catch(() => ({}))) as {
+    ok?: boolean;
+    error?: string;
+    status?: number;
+    responseSnippet?: string;
+    detail?: string;
+  };
+  if (!res.ok) {
+    throw new Error(`deliverBunqRequestInquiryAcceptedWebhook failed: HTTP ${res.status} ${JSON.stringify(body)}`);
+  }
+  if (body.ok === false) {
+    throw new Error(
+      `Bunq mock could not POST webhook (target HTTP ${body.status ?? '?'}): ${body.responseSnippet ?? body.error ?? JSON.stringify(body)}`
+    );
+  }
+}
+
+/** Bunq payment_request_id after /games/admin/:id/payment-requests (primary registration row). */
+export async function getPaymentRequestIdForUserRegistration(gameId: number, userId: number): Promise<string | null> {
+  const result = await pool.query(
+    `select pr.payment_request_id::text as payment_request_id
+     from payment_requests pr
+     inner join game_registrations gr on gr.id = pr.game_registration_id
+     where gr.game_id = $1 and gr.user_id = $2 and gr.guest_name is null
+     order by pr.id desc
+     limit 1`,
+    [gameId, userId]
+  );
+  return (result.rows[0]?.payment_request_id as string) ?? null;
+}
+
 export async function closeDbPool() {
   await pool.end();
 }
