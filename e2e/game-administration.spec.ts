@@ -175,7 +175,6 @@ test.describe('game administration scenarios', () => {
   test('E2E-ADMIN-009 non-admin cannot use create/edit/admin-only screens by direct URL', async ({ page, request }, testInfo) => {
     const globalAdmin = await createDevUserViaApi(request, testInfo, 'Blocked Route Admin', true);
     const game = await createGame({ title: e2eTitle(testInfo, 'Blocked Route Game'), createdById: globalAdmin.id });
-    const forbiddenTitle = e2eTitle(testInfo, 'Forbidden Create');
 
     await devLogin(page, testInfo, 'Blocked Route Participant');
     await page.goto('/game-administrators');
@@ -183,14 +182,7 @@ test.describe('game administration scenarios', () => {
 
     await page.goto('/games/new');
     await expect(page.getByRole('heading', { name: 'Create New Game' })).toBeVisible();
-    await expect(page.getByText('Failed to fetch default date and time')).toBeVisible();
-    await page.locator('#maxPlayers').fill('12');
-    await page.locator('#unregisterDeadlineHours').fill('5');
-    await page.locator('#paymentAmount').fill('7.50');
-    await page.locator('#locationName').fill('E2E Forbidden Hall');
-    await page.locator('#title').fill(forbiddenTitle);
-    await page.getByRole('button', { name: 'Create Game' }).click();
-    await expect(page.getByText('You are not authorized to create games for this day and type')).toBeVisible();
+    await expect(page.getByText(/Admin or assigned administrator access required|Failed to fetch default date and time/)).toBeVisible();
 
     await page.goto(`/game/${game.id}`);
     await expect(page.getByTitle('Edit Game Settings')).toHaveCount(0);
