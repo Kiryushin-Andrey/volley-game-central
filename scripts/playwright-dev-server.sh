@@ -63,6 +63,8 @@ start_dockerd_directly() {
     --host=unix:///var/run/docker.sock \
     --data-root="$PLAYWRIGHT_DOCKER_DATA_ROOT" \
     --pidfile="$PLAYWRIGHT_DOCKER_DATA_ROOT/dockerd.pid" \
+    --iptables=false \
+    --ip6tables=false \
     >"$PLAYWRIGHT_DOCKER_LOG" 2>&1 &
 }
 
