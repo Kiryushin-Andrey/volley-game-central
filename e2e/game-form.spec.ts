@@ -20,11 +20,10 @@ async function fillRequiredGameFields(page: import('@playwright/test').Page, tit
 }
 
 async function setCheckbox(page: import('@playwright/test').Page, selector: string, checked = true) {
-  await page.locator(selector).evaluate((element, value) => {
-    const input = element as HTMLInputElement;
-    input.checked = value;
-    input.dispatchEvent(new Event('change', { bubbles: true }));
-  }, checked);
+  const input = page.locator(selector);
+  if ((await input.isChecked()) !== checked) {
+    await page.locator(`label[for="${selector.replace('#', '')}"]`).click();
+  }
 }
 
 test.describe('game creation and editing scenarios', () => {
