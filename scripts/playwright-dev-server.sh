@@ -11,6 +11,7 @@ export MINI_APP_URL="${MINI_APP_URL:-http://127.0.0.1:3001}"
 export JWT_SECRET="${JWT_SECRET:-playwright-dev-secret}"
 export PLAYWRIGHT_DOCKER_DATA_ROOT="${PLAYWRIGHT_DOCKER_DATA_ROOT:-/tmp/volley-game-central-playwright-docker-vfs}"
 export PLAYWRIGHT_DOCKER_LOG="${PLAYWRIGHT_DOCKER_LOG:-/tmp/volley-game-central-playwright-dockerd.log}"
+export PLAYWRIGHT_USE_HOST_NETWORK_POSTGRES="${PLAYWRIGHT_USE_HOST_NETWORK_POSTGRES:-false}"
 
 run_as_root() {
   if [ "$(id -u)" -eq 0 ]; then
@@ -58,6 +59,7 @@ start_dockerd_directly() {
   fi
 
   echo "Starting Docker daemon directly for Playwright E2E tests..."
+  export PLAYWRIGHT_USE_HOST_NETWORK_POSTGRES=true
   run_as_root mkdir -p "$PLAYWRIGHT_DOCKER_DATA_ROOT"
   run_as_root nohup dockerd \
     --host=unix:///var/run/docker.sock \
@@ -67,6 +69,21 @@ start_dockerd_directly() {
     --iptables=false \
     --ip6tables=false \
     >"$PLAYWRIGHT_DOCKER_LOG" 2>&1 &
+}
+
+start_postgres() {
+  if [ "$PLAYWRIGHT_USE_HOST_NETWORK_POSTGRES" = "true" ]; then
+    docker_cli rm -f volley-playwright-postgres >/dev/null 2>&1 || true
+    docker_cli run -d \
+      --name volley-playwright-postgres \
+      --network host \
+      -e POSTGRES_USER="$POSTGRES_USER" \
+      -e POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
+      -e POSTGRES_DB="$POSTGRES_DB" \
+      postgres:15-alpine
+  else
+    docker_cli compose up -d postgres
+  fi
 }
 
 ensure_docker_daemon() {
@@ -104,7 +121,7 @@ ensure_docker_daemon() {
 install_docker_if_missing
 ensure_docker_daemon
 
-docker_cli compose up -d postgres
+start_postgres
 
 npm run backend:build
 npx concurrently "cd backend && npm run dev" "npm run tg-mini-app:dev"
