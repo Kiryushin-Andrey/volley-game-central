@@ -189,8 +189,8 @@ export async function createGameViaUi(page: Page, input: UiGameInput): Promise<G
   if (input.pricingMode === 'total_cost') {
     await setCheckbox(page, '#pricingMode');
   }
-  if (input.withPositions) {
-    await setCheckbox(page, '#withPositions');
+  if (input.withPositions !== undefined) {
+    await setCheckbox(page, '#withPositions', input.withPositions);
   }
   if (input.readonly) {
     await setCheckbox(page, '#readonly');

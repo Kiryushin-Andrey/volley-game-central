@@ -71,6 +71,8 @@ Spec: `e2e/games-home.spec.ts`
 - [x] E2E-HOME-013: With default category filter (Sunday), participant sees `No games available` when the only upcoming game is a Thursday 5-1 game.
 - [x] E2E-HOME-014: Participant deselects all category options in the multi-select and sees `No games available` even when games exist for other categories.
 - [x] E2E-HOME-015: Participant A with an unpaid past game (after admin sent payment requests) sees `Your unpaid games` on the upcoming home view, opens the entry, and **Pay now** opens the Bunq payment link in a new browser tab (or window).
+- [x] E2E-HOME-016: Games home cards use a yellow left border for 5-1 games and a green left border for non-5-1 games.
+- [x] E2E-HOME-017: Category info blocks on the games home use yellow background for 5-1 and green for other selected categories.
 
 ## Game details participant scenarios
 
@@ -82,11 +84,13 @@ Spec: `e2e/game-details-participant.spec.ts`
 - [x] E2E-GAME-004: Participant B joins a full game and lands on the waiting list with the `Waitlist` status.
 - [x] E2E-GAME-005: Participant A leaves a full game and the next waitlisted participant moves into the active players list.
 - [x] E2E-GAME-006: Participant A sees the readonly notice and cannot join or leave when a game is marked readonly.
-- [x] E2E-GAME-007: Participant A sees deadline or registration-closed info text when the unregister deadline has passed.
+- [x] E2E-GAME-007: Participant A sees deadline or registration-closed info text when the unregister deadline has passed, and the Leave Game action is not available.
 - [x] E2E-GAME-008: Participant A opens a non-existent game id and sees `Error`, `Game not found`, and `Back to Games`.
 - [x] E2E-GAME-009: Participant A registers a guest when guest registration is allowed and sees the guest in the players list.
 - [x] E2E-GAME-010: Participant A opens and completes the bring-ball dialog when the game state requires ball assignment.
 - [x] E2E-GAME-011: Participant A sees seasonal game theming for Halloween, New Year, and March 8 tagged games without breaking core registration actions.
+- [x] E2E-GAME-012: Global Admin opens a past game that had waitlisted players and sees only the main players list (no waiting list section or waitlisted names).
+- [x] E2E-GAME-013: Participant A opens a Thursday 5-1 game and sees the category notice with 5-1 (yellow) styling on game details.
 
 ## Registration window scenarios
 
@@ -122,6 +126,8 @@ Spec: `e2e/game-form.spec.ts`
 - [x] E2E-FORM-008: Global Admin cancels editing and returns to game details without persisting changes.
 - [x] E2E-FORM-009: Required fields and numeric bounds prevent invalid game creation, including missing date, maximum players below minimum, and negative cost.
 - [x] E2E-FORM-010: On a past game after payment requests were sent, Global Admin still opens **Edit Game Settings**, changes a field such as title, saves, and sees the update on game details (participant roster lock does not block metadata edits).
+- [x] E2E-FORM-011: Global Admin creates a saved total-cost game and sees the calculated per-participant price on game details.
+- [x] E2E-FORM-012: Global Admin edits a total-cost game and sees the per-participant preview update when maximum players changes.
 
 ## Game administration scenarios
 
@@ -141,6 +147,13 @@ Spec: `e2e/game-administration.spec.ts`
 - [x] E2E-ADMIN-012: On a past or readonly game: Global Admin removes a player before payment requests; after sending payment requests, **Remove player** is unavailable and active rows show **Paid** / **Unpaid** controls instead.
 - [x] E2E-ADMIN-013: Global Admin opens player info for a user with outstanding payment requests, sees `Unpaid games` listing the game, and **Send payment reminder** completes with UI success feedback (do not assert SMS/Telegram delivery).
 - [x] E2E-ADMIN-014: On a readonly past game with cost (Bunq enabled): before payment requests, **Add guest** with `Invited by` / inviter search adds a guest; after payment requests are sent, inviter search is absent and **Add guest** cannot add new entries (readonly or registration-closed error in the dialog).
+- [x] E2E-ADMIN-015: Global Admin cannot add or remove players on an upcoming open game (before it is readonly or past).
+
+## Game rules and display scenarios
+
+Spec: `e2e/game-rules-and-display.spec.ts`
+
+Covers roster rules on open upcoming games, past-game waitlist visibility, total-cost pricing display, and 5-1 vs non-5-1 visual styling. Scenario IDs for these tests are listed in the sections above (`ADMIN-015`, `GAME-012`–`013`, `FORM-011`–`012`, `HOME-016`–`017`).
 
 ## Game administrator assignment scenarios
 

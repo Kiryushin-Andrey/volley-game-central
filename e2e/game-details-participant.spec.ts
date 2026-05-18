@@ -157,6 +157,7 @@ test.describe('game details participant scenarios', () => {
     await page.goto(`/game/${game.id}`);
 
     await expect(page.getByText('You can only leave the game up to 5 hours before it starts.')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Leave Game' })).toHaveCount(0);
   });
 
   test('E2E-GAME-008 participant opens a non-existent game id and sees error recovery', async ({ page }, testInfo) => {
