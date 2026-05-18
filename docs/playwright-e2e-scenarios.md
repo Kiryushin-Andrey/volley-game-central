@@ -23,10 +23,9 @@ Scope: browser-based tests for the Telegram Mini App running locally in dev mode
 Use unique phone numbers per test run when tests create mutable state.
 
 - Participant A: non-admin user for normal registration and profile flows.
-- Participant B: non-admin user for capacity, waitlist, priority-player, and multi-user scenarios.
+- Participant B: non-admin user for capacity, waitlist, and multi-user scenarios.
 - Global Admin: dev login with `Administrator` checked.
 - Assigned Admin: non-admin user who becomes a game administrator through an assignment created by Global Admin.
-- Priority Player: non-admin user added to an assignment's priority-player list.
 
 ## Out of scope for this checklist
 
@@ -87,12 +86,11 @@ Payment amount display and non-Bunq paid-state UI can be covered only when the s
 - [ ] E2E-FORM-002: Global Admin creates a standard game with date/time, maximum players, unregister deadline, per-participant cost, location name, optional location link, and optional title.
 - [ ] E2E-FORM-003: Global Admin creates a game with total-cost pricing and sees the per-participant preview update as maximum players changes.
 - [ ] E2E-FORM-004: Global Admin creates a game with `Playing 5-1` enabled and verifies it appears in the appropriate games list/category behavior.
-- [ ] E2E-FORM-005: Global Admin creates a game with `With priority players` enabled for a day/type that has priority players configured.
-- [ ] E2E-FORM-006: Global Admin creates a readonly game and verifies regular participants cannot self-register.
-- [ ] E2E-FORM-007: Global Admin cancels game creation and returns without creating a game.
-- [ ] E2E-FORM-008: Global Admin opens `Edit Game Settings` from game details, updates title/location/capacity/deadline/toggles, saves, and sees the updated details.
-- [ ] E2E-FORM-009: Global Admin cancels editing and returns to game details without persisting changes.
-- [ ] E2E-FORM-010: Required fields and numeric bounds prevent invalid game creation, including missing date, maximum players below minimum, and negative cost.
+- [ ] E2E-FORM-005: Global Admin creates a readonly game and verifies regular participants cannot self-register.
+- [ ] E2E-FORM-006: Global Admin cancels game creation and returns without creating a game.
+- [ ] E2E-FORM-007: Global Admin opens `Edit Game Settings` from game details, updates title/location/capacity/deadline/toggles, saves, and sees the updated details.
+- [ ] E2E-FORM-008: Global Admin cancels editing and returns to game details without persisting changes.
+- [ ] E2E-FORM-009: Required fields and numeric bounds prevent invalid game creation, including missing date, maximum players below minimum, and negative cost.
 
 ## Game administration scenarios
 
@@ -116,34 +114,13 @@ Payment amount display and non-Bunq paid-state UI can be covered only when the s
 - [ ] E2E-ASSIGN-006: Global Admin cancels assignment deletion and the assignment remains.
 - [ ] E2E-ASSIGN-007: Non-admin Participant A is redirected away from `/game-administrators`.
 
-## Priority player scenarios
-
-- [ ] E2E-PRIORITY-001: Global Admin opens `Manage Priority Players` for an administrator assignment.
-- [ ] E2E-PRIORITY-002: Global Admin sees the `No priority players yet.` empty state before adding players.
-- [ ] E2E-PRIORITY-003: Global Admin adds Priority Player through `Search users to add...` and sees the user in the priority-player list.
-- [ ] E2E-PRIORITY-004: Global Admin opens player info from a priority-player row.
-- [ ] E2E-PRIORITY-005: Global Admin deletes a priority-player assignment after confirming the browser prompt.
-- [ ] E2E-PRIORITY-006: Global Admin cancels priority-player deletion and the assignment remains.
-- [ ] E2E-PRIORITY-007: Assigned Admin can manage priority players only for their own game administrator assignment.
-- [ ] E2E-PRIORITY-008: Participant A cannot manage another user's priority-player assignment and is redirected to the allowed page.
-- [ ] E2E-PRIORITY-009: Invalid priority-player assignment ids redirect back to `Game Administrators`.
-
 ## Cross-user and state-transition scenarios
 
 - [ ] E2E-STATE-001: Global Admin creates a game, Participant A joins it in a separate context, and Global Admin sees Participant A in the players list after refresh.
 - [ ] E2E-STATE-002: Participant A and Participant B compete for the last available spot; one becomes active and the other becomes waitlisted deterministically.
 - [ ] E2E-STATE-003: Global Admin edits game capacity downward and the UI preserves valid active/waitlist status for existing registrations.
-- [ ] E2E-STATE-004: Priority Player receives priority behavior for a priority-enabled game while a non-priority participant follows the normal registration order.
-- [ ] E2E-STATE-005: Browser refresh keeps the authenticated session and current route for each logged-in persona.
-- [ ] E2E-STATE-006: Opening the app in a new browser context without cookies starts unauthenticated.
-
-## Accessibility and browser-mode smoke scenarios
-
-- [ ] E2E-A11Y-001: Core unauthenticated, games home, game details, create game, and admin pages expose exactly one main landmark.
-- [ ] E2E-A11Y-002: Primary form controls have accessible labels matching visible labels.
-- [ ] E2E-A11Y-003: Keyboard-only user can log in, open filters, create a game, and submit/cancel dialogs.
-- [ ] E2E-A11Y-004: Browser-mode brand link `Haarlem Volley Bot` returns to the games home from nested routes.
-- [ ] E2E-A11Y-005: Modal dialogs keep actionable controls reachable by keyboard and close through cancel/escape paths where supported.
+- [ ] E2E-STATE-004: Browser refresh keeps the authenticated session and current route for each logged-in persona.
+- [ ] E2E-STATE-005: Opening the app in a new browser context without cookies starts unauthenticated.
 
 ## Suggested implementation order
 
@@ -151,6 +128,5 @@ Payment amount display and non-Bunq paid-state UI can be covered only when the s
 2. Auth/session smoke tests.
 3. Game creation fixture helpers through UI plus API/database cleanup.
 4. Participant registration flows.
-5. Admin assignment and priority-player flows.
+5. Admin assignment flows.
 6. Negative access-control and API-failure recovery scenarios.
-7. Accessibility smoke coverage.

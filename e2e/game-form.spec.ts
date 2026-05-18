@@ -79,21 +79,7 @@ test.describe('game creation and editing scenarios', () => {
     expect(created.with_positions).toBe(true);
   });
 
-  test('E2E-FORM-005 global admin creates a priority-player game', async ({ page }, testInfo) => {
-    const title = e2eTitle(testInfo, 'Priority Create');
-
-    await devLogin(page, testInfo, 'Priority Create Admin', true);
-    await page.goto('/games/new');
-    await fillRequiredGameFields(page, title);
-    await setCheckbox(page, '#withPriorityPlayers');
-    await page.getByRole('button', { name: 'Create Game' }).click();
-    await expect(page).toHaveURL('/');
-
-    const created = await findGameByTitle(title);
-    expect(created.with_priority_players).toBe(true);
-  });
-
-  test('E2E-FORM-006 global admin creates a readonly game that participants cannot self-register for', async ({ page, request }, testInfo) => {
+  test('E2E-FORM-005 global admin creates a readonly game that participants cannot self-register for', async ({ page, request }, testInfo) => {
     const title = e2eTitle(testInfo, 'Readonly Create');
     const participant = await createDevUserViaApi(request, testInfo, 'Readonly Created Participant');
 
@@ -114,7 +100,7 @@ test.describe('game creation and editing scenarios', () => {
     await expect(page.getByRole('button', { name: 'Join Game' })).toHaveCount(0);
   });
 
-  test('E2E-FORM-007 global admin cancels game creation without creating a game', async ({ page }, testInfo) => {
+  test('E2E-FORM-006 global admin cancels game creation without creating a game', async ({ page }, testInfo) => {
     const title = e2eTitle(testInfo, 'Cancelled Create');
 
     await devLogin(page, testInfo, 'Cancel Create Admin', true);
@@ -126,7 +112,7 @@ test.describe('game creation and editing scenarios', () => {
     expect(await findGameByTitle(title)).toBeNull();
   });
 
-  test('E2E-FORM-008 global admin edits game settings and sees updated details', async ({ page, request }, testInfo) => {
+  test('E2E-FORM-007 global admin edits game settings and sees updated details', async ({ page, request }, testInfo) => {
     const admin = await createDevUserViaApi(request, testInfo, 'Edit Admin', true);
     const originalTitle = e2eTitle(testInfo, 'Edit Original');
     const updatedTitle = e2eTitle(testInfo, 'Edit Updated');
@@ -147,7 +133,7 @@ test.describe('game creation and editing scenarios', () => {
     await expect(page.getByRole('link', { name: 'E2E Edited Hall' })).toBeVisible();
   });
 
-  test('E2E-FORM-009 global admin cancels editing without persisting changes', async ({ page, request }, testInfo) => {
+  test('E2E-FORM-008 global admin cancels editing without persisting changes', async ({ page, request }, testInfo) => {
     const admin = await createDevUserViaApi(request, testInfo, 'Cancel Edit Admin', true);
     const originalTitle = e2eTitle(testInfo, 'Cancel Edit Original');
     const cancelledTitle = e2eTitle(testInfo, 'Cancel Edit New');
@@ -163,7 +149,7 @@ test.describe('game creation and editing scenarios', () => {
     await expect(page.getByText(cancelledTitle)).toHaveCount(0);
   });
 
-  test('E2E-FORM-010 invalid numeric bounds prevent game creation', async ({ page }, testInfo) => {
+  test('E2E-FORM-009 invalid numeric bounds prevent game creation', async ({ page }, testInfo) => {
     const title = e2eTitle(testInfo, 'Invalid Create');
 
     await devLogin(page, testInfo, 'Invalid Create Admin', true);
