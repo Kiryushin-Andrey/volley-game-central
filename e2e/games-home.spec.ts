@@ -83,7 +83,7 @@ test.describe('games home scenarios', () => {
     await page.goto('/');
 
     await expect(page.getByText(title)).toBeVisible();
-    await expect(page.getByText('Waitlist')).toBeVisible();
+    await expect(page.getByText('Waitlist', { exact: true })).toBeVisible();
   });
 
   test('E2E-HOME-006 location link opens externally without changing app route', async ({ page, request }, testInfo) => {
@@ -94,7 +94,7 @@ test.describe('games home scenarios', () => {
       createdById: admin.id,
       dateTime: nextWeekday(0),
       locationName: 'E2E Maps Gym',
-      locationLink: 'https://maps.example/e2e-gym',
+      locationLink: 'https://example.com/e2e-gym',
     });
 
     await devLogin(page, testInfo, 'Location Participant');
@@ -103,7 +103,7 @@ test.describe('games home scenarios', () => {
     const popup = await popupPromise;
 
     await expect(page).toHaveURL('/');
-    await expect(popup).toHaveURL(/maps\.example\/e2e-gym/);
+    expect(popup.url()).toContain('example.com/e2e-gym');
     await popup.close();
   });
 

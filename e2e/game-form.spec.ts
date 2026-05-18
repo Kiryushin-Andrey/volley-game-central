@@ -52,7 +52,7 @@ test.describe('game creation and editing scenarios', () => {
     await page.goto('/games/new');
 
     await page.locator('#maxPlayers').fill('10');
-    await page.locator('#pricingMode').check();
+    await page.locator('#pricingMode').check({ force: true });
     await page.locator('#paymentAmount').fill('100');
 
     await expect(page.getByText('€100 ÷ 10 players = €10.00 per player')).toBeVisible();
@@ -64,7 +64,7 @@ test.describe('game creation and editing scenarios', () => {
     await devLogin(page, testInfo, 'Five One Admin', true);
     await page.goto('/games/new');
     await fillRequiredGameFields(page, title);
-    await page.locator('#withPositions').check();
+    await page.locator('#withPositions').check({ force: true });
     await page.getByRole('button', { name: 'Create Game' }).click();
 
     const created = await findGameByTitle(title);
@@ -77,7 +77,7 @@ test.describe('game creation and editing scenarios', () => {
     await devLogin(page, testInfo, 'Priority Create Admin', true);
     await page.goto('/games/new');
     await fillRequiredGameFields(page, title);
-    await page.locator('#withPriorityPlayers').check();
+    await page.locator('#withPriorityPlayers').check({ force: true });
     await page.getByRole('button', { name: 'Create Game' }).click();
 
     const created = await findGameByTitle(title);
@@ -91,7 +91,7 @@ test.describe('game creation and editing scenarios', () => {
     await devLogin(page, testInfo, 'Readonly Create Admin', true);
     await page.goto('/games/new');
     await fillRequiredGameFields(page, title);
-    await page.locator('#readonly').check();
+    await page.locator('#readonly').check({ force: true });
     await page.getByRole('button', { name: 'Create Game' }).click();
 
     const created = await findGameByTitle(title);

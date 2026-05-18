@@ -6,15 +6,16 @@ import {
   daysFromNow,
   devLogin,
   e2eTitle,
+  nextWeekday,
   registerUser,
   waitForBackend,
 } from './support/fixtures';
 
-async function joinGame(page: import('@playwright/test').Page, bringBall = false) {
+async function joinGame(page: import('@playwright/test').Page, bringBall = false, expectedStatus = "You're in") {
   await page.getByRole('button', { name: 'Join Game' }).click();
   await expect(page.getByRole('heading', { name: 'Will you bring a volleyball?' })).toBeVisible();
   await page.getByRole('button', { name: bringBall ? /Yes, I'll bring one/ : /No, I won't bring one/ }).click();
-  await expect(page.getByText("You're in")).toBeVisible();
+  await expect(page.getByText(expectedStatus, { exact: true })).toBeVisible();
 }
 
 async function leaveGame(page: import('@playwright/test').Page) {
@@ -54,7 +55,7 @@ test.describe('game details participant scenarios', () => {
 
   test('E2E-GAME-002 participant joins an open game and sees registered status', async ({ page, request }, testInfo) => {
     const admin = await createDevUserViaApi(request, testInfo, 'Join Admin', true);
-    const game = await createGame({ title: e2eTitle(testInfo, 'Join Open'), createdById: admin.id, dateTime: daysFromNow(2) });
+    const game = await createGame({ title: e2eTitle(testInfo, 'Join Open'), createdById: admin.id, dateTime: nextWeekday(0) });
 
     await devLogin(page, testInfo, 'Join Participant');
     await page.goto(`/game/${game.id}`);
@@ -84,10 +85,10 @@ test.describe('game details participant scenarios', () => {
 
     await devLogin(page, testInfo, 'Full Waitlist Participant');
     await page.goto(`/game/${game.id}`);
-    await joinGame(page);
+    await joinGame(page, false, 'Waitlist');
 
     await expect(page.getByText('Waiting List')).toBeVisible();
-    await expect(page.getByText('Waitlist')).toBeVisible();
+    await expect(page.getByText('Waitlist', { exact: true })).toBeVisible();
   });
 
   test('E2E-GAME-005 leaving a full game promotes the next waitlisted participant', async ({ page, request }, testInfo) => {
