@@ -115,6 +115,19 @@ export const WaitlistList: React.FC<Props> = ({ registrations, currentUserId, is
                 );
               })()
             )}
+
+            {isAdmin && registration.userId !== currentUserId && onRemovePlayer && (
+              <div className="admin-player-actions" title="Remove player">
+                <RemovePlayerButton
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemovePlayer(registration.userId, registration.guestName || undefined);
+                  }}
+                  title="Remove player"
+                  disabled={false}
+                />
+              </div>
+            )}
           </div>
         </div>
       ))}

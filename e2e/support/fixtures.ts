@@ -200,6 +200,11 @@ export async function findGameByTitle(title: string) {
   return result.rows[0] || null;
 }
 
+export async function findGameById(id: number) {
+  const result = await pool.query(`select * from games where id = $1`, [id]);
+  return result.rows[0] || null;
+}
+
 export async function updateGame(id: number, updates: Record<string, unknown>) {
   const entries = Object.entries(updates);
   if (entries.length === 0) return;
@@ -216,6 +221,11 @@ export async function registerUser(gameId: number, userId: number, createdAt: Da
     [gameId, userId, guestName ?? null, bringingTheBall, paid, createdAt]
   );
   return result.rows[0].id as number;
+}
+
+export async function countRegistrations(gameId: number) {
+  const result = await pool.query(`select count(*)::int as count from game_registrations where game_id = $1`, [gameId]);
+  return result.rows[0].count as number;
 }
 
 export async function createAdminAssignment(dayOfWeek: number, withPositions: boolean, userId: number) {
