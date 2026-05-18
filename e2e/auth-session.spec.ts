@@ -62,7 +62,7 @@ test.describe('authentication and session scenarios', () => {
 
     await expect(page.getByRole('heading', { name: 'Welcome' })).toBeVisible();
     await expect(page.getByText('Choose how you want to continue:')).toBeVisible();
-    await expect(page.getByText('Telegram')).toBeVisible();
+    await expect(page.locator('.landing-button.telegram').getByText('Telegram')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Phone number' })).toBeVisible();
     await expect(page.getByText('How it works')).toBeVisible();
     await expect(page.getByRole('link', { name: 'Source code at GitHub' })).toBeVisible();
@@ -143,7 +143,7 @@ test.describe('authentication and session scenarios', () => {
     await page.getByLabel('Edit display name').click();
     await expect(page.getByRole('heading', { name: 'Edit display name' })).toBeVisible();
 
-    await page.getByLabel('Display name').fill(updatedName);
+    await page.getByRole('textbox', { name: 'Display name' }).fill(updatedName);
     await page.getByRole('button', { name: 'Save' }).click();
 
     await expect(page.getByRole('heading', { name: 'Edit display name' })).toHaveCount(0);
