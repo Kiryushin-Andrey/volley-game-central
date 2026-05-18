@@ -7,7 +7,6 @@ import {
   daysFromNow,
   devLoginAs,
   e2eTitle,
-  findGameById,
   nextWeekday,
   switchToUser,
   waitForBackend,
@@ -60,7 +59,8 @@ test.describe('game administration scenarios', () => {
     await confirmDialog(page, true);
 
     await expect(page).toHaveURL('/');
-    expect(await findGameById(game.id)).toBeNull();
+    await page.goto(`/game/${game.id}`);
+    await expect(page.getByRole('heading', { name: 'Error' })).toBeVisible();
   });
 
   test('E2E-ADMIN-002 global admin cancels delete and game remains available', async ({ page, request }, testInfo) => {
@@ -74,7 +74,6 @@ test.describe('game administration scenarios', () => {
     await confirmDialog(page, false);
 
     await expect(page.getByText(title)).toBeVisible();
-    expect(await findGameById(game.id)).toBeTruthy();
   });
 
   test('E2E-ADMIN-003 global admin adds an existing user to a readonly or past game', async ({ page, request }, testInfo) => {

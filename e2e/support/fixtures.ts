@@ -179,6 +179,15 @@ export async function setCheckbox(page: Page, selector: string, checked = true) 
   }
 }
 
+/** POST /api/games/admin — call immediately before clicking Create Game. */
+export function waitForAdminGameCreateResponse(page: Page) {
+  return page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' &&
+      /\/api\/games\/admin$/.test(new URL(response.url()).pathname)
+  );
+}
+
 export async function createGameViaUi(page: Page, input: UiGameInput): Promise<GameFixture> {
   await page.goto('/games/new');
   await expect(page.getByRole('heading', { name: 'Create New Game' })).toBeVisible();
@@ -204,15 +213,19 @@ export async function createGameViaUi(page: Page, input: UiGameInput): Promise<G
     await setCheckbox(page, '#readonly');
   }
 
+  const createResponsePromise = waitForAdminGameCreateResponse(page);
   await page.getByRole('button', { name: 'Create Game' }).click();
+  const createResponse = await createResponsePromise;
+  expect(createResponse.ok()).toBeTruthy();
+  const body = (await createResponse.json()) as { id: number; title: string | null };
+  expect(body.id).toBeGreaterThan(0);
+
   await expect(page).toHaveURL('/');
 
-  const created = await findGameByTitle(input.title);
-  expect(created).toBeTruthy();
   return {
-    id: created.id,
-    title: created.title,
-    dateTime: new Date(created.date_time),
+    id: body.id,
+    title: body.title ?? input.title,
+    dateTime,
   };
 }
 
@@ -277,32 +290,12 @@ export async function createGame(input: GameInput): Promise<GameFixture> {
   };
 }
 
-export async function findGameByTitle(title: string) {
-  const result = await pool.query(`select * from games where title = $1 order by id desc limit 1`, [title]);
-  return result.rows[0] || null;
-}
-
-export async function findGameById(id: number) {
-  const result = await pool.query(`select * from games where id = $1`, [id]);
-  return result.rows[0] || null;
-}
-
 export async function updateGame(id: number, updates: Record<string, unknown>) {
   const entries = Object.entries(updates);
   if (entries.length === 0) return;
 
   const setSql = entries.map(([key], index) => `${key} = $${index + 2}`).join(', ');
   await pool.query(`update games set ${setSql} where id = $1`, [id, ...entries.map(([, value]) => value)]);
-}
-
-export async function registerUser(gameId: number, userId: number, createdAt: Date, guestName?: string, bringingTheBall = false, paid = false) {
-  const result = await pool.query(
-    `insert into game_registrations (game_id, user_id, guest_name, bringing_the_ball, paid, created_at)
-     values ($1,$2,$3,$4,$5,$6)
-     returning id`,
-    [gameId, userId, guestName ?? null, bringingTheBall, paid, createdAt]
-  );
-  return result.rows[0].id as number;
 }
 
 export async function countRegistrations(gameId: number) {

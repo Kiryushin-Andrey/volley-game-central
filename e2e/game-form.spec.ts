@@ -6,7 +6,7 @@ import {
   devLogin,
   devLoginAs,
   e2eTitle,
-  findGameByTitle,
+  waitForAdminGameCreateResponse,
   waitForBackend,
 } from './support/fixtures';
 
@@ -45,13 +45,16 @@ test.describe('game creation and editing scenarios', () => {
     await devLogin(page, testInfo, 'Standard Create Admin', true);
     await page.goto('/games/new');
     await fillRequiredGameFields(page, title);
+    const createResponsePromise = waitForAdminGameCreateResponse(page);
     await page.getByRole('button', { name: 'Create Game' }).click();
+    const createResponse = await createResponsePromise;
+    expect(createResponse.ok()).toBeTruthy();
+    const { id } = (await createResponse.json()) as { id: number };
 
     await expect(page).toHaveURL('/');
-    const created = await findGameByTitle(title);
-    expect(created).toBeTruthy();
-    expect(created.location_name).toBe('E2E Form Hall');
-    expect(created.payment_amount).toBe(750);
+    await page.goto(`/game/${id}`);
+    await expect(page.getByRole('link', { name: 'E2E Form Hall' })).toBeVisible();
+    await expect(page.getByText('€7.50 per participant')).toBeVisible();
   });
 
   test('E2E-FORM-003 global admin previews total-cost pricing', async ({ page }, testInfo) => {
@@ -72,11 +75,15 @@ test.describe('game creation and editing scenarios', () => {
     await page.goto('/games/new');
     await fillRequiredGameFields(page, title);
     await setCheckbox(page, '#withPositions');
+    const createResponsePromise = waitForAdminGameCreateResponse(page);
     await page.getByRole('button', { name: 'Create Game' }).click();
-    await expect(page).toHaveURL('/');
+    const createResponse = await createResponsePromise;
+    expect(createResponse.ok()).toBeTruthy();
+    const { id } = (await createResponse.json()) as { id: number };
 
-    const created = await findGameByTitle(title);
-    expect(created.with_positions).toBe(true);
+    await expect(page).toHaveURL('/');
+    await page.goto(`/game/${id}/edit`);
+    await expect(page.locator('#withPositions')).toBeChecked();
   });
 
   test('E2E-FORM-005 global admin creates a readonly game that participants cannot self-register for', async ({ page, request }, testInfo) => {
@@ -87,15 +94,17 @@ test.describe('game creation and editing scenarios', () => {
     await page.goto('/games/new');
     await fillRequiredGameFields(page, title);
     await setCheckbox(page, '#readonly');
+    const createResponsePromise = waitForAdminGameCreateResponse(page);
     await page.getByRole('button', { name: 'Create Game' }).click();
-    await expect(page).toHaveURL('/');
+    const createResponse = await createResponsePromise;
+    expect(createResponse.ok()).toBeTruthy();
+    const { id } = (await createResponse.json()) as { id: number };
 
-    const created = await findGameByTitle(title);
-    expect(created.readonly).toBe(true);
+    await expect(page).toHaveURL('/');
 
     await page.getByRole('button', { name: 'Logout' }).click();
     await devLoginAs(page, participant);
-    await page.goto(`/game/${created.id}`);
+    await page.goto(`/game/${id}`);
     await expect(page.getByText('This game is readonly. Registration and deregistration are closed.')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Join Game' })).toHaveCount(0);
   });
@@ -109,7 +118,7 @@ test.describe('game creation and editing scenarios', () => {
     await page.getByRole('button', { name: 'Cancel' }).click();
 
     await expect(page).toHaveURL('/');
-    expect(await findGameByTitle(title)).toBeNull();
+    await expect(page.getByText(title)).toHaveCount(0);
   });
 
   test('E2E-FORM-007 global admin edits game settings and sees updated details', async ({ page, request }, testInfo) => {
@@ -119,9 +128,9 @@ test.describe('game creation and editing scenarios', () => {
 
     await devLoginAs(page, admin);
     const game = await createGameViaUi(page, { title: originalTitle });
-    await page.goto(`/game/${game.id}`);
-    await page.getByTitle('Edit Game Settings').click();
+    await page.goto(`/game/${game.id}/edit`);
     await expect(page.getByRole('heading', { name: 'Edit Game Settings' })).toBeVisible();
+    await expect(page.locator('#title')).toHaveValue(originalTitle);
 
     await page.locator('#title').fill(updatedTitle);
     await expect(page.locator('#title')).toHaveValue(updatedTitle);
@@ -160,6 +169,7 @@ test.describe('game creation and editing scenarios', () => {
     await page.getByRole('button', { name: 'Create Game' }).click();
 
     await expect(page.getByRole('heading', { name: 'Create New Game' })).toBeVisible();
-    expect(await findGameByTitle(title)).toBeNull();
+    await page.goto('/');
+    await expect(page.getByText(title)).toHaveCount(0);
   });
 });

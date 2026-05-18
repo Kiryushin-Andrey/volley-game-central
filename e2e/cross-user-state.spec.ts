@@ -2,14 +2,14 @@ import { expect, test } from '@playwright/test';
 import {
   cleanupE2eData,
   createDevUserViaApi,
-  createGame,
   createGameViaUi,
   daysFromNow,
   devLoginAs,
   e2eTitle,
   nextWeekday,
-  registerUser,
+  registerForGameViaUi,
   switchToUser,
+  type DevUser,
   waitForBackend,
 } from './support/fixtures';
 
@@ -67,37 +67,32 @@ test.describe('cross-user and state-transition scenarios', () => {
       dateTime: daysFromNow(2),
       maxPlayers: 2,
     });
-    await registerUser(game.id, preRegistered.id, new Date(Date.now() - 60_000));
-
-    await switchToUser(page, first);
-    await page.goto(`/game/${game.id}`);
-    await joinGameWithoutBall(page);
-
-    await switchToUser(page, second);
-    await page.goto(`/game/${game.id}`);
-    await joinGameWithoutBall(page, 'Waitlist');
+    await registerForGameViaUi(page, preRegistered, game.id);
+    await registerForGameViaUi(page, first, game.id);
+    await registerForGameViaUi(page, second, game.id, 'Waitlist');
 
     await expect(page.getByRole('heading', { name: 'Waiting List' })).toBeVisible();
   });
 
   test('E2E-STATE-003 reducing capacity preserves active and waitlist sections', async ({ page, request }, testInfo) => {
     const admin = await createDevUserViaApi(request, testInfo, 'State3 Admin', true);
-    const players = await Promise.all(
-      [0, 1, 2, 3, 4].map((i) => createDevUserViaApi(request, testInfo, `State3 P${i}`))
-    );
+    const players: DevUser[] = [];
+    for (let i = 0; i < 5; i++) {
+      players.push(await createDevUserViaApi(request, testInfo, `State3 P${i}`));
+    }
     const title = e2eTitle(testInfo, 'Capacity Shrink');
-    const game = await createGame({
+    await devLoginAs(page, admin);
+    const game = await createGameViaUi(page, {
       title,
-      createdById: admin.id,
       dateTime: daysFromNow(2),
       maxPlayers: 4,
     });
-    const base = Date.now();
-    for (let i = 0; i < 5; i++) {
-      await registerUser(game.id, players[i].id, new Date(base + i * 1000));
+    for (let i = 0; i < 4; i++) {
+      await registerForGameViaUi(page, players[i], game.id);
     }
+    await registerForGameViaUi(page, players[4], game.id, 'Waitlist');
 
-    await devLoginAs(page, admin);
+    await switchToUser(page, admin);
     await page.goto(`/game/${game.id}/edit`);
     await expect(page.getByRole('heading', { name: 'Edit Game Settings' })).toBeVisible();
     await page.locator('#maxPlayers').fill('2');
