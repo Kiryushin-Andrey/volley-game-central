@@ -77,20 +77,28 @@ test.describe('game administration scenarios', () => {
     expect(await findGameById(game.id)).toBeTruthy();
   });
 
-  test('E2E-ADMIN-003 global admin adds an existing user to a readonly game', async ({ page, request }, testInfo) => {
+  test('E2E-ADMIN-003 global admin adds an existing user to a readonly or past game', async ({ page, request }, testInfo) => {
     const admin = await createDevUserViaApi(request, testInfo, 'Add Participant Admin', true);
-    const targetUser = await createDevUserViaApi(request, testInfo, 'Added Participant');
+    const readonlyTarget = await createDevUserViaApi(request, testInfo, 'Readonly Added Participant');
+    const pastTarget = await createDevUserViaApi(request, testInfo, 'Past Added Participant');
     await devLoginAs(page, admin);
-    const game = await createGameViaUi(page, {
+
+    const readonlyGame = await createGameViaUi(page, {
       title: e2eTitle(testInfo, 'Readonly Add Participant'),
       dateTime: daysFromNow(2),
       readonly: true,
     });
+    await page.goto(`/game/${readonlyGame.id}`);
+    await addParticipantViaUi(page, readonlyTarget.displayName);
+    await expect.poll(() => countRegistrations(readonlyGame.id)).toBe(1);
 
-    await page.goto(`/game/${game.id}`);
-    await addParticipantViaUi(page, targetUser.displayName);
-
-    await expect.poll(() => countRegistrations(game.id)).toBe(1);
+    const pastGame = await createGameViaUi(page, {
+      title: e2eTitle(testInfo, 'Past Add Participant'),
+      dateTime: daysFromNow(-1),
+    });
+    await page.goto(`/game/${pastGame.id}`);
+    await addParticipantViaUi(page, pastTarget.displayName);
+    await expect.poll(() => countRegistrations(pastGame.id)).toBe(1);
   });
 
   test('E2E-ADMIN-004 global admin removes a player and players list updates', async ({ page, request }, testInfo) => {
