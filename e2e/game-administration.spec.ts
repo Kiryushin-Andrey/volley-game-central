@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import {
+  addParticipantViaUi,
   cleanupE2eData,
   countRegistrations,
   createDevUserViaApi,
@@ -30,13 +31,6 @@ async function removePlayerByName(page: import('@playwright/test').Page, display
   await confirmDialog(page, true);
   await expect(page.getByRole('dialog').getByText('Success')).toBeVisible();
   await page.getByRole('dialog').getByRole('button', { name: 'OK' }).click();
-}
-
-async function addParticipantViaUi(page: import('@playwright/test').Page, displayName: string) {
-  await page.locator('.admin-actions').getByRole('button', { name: 'Add Participant' }).click();
-  await page.getByPlaceholder('Search users to add...').fill(displayName);
-  await page.getByText(displayName).click();
-  await expect(page.getByText(displayName)).toBeVisible();
 }
 
 type AdminAssignmentViaUiOptions = {

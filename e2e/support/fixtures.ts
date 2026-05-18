@@ -418,15 +418,56 @@ export async function moveGameToPastViaUi(page: Page, gameId: number, pastDate =
   await expect(page).toHaveURL(new RegExp(`/game/${gameId}$`));
 }
 
-export async function sendPaymentRequestsViaUi(page: Page): Promise<void> {
+export async function addParticipantViaUi(page: Page, displayName: string) {
+  await page.locator('.admin-actions').getByRole('button', { name: 'Add Participant' }).click();
+  await page.getByPlaceholder('Search users to add...').fill(displayName);
+  await page.getByText(displayName, { exact: true }).click();
+  await expect(page.locator('.player-item').filter({ hasText: displayName })).toBeVisible();
+}
+
+export async function enableBunqIntegrationForUserViaUi(page: Page, userId: number): Promise<void> {
+  await page.goto(`/bunq-settings/user/${userId}`);
+  await waitForBunqSettingsReady(page);
+
+  if (await page.getByText(/Bunq integration is enabled/).isVisible().catch(() => false)) {
+    return;
+  }
+
+  await openBunqCredentialsForm(page);
+  await fillBunqCredentialsForm(page, {
+    apiKey: BUNQ_E2E_API_KEY,
+    apiKeyName: BUNQ_E2E_API_KEY_NAME,
+    password: BUNQ_E2E_PASSWORD,
+  });
+  await submitBunqCredentialsForm(page);
+  await expect(page.getByText(/Bunq integration enabled successfully/i)).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByText(/Bunq integration is enabled/)).toBeVisible();
+}
+
+export async function submitSendPaymentRequestsPassword(page: Page, password: string) {
   const sendBtn = page.getByTitle('Send payment requests to unpaid players');
   await expect(sendBtn).toBeVisible({ timeout: 30_000 });
   await sendBtn.click();
-  await page.locator('.password-dialog-overlay').getByLabel('Password:').fill(BUNQ_E2E_PASSWORD);
+  await expect(page.locator('.password-dialog-overlay').getByLabel('Password:')).toBeVisible();
+  await page.locator('.password-dialog-overlay').getByLabel('Password:').fill(password);
   await page.locator('.password-dialog-overlay').getByRole('button', { name: 'Submit' }).click();
+}
+
+export async function dismissPaymentRequestsSentDialog(page: Page, expectedCount?: number) {
   const paymentSentDialog = page.getByRole('dialog').filter({ hasText: 'Payment requests sent' });
-  await expect(paymentSentDialog.getByText(/payment requests sent successfully/i)).toBeVisible({ timeout: 60_000 });
+  if (expectedCount !== undefined) {
+    await expect(
+      paymentSentDialog.getByText(new RegExp(`${expectedCount} payment requests sent successfully`))
+    ).toBeVisible({ timeout: 60_000 });
+  } else {
+    await expect(paymentSentDialog.getByText(/payment requests sent successfully/i)).toBeVisible({ timeout: 60_000 });
+  }
   await paymentSentDialog.getByRole('button', { name: 'OK' }).click();
+}
+
+export async function sendPaymentRequestsViaUi(page: Page, password = BUNQ_E2E_PASSWORD): Promise<void> {
+  await submitSendPaymentRequestsPassword(page, password);
+  await dismissPaymentRequestsSentDialog(page);
   await expect(page.getByText('Payments collected by')).toBeVisible({ timeout: 30_000 });
 }
 

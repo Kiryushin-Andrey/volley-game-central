@@ -188,18 +188,20 @@ Routes: `/bunq-settings` (global admin’s own credentials), `/bunq-settings/use
 - [x] E2E-BUNQ-CONFIG-010: Participant A navigates to `/bunq-settings` and is redirected away or blocked from managing Bunq credentials.
 - [x] E2E-BUNQ-CONFIG-011: Wrong Bunq password on monetary account load or webhook install shows an inline error and keeps the user on the relevant form/dialog.
 
-## Bunq payment request scenarios (planned)
+## Bunq payment request scenarios
+
+Spec: `e2e/bunq-pay.spec.ts`
 
 Past or readonly games with `paymentAmount > 0`, Bunq enabled for the collecting admin, and no `fullyPaid` flag show **Send payment requests** (`title="Send payment requests to unpaid players"`). Prepare games via UI: create with cost, register players, then move date to the past through **Edit Game Settings** (do not set dates via DB).
 
-- [ ] E2E-BUNQ-PAY-001: Global Admin with Bunq enabled opens a past paid game and sees the send-payment-requests control; an upcoming game with the same cost does not show it.
-- [ ] E2E-BUNQ-PAY-002: Global Admin sends payment requests: password dialog → popup `Payment requests sent` → `Payments collected by` with admin display name, active players show `Unpaid` (or `Paid` if settled), and roster add/remove controls are locked as in E2E-ADMIN-011 and E2E-ADMIN-012.
-- [ ] E2E-BUNQ-PAY-003: After payment requests were sent for all unpaid active players, **Send payment requests** is hidden or a second send via UI reports zero new requests created.
-- [ ] E2E-BUNQ-PAY-004: Invalid Bunq password on send keeps the password dialog open with `Invalid password` and does not show the success popup.
-- [ ] E2E-BUNQ-PAY-005: Assigned Admin with their own Bunq configured (via CONFIG-009) can send payment requests on a past game they administer; Participant A does not see send-payment controls on the same game.
-- [ ] E2E-BUNQ-PAY-006: Readonly past game with cost and registrations follows the same send-payment-requests flow as a normal past game.
-- [ ] E2E-BUNQ-PAY-007: Game with zero cost does not show send-payment-requests even when past and Bunq is enabled.
-- [ ] E2E-BUNQ-PAY-008: Past game already marked fully paid on the games home does not show send-payment-requests on game details.
+- [x] E2E-BUNQ-PAY-001: Global Admin with Bunq enabled opens a past paid game and sees the send-payment-requests control; an upcoming game with the same cost does not show it.
+- [x] E2E-BUNQ-PAY-002: Global Admin sends payment requests: password dialog → popup `Payment requests sent` → `Payments collected by` with admin display name, active players show `Unpaid` (or `Paid` if settled), and roster add/remove controls are locked as in E2E-ADMIN-011 and E2E-ADMIN-012.
+- [x] E2E-BUNQ-PAY-003: After payment requests were sent for all unpaid active players, **Send payment requests** is hidden or a second send via UI reports zero new requests created.
+- [x] E2E-BUNQ-PAY-004: Invalid Bunq password on send keeps the password dialog open with `Invalid password` and does not show the success popup.
+- [x] E2E-BUNQ-PAY-005: Assigned Admin with their own Bunq configured (via CONFIG-009) can send payment requests on a past game they administer; Participant A does not see send-payment controls on the same game.
+- [x] E2E-BUNQ-PAY-006: Readonly past game with cost and registrations follows the same send-payment-requests flow as a normal past game.
+- [x] E2E-BUNQ-PAY-007: Game with zero cost does not show send-payment-requests even when past and Bunq is enabled.
+- [x] E2E-BUNQ-PAY-008: Past game already marked fully paid on the games home does not show send-payment-requests on game details (`fully_paid` set via allowed DB helper in test).
 
 ## Bunq payment status scenarios (planned)
 
