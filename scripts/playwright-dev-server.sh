@@ -58,6 +58,18 @@ docker_cli() {
   fi
 }
 
+detect_restricted_docker_daemon() {
+  local storage_driver
+  storage_driver="$(docker info --format '{{.Driver}}' 2>/dev/null || true)"
+  if [ -z "$storage_driver" ] && command -v sudo >/dev/null 2>&1; then
+    storage_driver="$(sudo docker info --format '{{.Driver}}' 2>/dev/null || true)"
+  fi
+
+  if [ "$storage_driver" = "vfs" ]; then
+    export PLAYWRIGHT_USE_HOST_NETWORK_POSTGRES=true
+  fi
+}
+
 start_dockerd_directly() {
   if ! command -v dockerd >/dev/null 2>&1; then
     return
@@ -77,8 +89,10 @@ start_dockerd_directly() {
 }
 
 start_postgres() {
+  docker_cli rm -f volley-playwright-postgres >/dev/null 2>&1 || true
+
   if [ "$PLAYWRIGHT_USE_HOST_NETWORK_POSTGRES" = "true" ]; then
-    docker_cli rm -f volley-playwright-postgres >/dev/null 2>&1 || true
+    docker_cli rm -f workspace-postgres-1 >/dev/null 2>&1 || true
     docker_cli run -d \
       --name volley-playwright-postgres \
       --network host \
@@ -93,6 +107,7 @@ start_postgres() {
 
 ensure_docker_daemon() {
   if docker_info_reachable; then
+    detect_restricted_docker_daemon
     return
   fi
 
@@ -110,6 +125,7 @@ ensure_docker_daemon() {
 
   for _ in $(seq 1 30); do
     if docker_info_reachable; then
+      detect_restricted_docker_daemon
       return
     fi
     sleep 1
