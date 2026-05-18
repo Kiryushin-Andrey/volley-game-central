@@ -43,8 +43,8 @@ Payment amount display and non-Bunq paid-state UI can be covered only when the s
 
 ## Authentication and session scenarios
 
-- [ ] E2E-AUTH-001: Unauthenticated visitor sees the landing page with `Welcome`, `Telegram`, `Phone number`, `How it works`, and the GitHub source link.
-- [ ] E2E-AUTH-002: Visitor expands `How it works` and sees the community, registration, notification, and cost-sharing explanation.
+- [ ] E2E-AUTH-001: Unauthenticated visitor sees the landing page with `Welcome`, `Telegram`, `Phone number`, and `How it works`.
+- [ ] E2E-AUTH-002: Visitor expands `How it works` and sees the community, registration, notification, cost-sharing explanation, and GitHub source link.
 - [ ] E2E-AUTH-003: Participant A logs in through dev mode with phone number and display name, then lands on the authenticated games home.
 - [ ] E2E-AUTH-004: Global Admin logs in through dev mode with the `Administrator` checkbox selected and sees admin controls on the games home.
 - [ ] E2E-AUTH-005: Two isolated Playwright browser contexts can log in as different users and keep separate displayed names and sessions.

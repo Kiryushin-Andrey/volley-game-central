@@ -65,7 +65,6 @@ test.describe('authentication and session scenarios', () => {
     await expect(page.locator('.landing-button.telegram').getByText('Telegram')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Phone number' })).toBeVisible();
     await expect(page.getByText('How it works')).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Source code at GitHub' })).toBeVisible();
   });
 
   test('E2E-AUTH-002 visitor expands How it works content', async ({ page }) => {
@@ -77,6 +76,7 @@ test.describe('authentication and session scenarios', () => {
     await expect(page.getByText('register for any game')).toBeVisible();
     await expect(page.getByText('payment requests and important notifications')).toBeVisible();
     await expect(page.getByText('cover the cost of the hall rental')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Source code at GitHub' })).toBeVisible();
   });
 
   test('E2E-AUTH-003 participant logs in through dev mode', async ({ page }, testInfo) => {
