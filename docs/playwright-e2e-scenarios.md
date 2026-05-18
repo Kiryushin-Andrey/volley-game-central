@@ -65,6 +65,8 @@ Payment amount display and non-Bunq paid-state UI can be covered only when the s
 - [ ] E2E-HOME-010: Global Admin sees `Game Administrators` and `Create New Game` controls for non-integration admin access.
 - [ ] E2E-HOME-011: Assigned Admin sees `Create New Game` access without global-only administration links.
 - [ ] E2E-HOME-012: Home error state shows `Error` and `Retry` when the games API fails, then recovers after retry.
+- [ ] E2E-HOME-014: Games home cards use a yellow left border for 5-1 games and a green left border for non-5-1 games.
+- [ ] E2E-HOME-015: Category info blocks on the games home use yellow background for 5-1 and green for other selected categories.
 
 ## Game details participant scenarios
 
@@ -74,17 +76,21 @@ Payment amount display and non-Bunq paid-state UI can be covered only when the s
 - [ ] E2E-GAME-004: Participant B joins a full game and lands on the waiting list with the `Waitlist` status.
 - [ ] E2E-GAME-005: Participant A leaves a full game and the next waitlisted participant moves into the active players list.
 - [ ] E2E-GAME-006: Participant A sees the readonly notice and cannot join or leave when a game is marked readonly.
-- [ ] E2E-GAME-007: Participant A sees deadline or registration-closed info text when the unregister deadline has passed.
+- [ ] E2E-GAME-007: Participant A sees deadline or registration-closed info text when the unregister deadline has passed, and the Leave Game action is not available.
 - [ ] E2E-GAME-008: Participant A opens a non-existent game id and sees `Error`, `Game not found`, and `Back to Games`.
 - [ ] E2E-GAME-009: Participant A registers a guest when guest registration is allowed and sees the guest in the players list.
 - [ ] E2E-GAME-010: Participant A opens and completes the bring-ball dialog when the game state requires ball assignment.
 - [ ] E2E-GAME-011: Participant A sees seasonal game theming for Halloween, New Year, and March 8 tagged games without breaking core registration actions.
+- [ ] E2E-GAME-012: Global Admin opens a past game that had waitlisted players and sees only the main players list (no waiting list section or waitlisted names).
+- [ ] E2E-GAME-014: Participant A opens a Thursday 5-1 game and sees the category notice with 5-1 (yellow) styling on game details.
 
 ## Game creation and editing scenarios
 
 - [ ] E2E-FORM-001: Global Admin opens `Create New Game` from the games home.
 - [ ] E2E-FORM-002: Global Admin creates a standard game with date/time, maximum players, unregister deadline, per-participant cost, location name, optional location link, and optional title.
 - [ ] E2E-FORM-003: Global Admin creates a game with total-cost pricing and sees the per-participant preview update as maximum players changes.
+- [ ] E2E-FORM-010: Global Admin creates a saved total-cost game and sees the calculated per-participant price on game details.
+- [ ] E2E-FORM-011: Global Admin edits a total-cost game and sees the per-participant preview update when maximum players changes.
 - [ ] E2E-FORM-004: Global Admin creates a game with `Playing 5-1` enabled and verifies it appears in the appropriate games list/category behavior.
 - [ ] E2E-FORM-005: Global Admin creates a readonly game and verifies regular participants cannot self-register.
 - [ ] E2E-FORM-006: Global Admin cancels game creation and returns without creating a game.
@@ -102,6 +108,7 @@ Payment amount display and non-Bunq paid-state UI can be covered only when the s
 - [ ] E2E-ADMIN-006: Assigned Admin can manage games for their assigned day/type, including creating a game and reaching permitted admin actions.
 - [ ] E2E-ADMIN-007: Assigned Admin cannot access global-only routes such as game administrator assignment management.
 - [ ] E2E-ADMIN-008: Non-admin Participant A cannot reach create/edit/admin-only screens by direct URL and is redirected or blocked.
+- [ ] E2E-ADMIN-011: Global Admin cannot add or remove players on an upcoming open game (before it is readonly or past).
 
 ## Game administrator assignment scenarios
 
