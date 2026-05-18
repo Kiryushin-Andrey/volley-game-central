@@ -200,4 +200,43 @@ test.describe('games home scenarios', () => {
     await page.getByRole('button', { name: 'Retry' }).click();
     await expect(page.getByRole('heading', { name: 'Error' })).toHaveCount(0);
   });
+
+  test('E2E-HOME-013 default Sunday filter shows empty when only Thursday 5-1 games exist', async ({ page, request }, testInfo) => {
+    const admin = await createDevUserViaApi(request, testInfo, 'Sunday Filter Admin', true);
+    const participant = await createDevUserViaApi(request, testInfo, 'Sunday Filter Participant');
+    await devLoginAs(page, admin);
+    await createGameViaUi(page, {
+      title: e2eTitle(testInfo, 'Thursday Five One Only'),
+      dateTime: nextWeekday(4),
+      withPositions: true,
+    });
+
+    await switchToUser(page, participant);
+    await page.goto('/');
+    await page.evaluate(() => localStorage.removeItem('selectedCategories'));
+    await page.reload();
+
+    await expect(page.getByText('No games available')).toBeVisible();
+  });
+
+  test('E2E-HOME-014 category multiselect can exclude all visible games', async ({ page, request }, testInfo) => {
+    const admin = await createDevUserViaApi(request, testInfo, 'Cat Exclude Admin', true);
+    const participant = await createDevUserViaApi(request, testInfo, 'Cat Exclude Participant');
+    await devLoginAs(page, admin);
+    await createGameViaUi(page, {
+      title: e2eTitle(testInfo, 'Sunday Category Game'),
+      dateTime: nextWeekday(0),
+      withPositions: false,
+    });
+
+    await switchToUser(page, participant);
+    await page.goto('/');
+    await page.evaluate(() => localStorage.removeItem('selectedCategories'));
+    await page.reload();
+    await page.locator('.category-multiselect-trigger').click();
+    await page.locator('label.category-multiselect-option').filter({ hasText: 'Thursday 5-1' }).click();
+    await page.locator('label.category-multiselect-option').filter({ hasText: 'Sunday' }).click();
+
+    await expect(page.getByText('No games available')).toBeVisible();
+  });
 });

@@ -146,7 +146,7 @@ export function e2eTitle(testInfo: TestInfo, label: string) {
   return `E2E ${label} ${uniqueRunId(testInfo)}`;
 }
 
-function formatDateForInput(date: Date) {
+export function formatGameDateTimeForInput(date: Date) {
   const month = date.toLocaleString('en-US', { month: 'long' });
   const day = date.getDate();
   const year = date.getFullYear();
@@ -177,7 +177,7 @@ export async function createGameViaUi(page: Page, input: UiGameInput): Promise<G
 
   const dateTime = input.dateTime || daysFromNow(2);
   const dateInput = page.getByPlaceholder('Select date and time');
-  await dateInput.fill(formatDateForInput(dateTime));
+  await dateInput.fill(formatGameDateTimeForInput(dateTime));
   await dateInput.press('Enter');
   await page.locator('#maxPlayers').fill(String(input.maxPlayers ?? 14));
   await page.locator('#unregisterDeadlineHours').fill(String(input.unregisterDeadlineHours ?? 5));
@@ -249,6 +249,19 @@ export async function createAdminAssignment(dayOfWeek: number, withPositions: bo
     [dayOfWeek, withPositions, userId]
   );
   return result.rows[0].id as number;
+}
+
+export async function setUserBlockReason(userId: number, blockReason: string | null) {
+  await pool.query(`update users set block_reason = $1 where id = $2`, [blockReason, userId]);
+}
+
+/** PUT /api/games/admin/:gameId — await immediately before clicking Save Changes on edit form. */
+export function waitForAdminGameUpdateResponse(page: Page, gameId: number) {
+  return page.waitForResponse(
+    (response) =>
+      response.request().method() === 'PUT' &&
+      new URL(response.url()).pathname === `/api/games/admin/${gameId}`
+  );
 }
 
 export async function cleanupE2eData() {

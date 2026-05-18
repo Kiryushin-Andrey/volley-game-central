@@ -2,13 +2,17 @@ import { expect, test } from '@playwright/test';
 import {
   cleanupE2eData,
   countRegistrations,
+  createAdminAssignment,
   createDevUserViaApi,
   createGameViaUi,
   daysFromNow,
   devLoginAs,
   e2eTitle,
+  formatGameDateTimeForInput,
   nextWeekday,
   switchToUser,
+  waitForAdminGameCreateResponse,
+  waitForAdminGameUpdateResponse,
   waitForBackend,
 } from './support/fixtures';
 
@@ -182,5 +186,58 @@ test.describe('game administration scenarios', () => {
 
     await page.goto(`/game/${game.id}`);
     await expect(page.getByTitle('Edit Game Settings')).toHaveCount(0);
+  });
+
+  test('E2E-ADMIN-009 assigned admin receives error when creating a game on an unauthorized weekday', async ({ page, request }, testInfo) => {
+    const assigned = await createDevUserViaApi(request, testInfo, 'Wrong Create Assigned');
+    await createAdminAssignment(0, false, assigned.id);
+
+    await devLoginAs(page, assigned);
+    await page.goto('/games/new');
+    await expect(page.getByRole('heading', { name: 'Create New Game' })).toBeVisible();
+
+    const tuesday = nextWeekday(2);
+    await page.getByPlaceholder('Select date and time').fill(formatGameDateTimeForInput(tuesday));
+    await page.getByPlaceholder('Select date and time').press('Enter');
+    await page.locator('#maxPlayers').fill('12');
+    await page.locator('#unregisterDeadlineHours').fill('5');
+    await page.locator('#paymentAmount').fill('7.50');
+    await page.locator('#locationName').fill('E2E Wrong Day Hall');
+    await page.locator('#locationLink').fill('https://maps.example/e2e-wrong-day');
+    await page.locator('#title').fill(e2eTitle(testInfo, 'Wrong Weekday'));
+
+    const createPromise = waitForAdminGameCreateResponse(page);
+    await page.getByRole('button', { name: 'Create Game' }).click();
+    const response = await createPromise;
+    expect(response.status()).toBe(403);
+
+    await expect(page.locator('.error-message')).toContainText('not authorized to create games for this day and type');
+  });
+
+  test('E2E-ADMIN-010 assigned admin cannot save edits to a game outside their assignment', async ({ page, request }, testInfo) => {
+    const globalAdmin = await createDevUserViaApi(request, testInfo, 'Wrong Edit Global', true);
+    const assigned = await createDevUserViaApi(request, testInfo, 'Wrong Edit Assigned');
+    await createAdminAssignment(0, false, assigned.id);
+
+    await devLoginAs(page, globalAdmin);
+    const game = await createGameViaUi(page, {
+      title: e2eTitle(testInfo, 'Tuesday Outside Assignment'),
+      dateTime: nextWeekday(2),
+      withPositions: false,
+    });
+
+    await switchToUser(page, assigned);
+    await page.goto(`/game/${game.id}/edit`);
+    await expect(page.getByRole('heading', { name: 'Edit Game Settings' })).toBeVisible();
+
+    const newTitle = e2eTitle(testInfo, 'Should Not Persist');
+    await page.locator('#title').fill(newTitle);
+
+    const updatePromise = waitForAdminGameUpdateResponse(page, game.id);
+    await page.getByRole('button', { name: 'Save Changes' }).click();
+    const updateResponse = await updatePromise;
+    expect(updateResponse.status()).toBe(403);
+
+    await expect(page.locator('.error-message')).toContainText('not authorized to manage this game');
   });
 });
