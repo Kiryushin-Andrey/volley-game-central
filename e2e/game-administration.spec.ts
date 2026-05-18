@@ -24,6 +24,8 @@ async function removePlayerByName(page: import('@playwright/test').Page, display
   const row = page.locator('.player-item').filter({ hasText: displayName }).first();
   await row.getByRole('button', { name: 'Remove player' }).click();
   await confirmDialog(page, true);
+  await expect(page.getByRole('dialog').getByText('Success')).toBeVisible();
+  await page.getByRole('dialog').getByRole('button', { name: 'OK' }).click();
 }
 
 test.describe('game administration scenarios', () => {
@@ -71,7 +73,7 @@ test.describe('game administration scenarios', () => {
 
     await devLoginAs(page, admin);
     await page.goto(`/game/${game.id}`);
-    await page.getByTitle('Add Participant').click();
+    await page.locator('.admin-actions').getByRole('button', { name: 'Add Participant' }).click();
     await page.getByPlaceholder('Search users to add...').fill(targetUser.displayName);
     await page.getByText(targetUser.displayName).click();
 
@@ -139,7 +141,7 @@ test.describe('game administration scenarios', () => {
 
     await expect(page.getByRole('heading', { name: 'Player details' })).toBeVisible();
     await expect(page.getByText('Display Name')).toBeVisible();
-    await expect(page.getByText(player.displayName)).toBeVisible();
+    await expect(page.getByRole('dialog').getByText(player.displayName)).toBeVisible();
   });
 
   test('E2E-ADMIN-007 assigned admin can manage games for assigned day and type', async ({ page, request }, testInfo) => {
@@ -181,13 +183,14 @@ test.describe('game administration scenarios', () => {
 
     await page.goto('/games/new');
     await expect(page.getByRole('heading', { name: 'Create New Game' })).toBeVisible();
+    await expect(page.getByText('Admin or assigned administrator access required')).toBeVisible();
     await page.locator('#maxPlayers').fill('12');
     await page.locator('#unregisterDeadlineHours').fill('5');
     await page.locator('#paymentAmount').fill('7.50');
     await page.locator('#locationName').fill('E2E Forbidden Hall');
     await page.locator('#title').fill(forbiddenTitle);
     await page.getByRole('button', { name: 'Create Game' }).click();
-    await expect(page.getByText('You are not authorized to create games for this day and type')).toBeVisible();
+    await expect(page.getByText('Admin or assigned administrator access required')).toBeVisible();
 
     await page.goto(`/game/${game.id}`);
     await expect(page.getByTitle('Edit Game Settings')).toHaveCount(0);
