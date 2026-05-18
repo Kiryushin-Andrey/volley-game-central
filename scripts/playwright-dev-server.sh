@@ -39,6 +39,11 @@ install_docker_if_missing() {
   run_as_root env DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io docker-compose-v2
 }
 
+install_playwright_browser() {
+  echo "Ensuring Playwright Chromium is installed..."
+  npx playwright install chromium
+}
+
 docker_info_reachable() {
   docker info >/dev/null 2>&1 || {
     command -v sudo >/dev/null 2>&1 && sudo docker info >/dev/null 2>&1
@@ -118,6 +123,7 @@ ensure_docker_daemon() {
   fi
 }
 
+install_playwright_browser
 install_docker_if_missing
 ensure_docker_daemon
 
