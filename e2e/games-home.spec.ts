@@ -1,18 +1,29 @@
 import { expect, test } from '@playwright/test';
 import {
   cleanupE2eData,
-  createAdminAssignment,
   createDevUserViaApi,
   createGame,
+  createGameViaUi,
   daysFromNow,
   devLogin,
   devLoginAs,
   e2eTitle,
   nextWeekday,
-  registerUser,
-  updateGame,
+  registerForGameViaUi,
+  switchToUser,
   waitForBackend,
 } from './support/fixtures';
+
+async function createAdminAssignmentViaUi(page: import('@playwright/test').Page, userDisplayName: string) {
+  await page.goto('/game-administrators');
+  await expect(page.getByRole('heading', { name: 'Game Administrators' })).toBeVisible();
+  await page.getByRole('button', { name: 'Add Assignment' }).click();
+  await page.getByLabel('Day of Week').selectOption('6');
+  await page.getByPlaceholder('Search for a user...').fill(userDisplayName);
+  await page.getByText(userDisplayName).click();
+  await page.getByRole('button', { name: 'Create' }).click();
+  await expect(page.getByText(userDisplayName)).toBeVisible();
+}
 
 test.describe('games home scenarios', () => {
   test.beforeEach(async ({ request }) => {
@@ -22,20 +33,24 @@ test.describe('games home scenarios', () => {
 
   test('E2E-HOME-001 participant sees an upcoming game on the games home', async ({ page, request }, testInfo) => {
     const admin = await createDevUserViaApi(request, testInfo, 'Home Admin', true);
+    const participant = await createDevUserViaApi(request, testInfo, 'Home Participant');
     const title = e2eTitle(testInfo, 'Home Upcoming');
-    await createGame({ title, createdById: admin.id, dateTime: nextWeekday(0), maxPlayers: 12 });
+    await devLoginAs(page, admin);
+    await createGameViaUi(page, { title, dateTime: nextWeekday(0), maxPlayers: 12 });
 
-    await devLogin(page, testInfo, 'Home Participant');
+    await switchToUser(page, participant);
 
     await expect(page.getByText(title)).toBeVisible();
   });
 
   test('E2E-HOME-002 participant opens a game card and reaches details', async ({ page, request }, testInfo) => {
     const admin = await createDevUserViaApi(request, testInfo, 'Card Admin', true);
+    const participant = await createDevUserViaApi(request, testInfo, 'Card Participant');
     const title = e2eTitle(testInfo, 'Open Card');
-    await createGame({ title, createdById: admin.id, dateTime: nextWeekday(0) });
+    await devLoginAs(page, admin);
+    await createGameViaUi(page, { title, dateTime: nextWeekday(0) });
 
-    await devLogin(page, testInfo, 'Card Participant');
+    await switchToUser(page, participant);
     await page.getByText(title).click();
 
     await expect(page).toHaveURL(/\/game\/\d+/);
@@ -44,14 +59,15 @@ test.describe('games home scenarios', () => {
 
   test('E2E-HOME-003 category multi-select shows selected category information', async ({ page, request }, testInfo) => {
     const admin = await createDevUserViaApi(request, testInfo, 'Category Admin', true);
-    await createGame({
+    const participant = await createDevUserViaApi(request, testInfo, 'Category Participant');
+    await devLoginAs(page, admin);
+    await createGameViaUi(page, {
       title: e2eTitle(testInfo, 'Thursday Five One'),
-      createdById: admin.id,
       dateTime: nextWeekday(4),
       withPositions: true,
     });
 
-    await devLogin(page, testInfo, 'Category Participant');
+    await switchToUser(page, participant);
     await page.locator('.category-multiselect-trigger').click();
     await page.getByText('Thursday 5-1').click();
 
@@ -60,10 +76,11 @@ test.describe('games home scenarios', () => {
 
   test('E2E-HOME-004 registered participant sees You are in badge', async ({ page, request }, testInfo) => {
     const admin = await createDevUserViaApi(request, testInfo, 'Registered Admin', true);
-    const participant = await devLogin(page, testInfo, 'Registered Participant');
+    const participant = await createDevUserViaApi(request, testInfo, 'Registered Participant');
     const title = e2eTitle(testInfo, 'Registered Badge');
-    const game = await createGame({ title, createdById: admin.id, dateTime: nextWeekday(0) });
-    await registerUser(game.id, participant.id, new Date());
+    await devLoginAs(page, admin);
+    const game = await createGameViaUi(page, { title, dateTime: nextWeekday(0) });
+    await registerForGameViaUi(page, participant, game.id);
 
     await page.goto('/');
 
@@ -74,11 +91,14 @@ test.describe('games home scenarios', () => {
   test('E2E-HOME-005 waitlisted participant sees Waitlist badge', async ({ page, request }, testInfo) => {
     const admin = await createDevUserViaApi(request, testInfo, 'Waitlist Admin', true);
     const firstPlayer = await createDevUserViaApi(request, testInfo, 'First Player');
-    const participant = await devLogin(page, testInfo, 'Waitlist Participant');
+    const secondPlayer = await createDevUserViaApi(request, testInfo, 'Second Player');
+    const participant = await createDevUserViaApi(request, testInfo, 'Waitlist Participant');
     const title = e2eTitle(testInfo, 'Waitlist Badge');
-    const game = await createGame({ title, createdById: admin.id, dateTime: nextWeekday(0), maxPlayers: 1 });
-    await registerUser(game.id, firstPlayer.id, new Date(Date.now() - 60_000));
-    await registerUser(game.id, participant.id, new Date());
+    await devLoginAs(page, admin);
+    const game = await createGameViaUi(page, { title, dateTime: nextWeekday(0), maxPlayers: 2 });
+    await registerForGameViaUi(page, firstPlayer, game.id);
+    await registerForGameViaUi(page, secondPlayer, game.id);
+    await registerForGameViaUi(page, participant, game.id, 'Waitlist');
 
     await page.goto('/');
 
@@ -88,16 +108,17 @@ test.describe('games home scenarios', () => {
 
   test('E2E-HOME-006 location link opens externally without changing app route', async ({ page, request }, testInfo) => {
     const admin = await createDevUserViaApi(request, testInfo, 'Location Admin', true);
+    const participant = await createDevUserViaApi(request, testInfo, 'Location Participant');
     const title = e2eTitle(testInfo, 'Location Card');
-    await createGame({
+    await devLoginAs(page, admin);
+    await createGameViaUi(page, {
       title,
-      createdById: admin.id,
       dateTime: nextWeekday(0),
       locationName: 'E2E Maps Gym',
       locationLink: 'https://example.com/e2e-gym',
     });
 
-    await devLogin(page, testInfo, 'Location Participant');
+    await switchToUser(page, participant);
     const popupPromise = page.waitForEvent('popup');
     await page.getByRole('link', { name: /E2E Maps Gym/ }).click();
     const popup = await popupPromise;
@@ -110,9 +131,8 @@ test.describe('games home scenarios', () => {
   test('E2E-HOME-007 global admin switches between Upcoming and Past filters', async ({ page, request }, testInfo) => {
     const title = e2eTitle(testInfo, 'Past Filter');
     const adminUser = await createDevUserViaApi(request, testInfo, 'Past Filter Admin', true);
-    await createGame({ title, createdById: adminUser.id, dateTime: daysFromNow(-1) });
-
     await devLoginAs(page, adminUser);
+    await createGameViaUi(page, { title, dateTime: daysFromNow(-1) });
     await page.getByLabel('Past').check();
 
     await expect(page.getByText(title)).toBeVisible();
@@ -123,9 +143,8 @@ test.describe('games home scenarios', () => {
   test('E2E-HOME-008 global admin toggles Show all scheduled games', async ({ page, request }, testInfo) => {
     const adminUser = await createDevUserViaApi(request, testInfo, 'Show All Admin', true);
     const title = e2eTitle(testInfo, 'Far Future');
-    await createGame({ title, createdById: adminUser.id, dateTime: nextWeekday(0, 21) });
-
     await devLoginAs(page, adminUser);
+    await createGameViaUi(page, { title, dateTime: nextWeekday(0, 21) });
     await expect(page.getByText(title)).toHaveCount(0);
     await page.getByLabel('Show all scheduled games').check();
 
@@ -153,10 +172,12 @@ test.describe('games home scenarios', () => {
   });
 
   test('E2E-HOME-011 assigned admin sees create access without global admin links', async ({ page, request }, testInfo) => {
+    const globalAdmin = await createDevUserViaApi(request, testInfo, 'Assignment Home Creator', true);
     const assignedAdmin = await createDevUserViaApi(request, testInfo, 'Assigned Home Admin');
-    await createAdminAssignment(6, false, assignedAdmin.id);
+    await devLoginAs(page, globalAdmin);
+    await createAdminAssignmentViaUi(page, assignedAdmin.displayName);
 
-    await devLoginAs(page, assignedAdmin);
+    await switchToUser(page, assignedAdmin);
 
     await expect(page.getByTitle('Create New Game')).toBeVisible();
     await expect(page.getByTitle('Game Administrators')).toHaveCount(0);

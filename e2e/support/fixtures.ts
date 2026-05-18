@@ -14,6 +14,19 @@ export type GameFixture = {
   dateTime: Date;
 };
 
+type UiGameInput = {
+  title: string;
+  dateTime?: Date;
+  maxPlayers?: number;
+  unregisterDeadlineHours?: number;
+  paymentAmount?: string;
+  pricingMode?: 'per_participant' | 'total_cost';
+  withPositions?: boolean;
+  readonly?: boolean;
+  locationName?: string;
+  locationLink?: string;
+};
+
 type GameInput = {
   title: string;
   createdById: number;
@@ -148,6 +161,75 @@ export function nextWeekday(jsDay: number, minDaysAhead = 1, hour = 18) {
 
 export function e2eTitle(testInfo: TestInfo, label: string) {
   return `E2E ${label} ${uniqueRunId(testInfo)}`;
+}
+
+function formatDateForInput(date: Date) {
+  const month = date.toLocaleString('en-US', { month: 'long' });
+  const day = date.getDate();
+  const year = date.getFullYear();
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  return `${month} ${day}, ${year} ${hours}:${minutes}`;
+}
+
+export async function setCheckbox(page: Page, selector: string, checked = true) {
+  const input = page.locator(selector);
+  if ((await input.isChecked()) !== checked) {
+    await page.locator(`label[for="${selector.replace('#', '')}"]`).click();
+  }
+}
+
+export async function createGameViaUi(page: Page, input: UiGameInput): Promise<GameFixture> {
+  await page.goto('/games/new');
+  await expect(page.getByRole('heading', { name: 'Create New Game' })).toBeVisible();
+
+  const dateTime = input.dateTime || daysFromNow(2);
+  const dateInput = page.getByPlaceholder('Select date and time');
+  await dateInput.fill(formatDateForInput(dateTime));
+  await dateInput.press('Enter');
+  await page.locator('#maxPlayers').fill(String(input.maxPlayers ?? 14));
+  await page.locator('#unregisterDeadlineHours').fill(String(input.unregisterDeadlineHours ?? 5));
+  await page.locator('#paymentAmount').fill(input.paymentAmount ?? '5.00');
+  await page.locator('#locationName').fill(input.locationName ?? 'E2E Sports Hall');
+  await page.locator('#locationLink').fill(input.locationLink ?? 'https://maps.example/e2e');
+  await page.locator('#title').fill(input.title);
+
+  if (input.pricingMode === 'total_cost') {
+    await setCheckbox(page, '#pricingMode');
+  }
+  if (input.withPositions) {
+    await setCheckbox(page, '#withPositions');
+  }
+  if (input.readonly) {
+    await setCheckbox(page, '#readonly');
+  }
+
+  await page.getByRole('button', { name: 'Create Game' }).click();
+  await expect(page).toHaveURL('/');
+
+  const created = await findGameByTitle(input.title);
+  expect(created).toBeTruthy();
+  return {
+    id: created.id,
+    title: created.title,
+    dateTime: new Date(created.date_time),
+  };
+}
+
+export async function switchToUser(page: Page, user: DevUser) {
+  if (await page.getByRole('button', { name: 'Logout' }).isVisible().catch(() => false)) {
+    await page.getByRole('button', { name: 'Logout' }).click();
+  }
+  return devLoginAs(page, user);
+}
+
+export async function registerForGameViaUi(page: Page, user: DevUser, gameId: number, expectedStatus = "You're in") {
+  await switchToUser(page, user);
+  await page.goto(`/game/${gameId}`);
+  await page.getByRole('button', { name: 'Join Game' }).click();
+  await expect(page.getByRole('heading', { name: 'Will you bring a volleyball?' })).toBeVisible();
+  await page.getByRole('button', { name: /No, I won't bring one/ }).click();
+  await expect(page.getByText(expectedStatus, { exact: true })).toBeVisible();
 }
 
 export async function createGame(input: GameInput): Promise<GameFixture> {

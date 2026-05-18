@@ -3,11 +3,14 @@ import {
   cleanupE2eData,
   createDevUserViaApi,
   createGame,
+  createGameViaUi,
   daysFromNow,
   devLogin,
+  devLoginAs,
   e2eTitle,
   nextWeekday,
-  registerUser,
+  registerForGameViaUi,
+  switchToUser,
   waitForBackend,
 } from './support/fixtures';
 
@@ -33,17 +36,18 @@ test.describe('game details participant scenarios', () => {
 
   test('E2E-GAME-001 participant sees upcoming game details and registration action', async ({ page, request }, testInfo) => {
     const admin = await createDevUserViaApi(request, testInfo, 'Details Admin', true);
+    const participant = await createDevUserViaApi(request, testInfo, 'Details Participant');
     const title = e2eTitle(testInfo, 'Details Open');
-    const game = await createGame({
+    await devLoginAs(page, admin);
+    const game = await createGameViaUi(page, {
       title,
-      createdById: admin.id,
       dateTime: daysFromNow(2),
       maxPlayers: 8,
-      paymentAmount: 750,
+      paymentAmount: '7.50',
       locationName: 'E2E Details Hall',
     });
 
-    await devLogin(page, testInfo, 'Details Participant');
+    await switchToUser(page, participant);
     await page.goto(`/game/${game.id}`);
 
     await expect(page.getByText(title)).toBeVisible();
@@ -55,9 +59,11 @@ test.describe('game details participant scenarios', () => {
 
   test('E2E-GAME-002 participant joins an open game and sees registered status', async ({ page, request }, testInfo) => {
     const admin = await createDevUserViaApi(request, testInfo, 'Join Admin', true);
-    const game = await createGame({ title: e2eTitle(testInfo, 'Join Open'), createdById: admin.id, dateTime: nextWeekday(0) });
+    const participant = await createDevUserViaApi(request, testInfo, 'Join Participant');
+    await devLoginAs(page, admin);
+    const game = await createGameViaUi(page, { title: e2eTitle(testInfo, 'Join Open'), dateTime: nextWeekday(0) });
 
-    await devLogin(page, testInfo, 'Join Participant');
+    await switchToUser(page, participant);
     await page.goto(`/game/${game.id}`);
     await joinGame(page);
 
@@ -67,9 +73,11 @@ test.describe('game details participant scenarios', () => {
 
   test('E2E-GAME-003 participant leaves a joined game before the deadline', async ({ page, request }, testInfo) => {
     const admin = await createDevUserViaApi(request, testInfo, 'Leave Admin', true);
-    const game = await createGame({ title: e2eTitle(testInfo, 'Leave Open'), createdById: admin.id, dateTime: daysFromNow(2) });
+    const participant = await createDevUserViaApi(request, testInfo, 'Leave Participant');
+    await devLoginAs(page, admin);
+    const game = await createGameViaUi(page, { title: e2eTitle(testInfo, 'Leave Open'), dateTime: daysFromNow(2) });
 
-    await devLogin(page, testInfo, 'Leave Participant');
+    await switchToUser(page, participant);
     await page.goto(`/game/${game.id}`);
     await joinGame(page);
     await page.waitForTimeout(1100);
@@ -81,10 +89,14 @@ test.describe('game details participant scenarios', () => {
   test('E2E-GAME-004 participant joins a full game and lands on waiting list', async ({ page, request }, testInfo) => {
     const admin = await createDevUserViaApi(request, testInfo, 'Full Admin', true);
     const firstPlayer = await createDevUserViaApi(request, testInfo, 'Full First Player');
-    const game = await createGame({ title: e2eTitle(testInfo, 'Full Game'), createdById: admin.id, dateTime: daysFromNow(2), maxPlayers: 1 });
-    await registerUser(game.id, firstPlayer.id, new Date(Date.now() - 60_000));
+    const secondPlayer = await createDevUserViaApi(request, testInfo, 'Full Second Player');
+    const waitlistedPlayer = await createDevUserViaApi(request, testInfo, 'Full Waitlist Participant');
+    await devLoginAs(page, admin);
+    const game = await createGameViaUi(page, { title: e2eTitle(testInfo, 'Full Game'), dateTime: daysFromNow(2), maxPlayers: 2 });
+    await registerForGameViaUi(page, firstPlayer, game.id);
+    await registerForGameViaUi(page, secondPlayer, game.id);
 
-    await devLogin(page, testInfo, 'Full Waitlist Participant');
+    await switchToUser(page, waitlistedPlayer);
     await page.goto(`/game/${game.id}`);
     await joinGame(page, false, 'Waitlist');
 
@@ -94,12 +106,16 @@ test.describe('game details participant scenarios', () => {
 
   test('E2E-GAME-005 leaving a full game promotes the next waitlisted participant', async ({ page, request }, testInfo) => {
     const admin = await createDevUserViaApi(request, testInfo, 'Promote Admin', true);
-    const activePlayer = await devLogin(page, testInfo, 'Promote Active');
+    const activePlayer = await createDevUserViaApi(request, testInfo, 'Promote Active');
+    const secondActivePlayer = await createDevUserViaApi(request, testInfo, 'Promote Second Active');
     const waitlistedPlayer = await createDevUserViaApi(request, testInfo, 'Promote Waitlisted');
-    const game = await createGame({ title: e2eTitle(testInfo, 'Promote Waitlist'), createdById: admin.id, dateTime: daysFromNow(2), maxPlayers: 1 });
-    await registerUser(game.id, activePlayer.id, new Date(Date.now() - 60_000));
-    await registerUser(game.id, waitlistedPlayer.id, new Date());
+    await devLoginAs(page, admin);
+    const game = await createGameViaUi(page, { title: e2eTitle(testInfo, 'Promote Waitlist'), dateTime: daysFromNow(2), maxPlayers: 2 });
+    await registerForGameViaUi(page, activePlayer, game.id);
+    await registerForGameViaUi(page, secondActivePlayer, game.id);
+    await registerForGameViaUi(page, waitlistedPlayer, game.id, 'Waitlist');
 
+    await switchToUser(page, activePlayer);
     await page.goto(`/game/${game.id}`);
     await expect(page.getByText('Waiting List')).toBeVisible();
     await leaveGame(page);
@@ -110,14 +126,15 @@ test.describe('game details participant scenarios', () => {
 
   test('E2E-GAME-006 readonly game blocks participant self-registration', async ({ page, request }, testInfo) => {
     const admin = await createDevUserViaApi(request, testInfo, 'Readonly Admin', true);
-    const game = await createGame({
+    const participant = await createDevUserViaApi(request, testInfo, 'Readonly Participant');
+    await devLoginAs(page, admin);
+    const game = await createGameViaUi(page, {
       title: e2eTitle(testInfo, 'Readonly Game'),
-      createdById: admin.id,
       dateTime: daysFromNow(2),
       readonly: true,
     });
 
-    await devLogin(page, testInfo, 'Readonly Participant');
+    await switchToUser(page, participant);
     await page.goto(`/game/${game.id}`);
 
     await expect(page.getByText('This game is readonly. Registration and deregistration are closed.')).toBeVisible();
@@ -126,14 +143,16 @@ test.describe('game details participant scenarios', () => {
 
   test('E2E-GAME-007 registered participant sees deadline info after unregister deadline passes', async ({ page, request }, testInfo) => {
     const admin = await createDevUserViaApi(request, testInfo, 'Deadline Admin', true);
-    const participant = await devLogin(page, testInfo, 'Deadline Participant');
-    const game = await createGame({
+    const participant = await createDevUserViaApi(request, testInfo, 'Deadline Participant');
+    await devLoginAs(page, admin);
+    const game = await createGameViaUi(page, {
       title: e2eTitle(testInfo, 'Deadline Info'),
-      createdById: admin.id,
       dateTime: daysFromNow(0, new Date().getHours() + 1),
       unregisterDeadlineHours: 5,
     });
-    await registerUser(game.id, participant.id, new Date());
+    await switchToUser(page, participant);
+    await page.goto(`/game/${game.id}`);
+    await joinGame(page);
 
     await page.goto(`/game/${game.id}`);
 
@@ -151,10 +170,12 @@ test.describe('game details participant scenarios', () => {
 
   test('E2E-GAME-009 participant registers a guest and sees guest in players list', async ({ page, request }, testInfo) => {
     const admin = await createDevUserViaApi(request, testInfo, 'Guest Admin', true);
-    const game = await createGame({ title: e2eTitle(testInfo, 'Guest Game'), createdById: admin.id, dateTime: daysFromNow(2) });
+    const participant = await createDevUserViaApi(request, testInfo, 'Guest Participant');
+    await devLoginAs(page, admin);
+    const game = await createGameViaUi(page, { title: e2eTitle(testInfo, 'Guest Game'), dateTime: daysFromNow(2) });
     const guestName = `Guest ${Date.now().toString(36)}`;
 
-    await devLogin(page, testInfo, 'Guest Participant');
+    await switchToUser(page, participant);
     await page.goto(`/game/${game.id}`);
     await page.getByRole('button', { name: 'Add guest' }).click();
     await page.getByLabel('Guest Name:').fill(guestName);
@@ -166,9 +187,11 @@ test.describe('game details participant scenarios', () => {
 
   test('E2E-GAME-010 participant completes bring-ball flow', async ({ page, request }, testInfo) => {
     const admin = await createDevUserViaApi(request, testInfo, 'Ball Admin', true);
-    const game = await createGame({ title: e2eTitle(testInfo, 'Bring Ball'), createdById: admin.id, dateTime: daysFromNow(2) });
+    const participant = await createDevUserViaApi(request, testInfo, 'Ball Participant');
+    await devLoginAs(page, admin);
+    const game = await createGameViaUi(page, { title: e2eTitle(testInfo, 'Bring Ball'), dateTime: daysFromNow(2) });
 
-    await devLogin(page, testInfo, 'Ball Participant');
+    await switchToUser(page, participant);
     await page.goto(`/game/${game.id}`);
     await joinGame(page, true);
 

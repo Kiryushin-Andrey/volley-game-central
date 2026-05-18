@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import {
   cleanupE2eData,
   createDevUserViaApi,
-  createGame,
+  createGameViaUi,
   devLogin,
   devLoginAs,
   e2eTitle,
@@ -116,14 +116,15 @@ test.describe('game creation and editing scenarios', () => {
     const admin = await createDevUserViaApi(request, testInfo, 'Edit Admin', true);
     const originalTitle = e2eTitle(testInfo, 'Edit Original');
     const updatedTitle = e2eTitle(testInfo, 'Edit Updated');
-    const game = await createGame({ title: originalTitle, createdById: admin.id });
 
     await devLoginAs(page, admin);
+    const game = await createGameViaUi(page, { title: originalTitle });
     await page.goto(`/game/${game.id}`);
     await page.getByTitle('Edit Game Settings').click();
     await expect(page.getByRole('heading', { name: 'Edit Game Settings' })).toBeVisible();
 
     await page.locator('#title').fill(updatedTitle);
+    await expect(page.locator('#title')).toHaveValue(updatedTitle);
     await page.locator('#locationName').fill('E2E Edited Hall');
     await page.locator('#maxPlayers').fill('16');
     await page.getByRole('button', { name: 'Save Changes' }).click();
@@ -137,9 +138,9 @@ test.describe('game creation and editing scenarios', () => {
     const admin = await createDevUserViaApi(request, testInfo, 'Cancel Edit Admin', true);
     const originalTitle = e2eTitle(testInfo, 'Cancel Edit Original');
     const cancelledTitle = e2eTitle(testInfo, 'Cancel Edit New');
-    const game = await createGame({ title: originalTitle, createdById: admin.id });
 
     await devLoginAs(page, admin);
+    const game = await createGameViaUi(page, { title: originalTitle });
     await page.goto(`/game/${game.id}/edit`);
     await page.locator('#title').fill(cancelledTitle);
     await page.getByRole('button', { name: 'Cancel' }).click();
