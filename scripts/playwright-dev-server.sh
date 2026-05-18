@@ -2,7 +2,7 @@
 set -euo pipefail
 
 export DEV_MODE="${DEV_MODE:-true}"
-export POSTGRES_HOST="${POSTGRES_HOST:-localhost}"
+export POSTGRES_HOST="${POSTGRES_HOST:-127.0.0.1}"
 export POSTGRES_PORT="${POSTGRES_PORT:-5432}"
 export POSTGRES_USER="${POSTGRES_USER:-postgres}"
 export POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-postgres}"
@@ -30,7 +30,7 @@ else
   fi
 
   if ! pg_ctl -D "$PLAYWRIGHT_PGDATA" status >/dev/null 2>&1; then
-    pg_ctl -D "$PLAYWRIGHT_PGDATA" -o "-p $POSTGRES_PORT -h 127.0.0.1" -l "$PLAYWRIGHT_PGDATA/server.log" start
+    pg_ctl -D "$PLAYWRIGHT_PGDATA" -o "-p $POSTGRES_PORT -h 127.0.0.1 -k $PLAYWRIGHT_PGDATA" -l "$PLAYWRIGHT_PGDATA/server.log" start
   fi
 
   db_exists="$(psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = '$POSTGRES_DB'")"
