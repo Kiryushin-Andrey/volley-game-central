@@ -72,6 +72,7 @@ test.describe('game details participant scenarios', () => {
     await devLogin(page, testInfo, 'Leave Participant');
     await page.goto(`/game/${game.id}`);
     await joinGame(page);
+    await page.waitForTimeout(1100);
     await leaveGame(page);
 
     await expect(page.getByText("You're in")).toHaveCount(0);
