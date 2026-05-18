@@ -27,23 +27,6 @@ type UiGameInput = {
   locationLink?: string;
 };
 
-type GameInput = {
-  title: string;
-  createdById: number;
-  dateTime?: Date;
-  maxPlayers?: number;
-  unregisterDeadlineHours?: number;
-  paymentAmount?: number;
-  pricingMode?: 'per_participant' | 'total_cost';
-  fullyPaid?: boolean;
-  withPositions?: boolean;
-  withPriorityPlayers?: boolean;
-  readonly?: boolean;
-  locationName?: string;
-  locationLink?: string;
-  tag?: 'halloween' | 'newyear' | 'march8';
-};
-
 const pool = new Pool({
   host: process.env.POSTGRES_HOST || '127.0.0.1',
   port: Number(process.env.POSTGRES_PORT || 5432),
@@ -243,51 +226,6 @@ export async function registerForGameViaUi(page: Page, user: DevUser, gameId: nu
   await expect(page.getByRole('heading', { name: 'Will you bring a volleyball?' })).toBeVisible();
   await page.getByRole('button', { name: /No, I won't bring one/ }).click();
   await expect(page.getByText(expectedStatus, { exact: true })).toBeVisible();
-}
-
-export async function createGame(input: GameInput): Promise<GameFixture> {
-  const dateTime = input.dateTime || daysFromNow(2);
-  const result = await pool.query(
-    `insert into games (
-      date_time,
-      max_players,
-      unregister_deadline_hours,
-      payment_amount,
-      pricing_mode,
-      fully_paid,
-      with_positions,
-      with_priority_players,
-      readonly,
-      location_name,
-      location_link,
-      tag,
-      title,
-      created_by_id
-    ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
-    returning id, title, date_time as "dateTime"`,
-    [
-      dateTime,
-      input.maxPlayers ?? 14,
-      input.unregisterDeadlineHours ?? 5,
-      input.paymentAmount ?? 500,
-      input.pricingMode ?? 'per_participant',
-      input.fullyPaid ?? false,
-      input.withPositions ?? false,
-      input.withPriorityPlayers ?? false,
-      input.readonly ?? false,
-      input.locationName ?? 'E2E Sports Hall',
-      input.locationLink ?? 'https://maps.example/e2e',
-      input.tag ?? null,
-      input.title,
-      input.createdById,
-    ]
-  );
-
-  return {
-    id: result.rows[0].id,
-    title: result.rows[0].title,
-    dateTime: new Date(result.rows[0].dateTime),
-  };
 }
 
 export async function updateGame(id: number, updates: Record<string, unknown>) {

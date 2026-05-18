@@ -2,7 +2,6 @@ import { expect, test } from '@playwright/test';
 import {
   cleanupE2eData,
   createDevUserViaApi,
-  createGame,
   createGameViaUi,
   daysFromNow,
   devLogin,
@@ -11,6 +10,7 @@ import {
   nextWeekday,
   registerForGameViaUi,
   switchToUser,
+  updateGame,
   waitForBackend,
 } from './support/fixtures';
 
@@ -206,17 +206,23 @@ test.describe('game details participant scenarios', () => {
       { tag: 'march8' as const, note: 'March 8 Special' },
     ];
 
-    await devLogin(page, testInfo, 'Season Participant');
-
+    await devLoginAs(page, admin);
+    const games = [];
     for (const seasonal of seasonalGames) {
-      const game = await createGame({
+      const game = await createGameViaUi(page, {
         title: e2eTitle(testInfo, `Season ${seasonal.tag}`),
-        createdById: admin.id,
         dateTime: daysFromNow(2),
-        tag: seasonal.tag,
       });
+      await updateGame(game.id, { tag: seasonal.tag });
+      games.push({ game, note: seasonal.note });
+    }
+
+    const participant = await createDevUserViaApi(request, testInfo, 'Season Participant');
+    await switchToUser(page, participant);
+
+    for (const { game, note } of games) {
       await page.goto(`/game/${game.id}`);
-      await expect(page.getByText(seasonal.note)).toBeVisible();
+      await expect(page.getByText(note)).toBeVisible();
       await expect(page.getByRole('button', { name: 'Join Game' })).toBeVisible();
     }
   });

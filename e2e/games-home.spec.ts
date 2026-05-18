@@ -2,7 +2,6 @@ import { expect, test } from '@playwright/test';
 import {
   cleanupE2eData,
   createDevUserViaApi,
-  createGame,
   createGameViaUi,
   daysFromNow,
   devLogin,
@@ -11,6 +10,7 @@ import {
   nextWeekday,
   registerForGameViaUi,
   switchToUser,
+  updateGame,
   waitForBackend,
 } from './support/fixtures';
 
@@ -154,9 +154,9 @@ test.describe('games home scenarios', () => {
   test('E2E-HOME-009 global admin toggles Show fully paid games', async ({ page, request }, testInfo) => {
     const adminUser = await createDevUserViaApi(request, testInfo, 'Fully Paid Admin', true);
     const title = e2eTitle(testInfo, 'Fully Paid Past');
-    await createGame({ title, createdById: adminUser.id, dateTime: daysFromNow(-1), fullyPaid: true });
-
     await devLoginAs(page, adminUser);
+    const game = await createGameViaUi(page, { title, dateTime: daysFromNow(-1) });
+    await updateGame(game.id, { fully_paid: true });
     await page.getByLabel('Past').check();
     await expect(page.getByText(title)).toHaveCount(0);
     await page.getByLabel('Show fully paid games').check();
