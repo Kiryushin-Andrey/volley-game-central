@@ -228,8 +228,27 @@ export async function registerForGameViaUi(page: Page, user: DevUser, gameId: nu
   await expect(page.getByText(expectedStatus, { exact: true })).toBeVisible();
 }
 
-export async function updateGame(id: number, updates: Record<string, unknown>) {
-  const entries = Object.entries(updates);
+/** Fields that cannot be set through the mini-app UI (allowed for E2E DB helpers only). */
+export type GameDbOnlyPatch = {
+  tag?: string | null;
+  fully_paid?: boolean;
+};
+
+export async function updateGame(id: number, updates: GameDbOnlyPatch): Promise<void> {
+  const allowedKeys = new Set(['tag', 'fully_paid']);
+  const keys = Object.keys(updates);
+  const bad = keys.filter((k) => !allowedKeys.has(k));
+  if (bad.length > 0) {
+    throw new Error(`updateGame: disallowed keys: ${bad.join(', ')}. Only "tag" and "fully_paid" are permitted.`);
+  }
+
+  const entries: [string, unknown][] = [];
+  if (Object.prototype.hasOwnProperty.call(updates, 'tag')) {
+    entries.push(['tag', updates.tag ?? null]);
+  }
+  if (Object.prototype.hasOwnProperty.call(updates, 'fully_paid')) {
+    entries.push(['fully_paid', updates.fully_paid]);
+  }
   if (entries.length === 0) return;
 
   const setSql = entries.map(([key], index) => `${key} = $${index + 2}`).join(', ');

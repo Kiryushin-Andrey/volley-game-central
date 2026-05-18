@@ -7,10 +7,11 @@ import {
   deliverBunqRequestInquiryAcceptedWebhook,
   devLoginAs,
   e2eTitle,
+  formatGameDateTimeForInput,
   getPaymentRequestIdForUserRegistration,
   registerForGameViaUi,
   resetBunqMock,
-  updateGame,
+  waitForAdminGameUpdateResponse,
   waitForBackend,
 } from './support/fixtures';
 
@@ -43,7 +44,16 @@ test.describe('Bunq mock and webhook-driven payments', () => {
       await devLoginAs(participantPage, participant);
       await registerForGameViaUi(participantPage, participant, game.id);
 
-      await updateGame(game.id, { date_time: daysFromNow(-2) });
+      await adminPage.goto(`/game/${game.id}/edit`);
+      await expect(adminPage.getByRole('heading', { name: 'Edit Game Settings' })).toBeVisible();
+      const pastDate = daysFromNow(-2);
+      const dateInput = adminPage.getByPlaceholder('Select date and time');
+      await dateInput.fill(formatGameDateTimeForInput(pastDate));
+      await dateInput.press('Enter');
+      const updatePromise = waitForAdminGameUpdateResponse(adminPage, game.id);
+      await adminPage.getByRole('button', { name: 'Save Changes' }).click();
+      await updatePromise;
+      await expect(adminPage).toHaveURL(new RegExp(`/game/${game.id}$`));
 
       await adminPage.goto('/bunq-settings');
       await expect(adminPage.getByRole('heading', { name: 'Bunq Settings' })).toBeVisible();
