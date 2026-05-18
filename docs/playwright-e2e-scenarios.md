@@ -91,10 +91,12 @@ Use unique phone numbers per test run when tests create mutable state.
 
 ## Game administration scenarios
 
+Participant add/remove on past or readonly games applies only **before** payment requests have been sent (`collectorUser` unset). After requests are sent, use the roster-lock scenarios in the next section instead.
+
 - [ ] E2E-ADMIN-001: Global Admin deletes an upcoming game from game details after confirming the browser prompt.
 - [ ] E2E-ADMIN-002: Global Admin cancels the delete confirmation and the game remains available.
-- [ ] E2E-ADMIN-003: Global Admin adds an existing user to a readonly or past game through the `Search users to add...` admin flow.
-- [ ] E2E-ADMIN-004: Global Admin removes a player from a game and the players list updates.
+- [ ] E2E-ADMIN-003: Global Admin adds an existing user to a readonly or past game through the `Search users to add...` admin flow while payment requests have **not** yet been sent.
+- [ ] E2E-ADMIN-004: Global Admin removes a player from a past or readonly game and the players list updates while payment requests have **not** yet been sent.
 - [ ] E2E-ADMIN-005: Global Admin opens player info from a player row and sees the selected user's public information.
 - [ ] E2E-ADMIN-006: Assigned Admin can manage games for their assigned day/type, including creating a game and reaching permitted admin actions.
 - [ ] E2E-ADMIN-007: Assigned Admin cannot access global-only routes such as game administrator assignment management.
@@ -140,7 +142,7 @@ Past or readonly games with `paymentAmount > 0`, Bunq enabled for the collecting
 
 - [ ] E2E-BUNQ-PAY-001: Global Admin with Bunq enabled opens a past paid game and sees the send-payment-requests control; an upcoming game with the same cost does not show it.
 - [ ] E2E-BUNQ-PAY-002: Global Admin sends payment requests: click send → password dialog `Please enter your password to send payment requests.` → submit → popup `Payment requests sent` with a success count → dismiss → page shows `Payments collected by` with the admin’s display name.
-- [ ] E2E-BUNQ-PAY-003: After payment requests are sent, active players show `Unpaid` (or `Paid` if already settled); admin remove-player control is no longer available for those rows.
+- [ ] E2E-BUNQ-PAY-003: After payment requests are sent, active players show `Unpaid` (or `Paid` if already settled); admin remove-player control is no longer available for those rows (see also E2E-BUNQ-LOCK-002 and E2E-BUNQ-LOCK-003).
 - [ ] E2E-BUNQ-PAY-004: Invalid Bunq password on send keeps the password dialog open with `Invalid password` and does not show the success popup.
 - [ ] E2E-BUNQ-PAY-005: Assigned Admin with their own Bunq configured (via CONFIG-009) can send payment requests on a past game they administer; Participant A does not see send-payment controls on the same game.
 - [ ] E2E-BUNQ-PAY-006: Readonly past game with cost and registrations follows the same send-payment-requests flow as a normal past game.
@@ -158,3 +160,23 @@ Status surfaces: per-player `Paid` / `Unpaid` on game details (past/readonly, af
 - [ ] E2E-BUNQ-STATUS-005: Wrong password on per-game check keeps the password dialog open with `Invalid password`.
 - [ ] E2E-BUNQ-STATUS-006: Global Admin opens `/check-payments`, submits password on `Enter Bunq API Password`, sees completion feedback, and returns to games home; past unpaid games reflect updated statuses where the mock reports payment accepted.
 - [ ] E2E-BUNQ-STATUS-007: Participant A on a past game they joined does not see admin paid-status toggles or check-payment/sync controls; they may still see price and their own registration state.
+
+## Roster lock and related flows after payment requests
+
+These scenarios depend on Bunq being enabled and payment requests having been sent on a past (or readonly past) game with `paymentAmount > 0`. Setup entirely through the UI: create game, register players, move game to the past, enable Bunq, send payment requests (see payment-request scenarios). `hasPaymentRequests` is indicated in the UI by `Payments collected by` / `collectorUser`.
+
+### Admin roster changes
+
+- [ ] E2E-BUNQ-LOCK-001: On a past game **before** payment requests are sent, Global Admin sees **Add Participant** (`title="Add Participant"`), adds Participant B via `Search users to add...`, and Participant B appears in the players list.
+- [ ] E2E-BUNQ-LOCK-002: On the same game **after** payment requests are sent, **Add Participant** is no longer shown in admin actions and there is no `Search users to add...` flow.
+- [ ] E2E-BUNQ-LOCK-003: After payment requests are sent, active player rows show `Paid` / `Unpaid` toggles instead of **Remove player**; admin cannot remove a registered player from the roster.
+- [ ] E2E-BUNQ-LOCK-004: On a readonly past game **before** payment requests, Global Admin uses **Add guest**, the guest dialog shows `Invited by` with `Search user (inviter)...`, and a guest registered under an inviter appears in the players list.
+- [ ] E2E-BUNQ-LOCK-005: On a readonly past game **after** payment requests, the guest dialog no longer offers inviter search; **Add guest** cannot add new roster entries (error such as readonly registration closed, or equivalent failure surfaced in the dialog).
+- [ ] E2E-BUNQ-LOCK-006: After payment requests are sent, Global Admin can still open **Edit Game Settings**, change a visible field such as title, save, and see the update on game details (roster lock does not block game metadata edits).
+- [ ] E2E-BUNQ-LOCK-007: After payment requests are sent for all unpaid players, **Send payment requests** is hidden or a second send via UI reports zero new requests created without duplicating roster side effects.
+
+### Participant and admin visibility of outstanding payments
+
+- [ ] E2E-BUNQ-LOCK-008: Participant A who is unpaid on a past game sees a `Your unpaid games` block on the games home (`Upcoming` filter) with that game listed after payment requests were sent.
+- [ ] E2E-BUNQ-LOCK-009: Participant A opens the unpaid-games entry and **Pay now** opens the Bunq payment link in a new browser tab (or window).
+- [ ] E2E-BUNQ-LOCK-010: Global Admin opens **Player details** for a user with outstanding payment requests, sees an `Unpaid games` section listing the game, and **Send payment reminder** completes successfully (UI feedback only; do not assert SMS/Telegram delivery).
