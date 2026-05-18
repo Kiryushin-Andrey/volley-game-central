@@ -274,6 +274,7 @@ export async function cleanupE2eData() {
   await pool.query(`delete from game_registrations where game_id in (select id from games where title like 'E2E %')`);
   await pool.query(`delete from priority_players where user_id in (select id from users where display_name like 'E2E %')`);
   await pool.query(`delete from game_administrators where user_id in (select id from users where display_name like 'E2E %')`);
+  await pool.query(`delete from bunq_credentials where user_id in (select id from users where display_name like 'E2E %')`);
   await pool.query(`delete from games where title like 'E2E %'`);
   await pool.query(`delete from users where display_name like 'E2E %'`);
 }
@@ -328,22 +329,77 @@ export const BUNQ_E2E_PASSWORD = 'BunqE2E!Pass9';
 export const BUNQ_E2E_API_KEY = 'e2e-bunq-api-key';
 export const BUNQ_E2E_API_KEY_NAME = 'E2E Bunq Client';
 
+export async function waitForBunqSettingsReady(page: Page, heading?: string | RegExp) {
+  await expect(page.getByRole('heading', { name: heading ?? 'Bunq Settings' })).toBeVisible();
+  await expect(page.getByText('Loading...')).toHaveCount(0, { timeout: 30_000 });
+}
+
+export async function openBunqSettingsFromGamesHome(page: Page) {
+  await page.goto('/');
+  await page.getByTitle('Bunq Settings').click();
+  await waitForBunqSettingsReady(page);
+}
+
+export async function openBunqCredentialsForm(page: Page) {
+  await page.getByRole('button', { name: 'Enable Bunq Integration' }).click();
+  await expect(page.getByRole('heading', { name: 'Specify Bunq API Credentials' })).toBeVisible();
+}
+
+export async function fillBunqCredentialsForm(
+  page: Page,
+  credentials: { apiKey: string; apiKeyName: string; password: string }
+) {
+  await page.locator('#apiKey').fill(credentials.apiKey);
+  await page.locator('#apiKeyName').fill(credentials.apiKeyName);
+  await page.locator('.credentials-form #password').fill(credentials.password);
+}
+
+export async function submitBunqCredentialsForm(page: Page) {
+  await page.getByRole('button', { name: 'Enable Integration' }).click();
+}
+
 export async function enableBunqIntegrationViaUi(page: Page): Promise<void> {
   await page.goto('/bunq-settings');
-  await expect(page.getByRole('heading', { name: 'Bunq Settings' })).toBeVisible();
-  await expect(page.getByText('Loading...')).toHaveCount(0, { timeout: 30_000 });
+  await waitForBunqSettingsReady(page);
 
   if (await page.getByText(/Bunq integration is enabled/).isVisible().catch(() => false)) {
     return;
   }
 
-  await page.getByRole('button', { name: 'Enable Bunq Integration' }).click();
-  await page.locator('#apiKey').fill(BUNQ_E2E_API_KEY);
-  await page.locator('#apiKeyName').fill(BUNQ_E2E_API_KEY_NAME);
-  await page.locator('.credentials-form #password').fill(BUNQ_E2E_PASSWORD);
-  await page.getByRole('button', { name: 'Enable Integration' }).click();
+  await openBunqCredentialsForm(page);
+  await fillBunqCredentialsForm(page, {
+    apiKey: BUNQ_E2E_API_KEY,
+    apiKeyName: BUNQ_E2E_API_KEY_NAME,
+    password: BUNQ_E2E_PASSWORD,
+  });
+  await submitBunqCredentialsForm(page);
   await expect(page.getByText(/Bunq integration enabled successfully/i)).toBeVisible({ timeout: 60_000 });
   await expect(page.getByText(/Bunq integration is enabled/)).toBeVisible();
+}
+
+export async function disableBunqIntegrationViaUi(page: Page, confirm = true) {
+  page.once('dialog', async (dialog) => {
+    expect(dialog.type()).toBe('confirm');
+    if (confirm) {
+      await dialog.accept();
+    } else {
+      await dialog.dismiss();
+    }
+  });
+  await page.getByRole('button', { name: 'Disable Integration' }).click();
+}
+
+export async function loadMonetaryAccountsViaUi(page: Page, password = BUNQ_E2E_PASSWORD) {
+  await page.getByRole('button', { name: 'Choose account to receive payments to' }).click();
+  await page.locator('#accountPassword').fill(password);
+  await page.getByRole('button', { name: 'Load Accounts' }).click();
+}
+
+export async function installBunqWebhookViaUi(page: Page, password: string) {
+  await page.getByRole('button', { name: 'Install Webhook' }).click();
+  await expect(page.locator('.password-dialog-overlay').getByRole('heading', { name: 'Install Bunq Webhook' })).toBeVisible();
+  await page.locator('.password-dialog-overlay').getByLabel('Password:').fill(password);
+  await page.locator('.password-dialog-overlay').getByRole('button', { name: 'Submit' }).click();
 }
 
 export async function moveGameToPastViaUi(page: Page, gameId: number, pastDate = daysFromNow(-2)): Promise<void> {

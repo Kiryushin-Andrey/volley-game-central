@@ -170,21 +170,23 @@ Spec: `e2e/bunq-webhook.spec.ts`
 
 - [x] E2E-BUNQ-001: Admin enables Bunq via settings UI, moves game to the past, sends payment requests; bunq-mock delivers `REQUEST_INQUIRY_ACCEPTED` for the participant's inquiry (control plane); after reload the player row shows `Paid`.
 
-## Bunq integration configuration scenarios (planned)
+## Bunq integration configuration scenarios
+
+Spec: `e2e/bunq-config.spec.ts`
 
 Routes: `/bunq-settings` (global admin’s own credentials), `/bunq-settings/user/:assignedUserId` (global admin configuring an assigned game administrator’s credentials). Entry points: games home **Bunq Settings** cog (`title="Bunq Settings"`), or **Configure Bunq Settings** on a row in `Game Administrators`.
 
-- [ ] E2E-BUNQ-CONFIG-001: Global Admin opens Bunq Settings from the games home and sees `Bunq Settings`, loading complete, and status text `Bunq integration is disabled`.
-- [ ] E2E-BUNQ-CONFIG-002: Global Admin clicks `Enable Bunq Integration`, sees `Specify Bunq API Credentials` with API Key, API Key Name, and Password fields, and cannot submit until all three are filled.
-- [ ] E2E-BUNQ-CONFIG-003: Global Admin submits valid mock credentials (`Enable Integration`) and sees `Bunq integration enabled successfully` and status `Bunq integration is enabled`.
-- [ ] E2E-BUNQ-CONFIG-004: With integration enabled, Global Admin uses `Choose account to receive payments to`, enters the Bunq password, clicks `Load Accounts`, selects a monetary account, and sees success feedback.
-- [ ] E2E-BUNQ-CONFIG-005: Global Admin clicks `Install Webhook`, enters the Bunq password in `Install Bunq Webhook`, submits, and sees success feedback without leaving the settings page.
-- [ ] E2E-BUNQ-CONFIG-006: Global Admin opens `Update API Key`, cancels via `Cancel`, and returns to the enabled settings view without changing status.
-- [ ] E2E-BUNQ-CONFIG-007: Global Admin disables integration: `Disable Integration` → confirm prompt → `Bunq integration disabled successfully` and status returns to disabled.
-- [ ] E2E-BUNQ-CONFIG-008: Global Admin cancels disable at the confirmation prompt and integration remains enabled.
-- [ ] E2E-BUNQ-CONFIG-009: Global Admin opens `Game Administrators`, uses **Configure Bunq Settings** for Assigned Admin, sees `Bunq Settings (<display name>)`, and completes enable flow for that user.
-- [ ] E2E-BUNQ-CONFIG-010: Participant A navigates to `/bunq-settings` and is redirected away or blocked from managing Bunq credentials.
-- [ ] E2E-BUNQ-CONFIG-011: Wrong Bunq password on enable or webhook install shows an inline error and keeps the user on the relevant form/dialog.
+- [x] E2E-BUNQ-CONFIG-001: Global Admin opens Bunq Settings from the games home and sees `Bunq Settings`, loading complete, and status text `Bunq integration is disabled`.
+- [x] E2E-BUNQ-CONFIG-002: Global Admin clicks `Enable Bunq Integration`, sees `Specify Bunq API Credentials` with API Key, API Key Name, and Password fields, and cannot submit until all three are filled.
+- [x] E2E-BUNQ-CONFIG-003: Global Admin submits valid mock credentials (`Enable Integration`) and sees `Bunq integration enabled successfully` and status `Bunq integration is enabled`.
+- [x] E2E-BUNQ-CONFIG-004: With integration enabled, Global Admin uses `Choose account to receive payments to`, enters the Bunq password, clicks `Load Accounts`, selects a monetary account, and sees success feedback.
+- [x] E2E-BUNQ-CONFIG-005: Global Admin clicks `Install Webhook`, enters the Bunq password in `Install Bunq Webhook`, submits, and sees success feedback without leaving the settings page.
+- [x] E2E-BUNQ-CONFIG-006: Global Admin opens `Update API Key`, cancels via `Cancel`, and returns to the enabled settings view without changing status.
+- [x] E2E-BUNQ-CONFIG-007: Global Admin disables integration: `Disable Integration` → confirm prompt → `Bunq integration disabled successfully` and status returns to disabled.
+- [x] E2E-BUNQ-CONFIG-008: Global Admin cancels disable at the confirmation prompt and integration remains enabled.
+- [x] E2E-BUNQ-CONFIG-009: Global Admin opens `Game Administrators`, uses **Configure Bunq Settings** for Assigned Admin, sees `Bunq Settings (<display name>)`, and completes enable flow for that user.
+- [x] E2E-BUNQ-CONFIG-010: Participant A navigates to `/bunq-settings` and is redirected away or blocked from managing Bunq credentials.
+- [x] E2E-BUNQ-CONFIG-011: Wrong Bunq password on monetary account load or webhook install shows an inline error and keeps the user on the relevant form/dialog.
 
 ## Bunq payment request scenarios (planned)
 
