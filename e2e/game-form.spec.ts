@@ -73,6 +73,7 @@ test.describe('game creation and editing scenarios', () => {
     await fillRequiredGameFields(page, title);
     await setCheckbox(page, '#withPositions');
     await page.getByRole('button', { name: 'Create Game' }).click();
+    await expect(page).toHaveURL('/');
 
     const created = await findGameByTitle(title);
     expect(created.with_positions).toBe(true);
@@ -86,6 +87,7 @@ test.describe('game creation and editing scenarios', () => {
     await fillRequiredGameFields(page, title);
     await setCheckbox(page, '#withPriorityPlayers');
     await page.getByRole('button', { name: 'Create Game' }).click();
+    await expect(page).toHaveURL('/');
 
     const created = await findGameByTitle(title);
     expect(created.with_priority_players).toBe(true);
@@ -100,6 +102,7 @@ test.describe('game creation and editing scenarios', () => {
     await fillRequiredGameFields(page, title);
     await setCheckbox(page, '#readonly');
     await page.getByRole('button', { name: 'Create Game' }).click();
+    await expect(page).toHaveURL('/');
 
     const created = await findGameByTitle(title);
     expect(created.readonly).toBe(true);
