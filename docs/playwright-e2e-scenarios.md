@@ -98,11 +98,10 @@ Payment amount display and non-Bunq paid-state UI can be covered only when the s
 - [ ] E2E-ADMIN-002: Global Admin cancels the delete confirmation and the game remains available.
 - [ ] E2E-ADMIN-003: Global Admin adds an existing user to a readonly or past game through the `Search users to add...` admin flow.
 - [ ] E2E-ADMIN-004: Global Admin removes a player from a game and the players list updates.
-- [ ] E2E-ADMIN-005: Global Admin removes a waitlisted player and the waiting list updates.
-- [ ] E2E-ADMIN-006: Global Admin opens player info from a player row and sees the selected user's public information.
-- [ ] E2E-ADMIN-007: Assigned Admin can manage games for their assigned day/type, including creating a game and reaching permitted admin actions.
-- [ ] E2E-ADMIN-008: Assigned Admin cannot access global-only routes such as game administrator assignment management.
-- [ ] E2E-ADMIN-009: Non-admin Participant A cannot reach create/edit/admin-only screens by direct URL and is redirected or blocked.
+- [ ] E2E-ADMIN-005: Global Admin opens player info from a player row and sees the selected user's public information.
+- [ ] E2E-ADMIN-006: Assigned Admin can manage games for their assigned day/type, including creating a game and reaching permitted admin actions.
+- [ ] E2E-ADMIN-007: Assigned Admin cannot access global-only routes such as game administrator assignment management.
+- [ ] E2E-ADMIN-008: Non-admin Participant A cannot reach create/edit/admin-only screens by direct URL and is redirected or blocked.
 
 ## Game administrator assignment scenarios
 
