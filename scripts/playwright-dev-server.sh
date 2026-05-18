@@ -9,7 +9,7 @@ export POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-postgres}"
 export POSTGRES_DB="${POSTGRES_DB:-volley_game_central}"
 export MINI_APP_URL="${MINI_APP_URL:-http://127.0.0.1:3001}"
 export JWT_SECRET="${JWT_SECRET:-playwright-dev-secret}"
-export PLAYWRIGHT_DOCKER_DATA_ROOT="${PLAYWRIGHT_DOCKER_DATA_ROOT:-/tmp/volley-game-central-playwright-docker}"
+export PLAYWRIGHT_DOCKER_DATA_ROOT="${PLAYWRIGHT_DOCKER_DATA_ROOT:-/tmp/volley-game-central-playwright-docker-vfs}"
 export PLAYWRIGHT_DOCKER_LOG="${PLAYWRIGHT_DOCKER_LOG:-/tmp/volley-game-central-playwright-dockerd.log}"
 
 run_as_root() {
@@ -63,6 +63,7 @@ start_dockerd_directly() {
     --host=unix:///var/run/docker.sock \
     --data-root="$PLAYWRIGHT_DOCKER_DATA_ROOT" \
     --pidfile="$PLAYWRIGHT_DOCKER_DATA_ROOT/dockerd.pid" \
+    --storage-driver=vfs \
     --iptables=false \
     --ip6tables=false \
     >"$PLAYWRIGHT_DOCKER_LOG" 2>&1 &
