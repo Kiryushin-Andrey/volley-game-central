@@ -1,13 +1,15 @@
 # Playwright E2E Scenario Checklist
 
-Purpose: define the first automated end-to-end scenario set for the application using Playwright.
+Purpose: define the automated end-to-end scenario set for the application using Playwright.
 
-Scope: browser-based tests for the Telegram Mini App running locally in dev mode. Bunq integration features are intentionally excluded for now.
+Scope: browser-based tests for the Telegram Mini App running locally in dev mode, including Bunq payment integration (configuration, payment requests, and payment status tracking for past games).
 
 ## Test environment assumptions
 
-- Run the app with dev mode enabled, for example `DEV_MODE=true npm run dev` or `npm run dev:local`.
+- Run the app with dev mode enabled, for example `DEV_MODE=true npm run dev` or `npm run dev:local`, or the Playwright stack via `scripts/playwright-dev-server.sh` (starts backend, mini app, and `bunq-mock`).
 - Target the frontend at `http://127.0.0.1:3001`; the Vite proxy forwards `/api` requests to the backend.
+- For Bunq scenarios, point the backend at the local mock: `BUNQ_API_URL=http://127.0.0.1:3998/v1` (default in the Playwright dev server script). Reset mock state between tests with the bunq-mock control `POST /reset` (see `e2e/support/fixtures.ts` `resetBunqMock`).
+- Use a fixed Bunq encryption password in tests (for example `BunqE2E!Pass9`) and a mock API key such as `e2e-bunq-api-key` with API key name `E2E Bunq Client`.
 - Use the visible dev-mode phone login flow instead of Telegram auth:
   - Open the landing page.
   - Choose `Phone number`.
@@ -16,7 +18,9 @@ Scope: browser-based tests for the Telegram Mini App running locally in dev mode
   - Toggle `Administrator` only for personas that need global admin rights.
   - Submit `Dev Login`.
 - Use isolated browser contexts for each persona so cookies do not leak between tests.
-- **Implementation rule:** Do not use direct database access or direct HTTP calls (including Playwright `request` fixtures) to perform setup or actions that a real user or administrator could complete through the visible UI. Use the UI instead. Exceptions are allowed only when no UI exists (for example, dev-only login bootstrap or wiping `E2E %` rows between tests in `cleanupE2eData`).
+- **Implementation rule:** Do not use direct database access or direct HTTP calls to the **application** (including Playwright `request` fixtures against `/api`) to perform setup or actions that a real user or administrator could complete through the visible UI. Use the UI instead. Exceptions are allowed only when no in-app UI exists:
+  - dev-only login bootstrap or wiping `E2E %` rows between tests in `cleanupE2eData`;
+  - **bunq-mock control plane** (`http://127.0.0.1:3999`) to reset mock state or deliver external Bunq webhooks (simulates Bunq notifying the app; there is no mini-app screen for this).
 
 ## Dev login personas
 
@@ -29,16 +33,9 @@ Use unique phone numbers per test run when tests create mutable state.
 
 ## Out of scope for this checklist
 
-Do not automate these scenarios yet:
-
-- `/bunq-settings`
-- `/bunq-settings/user/:assignedUserId`
-- `/check-payments`
-- Game details actions that send payment requests.
-- Game details actions that check payment status through Bunq.
-- Bunq credential setup, Bunq password dialogs, or Bunq-backed payment reconciliation.
-
-Payment amount display and non-Bunq paid-state UI can be covered only when the scenario does not depend on Bunq APIs.
+- Real Bunq production or sandbox credentials; all payment flows use `bunq-mock`.
+- Telegram-native auth flows (tests use dev phone login).
+- SMS/Telegram delivery of payment request links to participants (outbound messaging is not exercised in the browser).
 
 ## Authentication and session scenarios
 
@@ -120,3 +117,44 @@ Payment amount display and non-Bunq paid-state UI can be covered only when the s
 - [ ] E2E-STATE-003: Global Admin edits game capacity downward and the UI preserves valid active/waitlist status for existing registrations.
 - [ ] E2E-STATE-004: Browser refresh keeps the authenticated session and current route for each logged-in persona.
 - [ ] E2E-STATE-005: Opening the app in a new browser context without cookies starts unauthenticated.
+
+## Bunq integration configuration scenarios
+
+Routes: `/bunq-settings` (global admin’s own credentials), `/bunq-settings/user/:assignedUserId` (global admin configuring an assigned game administrator’s credentials). Entry points: games home **Bunq Settings** cog (`title="Bunq Settings"`), or **Configure Bunq Settings** on a row in `Game Administrators`.
+
+- [ ] E2E-BUNQ-CONFIG-001: Global Admin opens Bunq Settings from the games home and sees `Bunq Settings`, loading complete, and status text `Bunq integration is disabled`.
+- [ ] E2E-BUNQ-CONFIG-002: Global Admin clicks `Enable Bunq Integration`, sees `Specify Bunq API Credentials` with API Key, API Key Name, and Password fields, and cannot submit until all three are filled.
+- [ ] E2E-BUNQ-CONFIG-003: Global Admin submits valid mock credentials (`Enable Integration`) and sees `Bunq integration enabled successfully` and status `Bunq integration is enabled`.
+- [ ] E2E-BUNQ-CONFIG-004: With integration enabled, Global Admin uses `Choose account to receive payments to`, enters the Bunq password, clicks `Load Accounts`, selects a monetary account from `Choose account to receive payments to`, and sees `Bunq account updated successfully!` (or equivalent success feedback).
+- [ ] E2E-BUNQ-CONFIG-005: Global Admin clicks `Install Webhook`, enters the Bunq password in `Install Bunq Webhook`, submits, and sees success feedback without leaving the settings page.
+- [ ] E2E-BUNQ-CONFIG-006: Global Admin opens `Update API Key`, cancels via `Cancel`, and returns to the enabled settings view without changing status.
+- [ ] E2E-BUNQ-CONFIG-007: Global Admin disables integration: `Disable Integration` → confirm browser/Telegram prompt → `Bunq integration disabled successfully` and status returns to disabled.
+- [ ] E2E-BUNQ-CONFIG-008: Global Admin cancels disable at the confirmation prompt and integration remains enabled.
+- [ ] E2E-BUNQ-CONFIG-009: Global Admin opens `Game Administrators`, uses **Configure Bunq Settings** for Assigned Admin, sees `Bunq Settings (<display name>)`, and completes enable flow for that user (same credential form as own settings).
+- [ ] E2E-BUNQ-CONFIG-010: Participant A navigates to `/bunq-settings` and is redirected away or blocked from managing Bunq credentials.
+- [ ] E2E-BUNQ-CONFIG-011: Wrong Bunq password on enable or webhook install shows an inline error and keeps the user on the relevant form/dialog.
+
+## Bunq payment request scenarios
+
+Past or readonly games with `paymentAmount > 0`, Bunq enabled for the collecting admin, and no `fullyPaid` flag show **Send payment requests** (`title="Send payment requests to unpaid players"`). Prepare games via UI: create with cost, register players, then move date to the past through **Edit Game Settings** (do not set dates via DB).
+
+- [ ] E2E-BUNQ-PAY-001: Global Admin with Bunq enabled opens a past paid game and sees the send-payment-requests control; an upcoming game with the same cost does not show it.
+- [ ] E2E-BUNQ-PAY-002: Global Admin sends payment requests: click send → password dialog `Please enter your password to send payment requests.` → submit → popup `Payment requests sent` with a success count → dismiss → page shows `Payments collected by` with the admin’s display name.
+- [ ] E2E-BUNQ-PAY-003: After payment requests are sent, active players show `Unpaid` (or `Paid` if already settled); admin remove-player control is no longer available for those rows.
+- [ ] E2E-BUNQ-PAY-004: Invalid Bunq password on send keeps the password dialog open with `Invalid password` and does not show the success popup.
+- [ ] E2E-BUNQ-PAY-005: Assigned Admin with their own Bunq configured (via CONFIG-009) can send payment requests on a past game they administer; Participant A does not see send-payment controls on the same game.
+- [ ] E2E-BUNQ-PAY-006: Readonly past game with cost and registrations follows the same send-payment-requests flow as a normal past game.
+- [ ] E2E-BUNQ-PAY-007: Game with zero cost does not show send-payment-requests even when past and Bunq is enabled.
+- [ ] E2E-BUNQ-PAY-008: Past game already marked fully paid on the games home does not show send-payment-requests on game details.
+
+## Bunq payment status scenarios (past games)
+
+Status surfaces: per-player `Paid` / `Unpaid` on game details (past/readonly, after requests sent), **Check payment status for this game** sync button on game details, paid/total counters on past game cards, and `Show fully paid games` on the past filter. Optional bulk route: `/check-payments` (password dialog on load; no in-app nav link today—use only if testing that screen explicitly).
+
+- [ ] E2E-BUNQ-STATUS-001: After admin sends payment requests, bunq-mock delivers `REQUEST_INQUIRY_ACCEPTED` for the participant’s inquiry (control plane); reload game details and the player row shows `Paid`. *(Implemented as `E2E-BUNQ-001` in `e2e/bunq-webhook.spec.ts`.)*
+- [ ] E2E-BUNQ-STATUS-002: Global Admin clicks **Check payment status for this game**, enters the Bunq password, sees `Payment check completed`, and unpaid players update to `Paid` when the mock reports inquiry status `ACCEPTED` (webhook delivery or future mock status helper—do not assert via DB).
+- [ ] E2E-BUNQ-STATUS-003: Global Admin toggles a player from `Unpaid` to `Paid` and back via the paid-status control on the player row; counts on the games home past list update after refresh.
+- [ ] E2E-BUNQ-STATUS-004: When all active players are paid, the past game card shows matching paid/total counts (e.g. `2/2`); with `Show fully paid games` unchecked, the game is hidden from the past list until the toggle is enabled (extends HOME-009 with Bunq-driven fully-paid state via UI, not `updateGame` for `fully_paid`).
+- [ ] E2E-BUNQ-STATUS-005: Wrong password on per-game check keeps the password dialog open with `Invalid password`.
+- [ ] E2E-BUNQ-STATUS-006: Global Admin opens `/check-payments`, submits password on `Enter Bunq API Password`, sees completion feedback, and returns to games home; past unpaid games reflect updated statuses where the mock reports payment accepted.
+- [ ] E2E-BUNQ-STATUS-007: Participant A on a past game they joined does not see admin paid-status toggles or check-payment/sync controls; they may still see price and their own registration state.
