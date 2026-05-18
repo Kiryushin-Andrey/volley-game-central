@@ -12,9 +12,13 @@
     "build": "npm run backend:build && npm run tg-mini-app:build",
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
-    "db:logs": "docker compose logs -f postgres"
+    "db:logs": "docker compose logs -f postgres",
+    "e2e:server": "bash scripts/playwright-dev-server.sh",
+    "test:e2e": "playwright test",
+    "test:e2e:auth": "playwright test e2e/auth-session.spec.ts"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "concurrently": "^8.2.2"
   },
   "dependencies": {
