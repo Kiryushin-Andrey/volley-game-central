@@ -14,7 +14,7 @@ export default defineConfig({
   use: {
     baseURL: 'http://127.0.0.1:3001',
     trace: 'on-first-retry',
-    screenshot: 'only-on-failure',
+    screenshot: 'on',
   },
   webServer: {
     command: 'npm run e2e:server',
