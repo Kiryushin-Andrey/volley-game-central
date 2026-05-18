@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { textHasPromise, textHasSliceComplete } from "./sigil.js";
+import { promiseIssueComplete, promiseSliceComplete, textHasIssueComplete, textHasPromise } from "./sigil.js";
 import { gitLogHasPromise } from "./git.js";
 
 export interface ProgressResume {
@@ -20,7 +20,7 @@ export function loadProgressResume(
   const resume = emptyResume();
 
   for (const n of childIssues) {
-    if (textHasSliceComplete(progressContent, n)) {
+    if (textHasIssueComplete(progressContent, n)) {
       resume.completedIssues.add(n);
     }
   }
@@ -33,14 +33,14 @@ export function loadProgressResume(
 
   for (const n of childIssues) {
     if (resume.completedIssues.has(n)) continue;
-    if (gitLogHasPromise(opts.root, opts.branch, `RALPH_SLICE_COMPLETE #${n}`)) {
+    if (gitLogHasPromise(opts.root, opts.branch, promiseIssueComplete(n))) {
       console.warn(
         `resume: issue #${n} marked complete in git history but missing from progress.txt — treating as done`,
       );
       resume.completedIssues.add(n);
-    } else if (gitLogHasPromise(opts.root, opts.branch, `RALPH_ISSUE_COMPLETE #${n}`)) {
+    } else if (gitLogHasPromise(opts.root, opts.branch, promiseSliceComplete(n))) {
       console.warn(
-        `resume: issue #${n} (legacy sigil) in git history but missing from progress.txt — treating as done`,
+        `resume: issue #${n} (legacy RALPH_SLICE_COMPLETE) in git history but missing from progress.txt — treating as done`,
       );
       resume.completedIssues.add(n);
     }

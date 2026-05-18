@@ -1,6 +1,6 @@
 #!/usr/bin/env npx tsx
 /**
- * Ralph loop — child GitHub slices (one PRD item + E2E per session) + final pass.
+ * Ralph loop — child GitHub issues (one iteration per session until issue complete) + final pass.
  * Prompt templates: .ralph/prompts/*.md
  */
 import { gitRoot, requireRepoFiles } from "./git.js";

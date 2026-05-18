@@ -13,13 +13,7 @@ import {
 } from "./git.js";
 import { type PromptContext, PromptLoader } from "./prompts.js";
 import { emptyResume, readProgressResume, type ProgressResume } from "./progress-state.js";
-import {
-  promiseItem,
-  promiseSlice,
-  textHasItemComplete,
-  textHasPromise,
-  textHasSliceComplete,
-} from "./sigil.js";
+import { promiseIssueComplete, textHasIssueComplete, textHasPromise } from "./sigil.js";
 import type { RalphConfig } from "./types.js";
 import {
   logsDir,
@@ -162,42 +156,31 @@ export class RalphLoop {
     return textHasPromise(readFileSync(logPath, "utf-8"), promise);
   }
 
-  private logHasItemComplete(logPath: string, n: number): boolean {
+  private logHasIssueComplete(logPath: string, n: number): boolean {
     if (!existsSync(logPath)) return false;
-    return textHasItemComplete(readFileSync(logPath, "utf-8"), n);
-  }
-
-  private logHasSliceComplete(logPath: string, n: number): boolean {
-    if (!existsSync(logPath)) return false;
-    return textHasSliceComplete(readFileSync(logPath, "utf-8"), n);
+    return textHasIssueComplete(readFileSync(logPath, "utf-8"), n);
   }
 
   /**
-   * After agent log shows a sigil, pull sprint branch and confirm progress.txt
+   * After agent log shows issue-complete sigil, pull sprint branch and confirm progress.txt
    * (or git history when verifyGitResume) records the same milestone.
    */
-  private confirmOnBranch(logPath: string, n: number, kind: "item" | "slice"): boolean {
-    const sigil = kind === "item" ? promiseItem(n) : promiseSlice(n);
-    if (kind === "slice" && !this.logHasSliceComplete(logPath, n)) return false;
-    if (kind === "item" && !this.logHasItemComplete(logPath, n)) return false;
+  private confirmIssueCompleteOnBranch(logPath: string, n: number): boolean {
+    const sigil = promiseIssueComplete(n);
+    if (!this.logHasIssueComplete(logPath, n)) return false;
 
     if (!this.cfg.dryRun) {
       syncSprintBranch(this.root, this.cfg.branch, this.cfg.base);
     }
     this.reloadResumeFromBranch();
 
-    if (kind === "slice" && this.issueDone(n)) return true;
-    if (kind === "item") {
-      // Item passes do not mark issues complete; progress append is still required.
-      const progress = readFileSync(progressFile(this.cfg), "utf-8");
-      if (textHasItemComplete(progress, n)) return true;
-    }
+    if (this.issueDone(n)) return true;
 
     if (this.cfg.verifyGitResume && gitLogHasPromise(this.root, this.cfg.branch, sigil)) {
       console.warn(
         `warn: ${sigil} in agent log and git history but not in progress.txt — ask agents to append sigils to progress.txt`,
       );
-      if (kind === "slice") this.markIssueDone(n);
+      this.markIssueDone(n);
       return true;
     }
 
@@ -241,7 +224,7 @@ export class RalphLoop {
     return ctx;
   }
 
-  promptSlice(n: number): string {
+  promptIssueIteration(n: number): string {
     return this.prompts.render("loop-iteration-prompt", {
       ...this.basePromptContext(n),
       suite: this.suiteFor(n),
@@ -312,52 +295,65 @@ export class RalphLoop {
     }
   }
 
+  /**
+   * Run agent sessions on one issue until RALPH_ISSUE_COMPLETE #n is recorded on the branch.
+   * Passes without that sigil count as partial progress; the next pass continues from progress.txt.
+   */
   async runUntilIssueComplete(n: number): Promise<void> {
-    let itemPass = 0;
+    let pass = 0;
     while (!this.issueDone(n)) {
-      itemPass += 1;
+      pass += 1;
       let attempt = 0;
       for (;;) {
         this.checkIterationBudget();
         attempt += 1;
         if (this.cfg.maxSlice > 0 && attempt > this.cfg.maxSlice) {
           console.error(
-            `max retries for issue #${n} item pass ${itemPass}: expected ${promiseItem(n)} or ${promiseSlice(n)}`,
+            `max retries for issue #${n} pass ${pass}: expected ${promiseIssueComplete(n)} or a partial pass with progress.txt updated`,
           );
           process.exit(1);
         }
-        const title = `issue-${n}-item${itemPass}-iter${attempt}`;
+        const title = `issue-${n}-pass${pass}-iter${attempt}`;
         const stamp = formatStamp(new Date());
         const logPath = join(logsDir(this.cfg), `${title}-${stamp}.log`);
+
+        let runOk = false;
         try {
-          await this.runAgent(title, this.promptSlice(n), logPath);
+          await this.runAgent(title, this.promptIssueIteration(n), logPath);
+          runOk = true;
         } catch (err) {
           console.error(`agent error: ${err instanceof Error ? err.message : err}`);
         }
         this.lastLog = logPath;
 
         if (this.cfg.dryRun) {
-          console.log(`(dry-run) would wait for ${promiseItem(n)} or ${promiseSlice(n)}`);
+          console.log(`(dry-run) would loop on #${n} until ${promiseIssueComplete(n)}`);
           return;
         }
 
-        if (this.logHasSliceComplete(logPath, n)) {
-          if (this.confirmOnBranch(logPath, n, "slice")) {
-            console.log(`OK: ${promiseSlice(n)}`);
+        if (runOk && this.logHasIssueComplete(logPath, n)) {
+          if (this.confirmIssueCompleteOnBranch(logPath, n)) {
+            console.log(`OK: ${promiseIssueComplete(n)}`);
             this.markIssueDone(n);
             return;
           }
-        } else if (this.logHasItemComplete(logPath, n)) {
-          if (this.confirmOnBranch(logPath, n, "item")) {
-            console.log(`OK: ${promiseItem(n)} (more items may remain on #${n})`);
-            maybePush(this.root, this.cfg.branch, this.cfg.push);
-            break;
-          }
+          console.log(`issue #${n}: completion sigil not verified on branch (see ${logPath})`);
+          await sleep(3000);
+          continue;
         }
 
-        console.log(
-          `missing or unverified: ${promiseItem(n)} or ${promiseSlice(n)} (see ${logPath})`,
-        );
+        if (runOk) {
+          console.log(
+            `issue #${n} pass ${pass}: partial (no completion sigil) — continue after progress.txt update`,
+          );
+          maybePush(this.root, this.cfg.branch, this.cfg.push);
+          if (!this.cfg.dryRun) {
+            syncSprintBranch(this.root, this.cfg.branch, this.cfg.base);
+          }
+          break;
+        }
+
+        console.log(`issue #${n} pass ${pass} attempt ${attempt} failed (see ${logPath})`);
         await sleep(3000);
       }
     }
@@ -449,7 +445,7 @@ export class RalphLoop {
     console.log(`Progress log: ${progressFile(this.cfg)} (branch resume source)`);
     if (this.cfg.backend === "cloud") {
       console.log(`Remote: ${this.cfg.repoUrl} @ ${this.cfg.branch}`);
-      console.log("Each item pass is one Cloud Agent session (implement + targeted E2E).");
+      console.log("Each loop iteration is one Cloud Agent session on one issue.");
     }
 
     if (this.finalDone()) return;

@@ -29,7 +29,7 @@ Boolean context flags: `has_children`, `has_steering`, `has_issue`, `is_cloud`.
 
 | File | Role |
 |------|------|
-| `loop-iteration-prompt.md` | Child issue: one PRD item + E2E + completion sigils |
+| `loop-iteration-prompt.md` | One iteration on a child issue; partial progress or `RALPH_ISSUE_COMPLETE` |
 | `final-pass-prompt.md` | Epic: Suite D, unit tests, draft PR |
 | `orchestrator-prompt.md` | Cloud orchestrator (`{{#if has_children}}` for step 2) |
 

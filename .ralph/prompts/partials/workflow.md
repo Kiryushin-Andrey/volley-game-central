@@ -1,15 +1,15 @@
 Ralph workflow (each pass is a fresh context — read these first):
 1. {{prd}} — scope and acceptance criteria for this epic.
-2. {{progress_file}} on branch {{branch}} — what prior passes did (append when you finish, including completion sigils).
+2. {{progress_file}} on branch {{branch}} — what prior iterations did (append every time; completion sigil only when an issue is fully done).
 
 Work style:
-- ONLY ONE PRD ITEM this pass on the current issue — not the whole issue, not the epic.
-- Read {{progress_file}}; continue the next open item. For slice passes, record RALPH_ITEM_COMPLETE or RALPH_SLICE_COMPLETE in that file when done.
-- After implementing: run feedback loops, append to {{progress_file}} (with sigils), commit, push to {{branch}}.
+- One **issue** per loop iteration — not other child issues, not the whole epic in one go.
+- Read {{progress_file}}; continue open work on the current issue. Partial iterations update the log only (no sigil). Emit `RALPH_ISSUE_COMPLETE #n` only when issue #n is fully done.
+- After implementing: run feedback loops, append to {{progress_file}}, commit, push to {{branch}}.
 {{#if is_cloud}}
 - Cloud handoff: the next agent session is a fresh VM — it only sees what you pushed. Always include an updated {{progress_file}} in your commit.
 {{/if}}
-- Progress entries: task done, key decisions, files changed, blockers for next pass. Be concise.
+- Progress entries: task done, key decisions, files changed, what remains on this issue. Be concise.
 
 Before committing, run feedback loops for the code you touched:
 {{feedback_loops}}

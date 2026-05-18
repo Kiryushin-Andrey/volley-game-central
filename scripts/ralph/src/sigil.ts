@@ -1,10 +1,11 @@
 /** Completion lines agents emit in logs and must record in progress.txt. */
 
-export function promiseItem(issueNumber: number): string {
-  return `RALPH_ITEM_COMPLETE #${issueNumber}`;
+export function promiseIssueComplete(issueNumber: number): string {
+  return `RALPH_ISSUE_COMPLETE #${issueNumber}`;
 }
 
-export function promiseSlice(issueNumber: number): string {
+/** @deprecated Accept legacy sigil from older passes. */
+export function promiseSliceComplete(issueNumber: number): string {
   return `RALPH_SLICE_COMPLETE #${issueNumber}`;
 }
 
@@ -27,11 +28,7 @@ export function textHasPromise(text: string, promise: string): boolean {
   return false;
 }
 
-export function textHasItemComplete(text: string, issueNumber: number): boolean {
-  return textHasPromise(text, promiseItem(issueNumber));
-}
-
-export function textHasSliceComplete(text: string, issueNumber: number): boolean {
-  if (textHasPromise(text, promiseSlice(issueNumber))) return true;
-  return textHasPromise(text, `RALPH_ISSUE_COMPLETE #${issueNumber}`);
+export function textHasIssueComplete(text: string, issueNumber: number): boolean {
+  if (textHasPromise(text, promiseIssueComplete(issueNumber))) return true;
+  return textHasPromise(text, promiseSliceComplete(issueNumber));
 }
