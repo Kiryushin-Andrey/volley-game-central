@@ -66,6 +66,8 @@ docker-data/
 
 # Test & coverage outputs
 .nyc_output/
+playwright-report/
+test-results/
 
 # Yarn Plug'n'Play files (even if project uses npm, these sometimes show up)
 .pnp

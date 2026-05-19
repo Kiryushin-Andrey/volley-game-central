@@ -498,12 +498,6 @@ export class GameDetailsViewModel {
   handleRemovePlayerFromWaitingList(userId: number, guestName?: string): void {
     if (!this.state.gameData.game || this.state.action.isActionLoading) return;
 
-    const isGameAdmin = this.user.isAdmin || (this.state.gameData.game.isAssignedAdmin ?? false);
-    if (isGameAdmin && userId != this.user.id) {
-      this.removePlayer(this.state.gameData.game, userId, guestName);
-      return;
-    }
-
     this.confirmAndUnregister(this.state.gameData.game, guestName);
   }
 
