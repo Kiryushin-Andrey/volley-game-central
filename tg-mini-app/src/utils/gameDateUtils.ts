@@ -1,3 +1,5 @@
+import type { GamePlayMode } from '../types';
+
 /** Number of days before a game when registration opens (must match server policy) */
 export const DAYS_BEFORE_GAME_TO_JOIN = 10;
 /** Number of days before a game when guest registration opens (must match server policy) */
@@ -96,12 +98,12 @@ export function getCategoryDisplayName(category: GameCategory): string {
 }
 
 /**
- * Classify a game into a category based on its date and whether it uses positions
+ * Classify a game into a category based on its date and play mode (5-1 uses positions)
  * @param dateTime - The game's date and time
- * @param withPositions - Whether the game uses positions (5-1 scheme)
+ * @param playMode - Game play mode from the API
  * @returns The game category
  */
-export function classifyGame(dateTime: string, withPositions: boolean): GameCategory {
+export function classifyGame(dateTime: string, playMode: GamePlayMode): GameCategory {
   const gameDate = new Date(dateTime);
   let dayOfWeek = gameDate.getDay();
   // Convert JavaScript day (0=Sunday, 1=Monday, ..., 6=Saturday) to Monday=0 format
@@ -109,7 +111,7 @@ export function classifyGame(dateTime: string, withPositions: boolean): GameCate
   
   // Thursday = 3, Sunday = 6
   if (dayOfWeek === 3) { // Thursday
-    return withPositions ? 'thursday-5-1' : 'thursday-deti-plova';
+    return playMode === 'with_positions' ? 'thursday-5-1' : 'thursday-deti-plova';
   } else if (dayOfWeek === 6) { // Sunday
     return 'sunday';
   } else {

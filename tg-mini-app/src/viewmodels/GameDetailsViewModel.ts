@@ -1,7 +1,7 @@
 import { gamesApi, bunqApi } from '../services/api';
 import { showPopup, showConfirm } from '../utils/uiPrompts';
 import { logDebug } from '../debug';
-import { Game, User } from '../types';
+import { Game, User, type FiveOneRegistrationRestriction } from '../types';
 import type { UserPublicInfo } from '../types';
 import { ActionGuard } from '../utils/actionGuard';
 import { getUserRegistration } from '../utils/registrationsUtils';
@@ -11,6 +11,7 @@ export interface GameDataState {
   game: Game | null;
   isLoading: boolean;
   error: string | null;
+  registrationRestriction: string | null;
 }
 
 export interface ActionState {
@@ -125,7 +126,7 @@ export class GameDetailsViewModel {
 
   get gameCategory(): GameCategory | null {
     if (!this.game) return null;
-    return classifyGame(this.game.dateTime, this.game.withPositions);
+    return classifyGame(this.game.dateTime, this.game.playMode);
   }
 
   get isLoading(): boolean {
@@ -152,11 +153,32 @@ export class GameDetailsViewModel {
     return this.state.bunq.isCheckingBunq;
   }
 
+  private static formatRegistrationRestriction(
+    restriction: FiveOneRegistrationRestriction | null | undefined,
+  ): string | null {
+    if (!restriction) return null;
+    let msg = restriction.message;
+    if (
+      restriction.code === 'FIVE_ONE_LEVEL_WINDOW' &&
+      restriction.registrationOpensAt
+    ) {
+      const openDate = new Date(restriction.registrationOpensAt);
+      msg += ` Registration opens ${openDate.toLocaleString()}.`;
+    }
+    return msg;
+  }
+
   async loadGame(id: number): Promise<void> {
     try {
       this.setGameData({ isLoading: true });
       const fetchedGame = await gamesApi.getGame(id);
-      this.setGameData({ game: fetchedGame, error: null });
+      this.setGameData({
+        game: fetchedGame,
+        error: null,
+        registrationRestriction: GameDetailsViewModel.formatRegistrationRestriction(
+          fetchedGame.registrationRestriction,
+        ),
+      });
     } catch (err) {
       this.setGameData({ error: 'Failed to load game details' });
       logDebug('Error loading game:');
@@ -207,12 +229,32 @@ export class GameDetailsViewModel {
       logDebug(err);
       if (err.response?.status === 403) {
         const errData = err.response?.data;
+        const code = typeof errData === 'object' && errData !== null ? (errData as { code?: string }).code : undefined;
+
+        if (code === 'FIVE_ONE_LEVEL_NOT_ELIGIBLE' || code === 'FIVE_ONE_LEVEL_WINDOW') {
+          let msg =
+            typeof errData === 'object' && errData !== null && typeof (errData as { error?: string }).error === 'string'
+              ? (errData as { error: string }).error
+              : 'You cannot register for this game.';
+          if (
+            code === 'FIVE_ONE_LEVEL_WINDOW' &&
+            typeof errData === 'object' &&
+            errData !== null &&
+            (errData as { registrationOpensAt?: string }).registrationOpensAt
+          ) {
+            const openDate = new Date((errData as { registrationOpensAt: string }).registrationOpensAt);
+            msg += ` Registration opens ${openDate.toLocaleString()}.`;
+          }
+          this.setGameData({ registrationRestriction: msg });
+          return;
+        }
+
         if (typeof errData !== 'object' || errData === null) {
           showPopup({ title: 'Cannot register', message: 'You cannot register for this game. Please try again or contact the organizers.', buttons: [{ type: 'ok' }] });
-        } else if (errData?.registrationOpensAt) {
-          const openDate = new Date(errData.registrationOpensAt);
+        } else if ((errData as { registrationOpensAt?: string }).registrationOpensAt && code !== 'FIVE_ONE_LEVEL_WINDOW') {
+          const openDate = new Date((errData as { registrationOpensAt: string }).registrationOpensAt);
           alert(`Registration is only possible starting ${openDate.toLocaleDateString()} (X days before the game).`);
-        } else if (errData?.code == 'TELEGRAM_GROUP_REQUIRED') {
+        } else if ((errData as { code?: string }).code === 'TELEGRAM_GROUP_REQUIRED') {
           const message = errData?.error || 'To register for games you must join our Telegram group.';
           const link = import.meta.env.VITE_TELEGRAM_GROUP_INVITE_LINK;
 
@@ -459,13 +501,15 @@ export class GameDetailsViewModel {
   // Main action handlers
   private handleRegister(): void {
     if (!this.state.gameData.game || this.state.action.isActionLoading) return;
-    // Prevent blocked users from registering
     if (this.user.blockReason) {
       showPopup({
-        title: "Registration blocked",
+        title: 'Registration blocked',
         message: `You cannot register because: ${this.user.blockReason}`,
-        buttons: [{ type: 'ok' }]
+        buttons: [{ type: 'ok' }],
       });
+      return;
+    }
+    if (this.state.gameData.registrationRestriction) {
       return;
     }
     // Show the bring ball dialog
@@ -559,13 +603,15 @@ export class GameDetailsViewModel {
 
   async handleGuestRegister(): Promise<void> {
     if (!this.state.gameData.game || this.state.action.isActionLoading) return;
-    // Prevent blocked users from adding guests
     if (this.user.blockReason) {
       showPopup({
-        title: "Guest registration blocked",
+        title: 'Guest registration blocked',
         message: `You cannot add guests because: ${this.user.blockReason}`,
-        buttons: [{ type: 'ok' }]
+        buttons: [{ type: 'ok' }],
       });
+      return;
+    }
+    if (this.state.gameData.registrationRestriction) {
       return;
     }
     
@@ -673,52 +719,53 @@ export class GameDetailsViewModel {
   getInfoText(): string | null {
     if (!this.state.gameData.game) return null;
 
-    const userRegistration = this.state.gameData.game.registrations.find(
-      (reg) => reg.userId === this.user.id
-    );
-    const deadlineHours = this.state.gameData.game.unregisterDeadlineHours || 5;
+    const game = this.state.gameData.game;
+    const segments: string[] = [];
 
-    // If user is registered, check if they can leave
-    if (userRegistration) {
-      if (
-        !isGamePast(this.state.gameData.game.dateTime) &&
-        !canLeaveGame(
-          this.state.gameData.game.dateTime,
-          userRegistration.isWaitlist,
-          deadlineHours
-        ) &&
-        !userRegistration.isWaitlist
-      ) {
-        return `You can only leave the game up to ${deadlineHours} hours before it starts.`;
-      }
-    } else {
-      // If user is not registered, check if they can join
-      if (!canJoinGame(this.state.gameData.game.dateTime, this.state.gameData.game.registrationOpensAt)) {
-        const gameDateTime = new Date(this.state.gameData.game.dateTime);
-        const registrationOpenDays = this.state.gameData.game.registrationOpenDays || DAYS_BEFORE_GAME_TO_JOIN;
-        const daysBeforeGame = new Date(gameDateTime.getTime());
-        daysBeforeGame.setDate(daysBeforeGame.getDate() - registrationOpenDays);
-        
-        let message = `Registration opens ${daysBeforeGame.toLocaleDateString()} (${registrationOpenDays} days before the game).`;
-        
-        // Add disclaimer for non-priority users about priority players
-        if (
-          this.state.gameData.game.withPriorityPlayers &&
-          !this.state.gameData.game.isPriorityPlayer &&
-          isGameUpcoming(this.state.gameData.game.dateTime)
-        ) {
-          message += ' This game has priority players who can register ahead of others.';
-        }
-        
-        return message;
-      }
+    if (this.state.gameData.registrationRestriction) {
+      segments.push(this.state.gameData.registrationRestriction);
     }
 
-    return null;
+    const userRegistration = game.registrations.find((reg) => reg.userId === this.user.id);
+    const deadlineHours = game.unregisterDeadlineHours || 5;
+
+    if (userRegistration) {
+      if (
+        !isGamePast(game.dateTime) &&
+        !canLeaveGame(game.dateTime, userRegistration.isWaitlist, deadlineHours) &&
+        !userRegistration.isWaitlist
+      ) {
+        segments.push(`You can only leave the game up to ${deadlineHours} hours before it starts.`);
+      }
+    } else if (!canJoinGame(game.dateTime, game.registrationOpensAt)) {
+      const gameDateTime = new Date(game.dateTime);
+      const registrationOpenDays = game.registrationOpenDays || DAYS_BEFORE_GAME_TO_JOIN;
+      const daysBeforeGame = new Date(gameDateTime.getTime());
+      daysBeforeGame.setDate(daysBeforeGame.getDate() - registrationOpenDays);
+
+      let message = `Registration opens ${daysBeforeGame.toLocaleDateString()} (${registrationOpenDays} days before the game).`;
+
+      if (
+        game.playMode === 'with_priority_players' &&
+        !game.isPriorityPlayer &&
+        isGameUpcoming(game.dateTime)
+      ) {
+        message += ' This game has priority players who can register ahead of others.';
+      }
+
+      segments.push(message);
+    }
+
+    if (segments.length === 0) return null;
+    return segments.join('\n\n');
   }
 
   shouldShowAddGuestButton(): boolean {
     if (!this.state.gameData.game || this.state.gameData.isLoading || this.state.action.isActionLoading || this.state.gameData.error) {
+      return false;
+    }
+
+    if (this.state.gameData.registrationRestriction) {
       return false;
     }
     
@@ -747,6 +794,8 @@ export class GameDetailsViewModel {
     // Find user's own registration (exclude their guests)
     const userRegistration = getUserRegistration(this.state.gameData.game, this.user.id);
 
+    const hideSelfServeRegistration = !!this.state.gameData.registrationRestriction;
+
     if (userRegistration) {
       // Check if user can leave the game (up to X hours before or anytime if waitlisted)
       if (
@@ -768,7 +817,10 @@ export class GameDetailsViewModel {
       }
     } else {
       // Check if user can join the game (starting X days before)
-      if (canJoinGame(this.state.gameData.game.dateTime, this.state.gameData.game.registrationOpensAt)) {
+      if (
+        !hideSelfServeRegistration &&
+        canJoinGame(this.state.gameData.game.dateTime, this.state.gameData.game.registrationOpensAt)
+      ) {
         return {
           show: true,
           text: "Join Game",
@@ -794,6 +846,7 @@ export class GameDetailsViewModel {
         game: null,
         isLoading: true,
         error: null,
+        registrationRestriction: null,
       },
       action: {
         isActionLoading: false,

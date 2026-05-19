@@ -1,6 +1,6 @@
 import React from 'react';
 import DatePicker from 'react-datepicker';
-import { PricingMode } from '../types';
+import { PricingMode, GamePlayMode } from '../types';
 import { ToggleSwitch } from './ToggleSwitch';
 import { GameFormState, GameFormViewModel } from '../viewmodels/GameFormViewModel';
 import './GameFormFields.scss';
@@ -20,8 +20,7 @@ export const GameFormFields: React.FC<GameFormFieldsProps> = ({
     unregisterDeadlineHours,
     paymentAmountDisplay,
     pricingMode,
-    withPositions,
-    withPriorityPlayers,
+    playMode,
     readonly,
     locationName,
     locationLink,
@@ -155,23 +154,19 @@ export const GameFormFields: React.FC<GameFormFieldsProps> = ({
       </div>
 
       <div className="form-group">
-        <ToggleSwitch
-          id="withPositions"
-          checked={withPositions}
-          onChange={(checked) => viewModel.handleWithPositionsChange(checked)}
-          label="Playing 5-1"
-        />
-      </div>
-
-      <div className="form-group">
-        <ToggleSwitch
-          id="withPriorityPlayers"
-          checked={withPriorityPlayers}
-          onChange={(checked) => viewModel.handleWithPriorityPlayersChange(checked)}
-          label="With priority players"
-        />
+        <label htmlFor="playMode">Play mode:</label>
+        <select
+          id="playMode"
+          data-testid="play-mode-select"
+          value={playMode}
+          onChange={(e) => viewModel.handlePlayModeChange(e.target.value as GamePlayMode)}
+        >
+          <option value="regular">Regular</option>
+          <option value="with_positions">5-1 (with positions)</option>
+          <option value="with_priority_players">With priority players</option>
+        </select>
         <div className="field-description">
-          When enabled, priority players assigned to this game's day and type will have priority in registration.
+          5-1 games use position-based registration rules. Priority mode gives assigned players earlier access; others follow the usual registration window.
         </div>
       </div>
 

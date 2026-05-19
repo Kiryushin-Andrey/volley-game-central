@@ -3,6 +3,10 @@ export enum PricingMode {
   TOTAL_COST = 'total_cost'
 }
 
+export type GamePlayMode = 'with_positions' | 'with_priority_players' | 'regular';
+
+export type PlayerLevel = 'beginner' | 'intermediate' | 'advanced';
+
 // Minimal user info used across UI for player dialogs and click handlers
 export interface UserPublicInfo {
   id: number;
@@ -31,6 +35,13 @@ export interface CollectorUser {
   avatarUrl?: string | null;
 }
 
+/** FR-2 preview for current viewer on game details (no skill level exposed). */
+export interface FiveOneRegistrationRestriction {
+  code: 'FIVE_ONE_LEVEL_NOT_ELIGIBLE' | 'FIVE_ONE_LEVEL_WINDOW';
+  message: string;
+  registrationOpensAt?: string;
+}
+
 export interface Game {
   id: number;
   dateTime: string;
@@ -39,8 +50,7 @@ export interface Game {
   paymentAmount: number;
   pricingMode: PricingMode;
   fullyPaid: boolean;
-  withPositions: boolean;
-  withPriorityPlayers: boolean;
+  playMode: GamePlayMode;
   readonly: boolean;
   locationName?: string | null;
   locationLink?: string | null;
@@ -54,6 +64,7 @@ export interface Game {
   registrationOpenDays?: number;
   registrationOpensAt?: string;
   isPriorityPlayer?: boolean;
+  registrationRestriction?: FiveOneRegistrationRestriction | null;
 }
 
 export interface GameRegistration {

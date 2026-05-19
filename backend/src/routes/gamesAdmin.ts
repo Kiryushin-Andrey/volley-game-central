@@ -13,13 +13,14 @@ import { getNotificationSubjectWithVerb } from '../utils/notificationUtils';
 import { formatGameDate } from '../utils/dateUtils';
 import { isUserAssignedToGameById, isUserAssignedToGame } from '../middleware/adminOrAssignedAdmin';
 import { getUserSelectFields } from '../utils/dbQueryUtils';
+import { GAME_PLAY_MODES, isWithPositionsPlayMode, isWithPriorityPlayersPlayMode, type GamePlayMode } from '../types/gamePlayMode';
 
 const router = Router();
 
 // Calculate default settings for a new game
 router.get('/defaults', async (req, res) => {
   try {
-    const { defaultDateTime, defaultLocationName, defaultLocationLink, defaultPaymentAmount, defaultPricingMode, defaultWithPositions } =
+    const { defaultDateTime, defaultLocationName, defaultLocationLink, defaultPaymentAmount, defaultPricingMode, defaultPlayMode } =
       await gameService.calculateDefaultGameSettings();
     res.json({
       defaultDateTime,
@@ -27,7 +28,7 @@ router.get('/defaults', async (req, res) => {
       defaultLocationLink,
       defaultPaymentAmount,
       defaultPricingMode,
-      defaultWithPositions,
+      defaultPlayMode,
     });
   } catch (error) {
     console.error('Error calculating default date time:', error);
@@ -38,23 +39,33 @@ router.get('/defaults', async (req, res) => {
 // Create a new game
 router.post('/', async (req, res) => {
   try {
+    if (Object.prototype.hasOwnProperty.call(req.body, 'withPositions') ||
+        Object.prototype.hasOwnProperty.call(req.body, 'withPriorityPlayers')) {
+      return res.status(400).json({ error: 'withPositions and withPriorityPlayers are no longer accepted; use playMode' });
+    }
+
     const {
       dateTime,
       maxPlayers,
       unregisterDeadlineHours = 5,
       paymentAmount,
       pricingMode = PricingMode.PER_PARTICIPANT,
-      withPositions = false,
-      withPriorityPlayers = false,
+      playMode,
       readonly = false,
       locationName,
       locationLink,
       title,
     } = req.body;
 
-    if (!dateTime || !maxPlayers) {
-      return res.status(400).json({ error: 'dateTime and maxPlayers are required' });
+    if (!dateTime || !maxPlayers || playMode === undefined || playMode === null) {
+      return res.status(400).json({ error: 'dateTime, maxPlayers, and playMode are required' });
     }
+
+    if (!GAME_PLAY_MODES.includes(playMode)) {
+      return res.status(400).json({ error: 'Invalid playMode' });
+    }
+
+    const playModeValue = playMode as GamePlayMode;
 
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
@@ -64,7 +75,7 @@ router.post('/', async (req, res) => {
     if (!req.user.isAdmin) {
       const isAuthorized = await isUserAssignedToGame(req.user!.id, {
         dateTime,
-        withPositions,
+        playMode: playModeValue,
       });
       if (!isAuthorized) {
         return res.status(403).json({ error: 'You are not authorized to create games for this day and type' });
@@ -81,8 +92,7 @@ router.post('/', async (req, res) => {
         unregisterDeadlineHours,
         paymentAmount,
         pricingMode,
-        withPositions,
-        withPriorityPlayers,
+        playMode: playModeValue,
         readonly: readonly ?? false,
         locationName,
         locationLink,
@@ -101,10 +111,10 @@ router.post('/', async (req, res) => {
       registrationOpensAt.setDate(registrationOpensAt.getDate() - REGISTRATION_OPEN_DAYS);
 
       const isRegistrationOpen = now >= registrationOpensAt;
-      const isFiveOne = !!created.withPositions;
+      const isFiveOne = isWithPositionsPlayMode(created.playMode);
       const isFutureGame = gameDate > now;
       const isReadonly = !!created.readonly;
-      const hasPriorityPlayers = !!created.withPriorityPlayers;
+      const hasPriorityPlayers = isWithPriorityPlayersPlayMode(created.playMode);
 
       if (isRegistrationOpen && !isFiveOne && isFutureGame && !isReadonly && !hasPriorityPlayers) {
         const formattedDate = formatGameDate(gameDate);
@@ -129,6 +139,11 @@ router.post('/', async (req, res) => {
 // Update game details
 router.put('/:gameId', async (req, res) => {
   try {
+    if (Object.prototype.hasOwnProperty.call(req.body, 'withPositions') ||
+        Object.prototype.hasOwnProperty.call(req.body, 'withPriorityPlayers')) {
+      return res.status(400).json({ error: 'withPositions and withPriorityPlayers are no longer accepted; use playMode' });
+    }
+
     const gameId = parseInt(req.params.gameId);
     const {
       dateTime,
@@ -136,17 +151,22 @@ router.put('/:gameId', async (req, res) => {
       unregisterDeadlineHours,
       paymentAmount,
       pricingMode,
-      withPositions,
-      withPriorityPlayers,
+      playMode,
       readonly,
       locationName,
       locationLink,
       title,
     } = req.body;
 
-    if (!dateTime || !maxPlayers) {
-      return res.status(400).json({ error: 'dateTime and maxPlayers are required' });
+    if (!dateTime || !maxPlayers || playMode === undefined || playMode === null) {
+      return res.status(400).json({ error: 'dateTime, maxPlayers, and playMode are required' });
     }
+
+    if (!GAME_PLAY_MODES.includes(playMode)) {
+      return res.status(400).json({ error: 'Invalid playMode' });
+    }
+
+    const playModeValue = playMode as GamePlayMode;
 
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
@@ -175,8 +195,7 @@ router.put('/:gameId', async (req, res) => {
         unregisterDeadlineHours,
         paymentAmount,
         pricingMode,
-        withPositions,
-        withPriorityPlayers,
+        playMode: playModeValue,
         readonly: readonly ?? false,
         locationName,
         locationLink,

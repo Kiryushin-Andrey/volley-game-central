@@ -184,8 +184,9 @@ export class GamesListViewModel {
       
       const fetchedGames = await this.deps.gamesApi.getAllGames(showPast, this.showAll, categoriesToUse);
 
-      const gamesWithRequiredProps: GameWithStats[] = fetchedGames.map((game: any) => ({
+      const gamesWithRequiredProps: GameWithStats[] = fetchedGames.map((game) => ({
         ...game,
+        playMode: game.playMode ?? 'regular',
         totalRegisteredCount: game.totalRegisteredCount || 0,
         paidCount: game.paidCount,
         registeredCount: game.registeredCount,

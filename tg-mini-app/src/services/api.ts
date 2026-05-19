@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Game, User, GameWithStats, PricingMode, UserPublicInfo } from '../types';
+import { Game, User, GameWithStats, PricingMode, UserPublicInfo, GamePlayMode, PlayerLevel } from '../types';
 import { logDebug } from '../debug';
 
 // Use /api prefix for proxy, fallback to environment variable for production
@@ -127,7 +127,7 @@ export const gamesApi = {
     locationLink?: string | null;
     paymentAmount?: number | null; // cents
     pricingMode?: PricingMode | null;
-    withPositions?: boolean | null;
+    playMode?: GamePlayMode | null;
   }> => {
     const response = await api.get('/games/admin/defaults');
     return {
@@ -136,7 +136,7 @@ export const gamesApi = {
       locationLink: response.data.defaultLocationLink ?? null,
       paymentAmount: response.data.defaultPaymentAmount ?? null,
       pricingMode: (response.data.defaultPricingMode as PricingMode | undefined) ?? null,
-      withPositions: response.data.defaultWithPositions ?? null,
+      playMode: (response.data.defaultPlayMode as GamePlayMode | undefined) ?? null,
     };
   },
 
@@ -162,8 +162,7 @@ export const gamesApi = {
     unregisterDeadlineHours: number;
     paymentAmount: number;
     pricingMode?: PricingMode;
-    withPositions: boolean;
-    withPriorityPlayers?: boolean;
+    playMode: GamePlayMode;
     readonly?: boolean;
     locationName?: string | null;
     locationLink?: string | null;
@@ -216,8 +215,7 @@ export const gamesApi = {
     unregisterDeadlineHours: number;
     paymentAmount: number;
     pricingMode?: PricingMode;
-    withPositions: boolean;
-    withPriorityPlayers?: boolean;
+    playMode: GamePlayMode;
     readonly?: boolean;
     locationName?: string | null;
     locationLink?: string | null;
@@ -535,6 +533,36 @@ export const authApi = {
 };
 
 export default api;
+
+export interface AdminUserLevelRow {
+  id: number;
+  displayName: string;
+  telegramUsername?: string | null;
+  playerLevel: PlayerLevel | null;
+}
+
+export interface AdminUserLevelsListResponse {
+  users: AdminUserLevelRow[];
+  total?: number;
+}
+
+export const playerLevelsAdminApi = {
+  listUsers: async (params: { limit?: number; page?: number; q?: string }): Promise<AdminUserLevelsListResponse> => {
+    const response = await api.get<AdminUserLevelsListResponse | AdminUserLevelRow[]>('/admin/users/levels', { params });
+    const data = response.data;
+    if (Array.isArray(data)) {
+      return { users: data };
+    }
+    return {
+      users: data.users ?? [],
+      total: data.total,
+    };
+  },
+
+  setLevel: async (userId: number, playerLevel: PlayerLevel | null): Promise<void> => {
+    await api.patch(`/admin/users/${userId}/level`, { playerLevel });
+  },
+};
 
 // Types
 export interface UnpaidRegistration {

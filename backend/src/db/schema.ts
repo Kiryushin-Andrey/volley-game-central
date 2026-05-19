@@ -1,4 +1,7 @@
-import { pgTable, serial, varchar, timestamp, boolean, integer, text, uuid, unique } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, timestamp, boolean, integer, text, uuid, unique, pgEnum } from 'drizzle-orm/pg-core';
+
+export const playerSkillLevelEnum = pgEnum('player_skill_level', ['beginner', 'intermediate', 'advanced']);
+export const gamePlayModeEnum = pgEnum('game_play_mode', ['with_positions', 'with_priority_players', 'regular']);
 
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
@@ -11,6 +14,7 @@ export const users = pgTable('users', {
   blockedById: integer('blocked_by_id').references((): any => users.id, { onDelete: 'set null' }),
   isAdmin: boolean('is_admin').notNull().default(false),
   phoneNumber: varchar('phone_number', { length: 50 }),
+  playerLevel: playerSkillLevelEnum('player_level'),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -22,8 +26,7 @@ export const games = pgTable('games', {
   paymentAmount: integer('payment_amount').notNull(),
   pricingMode: varchar('pricing_mode', { length: 20 }).notNull().default('per_participant'), // 'per_participant' or 'total_cost'
   fullyPaid: boolean('fully_paid').notNull().default(false),
-  withPositions: boolean('with_positions').notNull().default(false),
-  withPriorityPlayers: boolean('with_priority_players').notNull().default(false),
+  playMode: gamePlayModeEnum('play_mode').notNull().default('regular'),
   readonly: boolean('readonly').notNull().default(false),
   locationName: varchar('location_name', { length: 255 }),
   locationLink: varchar('location_link', { length: 1000 }),

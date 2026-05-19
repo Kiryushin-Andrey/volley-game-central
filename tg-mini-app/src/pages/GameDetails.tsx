@@ -47,6 +47,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
     game: null,
     isLoading: true,
     error: null,
+    registrationRestriction: null,
   });
   const [action, setAction] = useState<ActionState>({
     isActionLoading: false,
@@ -141,6 +142,13 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
     text: mainButtonText,
     onClick: mainButtonClick,
   } = viewModel.getMainButtonProps();
+
+  const mainButtonTestId =
+    mainButtonText === 'Join Game'
+      ? 'join-game-button'
+      : mainButtonText === 'Leave Game'
+        ? 'leave-game-button'
+        : 'game-main-action-button';
 
   const isHalloween = gameData.game.tag === 'halloween';
   const isNewYear = gameData.game.tag === 'newyear';
@@ -341,7 +349,9 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
               {viewModel.shouldShowAddGuestButton() && (
                 <div className="header-actions">
                   <button
+                    type="button"
                     className="add-guest-button"
+                    data-testid="add-guest-button"
                     onClick={() => viewModel.handleGuestRegister()}
                     disabled={action.isActionLoading || dialogs.isGuestRegistering}
                   >
@@ -394,23 +404,27 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
           )}
       </div>
 
-      <InfoText text={viewModel.getInfoText()} />
+      <InfoText text={viewModel.getInfoText()} data-testid="game-details-info-text" />
 
       <ActionLoadingOverlay visible={action.isActionLoading} />
 
       {/* Main button (Telegram SDK inside Telegram, regular button in web) */}
       {showMainButton && (
         inTelegram ? (
-          <MainButton
-            text={mainButtonText || ""}
-            onClick={mainButtonClick}
-            progress={action.isActionLoading}
-            disabled={action.isActionLoading}
-          />
+          <div data-testid={mainButtonTestId}>
+            <MainButton
+              text={mainButtonText || ""}
+              onClick={mainButtonClick}
+              progress={action.isActionLoading}
+              disabled={action.isActionLoading}
+            />
+          </div>
         ) : (
           <div className="bottom-action-bar">
             <button
+              type="button"
               className="tg-main-button btn btn-primary"
+              data-testid={mainButtonTestId}
               onClick={mainButtonClick}
               disabled={action.isActionLoading}
             >
