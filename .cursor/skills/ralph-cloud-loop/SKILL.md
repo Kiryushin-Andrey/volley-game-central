@@ -60,7 +60,7 @@ For **each** child issue, read the full description (and title). Build a mental 
 
 1. **Every blocker must appear earlier** than the issue that depends on it.
 2. **Parallel-safe slices** (no dependency between them): pick one order; put them consecutively before anything that needs both. The loop is serial — you are choosing a safe sequence, not spawning parallel agents.
-3. **E2E suite mapping**: 1st child → Suite A, 2nd → B, etc. Each **iteration** on an issue makes progress + targeted checks; partial iterations only update `progress.txt`. The harness loops until `RALPH_ISSUE_COMPLETE #n` (full suite on the last iteration).
+3. **E2E suite mapping**: 1st child → Suite A, 2nd → B, etc. **Every iteration** runs **full Suites A–D** from the E2E plan before issue feature work. Any **Fail** must be fixed first (one per iteration). Issue work only when the gate has zero Fails. Update the E2E doc when behavior changes. Harness loops until `RALPH_ISSUE_COMPLETE #n`.
 4. If two orderings are valid, prefer the order documented in the PRD or parent issue when stated; otherwise prefer foundational/data-model slices before UI-only or policy layers that assume them.
 
 **Before step 3, write a short ordering note** (in your reply or orchestrator log), for example:

@@ -11,6 +11,7 @@ Pattern: [Getting started with Ralph](https://www.aihero.dev/getting-started-wit
 | `prompts/` | Agent prompt templates (edit `.md` files; see `prompts/README.md`) |
 | `progress.template.txt` | Seed for new `progress.txt` (committed) |
 | `progress.txt` | **Sprint resume source** — agents append narrative + `RALPH_*` sigils; commit on integration branch each pass |
+| E2E plan (`--e2e`) | Full **Suites A–D** run every iteration before feature work; update specs when behavior changes |
 | `logs/` | Agent stdout per iteration on the loop host (gitignored) |
 | `screenshots/` | E2E screenshots (gitignored) |
 | `STEERING.md` | Optional overrides (`STEERING.example.md`) |

@@ -2,11 +2,17 @@
 # Append after each pass. Include RALPH_ISSUE_COMPLETE #n only when that issue is fully done.
 # Delete this file when the epic sprint is done.
 
+# Example — partial iteration (E2E fix only):
+# ## 2026-05-16 — E2E gate
+# - Suites A–D: C4 FAIL (fixed join button), rest Pass; B3 Blocked (not applicable yet)
+# - No issue feature work this iteration
+
 # Example — partial iteration on issue #20:
 # ## 2026-05-16 — issue #20 (iteration 2)
-# - Done: game format field on create-game form
-# - Remaining: admin UI wiring, migration cleanup
-# - Files: backend/src/..., tg-mini-app/src/...
+# - E2E: A–D all Pass
+# - Done: game format field on create-game form; updated e2e doc A2 steps
+# - Remaining: admin UI wiring
+# - Files: backend/src/..., docs/testing/...
 
 # Example — issue #20 finished:
 # RALPH_ISSUE_COMPLETE #20
