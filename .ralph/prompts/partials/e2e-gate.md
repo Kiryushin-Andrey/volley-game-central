@@ -1,38 +1,46 @@
-## E2E gate (required every iteration — before issue feature work)
+## E2E gate — whole project (required before issue feature work)
 
-**Policy:** Do not advance issue #{{issue_number}} scope until the **project-wide** Playwright E2E suite is green (no failures). Fixing E2E failures has **higher priority** than new feature work this iteration.
+The gate is **always** the **repository-wide** Playwright regression set. It is **not** scoped to issue #{{issue_number}}, **not** defined by **{{prd}}**, and **not** a feature-specific browser plan under `docs/testing/`.
 
-### 1. Run the full Playwright suite
+| Project E2E (use for this gate) | Feature work (after gate is green) |
+|--------------------------------|-------------------------------------|
+| `docs/playwright-e2e-scenarios.md` — full scenario checklist | **{{prd}}** + GitHub issue #{{issue_number}} |
+| `e2e/**/*.spec.ts` — all Playwright specs | Product code you change for this epic |
+| `npm run test:e2e` — run **every** spec | New scenarios/tests only when **your** changes require them |
 
-Use the repo checklist and tests (not feature-specific E2E docs):
+**Policy:** Do not advance issue #{{issue_number}} until the **entire** project suite passes. Fixing **any** failing Playwright test has higher priority than epic feature work.
 
-- Read **{{e2e}}** for environment assumptions, personas, and scenario IDs (`E2E-*`).
-- Start stack per that doc (e.g. `npm run e2e:server` or `scripts/playwright-dev-server.sh`, then `npm run test:e2e` from repo root).
-- Run the **entire** Playwright suite (`npm run test:e2e`), not a subset, unless a failure requires a focused re-run while debugging.
+### 1. Run the full project suite
 
-Record in {{progress_file}}: pass/fail counts, failing spec files, and scenario IDs from the checklist when relevant.
+1. Read **`docs/playwright-e2e-scenarios.md`** for environment setup, personas, and `E2E-*` scenario IDs (this is the canonical checklist; `{{e2e}}` should resolve to this path).
+2. Start the stack per that doc (e.g. `npm run e2e:server` or `scripts/playwright-dev-server.sh`).
+3. From repo root run **`npm run test:e2e`** — **all** specs under `e2e/`, not a subset tied to the current feature.
 
-### 2. If any test **failed**
+Record in {{progress_file}}: total pass/fail, failing spec file paths, and related `E2E-*` IDs from the **project** checklist.
 
-- Do **not** start new feature work for the issue until failures are cleared.
-- Investigate; pick **one** failing test or root cause to fix this iteration.
-- Re-run **`npm run test:e2e`** (full suite) after the fix before committing.
-- Append to {{progress_file}}: what failed, what you fixed, what still fails.
+### 2. If any test failed
 
-You may end a **partial iteration** with only E2E repair work (no issue sigil).
+- Do **not** start new work from **{{prd}}** / issue #{{issue_number}} until failures are cleared.
+- Investigate; pick **one** failure anywhere in the suite to fix this iteration.
+- Re-run **`npm run test:e2e`** (full project suite) after the fix.
+- Append to {{progress_file}}: failures, fix, remaining failures.
 
-### 3. When the gate is green
+A partial iteration may contain **only** project E2E repairs (no issue sigil).
 
-You may work on issue #{{issue_number}} per **{{prd}}** and the GitHub issue.
+### 3. When the whole project suite is green
 
-**E2E spec hygiene (when you change product behavior):**
+You may implement a chunk of issue #{{issue_number}} per **{{prd}}** and the GitHub issue.
 
-- Add or update scenarios in **{{e2e}}** and implement or adjust tests under **`e2e/`** so the checklist matches the app.
-- Do **not** emit `RALPH_ISSUE_COMPLETE #{{issue_number}}` until:
-  - acceptance criteria for the issue are met, **and**
-  - **`npm run test:e2e` passes** (full suite), **and**
-  - {{e2e}} and `e2e/` reflect your changes when applicable.
+If **your** change alters product behavior:
 
-### 4. Before commit / end of iteration
+- Add or update rows in **`docs/playwright-e2e-scenarios.md`** and tests in **`e2e/`** so the **project** catalog matches the app (not a separate feature-only E2E doc).
 
-Re-run **full** `npm run test:e2e` after all code and E2E edits. Do not commit if tests still fail.
+Do **not** emit `RALPH_ISSUE_COMPLETE #{{issue_number}}` until:
+
+- issue acceptance criteria are met, **and**
+- **`npm run test:e2e`** passes for the **full** repo suite, **and**
+- project checklist + `e2e/` specs reflect your changes when applicable.
+
+### 4. Before commit
+
+Re-run full **`npm run test:e2e`**. Do not commit with any project spec still failing.

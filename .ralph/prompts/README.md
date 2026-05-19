@@ -40,7 +40,7 @@ Boolean context flags: `has_children`, `has_steering`, `has_issue`, `is_cloud`.
 |------|------|
 | `cloud-preamble.md` | Cloud VM intro (`{{#if is_cloud}}` in loop + final prompts) |
 | `workflow.md` | Workflow + feedback loops |
-| `e2e-gate.md` | Full `npm run test:e2e` before feature work |
+| `e2e-gate.md` | Whole-project Playwright gate (`docs/playwright-e2e-scenarios.md` + `e2e/`) before **{{prd}}** work |
 | `refs-block.md` | Required files list |
 
 ### Variables

@@ -21,7 +21,7 @@ Append to {{progress_file}}: dated section for issue #{{issue_number}}, Playwrig
 
 **Partial iteration** (more work remains on #{{issue_number}}, or only E2E fixes): do **not** emit a completion sigil. Push an updated {{progress_file}}.
 
-**Issue finished** — only when acceptance criteria are met, **`npm run test:e2e` passes**, and {{e2e}} / `e2e/` are updated for your changes when applicable. Add on its own line inside {{progress_file}} (and in your final message):
+**Issue finished** — only when acceptance criteria are met, the **full project** suite (`npm run test:e2e`, all `e2e/` specs) passes, and `docs/playwright-e2e-scenarios.md` + `e2e/` are updated for your changes when applicable. Add on its own line inside {{progress_file}} (and in your final message):
 
 RALPH_ISSUE_COMPLETE #{{issue_number}}
 

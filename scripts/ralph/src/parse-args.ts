@@ -102,6 +102,12 @@ export function parseRalphArgs(argv: string[]): RalphConfig {
     process.exit(1);
   }
   const e2ePath = e2e ?? DEFAULT_E2E_SCENARIOS;
+  if (e2e && e2e !== DEFAULT_E2E_SCENARIOS) {
+    console.warn(
+      `warn: --e2e is not the project Playwright checklist (${DEFAULT_E2E_SCENARIOS}). ` +
+        "The E2E gate in prompts targets the whole-repo suite; feature-specific plans are not used for the gate.",
+    );
+  }
   if (!childIssues?.length) {
     console.error("required: --child-issues");
     process.exit(1);

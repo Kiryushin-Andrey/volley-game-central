@@ -7,9 +7,9 @@
 
 ## E2E
 
-Run **`npm run test:e2e`** (full Playwright suite). No failures may remain. Fix any regression before closing the epic.
+Run **`npm run test:e2e`** — the **full project** Playwright suite (`e2e/`). No failures may remain. Fix any regression anywhere in the app before closing the epic.
 
-Confirm **{{e2e}}** and **`e2e/`** match shipped behavior for all child issues; update scenarios and specs if anything drifted.
+Confirm **`docs/playwright-e2e-scenarios.md`** and **`e2e/`** match shipped behavior; update the **project** checklist and specs if anything drifted (not a feature-only E2E doc).
 
 ## Close epic
 
