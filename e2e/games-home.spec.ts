@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import {
+  addParticipantViaUi,
   cleanupE2eData,
   createDevUserViaApi,
   createGameViaUi,
@@ -10,11 +11,11 @@ import {
   e2eTitle,
   moveGameToPastViaUi,
   nextWeekday,
+  markGameFullyPaidViaBunq,
   registerForGameViaUi,
   resetBunqMock,
   sendPaymentRequestsViaUi,
   switchToUser,
-  updateGame,
   waitForBackend,
 } from './support/fixtures';
 
@@ -175,10 +176,17 @@ test.describe('games home scenarios', () => {
 
   test('E2E-HOME-009 global admin toggles Show fully paid games', async ({ page, request }, testInfo) => {
     const adminUser = await createDevUserViaApi(request, testInfo, 'Fully Paid Admin', true);
+    const participant = await createDevUserViaApi(request, testInfo, 'Fully Paid Participant');
     const title = e2eTitle(testInfo, 'Fully Paid Past');
     await devLoginAs(page, adminUser);
-    const game = await createGameViaUi(page, { title, dateTime: daysFromNow(-1) });
-    await updateGame(game.id, { fully_paid: true });
+    const game = await createGameViaUi(page, { title, dateTime: daysFromNow(2) });
+    await moveGameToPastViaUi(page, game.id);
+    await resetBunqMock();
+    await enableBunqIntegrationViaUi(page);
+    await page.goto(`/game/${game.id}`);
+    await addParticipantViaUi(page, participant.displayName);
+    await markGameFullyPaidViaBunq(page, game.id, [participant.id]);
+    await page.goto('/');
     await page.getByLabel('Past').check();
     await expect(page.getByText(title)).toHaveCount(0);
     await page.getByLabel('Show fully paid games').check();
