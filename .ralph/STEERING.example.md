@@ -1,11 +1,9 @@
-# Steering (optional)
+# STEERING.md (optional)
 
-Copy to `STEERING.md` in this folder while the Ralph loop runs.
-The next agent iteration will treat this as highest-priority overrides.
+Copy to `.ralph/STEERING.md` (gitignored) to override Ralph behavior for one sprint.
 
-Example:
+Example overrides:
 
-- Production quality: maintainable code, match existing patterns in the repo.
-- Skip E2E Suite D for now.
+- Run `npm run test:e2e:auth` only while iterating on auth (not recommended for final sign-off).
 - Extra feedback loop: `cd backend && npm run build` must pass before every commit.
-- Prioritize architectural / integration risk in issue #22 before polish.
+- Skip final pass draft PR; human opens PR manually.

@@ -4,20 +4,21 @@ Edit these markdown files to change what agents see. Templates use **[Handlebars
 
 Override the directory with `--prompts-dir` on `ralph-loop.sh` or `launch-ralph-orchestrator.sh`.
 
-## Layout
+## Naming
 
-| Location | Role |
-|----------|------|
-| `*-prompt.md` (this directory) | Full prompt for one agent session |
-| `partials/*.md` | Shared blocks included via `{{> name}}` |
+| Suffix | Meaning | Example |
+|--------|---------|---------|
+| `-prompt` | Full prompt for one agent session | `loop-iteration-prompt.md`, `orchestrator-prompt.md` |
+| `-partial` | Shared block included via `{{> …}}` from multiple prompts | `workflow.md` |
+| (none) | Static text not composed as a prompt | `progress-header.md` |
 
 ## Syntax
 
 | Construct | Example |
 |-----------|---------|
-| Variable | `{{prd}}`, `{{issue_number}}` |
+| Variable | `{{prd}}`, `{{issue_number}}`, `{{e2e}}` |
 | Conditional | `{{#if has_children}}…{{else}}…{{/if}}` |
-| Partial | `{{> workflow}}`, `{{> refs-block}}` |
+| Partial | `{{> workflow}}`, `{{> e2e-gate}}` |
 
 Partials are registered from `partials/` by basename (e.g. `workflow.md` → `{{> workflow}}`).
 
@@ -29,8 +30,8 @@ Boolean context flags: `has_children`, `has_steering`, `has_issue`, `is_cloud`.
 
 | File | Role |
 |------|------|
-| `loop-iteration-prompt.md` | E2E gate (A–D) then issue work; partial progress or `RALPH_ISSUE_COMPLETE` |
-| `final-pass-prompt.md` | Epic: Suite D, unit tests, draft PR |
+| `loop-iteration-prompt.md` | One iteration on a child issue (Playwright gate, then epic PRD work) |
+| `final-pass-prompt.md` | Epic: full Playwright E2E, unit tests, draft PR |
 | `orchestrator-prompt.md` | Cloud orchestrator (`{{#if has_children}}` for step 2) |
 
 ### Partials (`partials/`)
@@ -39,7 +40,15 @@ Boolean context flags: `has_children`, `has_steering`, `has_issue`, `is_cloud`.
 |------|------|
 | `cloud-preamble.md` | Cloud VM intro (`{{#if is_cloud}}` in loop + final prompts) |
 | `workflow.md` | Workflow + feedback loops |
-| `e2e-gate.md` | Full Suites A–D before feature work; E2E-first policy |
+| `e2e-gate.md` | Full `npm run test:e2e` before feature work |
 | `refs-block.md` | Required files list |
+
+### Variables
+
+| Variable | Typical value |
+|----------|----------------|
+| `{{prd}}` | Feature epic PRD (required `--prd`) |
+| `{{e2e}}` | Project-wide checklist (default `docs/playwright-e2e-scenarios.md`) |
+| `{{context}}` | `CONTEXT.md` |
 
 Context fields are built in `scripts/ralph/src/loop.ts` and `launch-orchestrator.ts`.

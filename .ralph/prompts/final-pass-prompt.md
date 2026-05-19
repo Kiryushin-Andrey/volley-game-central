@@ -7,18 +7,16 @@
 
 ## E2E
 
-Run **full Suites A, B, C, and D** from {{e2e}} (§2–§8). No Fail may remain. Fix any regression before closing the epic.
+Run **`npm run test:e2e`** (full Playwright suite). No failures may remain. Fix any regression before closing the epic.
 
-Confirm {{e2e}} matches shipped behavior for all child issues; update scenarios if anything drifted.
-
-Screenshots: {{screenshots_dir}}/ for any new failures.
+Confirm **{{e2e}}** and **`e2e/`** match shipped behavior for all child issues; update scenarios and specs if anything drifted.
 
 ## Close epic
 
-Run unit tests. One draft PR {{branch}} → {{base}} ({{closes_clause}}).
-Update {{prd}} if items use passes:true/false — mark completed issues.
+Run unit tests if applicable. One draft PR {{branch}} → {{base}} ({{closes_clause}}).
+Update **{{prd}}** if items use passes:true/false — mark completed issues.
 
 Append to {{progress_file}} and output on their own lines when done:
 
-RALPH_E2E_COMPLETE SUITE_D
+RALPH_E2E_COMPLETE
 RALPH_ALL_COMPLETE

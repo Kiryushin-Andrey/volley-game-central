@@ -1,18 +1,18 @@
 # Ralph progress (session log)
-# Append after each pass. Include RALPH_ISSUE_COMPLETE #n only when that issue is fully done.
+# Append after each iteration. Use RALPH_ISSUE_COMPLETE #n only when that issue is fully done.
 # Delete this file when the epic sprint is done.
 
-# Example — partial iteration (E2E fix only):
+# Example — partial iteration (Playwright fix only):
 # ## 2026-05-16 — E2E gate
-# - Suites A–D: C4 FAIL (fixed join button), rest Pass; B3 Blocked (not applicable yet)
+# - npm run test:e2e: 2 failed (e2e/game-form.spec.ts)
+# - Fixed E2E-FORM-003; re-run green
 # - No issue feature work this iteration
 
 # Example — partial iteration on issue #42:
 # ## 2026-05-16 — issue #42 (iteration 2)
-# - E2E: A–D all Pass
-# - Done: …; updated e2e doc as needed
+# - Playwright: all green
+# - Done: …; added E2E-FOO-001 to docs/playwright-e2e-scenarios.md + e2e/…
 # - Remaining: …
-# - Files: …
 
 # Example — issue #42 finished:
 # RALPH_ISSUE_COMPLETE #42

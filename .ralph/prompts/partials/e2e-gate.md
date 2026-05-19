@@ -1,45 +1,38 @@
 ## E2E gate (required every iteration — before issue feature work)
 
-**Policy:** Do not advance issue #{{issue_number}} scope until the full epic E2E gate is green (no **Fail**). Fixing E2E failures has **higher priority** than new feature work this iteration.
+**Policy:** Do not advance issue #{{issue_number}} scope until the **project-wide** Playwright E2E suite is green (no failures). Fixing E2E failures has **higher priority** than new feature work this iteration.
 
-### 1. Run the full suite
+### 1. Run the full Playwright suite
 
-Follow {{e2e}}:
+Use the repo checklist and tests (not feature-specific E2E docs):
 
-- Environment **§2** (stack, DB, restrictions env when testing Suite C).
-- Personas **§3**.
-- **All scenarios in Suites A, B, C, and D** (**§6**), in the order suggested in **§7**.
-- Record each test ID as **Pass**, **Fail**, or **Blocked** using the template in **§8**.
-- Screenshots under {{screenshots_dir}}/ for failures and for cases listed in §8.
+- Read **{{e2e}}** for environment assumptions, personas, and scenario IDs (`E2E-*`).
+- Start stack per that doc (e.g. `npm run e2e:server` or `scripts/playwright-dev-server.sh`, then `npm run test:e2e` from repo root).
+- Run the **entire** Playwright suite (`npm run test:e2e`), not a subset, unless a failure requires a focused re-run while debugging.
 
-This iteration’s primary slice is Suite **{{suite}}** (issue #{{issue_number}}), but the gate always includes **A + B + C + D**.
+Record in {{progress_file}}: pass/fail counts, failing spec files, and scenario IDs from the checklist when relevant.
 
-### 2. If anything **Failed**
+### 2. If any test **failed**
 
-- Do **not** start new feature work for the issue until Failures are cleared.
-- Investigate failures; pick **one** Fail to fix this iteration (smallest root cause).
-- Re-run **full Suites A–D** after the fix before committing.
-- Append to {{progress_file}}: E2E status table, which Fail you fixed, and remaining Fails.
+- Do **not** start new feature work for the issue until failures are cleared.
+- Investigate; pick **one** failing test or root cause to fix this iteration.
+- Re-run **`npm run test:e2e`** (full suite) after the fix before committing.
+- Append to {{progress_file}}: what failed, what you fixed, what still fails.
 
 You may end a **partial iteration** with only E2E repair work (no issue sigil).
 
-### 3. **Blocked** vs **Fail**
+### 3. When the gate is green
 
-- **Fail** — built behavior is wrong or regressed; must be fixed before feature work.
-- **Blocked** — scenario cannot run yet (e.g. migration missing, slice not merged). Allowed only when documented in {{progress_file}} with reason. **Blocked does not excuse Fail.** You may proceed with issue feature work only when there are **zero Fails** (Blocked is OK).
+You may work on issue #{{issue_number}} per **{{prd}}** and the GitHub issue.
 
-### 4. When the gate is green (no Fail)
+**E2E spec hygiene (when you change product behavior):**
 
-You may work on issue #{{issue_number}} per {{prd}} and the GitHub issue.
-
-**E2E spec hygiene (same iteration when you change product behavior):**
-
-- If you add or change behavior, update **{{e2e}}** (and any automated tests in the repo, if present) so scenarios match the app.
+- Add or update scenarios in **{{e2e}}** and implement or adjust tests under **`e2e/`** so the checklist matches the app.
 - Do **not** emit `RALPH_ISSUE_COMPLETE #{{issue_number}}` until:
   - acceptance criteria for the issue are met, **and**
-  - full Suites **A–D** pass with **no Fail**, **and**
-  - {{e2e}} reflects the shipped behavior for this issue (when applicable).
+  - **`npm run test:e2e` passes** (full suite), **and**
+  - {{e2e}} and `e2e/` reflect your changes when applicable.
 
-### 5. Before commit / end of iteration
+### 4. Before commit / end of iteration
 
-Re-run **full Suites A–D** after all code and {{e2e}} edits. Do not commit if any Fail remains.
+Re-run **full** `npm run test:e2e` after all code and E2E edits. Do not commit if tests still fail.

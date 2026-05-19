@@ -30,7 +30,8 @@ Entrypoints are shell wrappers around `tsx` (`scripts/ralph-loop.sh`, `scripts/l
 | Parent issue # | Epic / PRD issue |
 | Child issue #s | **Dependency-ordered** list for `--child-issues` |
 | Integration branch | Single PR branch |
-| PRD + E2E paths | Repo paths for this epic |
+| PRD path | Feature epic PRD (`--prd`, required) |
+| E2E | Defaults to `docs/playwright-e2e-scenarios.md` (project-wide; optional `--e2e`) |
 
 Optional: `--push` (required for cloud resume), `--cloud-env KEY=VAL`, `--max-iterations N` (cap AFK cost), `--once` (HITL / single attempt per pass), `--max-slice N` (retries per child), `--feedback-loop` (override default typecheck builds), `--no-verify-git-resume` (progress.txt only).
 
@@ -60,7 +61,7 @@ For **each** child issue, read the full description (and title). Build a mental 
 
 1. **Every blocker must appear earlier** than the issue that depends on it.
 2. **Parallel-safe slices** (no dependency between them): pick one order; put them consecutively before anything that needs both. The loop is serial — you are choosing a safe sequence, not spawning parallel agents.
-3. **E2E suite mapping**: 1st child → Suite A, 2nd → B, etc. **Every iteration** runs **full Suites A–D** from the E2E plan before issue feature work. Any **Fail** must be fixed first (one per iteration). Issue work only when the gate has zero Fails. Update the E2E doc when behavior changes. Harness loops until `RALPH_ISSUE_COMPLETE #n`.
+3. **E2E gate**: **Every iteration** runs full **`npm run test:e2e`** (see `docs/playwright-e2e-scenarios.md`) before issue feature work. Fix one failing test before new scope. Update the checklist and `e2e/` specs when behavior changes. Harness loops until `RALPH_ISSUE_COMPLETE #n`.
 4. If two orderings are valid, prefer the order documented in the PRD or parent issue when stated; otherwise prefer foundational/data-model slices before UI-only or policy layers that assume them.
 
 **Before step 3, write a short ordering note** (in your reply or orchestrator log), for example:
@@ -87,25 +88,24 @@ cd scripts/ralph && npm install && cd ../..
   --child-issues <ordered numbers> \
   --branch <branch> \
   --prd <path> \
-  --e2e <path> \
   --push \
   --max-iterations 50
 ```
 
 Run in the **foreground**. Do **not** implement slices in the orchestrator session. Prefer `--max-iterations` on unattended runs.
 
-### Example (player-levels)
+### Example epic
 
-After reasoning: format (#20) and admin (#21) before restrictions (#22):
+After dependency reasoning, pass ordered `--child-issues`:
 
 ```bash
-source .ralph/examples/player-levels.sh
+source .ralph/examples/example-epic.sh
 ./scripts/ralph-loop.sh "${RALPH_LOOP_ARGS[@]}" \
-  --child-issues 20 21 22 \
+  --child-issues <n1> <n2> <n3> \
   --backend cloud --push
 ```
 
-(`RALPH_LOOP_ARGS` does not include children — you add them after step 2.)
+Edit `example-epic.sh` with your epic’s parent issue, branch, and PRD path. Children are added after step 2.
 
 ---
 
@@ -114,7 +114,7 @@ source .ralph/examples/player-levels.sh
 ```bash
 export CURSOR_API_KEY=...
 ./scripts/launch-ralph-orchestrator.sh --branch <branch> -- \
-  --parent-issue 8 --prd … --e2e … --backend cloud --push
+  --parent-issue 8 --prd … --backend cloud --push
 ```
 
 Omit `--child-issues` so the cloud orchestrator runs steps 1–2 from this skill, then adds the ordered list to the command.

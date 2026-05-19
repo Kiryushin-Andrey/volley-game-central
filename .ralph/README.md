@@ -11,7 +11,7 @@ Pattern: [Getting started with Ralph](https://www.aihero.dev/getting-started-wit
 | `prompts/` | Agent prompt templates (edit `.md` files; see `prompts/README.md`) |
 | `progress.template.txt` | Seed for new `progress.txt` (committed) |
 | `progress.txt` | **Sprint resume source** — agents append narrative + `RALPH_*` sigils; commit on integration branch each pass |
-| E2E plan (`--e2e`) | Full **Suites A–D** run every iteration before feature work; update specs when behavior changes |
+| E2E checklist | Default: `docs/playwright-e2e-scenarios.md` (override with `--e2e` only if needed) |
 | `logs/` | Agent stdout per iteration on the loop host (gitignored) |
 | `screenshots/` | E2E screenshots (gitignored) |
 | `STEERING.md` | Optional overrides (`STEERING.example.md`) |
@@ -32,7 +32,7 @@ Disable git-log fallback with `--no-verify-git-resume`.
 
 | Mode | Command | Use when |
 |------|---------|----------|
-| HITL | `scripts/ralph-once.sh` or `--once` | Learning, refining prompts, risky slices |
+| HITL | `scripts/ralph-once.sh` or `--once` | Learning, refining prompts, risky work |
 | AFK | `scripts/ralph-loop.sh` + `--max-iterations N` | Unattended runs; always cap iterations |
 
 ## Setup
@@ -48,11 +48,14 @@ cd scripts/ralph && npm install
   --parent-issue <N> \
   --child-issues <n1> <n2> ... \
   --branch <integration-branch> \
-  --prd <path-to-prd.md> \
-  --e2e <path-to-e2e-plan.md> \
+  --prd <path-to-epic-prd.md> \
+  [--e2e docs/playwright-e2e-scenarios.md] \
   [--backend local|cloud] [--push] [--once] [--max-iterations N] \
   [--prompts-dir .ralph/prompts] …
 ```
+
+- **`--prd`** — feature-specific epic PRD (required).
+- **`--e2e`** — optional; defaults to project-wide Playwright checklist. Do not point this at feature-only browser-agent plans.
 
 Child issue numbers and **order** come from the orchestrator. The script does not call GitHub.
 
@@ -60,10 +63,10 @@ Child issue numbers and **order** come from the orchestrator. The script does no
 
 ```bash
 ./scripts/ralph-loop.sh --help
-./scripts/ralph-once.sh --parent-issue … --child-issues … --branch … --prd … --e2e … --dry-run
+./scripts/ralph-once.sh --parent-issue … --child-issues … --branch … --prd … --dry-run
 ```
 
-Requires Cursor CLI (`agent`), `git`, and Node.js 18+.
+Requires Cursor CLI (`agent`), `git`, Node.js 18+, and Playwright deps (`npx playwright install` if needed).
 
 ## Cloud backend
 
@@ -71,7 +74,7 @@ See `.cursor/skills/ralph-cloud-loop/SKILL.md`.
 
 ```bash
 ./scripts/launch-ralph-orchestrator.sh --branch … -- \
-  --parent-issue … --child-issues … --prd … --e2e … --backend cloud --push --max-iterations 50
+  --parent-issue … --child-issues … --prd … --backend cloud --push --max-iterations 50
 ```
 
 When the epic is done, remove or trim `progress.txt` on the branch in a cleanup commit.

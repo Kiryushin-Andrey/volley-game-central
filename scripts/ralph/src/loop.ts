@@ -72,14 +72,6 @@ export class RalphLoop {
     }
   }
 
-  suiteFor(issueNumber: number): string {
-    const idx = this.issueNumbers.indexOf(issueNumber);
-    if (idx < 0) {
-      throw new Error(`Issue #${issueNumber} not in child list`);
-    }
-    return String.fromCharCode("A".charCodeAt(0) + idx);
-  }
-
   closesClause(): string {
     return this.issueNumbers.map((n) => `Closes #${n}`).join(", ");
   }
@@ -227,7 +219,6 @@ export class RalphLoop {
   promptIssueIteration(n: number): string {
     return this.prompts.render("loop-iteration-prompt", {
       ...this.basePromptContext(n),
-      suite: this.suiteFor(n),
       screenshots_dir: screenshotsDir(this.cfg),
     });
   }

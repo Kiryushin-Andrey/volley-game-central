@@ -1,5 +1,6 @@
 import { parseArgs } from "node:util";
 import type { Backend, RalphConfig } from "./types.js";
+import { DEFAULT_E2E_SCENARIOS } from "./types.js";
 import { DEFAULT_PROMPTS_DIR } from "./prompts.js";
 
 export const DEFAULT_FEEDBACK_LOOPS = [
@@ -100,10 +101,7 @@ export function parseRalphArgs(argv: string[]): RalphConfig {
     console.error("required: --prd");
     process.exit(1);
   }
-  if (!e2e) {
-    console.error("required: --e2e");
-    process.exit(1);
-  }
+  const e2ePath = e2e ?? DEFAULT_E2E_SCENARIOS;
   if (!childIssues?.length) {
     console.error("required: --child-issues");
     process.exit(1);
@@ -135,7 +133,7 @@ export function parseRalphArgs(argv: string[]): RalphConfig {
     base: values.base ?? "main",
     context: values.context ?? "CONTEXT.md",
     prd,
-    e2e,
+    e2e: e2ePath,
     stateDir,
     promptsDir: values["prompts-dir"] ?? DEFAULT_PROMPTS_DIR,
     verifyGitResume: !(values["no-verify-git-resume"] ?? false),
