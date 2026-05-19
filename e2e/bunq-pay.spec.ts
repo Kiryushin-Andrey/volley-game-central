@@ -11,12 +11,12 @@ import {
   enableBunqIntegrationForUserViaUi,
   enableBunqIntegrationViaUi,
   e2eTitle,
+  markGameFullyPaidViaBunq,
   moveGameToPastViaUi,
   resetBunqMock,
   sendPaymentRequestsViaUi,
   submitSendPaymentRequestsPassword,
   switchToUser,
-  updateGame,
   waitForBackend,
 } from './support/fixtures';
 
@@ -216,17 +216,20 @@ test.describe('Bunq payment request scenarios', () => {
 
   test('E2E-BUNQ-PAY-008 fully paid past game hides send payment requests', async ({ page, request }, testInfo) => {
     const admin = await createDevUserViaApi(request, testInfo, 'Pay Fully Paid Admin', true);
+    const participant = await createDevUserViaApi(request, testInfo, 'Pay Fully Paid Player');
 
     await devLoginAs(page, admin);
     const game = await createGameViaUi(page, {
       title: e2eTitle(testInfo, 'Pay Fully Paid'),
-      dateTime: daysFromNow(-1),
+      dateTime: daysFromNow(2),
     });
 
-    await updateGame(game.id, { fully_paid: true });
+    await moveGameToPastViaUi(page, game.id);
     await enableBunqIntegrationViaUi(page);
-
     await page.goto(`/game/${game.id}`);
+    await addParticipantViaUi(page, participant.displayName);
+    await markGameFullyPaidViaBunq(page, game.id, [participant.id]);
+
     await expect(page.getByTitle('Send payment requests to unpaid players')).toHaveCount(0);
   });
 });

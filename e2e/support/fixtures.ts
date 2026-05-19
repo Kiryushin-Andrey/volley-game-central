@@ -228,31 +228,31 @@ export async function registerForGameViaUi(page: Page, user: DevUser, gameId: nu
   await expect(page.getByText(expectedStatus, { exact: true })).toBeVisible();
 }
 
-/** Fields that cannot be set through the mini-app UI (allowed for E2E DB helpers only). */
-export type GameDbOnlyPatch = {
-  tag?: string | null;
-  fully_paid?: boolean;
-};
+/** Game tag cannot be set through the mini-app UI; use for seasonal/special game E2E setup only. */
+export async function updateGameTag(id: number, tag: string | null): Promise<void> {
+  await pool.query(`update games set tag = $2 where id = $1`, [id, tag]);
+}
 
-export async function updateGame(id: number, updates: GameDbOnlyPatch): Promise<void> {
-  const allowedKeys = new Set(['tag', 'fully_paid']);
-  const keys = Object.keys(updates);
-  const bad = keys.filter((k) => !allowedKeys.has(k));
-  if (bad.length > 0) {
-    throw new Error(`updateGame: disallowed keys: ${bad.join(', ')}. Only "tag" and "fully_paid" are permitted.`);
+/**
+ * Mark a past game fully paid via admin payment requests and Bunq mock webhooks.
+ * Requires Bunq integration enabled, unpaid registered participants, and admin on `page`.
+ */
+export async function markGameFullyPaidViaBunq(
+  page: Page,
+  gameId: number,
+  participantUserIds: number[]
+): Promise<void> {
+  await page.goto(`/game/${gameId}`);
+  await sendPaymentRequestsViaUi(page);
+  for (const userId of participantUserIds) {
+    const inquiryId = await getPaymentRequestIdForUserRegistration(gameId, userId);
+    if (!inquiryId) {
+      throw new Error(`markGameFullyPaidViaBunq: no payment request for game ${gameId} user ${userId}`);
+    }
+    await deliverBunqRequestInquiryAcceptedWebhook(inquiryId);
   }
-
-  const entries: [string, unknown][] = [];
-  if (Object.prototype.hasOwnProperty.call(updates, 'tag')) {
-    entries.push(['tag', updates.tag ?? null]);
-  }
-  if (Object.prototype.hasOwnProperty.call(updates, 'fully_paid')) {
-    entries.push(['fully_paid', updates.fully_paid]);
-  }
-  if (entries.length === 0) return;
-
-  const setSql = entries.map(([key], index) => `${key} = $${index + 2}`).join(', ');
-  await pool.query(`update games set ${setSql} where id = $1`, [id, ...entries.map(([, value]) => value)]);
+  await page.reload();
+  await expect(page.getByText('Payments collected by')).toBeVisible({ timeout: 30_000 });
 }
 
 export async function countRegistrations(gameId: number) {

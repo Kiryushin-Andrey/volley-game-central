@@ -10,7 +10,7 @@ import {
   nextWeekday,
   registerForGameViaUi,
   switchToUser,
-  updateGame,
+  updateGameTag,
   waitForBackend,
 } from './support/fixtures';
 
@@ -214,7 +214,7 @@ test.describe('game details participant scenarios', () => {
         title: e2eTitle(testInfo, `Season ${seasonal.tag}`),
         dateTime: daysFromNow(2),
       });
-      await updateGame(game.id, { tag: seasonal.tag });
+      await updateGameTag(game.id, seasonal.tag);
       games.push({ game, note: seasonal.note });
     }
 
