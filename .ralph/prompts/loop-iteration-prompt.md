@@ -2,10 +2,11 @@
 
 {{/if}}Ralph loop — issue #{{issue_number}} (one iteration; continue until this issue is fully done).
 
-{{> workflow}}
 {{> refs-block}}
+{{> session-orientation}}
+{{> workflow}}
 
-Read {{progress_file}} and GitHub issue #{{issue_number}} first. Continue where prior iterations left off — do not redo finished work on this issue. Do not work on other child issues this iteration.
+Do not work on other child issues this iteration.
 
 {{> e2e-gate}}
 
@@ -16,8 +17,11 @@ If the issue is large, prefer one focused chunk of work, not the entire issue in
 
 ## Finish
 
-Run feedback loops for any code you changed. Commit and push to {{branch}}.
-Append to {{progress_file}}: dated section for issue #{{issue_number}}, Playwright E2E result, what you did, decisions, files touched, and what remains.
+Run feedback loops for any code you changed. Commit and **push** to {{branch}}.
+
+**Handoff for the next pass (especially on cloud):** working tree clean or intentional WIP called out in the log; **{{progress_file}}** updated in the same push as code when possible so the next agent can clone and continue without guessing.
+
+**Append-only log:** add a new dated section to {{progress_file}} — Playwright E2E result, what you did, decisions, files touched, what remains. Do **not** delete or rewrite earlier sections.
 
 **Partial iteration** (more work remains on #{{issue_number}}, or only E2E fixes): do **not** emit a completion sigil. Push an updated {{progress_file}}.
 

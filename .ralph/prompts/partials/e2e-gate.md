@@ -31,6 +31,11 @@ A partial iteration may contain **only** project E2E repairs (no issue sigil).
 
 You may implement a chunk of issue #{{issue_number}} per **{{prd}}** and the GitHub issue.
 
+**Regression and quality (before new feature work — no second full suite required):**  
+If manual smoke checks or the app UI show **obvious** problems Playwright did not catch (e.g. critical path broken, severe layout breakage, persistent console errors on main flows), **stop** and fix or extend **`e2e/`** + **`docs/playwright-e2e-scenarios.md`** before adding new scope from **{{prd}}**. Prefer tightening tests over shipping “green but broken.”
+
+**Quick quality bar** (in addition to passing specs): no obvious broken navigation on core flows, readable contrast on primary UI, no unexplained console errors during the flows you touched.
+
 If **your** change alters product behavior:
 
 - Add or update rows in **`docs/playwright-e2e-scenarios.md`** and tests in **`e2e/`** so the **project** catalog matches the app (not a separate feature-only E2E doc).

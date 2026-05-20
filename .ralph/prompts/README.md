@@ -42,6 +42,7 @@ Boolean context flags: `has_children`, `has_steering`, `has_issue`, `is_cloud`.
 | `workflow.md` | Workflow + feedback loops |
 | `e2e-gate.md` | Whole-project Playwright gate (`docs/playwright-e2e-scenarios.md` + `e2e/`) before **{{prd}}** work |
 | `refs-block.md` | Required files list |
+| `session-orientation.md` | Mandatory first steps: git branch, **{{progress_file}}**, issue or epic, `git log`, working assumption (fresh-context handoff) |
 
 ### Variables
 
