@@ -56,6 +56,8 @@ export class RalphLoop {
       this.cfg.cloudPollInterval,
       this.cfg.cloudEnv,
       autoCreatePr,
+      undefined,
+      this.cfg.cloudModel,
     );
   }
 

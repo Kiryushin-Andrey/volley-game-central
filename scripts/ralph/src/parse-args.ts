@@ -70,6 +70,10 @@ export function parseRalphArgs(argv: string[]): RalphConfig {
       "cursor-api-key": { type: "string" },
       "cloud-poll-interval": { type: "string", default: "15" },
       "cloud-env": { type: "string", multiple: true },
+      "cloud-model": {
+        type: "string",
+        default: "default",
+      },
       "cloud-create-pr-on-final": { type: "boolean", default: false },
       max: { type: "string" },
       "max-slice": { type: "string" },
@@ -146,6 +150,7 @@ export function parseRalphArgs(argv: string[]): RalphConfig {
     cursorApiKey: apiKey,
     cloudPollInterval: Number(values["cloud-poll-interval"] ?? "15"),
     cloudEnv: parseCloudEnv(values["cloud-env"] ?? []),
+    cloudModel: values["cloud-model"] ?? "default",
     cloudCreatePrOnFinal: values["cloud-create-pr-on-final"] ?? false,
     maxSlice: Number(maxSliceRaw),
     dryRun,

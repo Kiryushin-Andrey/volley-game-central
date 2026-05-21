@@ -22,6 +22,8 @@ export interface RalphConfig {
   cursorApiKey: string | undefined;
   cloudPollInterval: number;
   cloudEnv: Record<string, string>;
+  /** Cursor Cloud Agents model id (API). `"default"` = Auto. */
+  cloudModel: string;
   cloudCreatePrOnFinal: boolean;
   maxSlice: number;
   dryRun: boolean;

@@ -33,7 +33,7 @@ Entrypoints are shell wrappers around `tsx` (`scripts/ralph-loop.sh`, `scripts/l
 | PRD path | Feature epic PRD (`--prd`, required) |
 | E2E | Defaults to `docs/playwright-e2e-scenarios.md` (project-wide; optional `--e2e`) |
 
-Optional: `--push` (required for cloud resume), `--cloud-env KEY=VAL`, `--max-iterations N` (cap AFK cost), `--once` (HITL / single attempt per pass), `--max-slice N` (retries per child), `--feedback-loop` (override default typecheck builds).
+Optional: `--push` (required for cloud resume), `--cloud-env KEY=VAL`, `--cloud-model default` (Cursor API **Auto**; default is `default`), `--max-iterations N` (cap AFK cost), `--once` (HITL / single attempt per pass), `--max-slice N` (retries per child), `--feedback-loop` (override default typecheck builds).
 
 ---
 

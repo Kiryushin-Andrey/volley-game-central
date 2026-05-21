@@ -3,7 +3,7 @@
  * Start one Cloud Agent that runs the Ralph loop orchestrator in the foreground.
  */
 import { parseArgs } from "node:util";
-import { CloudAgentClient } from "./cloud.js";
+import { CloudAgentClient, CLOUD_MODEL_AUTO } from "./cloud.js";
 import { detectRepoSlug, gitRoot, repoSlugToUrl } from "./git.js";
 import { DEFAULT_PROMPTS_DIR, PromptLoader } from "./prompts.js";
 
@@ -77,7 +77,7 @@ async function main(): Promise<void> {
     }
   }
 
-  const client = new CloudAgentClient(apiKey, url, branch);
+  const client = new CloudAgentClient(apiKey, url, branch, 15, {}, false, undefined, CLOUD_MODEL_AUTO);
   const session = await client.createSession(prompt, "ralph-orchestrator");
   console.log(`Orchestrator session: ${session.url}`);
   console.log(`agent_id=${session.agentId} run_id=${session.runId}`);

@@ -49,7 +49,13 @@ cd scripts/ralph && npm install
   --prd <path-to-epic-prd.md> \
   [--e2e docs/playwright-e2e-scenarios.md] \
   [--backend local|cloud] [--push] [--once] [--max-iterations N] \
-  [--prompts-dir .ralph/prompts] …
+  [--cloud-model default] [--prompts-dir .ralph/prompts] …
+```
+
+Cloud backend uses Cursor model id **`default`** (UI **Auto**) by default. Override with `--cloud-model <id>` from `GET /v1/models`.
+
+```bash
+./scripts/ralph-loop.sh ... --backend cloud ...
 ```
 
 - **`--prd`** — feature-specific epic PRD (required).
