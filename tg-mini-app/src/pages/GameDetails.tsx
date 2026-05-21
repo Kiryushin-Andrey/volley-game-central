@@ -372,7 +372,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
           </div>
         ) : null}
 
-        {waitlistRegistrations.length > 0 && (
+        {!isPastGame && waitlistRegistrations.length > 0 && (
           <div className="players-section waitlist-section">
             <h2>Waiting List</h2>
             <WaitlistList
