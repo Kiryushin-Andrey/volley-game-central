@@ -29,8 +29,6 @@ export interface RalphConfig {
   once: boolean;
   maxTotalIterations: number;
   feedbackLoops: readonly string[];
-  /** When true, treat slice/epic sigils in git log as resume hints if progress.txt lacks them. */
-  verifyGitResume: boolean;
 }
 
 export function logsDir(cfg: RalphConfig): string {
