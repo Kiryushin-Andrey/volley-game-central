@@ -12,6 +12,9 @@ export interface CloudAgentSession {
   url: string;
 }
 
+/** API model id for Cursor UI "Auto" (see GET /v1/models). */
+export const CLOUD_MODEL_AUTO = "default";
+
 export class CloudAgentClient {
   constructor(
     private readonly apiKey: string,
@@ -21,6 +24,7 @@ export class CloudAgentClient {
     private readonly envVars: Record<string, string> = {},
     private readonly autoCreatePr = false,
     private readonly apiBase = API_BASE_DEFAULT,
+    private readonly modelId: string = CLOUD_MODEL_AUTO,
   ) {}
 
   private authHeader(): string {
@@ -63,6 +67,7 @@ export class CloudAgentClient {
       repos: [{ url: this.repoUrl, startingRef: this.branch }],
       workOnCurrentBranch: true,
       autoCreatePR: this.autoCreatePr,
+      model: { id: this.modelId },
     };
     if (Object.keys(this.envVars).length > 0) {
       body.envVars = this.envVars;

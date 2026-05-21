@@ -49,7 +49,13 @@ cd scripts/ralph && npm install
   --prd <path-to-prd.md> \
   --e2e <path-to-e2e-plan.md> \
   [--backend local|cloud] [--push] [--once] [--max-iterations N] \
-  [--prompts-dir .ralph/prompts] …
+  [--cloud-model default] [--prompts-dir .ralph/prompts] …
+```
+
+Cloud backend uses Cursor model id **`default`** (UI **Auto**) by default. Override with `--cloud-model <id>` from `GET /v1/models`.
+
+```bash
+./scripts/ralph-loop.sh ... --backend cloud ...
 ```
 
 Child issue numbers and **order** come from the orchestrator. The script does not call GitHub.
