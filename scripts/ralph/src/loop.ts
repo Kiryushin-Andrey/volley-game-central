@@ -6,7 +6,6 @@ import {
   commandExists,
   commitPaths,
   detectRepoSlug,
-  gitLogHasPromise,
   maybePush,
   repoSlugToUrl,
   syncSprintBranch,
@@ -84,16 +83,8 @@ export class RalphLoop {
     return this.issueNumbers.map((n) => `Closes #${n}`).join(", ");
   }
 
-  private resumeOpts() {
-    return {
-      root: this.root,
-      branch: this.cfg.branch,
-      verifyGit: this.cfg.verifyGitResume,
-    };
-  }
-
   private reloadResumeFromBranch(): void {
-    this.resume = readProgressResume(progressFile(this.cfg), this.issueNumbers, this.resumeOpts());
+    this.resume = readProgressResume(progressFile(this.cfg), this.issueNumbers);
   }
 
   private logResumePlan(): void {
@@ -163,7 +154,7 @@ export class RalphLoop {
 
   /**
    * After agent log shows issue-complete sigil, pull sprint branch and confirm progress.txt
-   * (or git history when verifyGitResume) records the same milestone.
+   * records the same milestone.
    */
   private confirmIssueCompleteOnBranch(logPath: string, n: number): boolean {
     const sigil = promiseIssueComplete(n);
@@ -175,14 +166,6 @@ export class RalphLoop {
     this.reloadResumeFromBranch();
 
     if (this.issueDone(n)) return true;
-
-    if (this.cfg.verifyGitResume && gitLogHasPromise(this.root, this.cfg.branch, sigil)) {
-      console.warn(
-        `warn: ${sigil} in agent log and git history but not in progress.txt — ask agents to append sigils to progress.txt`,
-      );
-      this.markIssueDone(n);
-      return true;
-    }
 
     console.warn(
       `warn: agent log has ${sigil} but progress.txt on ${this.cfg.branch} does not — ` +
@@ -393,11 +376,6 @@ export class RalphLoop {
         }
         this.reloadResumeFromBranch();
         if (textHasPromise(readFileSync(progressFile(this.cfg), "utf-8"), promise)) {
-          console.log(`OK: ${promise}`);
-          return;
-        }
-        if (this.cfg.verifyGitResume && gitLogHasPromise(this.root, this.cfg.branch, promise)) {
-          console.warn(`warn: ${promise} in log and git but not progress.txt`);
           console.log(`OK: ${promise}`);
           return;
         }

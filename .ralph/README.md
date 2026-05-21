@@ -17,16 +17,14 @@ Pattern: [Getting started with Ralph](https://www.aihero.dev/getting-started-wit
 | `STEERING.md` | Optional overrides (`STEERING.example.md`) |
 | `examples/player-levels.sh` | Example flags (add `--child-issues` after discovery) |
 
-There is **no** `ralph-state.json`. The harness resumes by reading `progress.txt` on the sprint branch (and optionally confirming sigils in recent `git log`).
+There is **no** `ralph-state.json`. The harness resumes **only** by reading `.ralph/progress.txt` on the sprint branch after `git pull`. Sigils in commit messages are **not** used.
 
 ## Cloud resume
 
 1. Start a new orchestrator (fresh VM is fine) with the same `--branch` and `--child-issues`.
 2. Use `--push` so agents keep `progress.txt` on the remote branch.
-3. The harness runs `git pull` on the sprint branch, parses `RALPH_ISSUE_COMPLETE #n` (or legacy `RALPH_SLICE_COMPLETE #n`) in `progress.txt`, and skips finished issues.
-4. If an agent put a sigil only in a commit message, `git log --grep` can still mark an issue done (warns that `progress.txt` should be updated).
-
-Disable git-log fallback with `--no-verify-git-resume`.
+3. The harness runs `git pull` on the sprint branch, parses `RALPH_ISSUE_COMPLETE #n` (or legacy `RALPH_SLICE_COMPLETE #n`) **in `progress.txt` only**, and skips finished issues.
+4. If a milestone exists only in a commit message and not in `progress.txt`, the loop will **not** treat it as done — update `progress.txt` and push.
 
 ## Modes
 

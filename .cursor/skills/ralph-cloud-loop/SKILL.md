@@ -32,7 +32,7 @@ Entrypoints are shell wrappers around `tsx` (`scripts/ralph-loop.sh`, `scripts/l
 | Integration branch | Single PR branch |
 | PRD + E2E paths | Repo paths for this epic |
 
-Optional: `--push` (required for cloud resume), `--cloud-env KEY=VAL`, `--max-iterations N` (cap AFK cost), `--once` (HITL / single attempt per pass), `--max-slice N` (retries per child), `--feedback-loop` (override default typecheck builds), `--no-verify-git-resume` (progress.txt only).
+Optional: `--push` (required for cloud resume), `--cloud-env KEY=VAL`, `--max-iterations N` (cap AFK cost), `--once` (HITL / single attempt per pass), `--max-slice N` (retries per child), `--feedback-loop` (override default typecheck builds).
 
 ---
 
@@ -139,4 +139,4 @@ Report: exit code, your **ordering note**, cloud session URLs from the loop outp
 
 ## Resume
 
-Re-run the same command on a **fresh orchestrator VM** with the same `--branch` and `--child-issues`. The harness pulls the branch and skips issues already marked `RALPH_ISSUE_COMPLETE #n` in `.ralph/progress.txt` (git log is a fallback unless `--no-verify-git-resume`).
+Re-run the same command on a **fresh orchestrator VM** with the same `--branch` and `--child-issues`. The harness pulls the branch and skips issues already marked `RALPH_ISSUE_COMPLETE #n` in `.ralph/progress.txt` only (commit messages are ignored).
