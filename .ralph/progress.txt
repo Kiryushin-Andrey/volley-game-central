@@ -1,0 +1,4 @@
+# Ralph progress (session log)
+# Append after each iteration. Use RALPH_ISSUE_COMPLETE #n only when that issue is fully done.
+# Concise bullets; grammar optional.
+# Delete this file when the epic sprint is done.
