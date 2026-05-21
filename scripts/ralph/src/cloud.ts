@@ -61,8 +61,7 @@ export class CloudAgentClient {
     const body: Record<string, unknown> = {
       prompt: { text: prompt },
       repos: [{ url: this.repoUrl, startingRef: this.branch }],
-      branchName: this.branch,
-      autoGenerateBranch: false,
+      workOnCurrentBranch: true,
       autoCreatePR: this.autoCreatePr,
     };
     if (Object.keys(this.envVars).length > 0) {
