@@ -11,6 +11,7 @@
     "start": "node dist/index.js",
     "generate": "drizzle-kit generate:pg --config=drizzle.config.ts",
     "migrate": "node dist/db/migrate.js",
+    "test:unit": "node --require ts-node/register --test src/domain/gameFormat.test.ts",
     "wait-for-db": "ts-node scripts/wait-for-db.ts"
   },
   "dependencies": {

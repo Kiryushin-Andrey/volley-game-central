@@ -240,7 +240,7 @@ test.describe('game administration scenarios', () => {
     const game = await createGameViaUi(page, {
       title: e2eTitle(testInfo, 'Tuesday Outside Assignment'),
       dateTime: nextWeekday(2),
-      withPositions: false,
+      gameFormat: 'recreational',
     });
 
     await switchToUser(page, assigned);

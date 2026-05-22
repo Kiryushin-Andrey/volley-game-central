@@ -121,12 +121,12 @@ test.describe('game rules and display scenarios', () => {
     await createGameViaUi(page, {
       title: fiveOneTitle,
       dateTime: thursday,
-      withPositions: true,
+      gameFormat: 'positions',
     });
     await createGameViaUi(page, {
       title: regularTitle,
       dateTime: thursday,
-      withPositions: false,
+      gameFormat: 'recreational',
       maxPlayers: 12,
     });
 
@@ -160,12 +160,12 @@ test.describe('game rules and display scenarios', () => {
     await createGameViaUi(page, {
       title: e2eTitle(testInfo, 'Category Five One'),
       dateTime: nextWeekday(4),
-      withPositions: true,
+      gameFormat: 'positions',
     });
     await createGameViaUi(page, {
       title: e2eTitle(testInfo, 'Category Sunday'),
       dateTime: nextWeekday(0),
-      withPositions: false,
+      gameFormat: 'recreational',
     });
 
     await switchToUser(page, participant);
@@ -188,7 +188,7 @@ test.describe('game rules and display scenarios', () => {
     const game = await createGameViaUi(page, {
       title: e2eTitle(testInfo, 'Details Five One'),
       dateTime: nextWeekday(4),
-      withPositions: true,
+      gameFormat: 'positions',
     });
 
     await switchToUser(page, participant);

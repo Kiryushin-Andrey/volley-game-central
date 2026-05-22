@@ -1,6 +1,6 @@
 import React from 'react';
 import { gamesApi } from '../services/api';
-import { PricingMode } from '../types';
+import { GameFormat, PricingMode } from '../types';
 import { eurosToCents, centsToEuroString } from '../utils/currencyUtils';
 import { logDebug } from '../debug';
 
@@ -11,8 +11,7 @@ export interface GameFormState {
   paymentAmount: number; // Stored in cents
   paymentAmountDisplay: string; // Display value in euros
   pricingMode: PricingMode;
-  withPositions: boolean;
-  withPriorityPlayers: boolean;
+  gameFormat: GameFormat;
   readonly: boolean;
   locationName: string;
   locationLink: string;
@@ -60,8 +59,8 @@ export class GameFormViewModel {
         updates.paymentAmount = defaults.paymentAmount;
         updates.paymentAmountDisplay = centsToEuroString(defaults.paymentAmount);
       }
-      if (typeof defaults.withPositions === 'boolean') {
-        updates.withPositions = defaults.withPositions;
+      if (defaults.gameFormat) {
+        updates.gameFormat = defaults.gameFormat;
       }
 
       this.updateState(updates);
@@ -98,8 +97,7 @@ export class GameFormViewModel {
         paymentAmount: game.paymentAmount || 0,
         paymentAmountDisplay: centsToEuroString(game.paymentAmount || 0),
         pricingMode: game.pricingMode || PricingMode.PER_PARTICIPANT,
-        withPositions: !!game.withPositions,
-        withPriorityPlayers: !!game.withPriorityPlayers,
+        gameFormat: game.gameFormat,
         readonly: !!game.readonly,
         locationName: game.locationName || '',
         locationLink: game.locationLink || '',
@@ -162,17 +160,10 @@ export class GameFormViewModel {
   }
 
   /**
-   * Handle with positions change
+   * Handle game format change
    */
-  handleWithPositionsChange(value: boolean): void {
-    this.updateState({ withPositions: value });
-  }
-
-  /**
-   * Handle with priority players change
-   */
-  handleWithPriorityPlayersChange(value: boolean): void {
-    this.updateState({ withPriorityPlayers: value });
+  handleGameFormatChange(value: GameFormat): void {
+    this.updateState({ gameFormat: value });
   }
 
   /**
@@ -240,8 +231,7 @@ export class GameFormViewModel {
         unregisterDeadlineHours: currentState.unregisterDeadlineHours,
         paymentAmount: currentState.paymentAmount,
         pricingMode: currentState.pricingMode,
-        withPositions: currentState.withPositions,
-        withPriorityPlayers: currentState.withPriorityPlayers,
+        gameFormat: currentState.gameFormat,
         readonly: currentState.readonly,
         locationName: currentState.locationName || null,
         locationLink: currentState.locationLink || null,
@@ -279,8 +269,7 @@ export class GameFormViewModel {
         unregisterDeadlineHours: currentState.unregisterDeadlineHours,
         paymentAmount: currentState.paymentAmount,
         pricingMode: currentState.pricingMode,
-        withPositions: currentState.withPositions,
-        withPriorityPlayers: currentState.withPriorityPlayers,
+        gameFormat: currentState.gameFormat,
         readonly: currentState.readonly,
         locationName: currentState.locationName || null,
         locationLink: currentState.locationLink || null,
@@ -311,8 +300,7 @@ export class GameFormViewModel {
       paymentAmount: 500, // Stored in cents
       paymentAmountDisplay: centsToEuroString(500), // Display value in euros
       pricingMode: PricingMode.PER_PARTICIPANT,
-      withPositions: false,
-      withPriorityPlayers: false,
+      gameFormat: 'recreational',
       readonly: false,
       locationName: '',
       locationLink: '',
@@ -324,4 +312,3 @@ export class GameFormViewModel {
     };
   }
 }
-
