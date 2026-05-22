@@ -26,12 +26,20 @@ export interface GameFormState {
 export type GameFormStateUpdater = (updates: Partial<GameFormState>) => void;
 
 export class GameFormViewModel {
-  private updateState: GameFormStateUpdater;
+  private readonly syncReactState: GameFormStateUpdater;
+  private formState: GameFormState;
   private gameId: number | null;
 
-  constructor(updateState: GameFormStateUpdater, gameId?: number) {
-    this.updateState = updateState;
+  constructor(syncReactState: GameFormStateUpdater, gameId?: number) {
+    this.formState = GameFormViewModel.getInitialState();
+    this.syncReactState = syncReactState;
     this.gameId = gameId || null;
+  }
+
+  /** Apply partial updates to ViewModel state and mirror them into React. */
+  private updateState(updates: Partial<GameFormState>): void {
+    this.formState = { ...this.formState, ...updates };
+    this.syncReactState(updates);
   }
 
   /**
@@ -204,48 +212,42 @@ export class GameFormViewModel {
   }
 
   /**
-   * Submit form (create or update)
+   * Submit form (create or update). Reads the ViewModel's form state so submit
+   * always matches the latest field values, even if React has not re-rendered yet.
    */
-  async handleSubmit(
-    currentState: GameFormState,
-    onSuccess: () => void
-  ): Promise<void> {
-    if (!currentState.selectedDate) {
+  async handleSubmit(onSuccess: () => void): Promise<void> {
+    if (!this.formState.selectedDate) {
       this.updateState({ error: 'Please select a date and time' });
       return;
     }
 
     if (this.gameId) {
-      // Update existing game
-      await this.updateGame(currentState, onSuccess);
+      await this.updateGame(onSuccess);
     } else {
-      // Create new game
-      await this.createGame(currentState, onSuccess);
+      await this.createGame(onSuccess);
     }
   }
 
   /**
    * Create a new game
    */
-  private async createGame(
-    currentState: GameFormState,
-    onSuccess: () => void
-  ): Promise<void> {
+  private async createGame(onSuccess: () => void): Promise<void> {
+    const { formState } = this;
     try {
       this.updateState({ isLoading: true, error: null });
       
       await gamesApi.createGame({
-        dateTime: currentState.selectedDate!.toISOString(),
-        maxPlayers: currentState.maxPlayers,
-        unregisterDeadlineHours: currentState.unregisterDeadlineHours,
-        paymentAmount: currentState.paymentAmount,
-        pricingMode: currentState.pricingMode,
-        withPositions: currentState.withPositions,
-        withPriorityPlayers: currentState.withPriorityPlayers,
-        readonly: currentState.readonly,
-        locationName: currentState.locationName || null,
-        locationLink: currentState.locationLink || null,
-        title: currentState.title || null,
+        dateTime: formState.selectedDate!.toISOString(),
+        maxPlayers: formState.maxPlayers,
+        unregisterDeadlineHours: formState.unregisterDeadlineHours,
+        paymentAmount: formState.paymentAmount,
+        pricingMode: formState.pricingMode,
+        withPositions: formState.withPositions,
+        withPriorityPlayers: formState.withPriorityPlayers,
+        readonly: formState.readonly,
+        locationName: formState.locationName || null,
+        locationLink: formState.locationLink || null,
+        title: formState.title || null,
       });
       
       this.updateState({ isLoading: false });
@@ -264,27 +266,25 @@ export class GameFormViewModel {
   /**
    * Update an existing game
    */
-  private async updateGame(
-    currentState: GameFormState,
-    onSuccess: () => void
-  ): Promise<void> {
+  private async updateGame(onSuccess: () => void): Promise<void> {
     if (!this.gameId) return;
+    const { formState } = this;
 
     try {
       this.updateState({ isSaving: true, error: null });
       
       await gamesApi.updateGame(this.gameId, {
-        dateTime: currentState.selectedDate!.toISOString(),
-        maxPlayers: currentState.maxPlayers,
-        unregisterDeadlineHours: currentState.unregisterDeadlineHours,
-        paymentAmount: currentState.paymentAmount,
-        pricingMode: currentState.pricingMode,
-        withPositions: currentState.withPositions,
-        withPriorityPlayers: currentState.withPriorityPlayers,
-        readonly: currentState.readonly,
-        locationName: currentState.locationName || null,
-        locationLink: currentState.locationLink || null,
-        title: currentState.title || null,
+        dateTime: formState.selectedDate!.toISOString(),
+        maxPlayers: formState.maxPlayers,
+        unregisterDeadlineHours: formState.unregisterDeadlineHours,
+        paymentAmount: formState.paymentAmount,
+        pricingMode: formState.pricingMode,
+        withPositions: formState.withPositions,
+        withPriorityPlayers: formState.withPriorityPlayers,
+        readonly: formState.readonly,
+        locationName: formState.locationName || null,
+        locationLink: formState.locationLink || null,
+        title: formState.title || null,
       });
       
       this.updateState({ isSaving: false });
