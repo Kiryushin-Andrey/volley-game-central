@@ -8,7 +8,7 @@ import type { CloudRunnerConfig } from "./agents/types.js";
 import { RALPH_USAGE } from "./help.js";
 import { detectRepoSlug, gitRoot, repoSlugToUrl } from "./git.js";
 import { DEFAULT_PROMPTS_DIR, PromptLoader } from "./prompts.js";
-import { parseWorkerKind, WORKER_KINDS } from "./workers/registry.js";
+import { parseWorkerKind } from "./workers/registry.js";
 import { isRemoteWorker, remoteProvider, type RemoteWorkerKind } from "./workers/types.js";
 
 function shellQuote(arg: string): string {

@@ -1,9 +1,9 @@
 ---
-name: ralph-loop
-description: Runs the Ralph loop for epic automation — discover and order child GitHub issues, run scripts/ralph-loop.sh with --worker (local-cursor, local-claude, local-codex, remote-cursor, remote-oz). Proactive per-iteration updates. Ask the user which --worker when not clear from context.
+name: ralph
+description: Use when the user wants Ralph, Ralph Wiggum, epic automation, or multi-issue agent orchestration. Discover and order child GitHub issues, run scripts/ralph-loop.sh with --worker (local-cursor, local-claude, local-codex, remote-cursor, remote-oz). Proactive per-iteration updates. Ask which --worker when not clear from context.
 ---
 
-# Ralph loop
+# Ralph
 
 Ralph pattern: [getting started](https://www.aihero.dev/getting-started-with-ralph) · [11 tips](https://www.aihero.dev/tips-for-ai-coding-with-ralph-wiggum)
 
@@ -20,7 +20,7 @@ Agent instructions live in **`.ralph/prompts/`** (`*-prompt.md`, `partials/*.md`
 **Ask the user** when it is not already clear from their request or context, for example:
 
 - They did not specify `--worker` (or legacy `--backend`).
-- They said “run Ralph” without saying local vs remote or which agent (Cursor / Claude / Codex).
+- They said “use Ralph” without saying local vs remote or which agent (Cursor / Claude / Codex).
 - You are unsure whether they need `--push` for resume across machines.
 
 Do **not** guess if the tradeoff matters (laptop on vs AFK, API keys, Oz environment).
@@ -35,7 +35,7 @@ Do **not** guess if the tradeoff matters (laptop on vs AFK, API keys, Oz environ
 
 No custom binary paths — install the CLI so the command name is on `PATH`. Remote runners live in `scripts/ralph/src/agents/`.
 
-**Orchestrator** (steps 1–2 + monitoring step 3) can be: this chat, a local shell, or `./scripts/launch-ralph-orchestrator.sh` (starts a **remote** orchestrator agent that then runs the loop in the foreground).
+**Orchestrator** (steps 1–2 + monitoring step 3) can be: this chat, a local shell, or `./scripts/launch-ralph-orchestrator.sh` (starts a **remote** orchestrator agent that then runs the harness in the foreground).
 
 Use `--once` for a single worker attempt per issue (HITL). Use `--max-iterations N` to cap AFK cost on unattended runs.
 
@@ -89,8 +89,8 @@ For **each** child issue, read the full description (and title). Build a mental 
 **Rules for the list you pass to `--child-issues`:**
 
 1. **Every blocker must appear earlier** than the issue that depends on it.
-2. **Parallel-safe slices** (no dependency between them): pick one order; put them consecutively before anything that needs both. The loop is serial — you are choosing a safe sequence, not spawning parallel agents.
-3. **E2E gate**: **Every iteration** runs full **`npm run test:e2e`** (see `docs/playwright-e2e-scenarios.md`) before issue feature work. Fix one failing test before new scope. Update the checklist and `e2e/` specs when behavior changes. Harness loops until `RALPH_ISSUE_COMPLETE #n`.
+2. **Parallel-safe slices** (no dependency between them): pick one order; put them consecutively before anything that needs both. The harness is serial — you are choosing a safe sequence, not spawning parallel agents.
+3. **E2E gate**: **Every iteration** runs full **`npm run test:e2e`** (see `docs/playwright-e2e-scenarios.md`) before issue feature work. Fix one failing test before new scope. Update the checklist and `e2e/` specs when behavior changes. Harness repeats until `RALPH_ISSUE_COMPLETE #n`.
 4. If two orderings are valid, prefer the order documented in the PRD or parent issue when stated; otherwise prefer foundational/data-model slices before UI-only or policy layers that assume them.
 
 **Before step 3, write a short ordering note** (in your reply or orchestrator log), for example:
@@ -104,7 +104,7 @@ If dependencies are unclear, read related issues again or ask the user — do no
 
 ---
 
-## Step 3 — Run the loop (foreground + proactive updates)
+## Step 3 — Run Ralph (foreground + proactive updates)
 
 ```bash
 cd "$(git rev-parse --show-toplevel)"
@@ -150,16 +150,16 @@ cd scripts/ralph && npm install && cd ../..
   --max-iterations 50
 ```
 
-Run in the **foreground** and **block until the process exits**. Do **not** background the loop (`&`, `nohup`, `disown`). Do **not** end your turn after only starting the script.
+Run in the **foreground** and **block until the process exits**. Do **not** background the harness (`&`, `nohup`, `disown`). Do **not** end your turn after only starting the script.
 
 Do **not** implement slices in the orchestrator session — only discover, order, run the harness, and report.
 
-### Monitor the loop and report without being asked
+### Monitor and report without being asked
 
 While `ralph-loop.sh` is running, **proactively** tell the user what just finished and what is next.
 
-1. **Before** the loop: `--worker`, ordering note, parent issue, `--child-issues`, branch.
-2. **During** the loop: after **each** worker iteration completes, post an update **before** the next one starts.
+1. **Before** the run: `--worker`, ordering note, parent issue, `--child-issues`, branch.
+2. **During** the run: after **each** worker iteration completes, post an update **before** the next one starts.
 3. **After** exit: final summary (exit code, session links if remote, sigils on branch).
 
 | Harness stdout | Post to user |

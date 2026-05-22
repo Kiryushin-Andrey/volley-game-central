@@ -1,6 +1,6 @@
 # Ralph loop state
 
-Orchestrator: find child issues, **order by dependency** (read + reason — skill **ralph-loop**), choose **`--worker`**, run `scripts/ralph-loop.sh` in the **foreground**, and **proactively report** after each iteration (see skill + `prompts/orchestrator-prompt.md`).
+Orchestrator: find child issues, **order by dependency** (read + reason — skill **ralph**), choose **`--worker`**, run `scripts/ralph-loop.sh` in the **foreground**, and **proactively report** after each iteration (see skill + `prompts/orchestrator-prompt.md`).
 
 Implementation: TypeScript under `scripts/ralph/` (run via `tsx`).
 
@@ -38,7 +38,7 @@ After **each** worker run, the harness pulls the sprint branch and re-reads `pro
 | **`remote-cursor`** | Cursor Cloud | `CURSOR_API_KEY` + `--push` |
 | **`remote-oz`** | Warp Oz | `WARP_API_KEY` + `OZ_ENVIRONMENT_ID` + `--push` |
 
-If the user has not chosen, ask before running (see skill **ralph-loop**).
+If the user has not chosen, ask before running (see skill **ralph**).
 
 Deprecated: `--backend`, `--cloud-provider`, `--agent-cmd` (mapped to `--worker` with a warning).
 
@@ -82,7 +82,7 @@ Requires the CLI for your `--worker` on `PATH` (`agent`, `claude`, or `codex`), 
 
 ## Remote orchestrator (optional)
 
-See `.cursor/skills/ralph-loop/SKILL.md`.
+See `.cursor/skills/ralph/SKILL.md`.
 
 ```bash
 ./scripts/launch-ralph-orchestrator.sh --branch … --worker remote-cursor -- \

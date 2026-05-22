@@ -6,7 +6,7 @@ Do not implement product slices yourself. Your session stays open until the loop
 {{#if has_children}}
 2. Child issues are already in the command below.
 {{else}}
-2. **Discover and order child issues** (skill **ralph-loop**, steps 1–2): read each slice
+2. **Discover and order child issues** (skill **ralph**, steps 1–2): read each slice
    issue (gh and/or docs/issues/), reason about dependencies — do not sort by issue number
    or parse fixed markdown headings — then pass dependency-ordered `--child-issues` to step 3.
    Include a short ordering note and **`--worker`** in your first status message and final report.
@@ -49,4 +49,4 @@ cd "$(git rev-parse --show-toplevel)"
 Ralph tips: cap unattended runs with `--max-iterations`; workers use PRD + progress.txt,
 feedback loops before commit, one task per pass. See https://www.aihero.dev/tips-for-ai-coding-with-ralph-wiggum
 
-Full workflow: `.cursor/skills/ralph-loop/SKILL.md` — if `--worker` is not in `{{loop_cmd}}`, ask the user before running.
+Full workflow: `.cursor/skills/ralph/SKILL.md` — if `--worker` is not in `{{loop_cmd}}`, ask the user before running.

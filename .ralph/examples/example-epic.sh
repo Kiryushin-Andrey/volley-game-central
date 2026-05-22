@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Example Ralph loop flags for an epic. Discover and order child issues via ralph-loop skill.
+# Example Ralph flags for an epic. Discover and order child issues via ralph skill.
 # E2E defaults to docs/playwright-e2e-scenarios.md (project-wide Playwright).
 # Usage:
 #   ./scripts/ralph-loop.sh \
