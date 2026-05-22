@@ -189,6 +189,16 @@ Add nullable `player_level` enum column: `beginner` | `intermediate` | `advanced
 - Level-based restrictions on guest skill (only host eligibility).
 - Pagination/server-side search for player levels list (club size ~300; client filter only).
 
+## Implementation status
+
+| Issue | Scope | Status |
+|-------|--------|--------|
+| [#20](https://github.com/Kiryushin-Andrey/volley-game-central/issues/20) | Game format enum | Complete |
+| [#21](https://github.com/Kiryushin-Andrey/volley-game-central/issues/21) | Player levels admin UI + API | Complete |
+| [#22](https://github.com/Kiryushin-Andrey/volley-game-central/issues/22) | Positions game level restrictions | Complete |
+
+Parent epic [#8](https://github.com/Kiryushin-Andrey/volley-game-central/issues/8): ready to merge on branch `cursor/player-levels-c8a4` after full Suites A–D (see `docs/testing/e2e-player-levels-browser-agent.md`).
+
 ## Further Notes
 
 - Domain glossary: `CONTEXT.md` at repo root (from grill-with-docs session).

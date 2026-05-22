@@ -269,3 +269,44 @@ Suite C detail (restrictions env on):
 - .ralph/progress.txt
 
 RALPH_ISSUE_COMPLETE #22
+
+## 2026-05-22 — epic #8 final pass (close)
+
+### E2E gate (Suites A–D, full re-run — final)
+
+| Suite | Result | Notes |
+|-------|--------|-------|
+| A | Pass (A7 Pass) | Playwright `e2e/game-form.spec.ts` 10/10; `#gameFormat` select; restrictions env on for A7 via Suite C backend |
+| B | Pass | `e2e/player-levels-admin.spec.ts` 7/7 (B1–B10) |
+| C | Pass | `npm run test:e2e:restrictions` 10/10 (C1–C7, C9–C11); C8/C12 N/A; C13 via B10 when restrictions off |
+| D | Pass | D1 `E2E-ADMIN-003`; D2 FORM-004 + API/edit smoke (iter 3); D3 B3; D4 `gameFormatFromLegacy` unit test |
+
+**Fails:** 0
+
+Suite A (Playwright + prior browser screenshots):
+- [A1]–[A6] Pass — `game-form.spec.ts`, `player-levels-admin` B9 recreational game
+- [A7] Pass — C7 beginner recreational join (restrictions on)
+
+Suite D detail:
+- [D1] Pass — `E2E-ADMIN-003` readonly + past admin add participant
+- [D2] Pass — positions create `E2E-FORM-004`; format field on edit form; prior API `gameFormat` update verified
+- [D3] Pass — B3 unassigned-first ordering
+- [D4] Pass — unit `maps true/true to recreational`; no UI seed required
+
+### Feedback loops
+
+- `cd backend && npm run build` — Pass
+- `cd tg-mini-app && npm run build` — Pass
+- `cd backend && npm test` — 25/25 Pass
+
+### Docs
+
+- `docs/testing/e2e-player-levels-browser-agent.md` — Suite D automation column
+- `docs/prd/player-levels-and-game-format.md` — Implementation status (#20, #21, #22 complete)
+
+### Epic
+
+- Parent #8: all child slices shipped; draft PR `cursor/player-levels-c8a4` → `main` (Closes #20, #21, #22)
+
+RALPH_E2E_COMPLETE SUITE_D
+RALPH_ALL_COMPLETE

@@ -236,12 +236,12 @@ curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:3000/api/games/<
 
 ### Suite D — Full regression (post all slices)
 
-| ID | Scenario |
-|----|----------|
-| D1 | Admin **manual add participant** on past/readonly game still works for **Beginner** (existing gates only) |
-| D2 | Game edit: change format recreational → positions (or vice versa) saves and details update |
-| D3 | Players list sort: unassigned → advanced → intermediate → beginner, A–Z within group |
-| D4 | `true/true` legacy row (if seeded) shows as recreational and behaves recreationally |
+| ID | Scenario | Automation |
+|----|----------|------------|
+| D1 | Admin **manual add participant** on past/readonly game still works for **Beginner** (existing gates only; level gates do not block admin add) | `e2e/game-administration.spec.ts` → `E2E-ADMIN-003` |
+| D2 | Game edit: change format recreational → positions (or vice versa) saves and details update | `e2e/game-form.spec.ts` → `E2E-FORM-004` (create positions); format change on save via `PUT /api/games/admin/:id` + `#gameFormat` on edit form (browser/API smoke) |
+| D3 | Players list sort: unassigned → advanced → intermediate → beginner, A–Z within group | `e2e/player-levels-admin.spec.ts` → B3 |
+| D4 | `true/true` legacy row (if seeded) shows as recreational and behaves recreationally | `backend` unit test `gameFormatFromLegacy` maps `true/true` → `recreational`; no production `true/true` rows expected |
 
 ---
 
