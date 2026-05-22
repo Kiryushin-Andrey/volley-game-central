@@ -9,7 +9,7 @@ set -euo pipefail
 
 RALPH_LOOP_ARGS=(
   --parent-issue 8
-  --branch cursor/player-levels-c8a4
+  --branch cursor/player-levels-and-game-format-9edb
   --prd docs/prd/player-levels-and-game-format.md
   --e2e docs/testing/e2e-player-levels-browser-agent.md
   --cloud-model default
