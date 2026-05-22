@@ -21,7 +21,7 @@ import {
 
 type AdminAssignmentViaUiOptions = {
   dayOptionValue?: string;
-  withPositions?: boolean;
+  gameFormat?: 'recreational' | 'positions' | 'priority_players';
 };
 
 async function createAdminAssignmentViaUi(
@@ -87,7 +87,7 @@ test.describe('games home scenarios', () => {
     await createGameViaUi(page, {
       title: e2eTitle(testInfo, 'Thursday Five One'),
       dateTime: nextWeekday(4),
-      withPositions: true,
+      gameFormat: 'positions',
     });
 
     await switchToUser(page, participant);
@@ -238,7 +238,7 @@ test.describe('games home scenarios', () => {
     await createGameViaUi(page, {
       title: e2eTitle(testInfo, 'Thursday Five One Only'),
       dateTime: nextWeekday(4),
-      withPositions: true,
+      gameFormat: 'positions',
     });
 
     await switchToUser(page, participant);
@@ -256,7 +256,7 @@ test.describe('games home scenarios', () => {
     await createGameViaUi(page, {
       title: e2eTitle(testInfo, 'Sunday Category Game'),
       dateTime: nextWeekday(0),
-      withPositions: false,
+      gameFormat: 'recreational',
     });
 
     await switchToUser(page, participant);

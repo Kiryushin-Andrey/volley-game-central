@@ -2,3 +2,54 @@
 # Append after each iteration. Use RALPH_ISSUE_COMPLETE #n only when that issue is fully done.
 # Concise bullets; grammar optional.
 # Delete this file when the epic sprint is done.
+
+## 2026-05-22 — issue #20 (iteration 1 — complete)
+
+### E2E gate (Suites A–D, post-implementation)
+
+| Suite | Result | Notes |
+|-------|--------|-------|
+| A | Pass (A7 Blocked) | A1–A6 Pass via browser agent; A7 Blocked (#22 restrictions not shipped) |
+| B | Blocked | Slice #21 (Players hub / player levels admin) not implemented |
+| C | Blocked | Slice #22 (level restrictions) not implemented |
+| D | Pass / Blocked | D2 Pass (recreational→positions edit via API); D1/D4 not run; D3 Blocked (#21) |
+
+**Fails:** 0
+
+Suite A detail:
+- [A1] Pass — `#gameFormat` select, 3 options; screenshot `.ralph/screenshots/a1-game-format-select.webp`
+- [A2] Pass — recreational, DB `game_format=recreational`
+- [A3] Pass — positions
+- [A4] Pass — priority_players
+- [A5] Pass — existing game loads
+- [A6] Pass — priority disclaimer on priority_players game
+- [A7] Blocked — needs #22 + restrictions env
+
+Playwright `e2e/game-form.spec.ts`: 10/10 Pass (includes format select create/edit).
+
+### Implemented (#20)
+
+- Migration `0031_game_format.sql`: add `game_format`, backfill legacy booleans, drop `with_positions` / `with_priority_players`
+- `backend/src/domain/gameFormat.ts` + unit tests (node:test, `npm test`)
+- Schema, games routes, gamesAdmin, telegram announcements, admin assignment mapping via `gameFormatToAdminWithPositions`
+- Frontend: `GameFormat` type, `#gameFormat` select on create/edit form, API client uses `gameFormat`
+- Playwright fixtures/specs updated for select instead of toggles
+
+### Decisions
+
+- `game_administrators.withPositions` unchanged (day/slot assignment, not game instance format)
+- Thursday category: `positions` → thursday-5-1; recreational/priority_players → thursday-deti-plova
+- Group Telegram announcements only for `recreational` games
+
+### Files touched
+
+- backend: schema, migration, domain/gameFormat*, routes/games.ts, routes/gamesAdmin.ts, middleware/adminOrAssignedAdmin.ts, services/gameService.ts, services/telegramService.ts, package.json
+- tg-mini-app: types, api, GameFormViewModel, GameFormFields, gameFormat utils, GameDetailsViewModel, GamesList, gameDateUtils
+- e2e: support/fixtures.ts, game-form.spec.ts, games-home.spec.ts, game-rules-and-display.spec.ts
+- docs/testing/e2e-player-levels-browser-agent.md (A1 selector note)
+
+### Remaining
+
+- None for #20
+
+RALPH_ISSUE_COMPLETE #20

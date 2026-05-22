@@ -210,9 +210,8 @@ export async function checkAndAnnounceGameRegistrations(): Promise<void> {
         and(
           lte(games.dateTime, registrationWindowEnd),  // Less than or equal to X days fromXnow
           gt(games.dateTime, registrationWindowStart),  // Greater than 4 days 23 hours from now
-          eq(games.withPositions, false),  // Skip games with withPositions = true
+          eq(games.gameFormat, 'recreational'),  // Announce recreational games only
           eq(games.readonly, false),  // Skip readonly games
-          eq(games.withPriorityPlayers, false)  // Skip games with priority players
         )
       );
     

@@ -3,6 +3,8 @@ export enum PricingMode {
   TOTAL_COST = 'total_cost'
 }
 
+export type GameFormat = 'recreational' | 'positions' | 'priority_players';
+
 // Minimal user info used across UI for player dialogs and click handlers
 export interface UserPublicInfo {
   id: number;
@@ -39,8 +41,7 @@ export interface Game {
   paymentAmount: number;
   pricingMode: PricingMode;
   fullyPaid: boolean;
-  withPositions: boolean;
-  withPriorityPlayers: boolean;
+  gameFormat: GameFormat;
   readonly: boolean;
   locationName?: string | null;
   locationLink?: string | null;

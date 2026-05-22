@@ -127,7 +127,7 @@ export const gamesApi = {
     locationLink?: string | null;
     paymentAmount?: number | null; // cents
     pricingMode?: PricingMode | null;
-    withPositions?: boolean | null;
+    gameFormat?: import('../types').GameFormat | null;
   }> => {
     const response = await api.get('/games/admin/defaults');
     return {
@@ -136,7 +136,7 @@ export const gamesApi = {
       locationLink: response.data.defaultLocationLink ?? null,
       paymentAmount: response.data.defaultPaymentAmount ?? null,
       pricingMode: (response.data.defaultPricingMode as PricingMode | undefined) ?? null,
-      withPositions: response.data.defaultWithPositions ?? null,
+      gameFormat: response.data.defaultGameFormat ?? null,
     };
   },
 
@@ -162,8 +162,7 @@ export const gamesApi = {
     unregisterDeadlineHours: number;
     paymentAmount: number;
     pricingMode?: PricingMode;
-    withPositions: boolean;
-    withPriorityPlayers?: boolean;
+    gameFormat: import('../types').GameFormat;
     readonly?: boolean;
     locationName?: string | null;
     locationLink?: string | null;
@@ -216,8 +215,7 @@ export const gamesApi = {
     unregisterDeadlineHours: number;
     paymentAmount: number;
     pricingMode?: PricingMode;
-    withPositions: boolean;
-    withPriorityPlayers?: boolean;
+    gameFormat: import('../types').GameFormat;
     readonly?: boolean;
     locationName?: string | null;
     locationLink?: string | null;

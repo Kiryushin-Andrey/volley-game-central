@@ -159,7 +159,7 @@ SELECT id, title, game_format, date_time FROM games ORDER BY id DESC LIMIT 5;
 
 | ID | Steps | Expected |
 |----|--------|----------|
-| A1 | Login as **Global Admin** → Create game | Form has **one select** (three formats), not two toggles |
+| A1 | Login as **Global Admin** → Create game | Form has **one select** `#gameFormat` (three formats), not two toggles |
 | A2 | Create **Recreational** game (future date, e.g. +14 days) | Game saves; details show no positions/priority-only behavior |
 | A3 | Create **Positions** game | `game_format = positions` in DB; category/badge reflects positions where applicable |
 | A4 | Create **Priority players** game | `game_format = priority_players`; **not** treated as positions game |

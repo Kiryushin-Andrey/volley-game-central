@@ -3,6 +3,7 @@ import DatePicker from 'react-datepicker';
 import { PricingMode } from '../types';
 import { ToggleSwitch } from './ToggleSwitch';
 import { GameFormState, GameFormViewModel } from '../viewmodels/GameFormViewModel';
+import { GAME_FORMAT_OPTIONS } from '../utils/gameFormat';
 import './GameFormFields.scss';
 
 interface GameFormFieldsProps {
@@ -20,8 +21,7 @@ export const GameFormFields: React.FC<GameFormFieldsProps> = ({
     unregisterDeadlineHours,
     paymentAmountDisplay,
     pricingMode,
-    withPositions,
-    withPriorityPlayers,
+    gameFormat,
     readonly,
     locationName,
     locationLink,
@@ -155,23 +155,21 @@ export const GameFormFields: React.FC<GameFormFieldsProps> = ({
       </div>
 
       <div className="form-group">
-        <ToggleSwitch
-          id="withPositions"
-          checked={withPositions}
-          onChange={(checked) => viewModel.handleWithPositionsChange(checked)}
-          label="Playing 5-1"
-        />
-      </div>
-
-      <div className="form-group">
-        <ToggleSwitch
-          id="withPriorityPlayers"
-          checked={withPriorityPlayers}
-          onChange={(checked) => viewModel.handleWithPriorityPlayersChange(checked)}
-          label="With priority players"
-        />
+        <label htmlFor="gameFormat">Game format:</label>
+        <select
+          id="gameFormat"
+          value={gameFormat}
+          onChange={(e) => viewModel.handleGameFormatChange(e.target.value as GameFormState['gameFormat'])}
+          required
+        >
+          {GAME_FORMAT_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
         <div className="field-description">
-          When enabled, priority players assigned to this game's day and type will have priority in registration.
+          Recreational: open registration for everyone. With positions: 5-1 play. With priority players: priority registration windows without positions.
         </div>
       </div>
 

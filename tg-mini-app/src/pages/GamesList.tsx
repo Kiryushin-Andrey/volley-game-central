@@ -31,7 +31,7 @@ const GameItem = memo(({ game, onClick, formatDate }: {
 
   return (
     <div
-      className={`game-card ${game.isUserRegistered ? 'registered' : ''} ${isHalloween ? 'halloween-theme' : ''} ${isNewYear ? 'newyear-theme' : ''} ${isMarch8 ? 'march8-theme' : ''} ${game.withPositions ? 'with-positions' : 'without-positions'}`}
+      className={`game-card ${game.isUserRegistered ? 'registered' : ''} ${isHalloween ? 'halloween-theme' : ''} ${isNewYear ? 'newyear-theme' : ''} ${isMarch8 ? 'march8-theme' : ''} ${game.gameFormat === 'positions' ? 'with-positions' : 'without-positions'}`}
       onClick={() => onClick(game.id)}
     >
       {isHalloween && <HalloweenDecorations variant="card" />}

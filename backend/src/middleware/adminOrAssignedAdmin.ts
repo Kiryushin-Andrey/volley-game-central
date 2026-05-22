@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { db } from '../db';
 import { gameAdministrators, games } from '../db/schema';
 import { eq, and } from 'drizzle-orm';
+import { gameFormatToAdminWithPositions, type GameFormat } from '../domain/gameFormat';
 
 /**
  * Middleware to check if the authenticated user is either:
@@ -43,12 +44,12 @@ export const adminOrAssignedAdminMiddleware = async (
 /**
  * Helper function to check if a user is assigned as administrator for a specific game
  * @param userId - The user ID to check
- * @param game - The game object with dateTime and withPositions
+ * @param game - The game object with dateTime and gameFormat
  * @returns true if the user is assigned to this game, false otherwise
  */
 export async function isUserAssignedToGame(
   userId: number,
-  game: { dateTime: Date | string; withPositions: boolean }
+  game: { dateTime: Date | string; gameFormat: GameFormat }
 ): Promise<boolean> {
   const gameDate = new Date(game.dateTime);
   // Get day of week (0=Monday, 6=Sunday)
@@ -63,7 +64,7 @@ export async function isUserAssignedToGame(
       and(
         eq(gameAdministrators.userId, userId),
         eq(gameAdministrators.dayOfWeek, dayOfWeek),
-        eq(gameAdministrators.withPositions, game.withPositions)
+        eq(gameAdministrators.withPositions, gameFormatToAdminWithPositions(game.gameFormat))
       )
     )
     .limit(1);
@@ -94,7 +95,7 @@ export async function isUserAssignedToGameById(
   const game = gameResults[0];
   return isUserAssignedToGame(userId, {
     dateTime: game.dateTime,
-    withPositions: game.withPositions,
+    gameFormat: game.gameFormat as GameFormat,
   });
 }
 
