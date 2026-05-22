@@ -136,7 +136,9 @@ export function nextWeekday(jsDay: number, minDaysAhead = 1, hour = 18) {
   const date = new Date();
   const current = date.getDay();
   let delta = (jsDay - current + 7) % 7;
-  if (delta < minDaysAhead) delta += 7;
+  while (delta < minDaysAhead) {
+    delta += 7;
+  }
   date.setDate(date.getDate() + delta);
   date.setHours(hour, 0, 0, 0);
   return date;

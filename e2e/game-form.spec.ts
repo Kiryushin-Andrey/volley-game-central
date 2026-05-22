@@ -201,10 +201,12 @@ test.describe('game creation and editing scenarios', () => {
 
     await page.getByTitle('Edit Game Settings').click();
     await expect(page.getByRole('heading', { name: 'Edit Game Settings' })).toBeVisible();
+    await expect(page.locator('#title')).toHaveValue(originalTitle);
     await page.locator('#title').fill(updatedTitle);
     const updatePromise = waitForAdminGameUpdateResponse(page, game.id);
     await page.getByRole('button', { name: 'Save Changes' }).click();
-    await updatePromise;
+    const updateResponse = await updatePromise;
+    expect(updateResponse.ok()).toBeTruthy();
 
     await expect(page).toHaveURL(new RegExp(`/game/${game.id}$`));
     await expect(page.getByText(updatedTitle)).toBeVisible();

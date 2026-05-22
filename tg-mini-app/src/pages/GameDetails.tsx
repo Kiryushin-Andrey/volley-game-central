@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { User, PricingMode } from "../types";
 import LoadingSpinner from "../components/LoadingSpinner";
 import PasswordDialog from "../components/PasswordDialog";
@@ -40,6 +40,7 @@ interface GameDetailsProps {
 const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
   const { gameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const inTelegram = isTelegramApp();
 
   // Split state into logical groups for better performance
@@ -91,7 +92,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
     if (gameId) {
       viewModel.loadGame(parseInt(gameId));
     }
-  }, [gameId, viewModel]);
+  }, [gameId, viewModel, location.key]);
 
   // Check Bunq integration status for admin users
   useEffect(() => {
