@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { BackButton } from '@twa-dev/sdk/react';
@@ -16,6 +16,8 @@ registerLocale('en-GB', enGB);
 
 const CreateGame: React.FC = () => {
   const [state, setState] = useState<GameFormState>(GameFormViewModel.getInitialState());
+  const stateRef = useRef(state);
+  stateRef.current = state;
   const navigate = useNavigate();
   const inTelegram = isTelegramApp();
 
@@ -34,7 +36,7 @@ const CreateGame: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await viewModel.handleSubmit(state, () => navigate('/'));
+    await viewModel.handleSubmit(stateRef.current, () => navigate('/'));
   };
   
   const handleCancel = useCallback(() => {

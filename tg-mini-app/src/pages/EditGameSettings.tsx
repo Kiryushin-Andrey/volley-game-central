@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { BackButton } from '@twa-dev/sdk/react';
@@ -18,6 +18,8 @@ const EditGameSettings: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
   const [state, setState] = useState<GameFormState>(GameFormViewModel.getInitialState());
+  const stateRef = useRef(state);
+  stateRef.current = state;
   const inTelegram = isTelegramApp();
 
   // Create ViewModel instance
@@ -37,7 +39,7 @@ const EditGameSettings: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await viewModel.handleSubmit(state, () => {
+    await viewModel.handleSubmit(stateRef.current, () => {
       if (gameId) {
         navigate(`/game/${gameId}`);
       } else {

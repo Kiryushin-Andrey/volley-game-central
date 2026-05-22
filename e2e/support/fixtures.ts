@@ -65,8 +65,11 @@ export function uniquePhoneLocal(testInfo: TestInfo, suffix: number) {
 }
 
 export async function openDevLogin(page: Page) {
-  await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Welcome' })).toBeVisible();
+  const welcomeHeading = page.getByRole('heading', { name: 'Welcome' });
+  if (!(await welcomeHeading.isVisible().catch(() => false))) {
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+  }
+  await expect(welcomeHeading).toBeVisible();
   await page.getByRole('button', { name: 'Phone number' }).click();
   await expect(page.getByText('Dev mode: No SMS verification required')).toBeVisible();
 }
@@ -215,6 +218,7 @@ export async function createGameViaUi(page: Page, input: UiGameInput): Promise<G
 export async function switchToUser(page: Page, user: DevUser) {
   if (await page.getByRole('button', { name: 'Logout' }).isVisible().catch(() => false)) {
     await page.getByRole('button', { name: 'Logout' }).click();
+    await expect(page.getByRole('heading', { name: 'Welcome' })).toBeVisible();
   }
   return devLoginAs(page, user);
 }
