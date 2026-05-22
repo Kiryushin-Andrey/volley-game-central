@@ -12,6 +12,7 @@ RALPH_LOOP_ARGS=(
   --branch cursor/player-levels-c8a4
   --prd docs/prd/player-levels-and-game-format.md
   --e2e docs/testing/e2e-player-levels-browser-agent.md
+  --cloud-model default
 )
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

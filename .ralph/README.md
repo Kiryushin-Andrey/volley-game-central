@@ -52,7 +52,7 @@ cd scripts/ralph && npm install
   [--cloud-model default] [--prompts-dir .ralph/prompts] …
 ```
 
-Cloud backend uses Cursor model id **`default`** (UI **Auto**) by default. Override with `--cloud-model <id>` from `GET /v1/models`.
+Cloud backend uses Cursor model id **`default`** (UI **Auto**) by default. Override with `--cloud-model <id>` or `RALPH_CLOUD_MODEL`. Run `./scripts/ralph-loop.sh --help` for all flags.
 
 ```bash
 ./scripts/ralph-loop.sh ... --backend cloud ...

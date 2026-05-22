@@ -1,4 +1,5 @@
 import { parseArgs } from "node:util";
+import { CLOUD_MODEL_AUTO } from "./cloud.js";
 import type { Backend, RalphConfig } from "./types.js";
 import { DEFAULT_PROMPTS_DIR } from "./prompts.js";
 
@@ -69,10 +70,8 @@ export function parseRalphArgs(argv: string[]): RalphConfig {
       "cursor-api-key": { type: "string" },
       "cloud-poll-interval": { type: "string", default: "15" },
       "cloud-env": { type: "string", multiple: true },
-      "cloud-model": {
-        type: "string",
-        default: "default",
-      },
+      "cloud-model": { type: "string" },
+      help: { type: "boolean", short: "h" },
       "cloud-create-pr-on-final": { type: "boolean", default: false },
       max: { type: "string" },
       "max-slice": { type: "string" },
@@ -146,7 +145,8 @@ export function parseRalphArgs(argv: string[]): RalphConfig {
     cursorApiKey: apiKey,
     cloudPollInterval: Number(values["cloud-poll-interval"] ?? "15"),
     cloudEnv: parseCloudEnv(values["cloud-env"] ?? []),
-    cloudModel: values["cloud-model"] ?? "default",
+    cloudModel:
+      values["cloud-model"] ?? process.env.RALPH_CLOUD_MODEL ?? CLOUD_MODEL_AUTO,
     cloudCreatePrOnFinal: values["cloud-create-pr-on-final"] ?? false,
     maxSlice: Number(maxSliceRaw),
     dryRun,

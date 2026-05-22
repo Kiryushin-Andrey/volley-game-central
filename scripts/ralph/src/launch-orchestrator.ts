@@ -4,6 +4,7 @@
  */
 import { parseArgs } from "node:util";
 import { CloudAgentClient, CLOUD_MODEL_AUTO } from "./cloud.js";
+import { RALPH_USAGE } from "./help.js";
 import { detectRepoSlug, gitRoot, repoSlugToUrl } from "./git.js";
 import { DEFAULT_PROMPTS_DIR, PromptLoader } from "./prompts.js";
 
@@ -14,6 +15,22 @@ function shellQuote(arg: string): string {
 
 async function main(): Promise<void> {
   const raw = process.argv.slice(2);
+  if (raw.includes("--help") || raw.includes("-h")) {
+    console.log(
+      "launch-ralph-orchestrator — start one Cloud Agent to run the Ralph loop\n\n" +
+        "Usage:\n" +
+        "  ./scripts/launch-ralph-orchestrator.sh --branch <branch> -- [ralph-loop args...]\n\n" +
+        "Orchestrator flags:\n" +
+        "  --branch <name>            Required integration branch\n" +
+        "  --cloud-model <id>         Cursor model for orchestrator (default: Auto)\n" +
+        "  RALPH_CLOUD_MODEL          Same when --cloud-model omitted\n" +
+        "  --cursor-api-key, CURSOR_API_KEY\n\n" +
+        "Arguments after -- are passed to ralph-loop.sh (see --help there).\n",
+    );
+    console.log(RALPH_USAGE);
+    return;
+  }
+
   const divider = raw.indexOf("--");
   const orchestratorArgs = divider >= 0 ? raw.slice(0, divider) : raw;
   const loopArgs = divider >= 0 ? raw.slice(divider + 1) : [];
@@ -24,10 +41,14 @@ async function main(): Promise<void> {
       repo: { type: "string" },
       "repo-url": { type: "string" },
       branch: { type: "string" },
+      "cloud-model": { type: "string" },
       "cursor-api-key": { type: "string" },
       "prompts-dir": { type: "string", default: DEFAULT_PROMPTS_DIR },
     },
   });
+
+  const cloudModel =
+    values["cloud-model"] ?? process.env.RALPH_CLOUD_MODEL ?? CLOUD_MODEL_AUTO;
 
   const branch = values.branch;
   if (!branch) {
@@ -47,6 +68,9 @@ async function main(): Promise<void> {
   }
   if (!loopArgv.includes("--branch")) {
     loopArgv = ["--branch", branch, ...loopArgv];
+  }
+  if (!loopArgv.some((a) => a === "--cloud-model")) {
+    loopArgv = ["--cloud-model", cloudModel, ...loopArgv];
   }
 
   const loopCmd = [
@@ -77,7 +101,7 @@ async function main(): Promise<void> {
     }
   }
 
-  const client = new CloudAgentClient(apiKey, url, branch, 15, {}, false, undefined, CLOUD_MODEL_AUTO);
+  const client = new CloudAgentClient(apiKey, url, branch, 15, {}, false, undefined, cloudModel);
   const session = await client.createSession(prompt, "ralph-orchestrator");
   console.log(`Orchestrator session: ${session.url}`);
   console.log(`agent_id=${session.agentId} run_id=${session.runId}`);
