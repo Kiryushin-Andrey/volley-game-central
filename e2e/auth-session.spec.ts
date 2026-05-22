@@ -98,7 +98,7 @@ test.describe('authentication and session scenarios', () => {
       isAdmin: true,
     });
 
-    await expect(page.getByTitle('Game Administrators')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Players' })).toBeVisible();
     await expect(page.getByTitle('Create New Game')).toBeVisible();
   });
 

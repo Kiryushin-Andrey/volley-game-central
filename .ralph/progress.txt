@@ -40,3 +40,43 @@
 - `docs/playwright-e2e-scenarios.md`
 
 RALPH_ISSUE_COMPLETE #20
+
+## 2026-05-22 — issue #21 (player levels admin)
+
+### Session orientation
+- Branch: `cursor/player-levels-epic8-ad37` (clean).
+- Prior log: #20 complete; #21 not started.
+- Working assumption: implement full #21 slice (admin assign levels, no registration enforcement).
+
+### E2E gate (before feature work)
+- Initial `npm run test:e2e`: **105 passed**, 2 failed (flaky/unrelated).
+- Fixes before #21 work:
+  - `nextWeekday`: loop until `minDaysAhead` (fixes E2E-HOME-008 far-future window).
+  - E2E-FORM-010: wait for `#title` loaded before fill; assert PUT ok.
+  - `GameDetails`: reload game on `location.key` change after edit.
+- Post-fix baseline: **107 passed** (pre–player-levels specs).
+
+### Implemented (issue #21 — full slice)
+- **Migration** `backend/drizzle/0032_player_level.sql`: nullable `player_level` on `users`.
+- **Schema** `users.playerLevel`; **domain** `playerLevel.ts` + unit tests (list sort order).
+- **API** `GET/PATCH /users/admin/player-levels` (global admin only); mount **before** `/users/admin` so Express does not swallow the path.
+- **Privacy** `omitPlayerLevel` on `/users/me` and admin user-by-id responses.
+- **Frontend**: `/players` hub, `/player-levels` list (pills, name filter, dialog level selector with immediate save); games home toolbar **Players** → hub.
+- **E2E**: `e2e/player-levels.spec.ts` E2E-LEVEL-001–004; HOME-010 / AUTH-004 use `link` role **Players**.
+
+### Feedback loops (post-change)
+- `cd backend && npm run build` — OK
+- `cd backend && npm run test:unit` — 15/15 pass
+- `cd tg-mini-app && npm run build` — OK
+- `npm run test:e2e` — **111 passed**, 0 failed
+
+### Files touched (main)
+- `backend/drizzle/0032_player_level.sql`, `backend/drizzle/meta/_journal.json`, `backend/src/db/schema.ts`
+- `backend/src/domain/playerLevel.ts`, `playerLevel.test.ts`, `backend/src/routes/playerLevelsAdmin.ts`, `backend/src/index.ts`
+- `backend/src/utils/userPublic.ts`, `backend/src/routes/users.ts`, `usersAdmin.ts`
+- `tg-mini-app/src/pages/Players.tsx`, `PlayerLevels.tsx`, `*.scss`, `App.tsx`, `GamesList.tsx`
+- `tg-mini-app/src/components/PlayerInfoDialog.tsx`, `services/api.ts`, `types/index.ts`, `utils/playerLevel.ts`
+- `e2e/player-levels.spec.ts`, `e2e/auth-session.spec.ts`, `e2e/games-home.spec.ts`, `e2e/support/fixtures.ts`, `e2e/game-form.spec.ts`
+- `tg-mini-app/src/pages/GameDetails.tsx`, `docs/playwright-e2e-scenarios.md`
+
+RALPH_ISSUE_COMPLETE #21

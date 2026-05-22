@@ -197,7 +197,7 @@ test.describe('games home scenarios', () => {
   test('E2E-HOME-010 global admin sees non-integration admin controls', async ({ page }, testInfo) => {
     await devLogin(page, testInfo, 'Toolbar Admin', true);
 
-    await expect(page.getByTitle('Game Administrators')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Players' })).toBeVisible();
     await expect(page.getByTitle('Create New Game')).toBeVisible();
   });
 
@@ -210,7 +210,7 @@ test.describe('games home scenarios', () => {
     await switchToUser(page, assignedAdmin);
 
     await expect(page.getByTitle('Create New Game')).toBeVisible();
-    await expect(page.getByTitle('Game Administrators')).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Players' })).toHaveCount(0);
   });
 
   test('E2E-HOME-012 home error state retries after games API failure', async ({ page }, testInfo) => {

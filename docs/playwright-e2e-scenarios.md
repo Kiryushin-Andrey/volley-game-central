@@ -65,7 +65,7 @@ Spec: `e2e/games-home.spec.ts`
 - [x] E2E-HOME-007: Global Admin switches between `Upcoming` and `Past` filters.
 - [x] E2E-HOME-008: Global Admin toggles `Show all scheduled games` for upcoming games and sees games outside the default registration window.
 - [x] E2E-HOME-009: Global Admin switches to past games and toggles `Show fully paid games`.
-- [x] E2E-HOME-010: Global Admin sees `Game Administrators` and `Create New Game` controls for non-integration admin access.
+- [x] E2E-HOME-010: Global Admin sees `Players` (hub) and `Create New Game` controls for non-integration admin access.
 - [x] E2E-HOME-011: Assigned Admin sees `Create New Game` access without global-only administration links.
 - [x] E2E-HOME-012: Home error state shows `Error` and `Retry` when the games API fails, then recovers after retry.
 - [x] E2E-HOME-013: With default category filter (Sunday), participant sees `No games available` when the only upcoming game is a Thursday 5-1 game.
@@ -166,6 +166,17 @@ Spec: `e2e/game-administrators-assignment.spec.ts`
 - [x] E2E-ASSIGN-005: Global Admin deletes an assignment after confirming the browser prompt.
 - [x] E2E-ASSIGN-006: Global Admin cancels assignment deletion and the assignment remains.
 - [x] E2E-ASSIGN-007: Non-admin Participant A is redirected away from `/game-administrators`.
+
+## Player levels admin scenarios
+
+Spec: `e2e/player-levels.spec.ts`
+
+Routes: `/players` (global admin hub from games home **Players** toolbar icon), `/player-levels` (list + dialog assignment). Entry: games home **Players** → **Player levels**, or direct navigation for tests.
+
+- [x] E2E-LEVEL-001: Global Admin opens **Players** from the games home toolbar and sees hub links to **Game administrators** and **Player levels**.
+- [x] E2E-LEVEL-002: Global Admin opens **Player levels**, assigns **intermediate** to a user via the player info dialog, and sees the level pill on the list row.
+- [x] E2E-LEVEL-003: Name filter above the list hides players that do not match (client-side filter on the loaded roster).
+- [x] E2E-LEVEL-004: Non-admin Participant A is redirected away from `/players` and `/player-levels`.
 
 ## Cross-user and state-transition scenarios
 
