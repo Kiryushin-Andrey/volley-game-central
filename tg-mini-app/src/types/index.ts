@@ -61,6 +61,7 @@ export interface Game {
   isAssignedAdmin?: boolean;
   registrationOpenDays?: number;
   registrationOpensAt?: string;
+  canSelfRegister?: boolean;
   isPriorityPlayer?: boolean;
 }
 

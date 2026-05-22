@@ -19,6 +19,11 @@ import { authMiddleware } from './middleware/auth';
 import { adminAuthMiddleware } from './middleware/adminAuth';
 import { adminOrAssignedAdminMiddleware } from './middleware/adminOrAssignedAdmin';
 import { BUILD_TIMESTAMP } from './buildInfo.generated';
+import { POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED } from './config/positionsGameLevelRestrictions';
+
+console.log(
+  `Positions game level restrictions: ${POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED ? 'enabled' : 'disabled'}`,
+);
 
 // Initialize Express app
 const app = express();

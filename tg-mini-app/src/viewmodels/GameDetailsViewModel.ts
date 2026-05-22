@@ -693,24 +693,28 @@ export class GameDetailsViewModel {
       }
     } else {
       // If user is not registered, check if they can join
-      if (!canJoinGame(this.state.gameData.game.dateTime, this.state.gameData.game.registrationOpensAt)) {
-        const gameDateTime = new Date(this.state.gameData.game.dateTime);
-        const registrationOpenDays = this.state.gameData.game.registrationOpenDays || DAYS_BEFORE_GAME_TO_JOIN;
-        const daysBeforeGame = new Date(gameDateTime.getTime());
-        daysBeforeGame.setDate(daysBeforeGame.getDate() - registrationOpenDays);
-        
-        let message = `Registration opens ${daysBeforeGame.toLocaleDateString()} (${registrationOpenDays} days before the game).`;
-        
-        // Add disclaimer for non-priority users about priority players
-        if (
-          this.state.gameData.game.gameFormat === 'priority_players' &&
-          !this.state.gameData.game.isPriorityPlayer &&
-          isGameUpcoming(this.state.gameData.game.dateTime)
-        ) {
-          message += ' This game has priority players who can register ahead of others.';
+      const canJoin =
+        this.state.gameData.game.canSelfRegister ??
+        canJoinGame(this.state.gameData.game.dateTime, this.state.gameData.game.registrationOpensAt);
+      if (!canJoin) {
+        const opensAt = this.state.gameData.game.registrationOpensAt
+          ? new Date(this.state.gameData.game.registrationOpensAt)
+          : null;
+        if (opensAt && new Date() < opensAt) {
+          const registrationOpenDays =
+            this.state.gameData.game.registrationOpenDays || DAYS_BEFORE_GAME_TO_JOIN;
+          let message = `Registration opens ${opensAt.toLocaleDateString()} (${registrationOpenDays} days before the game).`;
+
+          if (
+            this.state.gameData.game.gameFormat === 'priority_players' &&
+            !this.state.gameData.game.isPriorityPlayer &&
+            isGameUpcoming(this.state.gameData.game.dateTime)
+          ) {
+            message += ' This game has priority players who can register ahead of others.';
+          }
+
+          return message;
         }
-        
-        return message;
       }
     }
 
@@ -729,6 +733,10 @@ export class GameDetailsViewModel {
       return this.user.isAdmin || (game.isAssignedAdmin ?? false);
     }
     
+    if (game.canSelfRegister === false) {
+      return false;
+    }
+
     // Only show for upcoming games with open guest registration (3 days before)
     return canRegisterGuest(game.dateTime);
   }
@@ -767,8 +775,10 @@ export class GameDetailsViewModel {
         };
       }
     } else {
-      // Check if user can join the game (starting X days before)
-      if (canJoinGame(this.state.gameData.game.dateTime, this.state.gameData.game.registrationOpensAt)) {
+      const canJoin =
+        this.state.gameData.game.canSelfRegister ??
+        canJoinGame(this.state.gameData.game.dateTime, this.state.gameData.game.registrationOpensAt);
+      if (canJoin) {
         return {
           show: true,
           text: "Join Game",

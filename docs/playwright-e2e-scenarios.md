@@ -178,6 +178,18 @@ Routes: `/players` (global admin hub from games home **Players** toolbar icon), 
 - [x] E2E-LEVEL-003: Name filter above the list hides players that do not match (client-side filter on the loaded roster).
 - [x] E2E-LEVEL-004: Non-admin Participant A is redirected away from `/players` and `/player-levels`.
 
+## Positions game level restrictions scenarios
+
+Spec: `e2e/positions-level-restrictions.spec.ts`
+
+Requires `POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED=true` on the backend (default in `scripts/playwright-dev-server.sh`). Level assignment uses the player-levels admin UI; join/guest visibility uses game details only (no level shown in copy).
+
+- [x] E2E-RESTRICT-001: Beginner on a **positions** game sees no **Join Game** button.
+- [x] E2E-RESTRICT-002: Intermediate on a positions game more than 3 days out cannot join; within 3 days can join.
+- [x] E2E-RESTRICT-003: Beginner on a positions game within the guest window sees no **Add guest** button.
+- [x] E2E-RESTRICT-004: Beginner can **Join Game** on a recreational game when restrictions are on.
+- [x] E2E-RESTRICT-005: Beginner added by admin then assigned beginner cannot re-join after **Leave Game** on that positions game.
+
 ## Cross-user and state-transition scenarios
 
 Spec: `e2e/cross-user-state.spec.ts`

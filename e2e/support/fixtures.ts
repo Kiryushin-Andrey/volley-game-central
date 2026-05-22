@@ -221,6 +221,24 @@ export async function switchToUser(page: Page, user: DevUser) {
   return devLoginAs(page, user);
 }
 
+export async function assignPlayerLevelViaAdminUi(
+  page: Page,
+  admin: DevUser,
+  target: DevUser,
+  level: 'beginner' | 'intermediate' | 'advanced',
+  options?: { adminAlreadyLoggedIn?: boolean },
+) {
+  if (!options?.adminAlreadyLoggedIn) {
+    await devLoginAs(page, admin);
+  }
+  await page.goto('/player-levels');
+  await expect(page.getByRole('heading', { name: 'Player levels' })).toBeVisible();
+  await page.getByPlaceholder('Search players…').fill(target.displayName);
+  await page.locator('.player-levels-item').filter({ hasText: target.displayName }).click();
+  await page.locator('.player-level-select').selectOption(level);
+  await page.locator('.player-info-dialog').getByRole('button', { name: 'Close' }).click();
+}
+
 export async function registerForGameViaUi(page: Page, user: DevUser, gameId: number, expectedStatus = "You're in") {
   await switchToUser(page, user);
   await page.goto(`/game/${gameId}`);

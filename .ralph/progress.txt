@@ -80,3 +80,38 @@ RALPH_ISSUE_COMPLETE #20
 - `tg-mini-app/src/pages/GameDetails.tsx`, `docs/playwright-e2e-scenarios.md`
 
 RALPH_ISSUE_COMPLETE #21
+
+## 2026-05-22 — issue #22 (positions game level restrictions)
+
+### Session orientation
+- Branch: `cursor/player-levels-epic8-ad37` (clean, up to date).
+- Prior log: #20–#21 complete; #22 not started.
+- Working assumption: E2E gate green; implement enforcement slice for #22.
+
+### E2E gate (before feature work)
+- `npm run test:e2e`: **111 passed**, 0 failed (restrictions env off on prior server).
+
+### Implemented (issue #22 — full slice)
+- **Config** `POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED` parsed at startup (`true`/`1`; default off). Startup log in `backend/src/index.ts`.
+- **Domain** `positionsGameRegistrationEligibility.ts` + 10 unit tests (level × format × timing × guest/host).
+- **Integration** `evaluateRegistrationEligibility` in register route (403 generic message on level block) and game detail (`canSelfRegister`, effective `registrationOpensAt`).
+- **Frontend** `GameDetailsViewModel` uses `canSelfRegister` for join/guest buttons; info text only when registration not yet open (no level leak).
+- **E2E** `e2e/positions-level-restrictions.spec.ts` E2E-RESTRICT-001–005; Playwright dev server defaults restrictions **on** for tests.
+- **Docs** `docs/playwright-e2e-scenarios.md` restriction scenarios.
+
+### Feedback loops (post-change)
+- `cd backend && npm run build` — OK
+- `cd backend && npm run test:unit` — 25/25 pass
+- `cd tg-mini-app && npm run build` — OK
+- `npm run test:e2e` — **116 passed**, 0 failed
+
+### Files touched (main)
+- `backend/src/config/positionsGameLevelRestrictions.ts`
+- `backend/src/domain/positionsGameRegistrationEligibility.ts`, `.test.ts`
+- `backend/src/utils/registrationEligibility.ts`
+- `backend/src/routes/games.ts`, `backend/src/index.ts`, `backend/package.json`
+- `tg-mini-app/src/types/index.ts`, `tg-mini-app/src/viewmodels/GameDetailsViewModel.ts`
+- `e2e/positions-level-restrictions.spec.ts`, `e2e/support/fixtures.ts`
+- `docs/playwright-e2e-scenarios.md`, `scripts/playwright-dev-server.sh`
+
+RALPH_ISSUE_COMPLETE #22

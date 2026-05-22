@@ -16,6 +16,8 @@ import {
   withPositionsForAdminAssignment,
   type GameFormat,
 } from '../domain/gameFormat';
+import type { PlayerLevel } from '../domain/playerLevel';
+import { evaluateRegistrationEligibility } from '../utils/registrationEligibility';
 
 const router = Router();
 
@@ -157,22 +159,35 @@ router.post('/:gameId/register', async (req, res) => {
     const isGuestRegistration = !!guestName;
     
     const registrationOpenDays = await getRegistrationOpenDays(userId, gameRowForFormatHelpers(game[0]), isGuestRegistration);
-    const registrationOpenDate = new Date(gameDateTime);
-    registrationOpenDate.setDate(
-      registrationOpenDate.getDate() - registrationOpenDays,
-    );
+    const playerLevel = (req.user.playerLevel as PlayerLevel | null) ?? null;
+    const eligibility = evaluateRegistrationEligibility({
+      gameFormat: rowGameFormat(game[0]),
+      playerLevel,
+      gameDateTime,
+      now,
+      isGuestRegistration,
+      registrationOpenDays,
+    });
 
-    if (now < registrationOpenDate) {
+    if (!eligibility.canSelfRegister) {
+      if (eligibility.blockReason === 'level') {
+        return res.status(403).json({
+          error: 'You cannot register for this game.',
+          gameDateTime,
+          registrationOpensAt: eligibility.registrationOpensAt,
+        });
+      }
+
       const errorMessage = isGuestRegistration
         ? `Guest registration is only possible starting ${GUEST_REGISTRATION_OPEN_DAYS} days before the game`
         : usesPriorityPlayerWindows(rowGameFormat(game[0]))
         ? `Registration is only possible starting ${registrationOpenDays} days before the game`
         : `Registration is only possible starting ${REGISTRATION_OPEN_DAYS} days before the game`;
-      
+
       return res.status(403).json({
         error: errorMessage,
-        gameDateTime: gameDateTime,
-        registrationOpensAt: registrationOpenDate,
+        gameDateTime,
+        registrationOpensAt: eligibility.registrationOpensAt,
       });
     }
 
@@ -506,8 +521,16 @@ router.get('/:gameId', async (req, res) => {
     // Check if user is a priority player for this game (for frontend display)
     const isPriorityPlayer = await isUserPriorityPlayerForGame(req.user.id, gameRowForFormatHelpers(game[0]));
     const registrationOpenDays = await getRegistrationOpenDays(req.user.id, gameRowForFormatHelpers(game[0]), false);
-    const registrationOpenDate = new Date(game[0].dateTime);
-    registrationOpenDate.setDate(registrationOpenDate.getDate() - registrationOpenDays);
+    const playerLevel = (req.user.playerLevel as PlayerLevel | null) ?? null;
+    const now = new Date();
+    const eligibility = evaluateRegistrationEligibility({
+      gameFormat: rowGameFormat(game[0]),
+      playerLevel,
+      gameDateTime: new Date(game[0].dateTime),
+      now,
+      isGuestRegistration: false,
+      registrationOpenDays,
+    });
 
     // Ensure legacy field not leaked; respond with new fields
     const { locationAddress: _deprecated, ...restGame } = game[0] as any;
@@ -517,7 +540,8 @@ router.get('/:gameId', async (req, res) => {
       collectorUser,
       isAssignedAdmin,
       registrationOpenDays,
-      registrationOpensAt: registrationOpenDate.toISOString(),
+      registrationOpensAt: eligibility.registrationOpensAt.toISOString(),
+      canSelfRegister: eligibility.canSelfRegister,
       isPriorityPlayer,
     });
   } catch (error) {
