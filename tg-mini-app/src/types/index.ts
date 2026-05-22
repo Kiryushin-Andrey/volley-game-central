@@ -39,8 +39,7 @@ export interface Game {
   paymentAmount: number;
   pricingMode: PricingMode;
   fullyPaid: boolean;
-  withPositions: boolean;
-  withPriorityPlayers: boolean;
+  gameFormat: 'recreational' | 'positions' | 'priority_players';
   readonly: boolean;
   locationName?: string | null;
   locationLink?: string | null;

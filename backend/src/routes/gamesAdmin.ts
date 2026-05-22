@@ -13,13 +13,15 @@ import { getNotificationSubjectWithVerb } from '../utils/notificationUtils';
 import { formatGameDate } from '../utils/dateUtils';
 import { isUserAssignedToGameById, isUserAssignedToGame } from '../middleware/adminOrAssignedAdmin';
 import { getUserSelectFields } from '../utils/dbQueryUtils';
+import { isGameFormat, isPositionsGame, usesPriorityPlayerWindows } from '../gameFormat';
+import type { GameFormat } from '../gameFormat';
 
 const router = Router();
 
 // Calculate default settings for a new game
 router.get('/defaults', async (req, res) => {
   try {
-    const { defaultDateTime, defaultLocationName, defaultLocationLink, defaultPaymentAmount, defaultPricingMode, defaultWithPositions } =
+    const { defaultDateTime, defaultLocationName, defaultLocationLink, defaultPaymentAmount, defaultPricingMode, defaultGameFormat } =
       await gameService.calculateDefaultGameSettings();
     res.json({
       defaultDateTime,
@@ -27,7 +29,7 @@ router.get('/defaults', async (req, res) => {
       defaultLocationLink,
       defaultPaymentAmount,
       defaultPricingMode,
-      defaultWithPositions,
+      defaultGameFormat,
     });
   } catch (error) {
     console.error('Error calculating default date time:', error);
@@ -44,8 +46,7 @@ router.post('/', async (req, res) => {
       unregisterDeadlineHours = 5,
       paymentAmount,
       pricingMode = PricingMode.PER_PARTICIPANT,
-      withPositions = false,
-      withPriorityPlayers = false,
+      gameFormat = 'recreational',
       readonly = false,
       locationName,
       locationLink,
@@ -59,12 +60,17 @@ router.post('/', async (req, res) => {
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
     }
+
+    if (!isGameFormat(gameFormat)) {
+      return res.status(400).json({ error: 'gameFormat must be recreational, positions, or priority_players' });
+    }
+    const format = gameFormat as GameFormat;
   
     // Check if assigned administrator is authorized to create this game
     if (!req.user.isAdmin) {
       const isAuthorized = await isUserAssignedToGame(req.user!.id, {
         dateTime,
-        withPositions,
+        gameFormat: format,
       });
       if (!isAuthorized) {
         return res.status(403).json({ error: 'You are not authorized to create games for this day and type' });
@@ -81,8 +87,7 @@ router.post('/', async (req, res) => {
         unregisterDeadlineHours,
         paymentAmount,
         pricingMode,
-        withPositions,
-        withPriorityPlayers,
+        gameFormat: format,
         readonly: readonly ?? false,
         locationName,
         locationLink,
@@ -101,12 +106,12 @@ router.post('/', async (req, res) => {
       registrationOpensAt.setDate(registrationOpensAt.getDate() - REGISTRATION_OPEN_DAYS);
 
       const isRegistrationOpen = now >= registrationOpensAt;
-      const isFiveOne = !!created.withPositions;
+      const isPositions = isPositionsGame(created.gameFormat as GameFormat);
       const isFutureGame = gameDate > now;
       const isReadonly = !!created.readonly;
-      const hasPriorityPlayers = !!created.withPriorityPlayers;
+      const hasPriorityWindows = usesPriorityPlayerWindows(created.gameFormat as GameFormat);
 
-      if (isRegistrationOpen && !isFiveOne && isFutureGame && !isReadonly && !hasPriorityPlayers) {
+      if (isRegistrationOpen && !isPositions && isFutureGame && !isReadonly && !hasPriorityWindows) {
         const formattedDate = formatGameDate(gameDate);
 
         const locationText = formatLocationSection((created as any).locationName, (created as any).locationLink);
@@ -136,8 +141,7 @@ router.put('/:gameId', async (req, res) => {
       unregisterDeadlineHours,
       paymentAmount,
       pricingMode,
-      withPositions,
-      withPriorityPlayers,
+      gameFormat,
       readonly,
       locationName,
       locationLink,
@@ -162,6 +166,11 @@ router.put('/:gameId', async (req, res) => {
       return res.status(403).json({ error: 'You are not authorized to manage this game' });
     }
 
+    if (!isGameFormat(gameFormat)) {
+      return res.status(400).json({ error: 'gameFormat must be recreational, positions, or priority_players' });
+    }
+    const format = gameFormat as GameFormat;
+
     const originalDateTime = new Date(existingGame[0].dateTime);
     const newDateTime = new Date(dateTime);
     const originalMaxPlayers = existingGame[0].maxPlayers;
@@ -175,8 +184,7 @@ router.put('/:gameId', async (req, res) => {
         unregisterDeadlineHours,
         paymentAmount,
         pricingMode,
-        withPositions,
-        withPriorityPlayers,
+        gameFormat: format,
         readonly: readonly ?? false,
         locationName,
         locationLink,

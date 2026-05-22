@@ -20,8 +20,7 @@ export const GameFormFields: React.FC<GameFormFieldsProps> = ({
     unregisterDeadlineHours,
     paymentAmountDisplay,
     pricingMode,
-    withPositions,
-    withPriorityPlayers,
+    gameFormat,
     readonly,
     locationName,
     locationLink,
@@ -155,23 +154,23 @@ export const GameFormFields: React.FC<GameFormFieldsProps> = ({
       </div>
 
       <div className="form-group">
-        <ToggleSwitch
-          id="withPositions"
-          checked={withPositions}
-          onChange={(checked) => viewModel.handleWithPositionsChange(checked)}
-          label="Playing 5-1"
-        />
-      </div>
-
-      <div className="form-group">
-        <ToggleSwitch
-          id="withPriorityPlayers"
-          checked={withPriorityPlayers}
-          onChange={(checked) => viewModel.handleWithPriorityPlayersChange(checked)}
-          label="With priority players"
-        />
+        <label htmlFor="gameFormat">Game format:</label>
+        <select
+          id="gameFormat"
+          value={gameFormat}
+          onChange={(e) =>
+            viewModel.handleGameFormatChange(
+              e.target.value as 'recreational' | 'positions' | 'priority_players'
+            )
+          }
+          required
+        >
+          <option value="recreational">Recreational game</option>
+          <option value="positions">With positions</option>
+          <option value="priority_players">With priority players</option>
+        </select>
         <div className="field-description">
-          When enabled, priority players assigned to this game's day and type will have priority in registration.
+          Priority players games use early registration windows without assigned positions.
         </div>
       </div>
 

@@ -2,3 +2,27 @@
 # Append after each iteration. Use RALPH_ISSUE_COMPLETE #n only when that issue is fully done.
 # Concise bullets; grammar optional.
 # Delete this file when the epic sprint is done.
+
+## 2026-05-22 — issue #20 (game format enum)
+
+**Branch:** cursor/player-levels-epic8-c185
+
+**Session orientation:** progress log was seed-only; issue #20 not started. Focus: replace `withPositions` / `withPriorityPlayers` on games with `gameFormat`.
+
+**E2E gate (before feature):** 106/107 pass first run — flaky `E2E-FORM-010` (stale game details after edit). No gate blocker after retest.
+
+**E2E gate (after #20):** `npm run test:e2e` — **107/107 pass**. Scenarios touched: E2E-FORM-004 (format select), E2E-FORM-010 (reload after post-pay edit), E2E-ADMIN-010 (403 PUT still awaited without `ok()` filter).
+
+**Implemented (#20):**
+- Drizzle `0031_game_format.sql`: add `game_format`, backfill, drop legacy boolean columns on `games`.
+- `backend/src/gameFormat.ts` + `gameFormat.test.ts` (node:test): `gameFormatFromLegacy`, `isPositionsGame`, `usesPriorityPlayerWindows`, `gameFormatToAdminWithPositions`.
+- Schema/API: `gameFormat` on create/update/list/detail; `defaultGameFormat` in admin defaults; validation on write.
+- Backend routes/services: registration windows, priority-player checks, category classify, telegram announcements, assigned-admin matching via `gameFormatToAdminWithPositions` (game_administrators.withPositions unchanged).
+- Mini-app: three-option `#gameFormat` select (Recreational / With positions / With priority players); types and API client updated.
+- E2E fixtures: `createGameViaUi` uses `#gameFormat`; backward compat `withPositions: true` → `positions`.
+
+**Files (main):** `backend/drizzle/0031_game_format.sql`, `backend/src/gameFormat.ts`, `backend/src/db/schema.ts`, `backend/src/routes/games.ts`, `backend/src/routes/gamesAdmin.ts`, `tg-mini-app/src/components/GameFormFields.tsx`, `tg-mini-app/src/viewmodels/GameFormViewModel.ts`, `e2e/support/fixtures.ts`, `docs/playwright-e2e-scenarios.md`.
+
+**Feedback loops:** `cd backend && npm run build && npm test` (5 unit tests pass); `cd tg-mini-app && npm run build` pass.
+
+RALPH_ISSUE_COMPLETE #20

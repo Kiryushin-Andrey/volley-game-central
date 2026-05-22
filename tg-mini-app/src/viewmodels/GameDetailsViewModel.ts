@@ -6,6 +6,7 @@ import type { UserPublicInfo } from '../types';
 import { ActionGuard } from '../utils/actionGuard';
 import { getUserRegistration } from '../utils/registrationsUtils';
 import { isGamePast, isGameUpcoming, canJoinGame, canLeaveGame, canRegisterGuest, DAYS_BEFORE_GAME_TO_JOIN, DAYS_BEFORE_GAME_TO_REGISTER_GUEST, classifyGame, GameCategory } from '../utils/gameDateUtils';
+import { usesPriorityPlayerWindows } from '../utils/gameFormat';
 
 export interface GameDataState {
   game: Game | null;
@@ -125,7 +126,7 @@ export class GameDetailsViewModel {
 
   get gameCategory(): GameCategory | null {
     if (!this.game) return null;
-    return classifyGame(this.game.dateTime, this.game.withPositions);
+    return classifyGame(this.game.dateTime, this.game.gameFormat);
   }
 
   get isLoading(): boolean {
@@ -495,7 +496,7 @@ export class GameDetailsViewModel {
     this.confirmAndUnregister(this.state.gameData.game, guestName);
   }
 
-  handleRemovePlayerFromWaitingList(userId: number, guestName?: string): void {
+  handleRemovePlayerFromWaitingList(_userId: number, guestName?: string): void {
     if (!this.state.gameData.game || this.state.action.isActionLoading) return;
 
     this.confirmAndUnregister(this.state.gameData.game, guestName);
@@ -703,7 +704,7 @@ export class GameDetailsViewModel {
         
         // Add disclaimer for non-priority users about priority players
         if (
-          this.state.gameData.game.withPriorityPlayers &&
+          usesPriorityPlayerWindows(this.state.gameData.game.gameFormat) &&
           !this.state.gameData.game.isPriorityPlayer &&
           isGameUpcoming(this.state.gameData.game.dateTime)
         ) {

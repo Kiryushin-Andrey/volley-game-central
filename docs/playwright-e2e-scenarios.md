@@ -119,7 +119,7 @@ Spec: `e2e/game-form.spec.ts`
 - [x] E2E-FORM-001: Global Admin opens `Create New Game` from the games home.
 - [x] E2E-FORM-002: Global Admin creates a standard game with date/time, maximum players, unregister deadline, per-participant cost, location name, optional location link, and optional title.
 - [x] E2E-FORM-003: Global Admin creates a game with total-cost pricing and sees the per-participant preview update as maximum players changes.
-- [x] E2E-FORM-004: Global Admin creates a game with `Playing 5-1` enabled and verifies it appears in the appropriate games list/category behavior.
+- [x] E2E-FORM-004: Global Admin creates a game with game format `With positions` and verifies the format persists on edit.
 - [x] E2E-FORM-005: Global Admin creates a readonly game and verifies regular participants cannot self-register.
 - [x] E2E-FORM-006: Global Admin cancels game creation and returns without creating a game.
 - [x] E2E-FORM-007: Global Admin opens `Edit Game Settings` from game details, updates title/location/capacity/deadline/toggles, saves, and sees the updated details.

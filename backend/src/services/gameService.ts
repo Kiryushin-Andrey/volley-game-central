@@ -2,6 +2,7 @@ import { db } from '../db';
 import { games } from '../db/schema';
 import { desc } from 'drizzle-orm';
 import { PricingMode } from '../types/PricingMode';
+import type { GameFormat } from '../gameFormat';
 
 /**
  * Game service functions
@@ -16,7 +17,7 @@ export const gameService = {
     defaultLocationLink?: string | null;
     defaultPaymentAmount?: number | null;
     defaultPricingMode?: PricingMode | null;
-    defaultWithPositions?: boolean | null;
+    defaultGameFormat?: GameFormat | null;
   }> => {
     try {
       // Find the game with the latest createdAt timestamp
@@ -58,7 +59,7 @@ export const gameService = {
         defaultLocationLink: matching?.locationLink ?? null,
         defaultPaymentAmount: matching?.paymentAmount ?? null,
         defaultPricingMode: (matching?.pricingMode as PricingMode | undefined) ?? null,
-        defaultWithPositions: matching?.withPositions ?? null,
+        defaultGameFormat: (matching?.gameFormat as GameFormat | undefined) ?? null,
       };
     } catch (error) {
       console.error('Error calculating default game settings:', error);
@@ -71,7 +72,7 @@ export const gameService = {
         defaultLocationLink: null,
         defaultPaymentAmount: null,
         defaultPricingMode: null,
-        defaultWithPositions: null,
+        defaultGameFormat: null,
       };
     }
   },

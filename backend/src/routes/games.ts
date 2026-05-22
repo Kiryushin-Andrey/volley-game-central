@@ -10,15 +10,26 @@ import { getNotificationSubjectWithVerb } from '../utils/notificationUtils';
 import { formatGameDate } from '../utils/dateUtils';
 import { isUserAssignedToGameById } from '../middleware/adminOrAssignedAdmin';
 import { getUserSelectFields } from '../utils/dbQueryUtils';
+import type { GameFormat } from '../gameFormat';
+import {
+  gameFormatToAdminWithPositions,
+  isPositionsGame,
+  usesPriorityPlayerWindows,
+  isGameFormat,
+} from '../gameFormat';
+
+function gameRowFormat(game: { gameFormat: string }): GameFormat {
+  return isGameFormat(game.gameFormat) ? game.gameFormat : 'recreational';
+}
 
 const router = Router();
 
 // Helper function to check if a user is a priority player for a game
 async function isUserPriorityPlayerForGame(
   userId: number,
-  game: { dateTime: Date | string; withPositions: boolean; withPriorityPlayers: boolean }
+  game: { dateTime: Date | string; gameFormat: GameFormat }
 ): Promise<boolean> {
-  if (!game.withPriorityPlayers) {
+  if (!usesPriorityPlayerWindows(game.gameFormat)) {
     return false;
   }
 
@@ -40,7 +51,7 @@ async function isUserPriorityPlayerForGame(
     .where(
       and(
         eq(gameAdministrators.dayOfWeek, dayOfWeek),
-        eq(gameAdministrators.withPositions, game.withPositions),
+        eq(gameAdministrators.withPositions, gameFormatToAdminWithPositions(game.gameFormat)),
         eq(priorityPlayers.userId, userId)
       )
     )
@@ -52,14 +63,14 @@ async function isUserPriorityPlayerForGame(
 // Helper function to get registration open days for a user and game
 async function getRegistrationOpenDays(
   userId: number,
-  game: { dateTime: Date | string; withPositions: boolean; withPriorityPlayers: boolean },
+  game: { dateTime: Date | string; gameFormat: GameFormat },
   isGuest: boolean
 ): Promise<number> {
   if (isGuest) {
     return GUEST_REGISTRATION_OPEN_DAYS;
   }
 
-  if (game.withPriorityPlayers) {
+  if (usesPriorityPlayerWindows(game.gameFormat)) {
     const isPriority = await isUserPriorityPlayerForGame(userId, game);
     return isPriority ? REGISTRATION_OPEN_DAYS : REGULAR_PLAYER_REGISTRATION_OPEN_DAYS;
   }
@@ -70,7 +81,7 @@ async function getRegistrationOpenDays(
 // Helper function to classify a game into a category
 type GameCategory = 'thursday-5-1' | 'thursday-deti-plova' | 'sunday' | 'other';
 
-function classifyGame(game: { dateTime: Date | string; withPositions: boolean }): GameCategory {
+function classifyGame(game: { dateTime: Date | string; gameFormat: GameFormat }): GameCategory {
   const gameDate = new Date(game.dateTime);
   let dayOfWeek = gameDate.getDay();
   // Convert JavaScript day (0=Sunday, 1=Monday, ..., 6=Saturday) to Monday=0 format
@@ -78,7 +89,7 @@ function classifyGame(game: { dateTime: Date | string; withPositions: boolean })
   
   // Thursday = 3, Sunday = 6
   if (dayOfWeek === 3) { // Thursday
-    return game.withPositions ? 'thursday-5-1' : 'thursday-deti-plova';
+    return isPositionsGame(game.gameFormat) ? 'thursday-5-1' : 'thursday-deti-plova';
   } else if (dayOfWeek === 6) { // Sunday
     return 'sunday';
   } else {
@@ -142,7 +153,11 @@ router.post('/:gameId/register', async (req, res) => {
     const now = new Date();
     const isGuestRegistration = !!guestName;
     
-    const registrationOpenDays = await getRegistrationOpenDays(userId, game[0], isGuestRegistration);
+    const registrationOpenDays = await getRegistrationOpenDays(
+      userId,
+      { dateTime: game[0].dateTime, gameFormat: gameRowFormat(game[0]) },
+      isGuestRegistration
+    );
     const registrationOpenDate = new Date(gameDateTime);
     registrationOpenDate.setDate(
       registrationOpenDate.getDate() - registrationOpenDays,
@@ -151,7 +166,7 @@ router.post('/:gameId/register', async (req, res) => {
     if (now < registrationOpenDate) {
       const errorMessage = isGuestRegistration
         ? `Guest registration is only possible starting ${GUEST_REGISTRATION_OPEN_DAYS} days before the game`
-        : game[0].withPriorityPlayers
+        : usesPriorityPlayerWindows(gameRowFormat(game[0]))
         ? `Registration is only possible starting ${registrationOpenDays} days before the game`
         : `Registration is only possible starting ${REGISTRATION_OPEN_DAYS} days before the game`;
       
@@ -490,8 +505,9 @@ router.get('/:gameId', async (req, res) => {
     let isAssignedAdmin = await isUserAssignedToGameById(req.user.id, parseInt(gameId));
 
     // Check if user is a priority player for this game (for frontend display)
-    const isPriorityPlayer = await isUserPriorityPlayerForGame(req.user.id, game[0]);
-    const registrationOpenDays = await getRegistrationOpenDays(req.user.id, game[0], false);
+    const gameForFormat = { dateTime: game[0].dateTime, gameFormat: gameRowFormat(game[0]) };
+    const isPriorityPlayer = await isUserPriorityPlayerForGame(req.user.id, gameForFormat);
+    const registrationOpenDays = await getRegistrationOpenDays(req.user.id, gameForFormat, false);
     const registrationOpenDate = new Date(game[0].dateTime);
     registrationOpenDate.setDate(registrationOpenDate.getDate() - registrationOpenDays);
 
@@ -568,7 +584,7 @@ router.get('/', async (req, res) => {
             return userAssignments.some(
               (assignment) =>
                 assignment.dayOfWeek === dayOfWeek &&
-                assignment.withPositions === game.withPositions
+                assignment.withPositions === gameFormatToAdminWithPositions(gameRowFormat(game))
             );
           });
         } else {
@@ -613,7 +629,10 @@ router.get('/', async (req, res) => {
       
       if (validSelectedCategories.length > 0) {
         filteredGames = filteredGames.filter((game) => {
-          const gameCategory = classifyGame(game);
+          const gameCategory = classifyGame({
+            dateTime: game.dateTime,
+            gameFormat: gameRowFormat(game),
+          });
           return validSelectedCategories.includes(gameCategory);
         });
       }

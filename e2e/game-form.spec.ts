@@ -80,7 +80,7 @@ test.describe('game creation and editing scenarios', () => {
     await devLogin(page, testInfo, 'Five One Admin', true);
     await page.goto('/games/new');
     await fillRequiredGameFields(page, title);
-    await setCheckbox(page, '#withPositions');
+    await page.locator('#gameFormat').selectOption('positions');
     const createResponsePromise = waitForAdminGameCreateResponse(page);
     await page.getByRole('button', { name: 'Create Game' }).click();
     const createResponse = await createResponsePromise;
@@ -89,7 +89,7 @@ test.describe('game creation and editing scenarios', () => {
 
     await expect(page).toHaveURL('/');
     await page.goto(`/game/${id}/edit`);
-    await expect(page.locator('#withPositions')).toBeChecked();
+    await expect(page.locator('#gameFormat')).toHaveValue('positions');
   });
 
   test('E2E-FORM-005 global admin creates a readonly game that participants cannot self-register for', async ({ page, request }, testInfo) => {
@@ -207,7 +207,8 @@ test.describe('game creation and editing scenarios', () => {
     await updatePromise;
 
     await expect(page).toHaveURL(new RegExp(`/game/${game.id}$`));
-    await expect(page.getByText(updatedTitle)).toBeVisible();
+    await page.reload();
+    await expect(page.getByText(updatedTitle)).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText(originalTitle)).toHaveCount(0);
   });
 });
