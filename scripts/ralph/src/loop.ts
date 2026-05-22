@@ -81,6 +81,14 @@ export class RalphLoop {
     this.resume = readProgressResume(progressFile(this.cfg), this.issueNumbers);
   }
 
+  /** Pull sprint branch and parse completion sigils from progress.txt (source of truth). */
+  private syncProgressFromBranch(): void {
+    if (!this.cfg.dryRun) {
+      syncSprintBranch(this.root, this.cfg.branch, this.cfg.base);
+    }
+    this.reloadResumeFromBranch();
+  }
+
   private logResumePlan(): void {
     const done = [...this.resume.completedIssues].sort((a, b) => a - b);
     if (done.length) {
@@ -146,26 +154,10 @@ export class RalphLoop {
     return textHasIssueComplete(readFileSync(logPath, "utf-8"), n);
   }
 
-  /**
-   * After agent log shows issue-complete sigil, pull sprint branch and confirm progress.txt
-   * records the same milestone.
-   */
-  private confirmIssueCompleteOnBranch(logPath: string, n: number): boolean {
-    const sigil = promiseIssueComplete(n);
-    if (!this.logHasIssueComplete(logPath, n)) return false;
-
-    if (!this.cfg.dryRun) {
-      syncSprintBranch(this.root, this.cfg.branch, this.cfg.base);
-    }
-    this.reloadResumeFromBranch();
-
-    if (this.issueDone(n)) return true;
-
-    console.warn(
-      `warn: agent log has ${sigil} but progress.txt on ${this.cfg.branch} does not — ` +
-        "ensure the agent committed and pushed progress.txt",
-    );
-    return false;
+  /** Pull branch and return whether progress.txt records issue #n complete. */
+  private issueCompleteOnBranch(n: number): boolean {
+    this.syncProgressFromBranch();
+    return this.issueDone(n);
   }
 
   private checkIterationBudget(): void {
@@ -272,12 +264,17 @@ export class RalphLoop {
   }
 
   /**
-   * Run agent sessions on one issue until RALPH_ISSUE_COMPLETE #n is recorded on the branch.
-   * Passes without that sigil count as partial progress; the next pass continues from progress.txt.
+   * Run agent sessions on one issue until RALPH_ISSUE_COMPLETE #n is in progress.txt on the branch.
+   * After each run the harness pulls and re-reads progress.txt (not the stream log) to decide completion.
    */
   async runUntilIssueComplete(n: number): Promise<void> {
     let pass = 0;
     while (!this.issueDone(n)) {
+      this.syncProgressFromBranch();
+      if (this.issueDone(n)) {
+        return;
+      }
+
       pass += 1;
       let attempt = 0;
       for (;;) {
@@ -285,7 +282,7 @@ export class RalphLoop {
         attempt += 1;
         if (this.cfg.maxSlice > 0 && attempt > this.cfg.maxSlice) {
           console.error(
-            `max retries for issue #${n} pass ${pass}: expected ${promiseIssueComplete(n)} or a partial pass with progress.txt updated`,
+            `max retries for issue #${n} pass ${pass}: expected ${promiseIssueComplete(n)} in progress.txt on ${this.cfg.branch}`,
           );
           process.exit(1);
         }
@@ -307,25 +304,33 @@ export class RalphLoop {
           return;
         }
 
-        if (runOk && this.logHasIssueComplete(logPath, n)) {
-          if (this.confirmIssueCompleteOnBranch(logPath, n)) {
-            console.log(`OK: ${promiseIssueComplete(n)}`);
-            this.markIssueDone(n);
-            return;
+        maybePush(this.root, this.cfg.branch, this.cfg.push);
+
+        if (this.issueCompleteOnBranch(n)) {
+          const sigil = promiseIssueComplete(n);
+          if (logPath && existsSync(logPath) && !this.logHasIssueComplete(logPath, n)) {
+            console.log(
+              `note: ${sigil} in progress.txt on ${this.cfg.branch} (stream log ended before sigil line)`,
+            );
           }
-          console.log(`issue #${n}: completion sigil not verified on branch (see ${logPath})`);
+          console.log(`OK: ${sigil}`);
+          this.markIssueDone(n);
+          return;
+        }
+
+        if (runOk && this.logHasIssueComplete(logPath, n)) {
+          console.warn(
+            `warn: stream log has ${promiseIssueComplete(n)} but progress.txt on ${this.cfg.branch} does not — ` +
+              "ensure the agent committed and pushed progress.txt",
+          );
           await sleep(3000);
           continue;
         }
 
         if (runOk) {
           console.log(
-            `issue #${n} pass ${pass}: partial (no completion sigil) — continue after progress.txt update`,
+            `issue #${n} pass ${pass}: no ${promiseIssueComplete(n)} in progress.txt yet — next pass continues from branch log`,
           );
-          maybePush(this.root, this.cfg.branch, this.cfg.push);
-          if (!this.cfg.dryRun) {
-            syncSprintBranch(this.root, this.cfg.branch, this.cfg.base);
-          }
           break;
         }
 
@@ -363,18 +368,16 @@ export class RalphLoop {
         console.log(`(dry-run) would wait for: ${promise}`);
         return;
       }
+      maybePush(this.root, this.cfg.branch, this.cfg.push);
+      this.syncProgressFromBranch();
+      if (textHasPromise(readFileSync(progressFile(this.cfg), "utf-8"), promise)) {
+        console.log(`OK: ${promise}`);
+        return;
+      }
       if (this.logHasPromise(logPath, promise)) {
-        if (!this.cfg.dryRun) {
-          syncSprintBranch(this.root, this.cfg.branch, this.cfg.base);
-        }
-        this.reloadResumeFromBranch();
-        if (textHasPromise(readFileSync(progressFile(this.cfg), "utf-8"), promise)) {
-          console.log(`OK: ${promise}`);
-          return;
-        }
         console.warn(`warn: ${promise} in agent log but not on branch progress.txt yet`);
       } else {
-        console.log(`missing: ${promise} (see ${logPath})`);
+        console.log(`missing: ${promise} in progress.txt (see ${logPath})`);
       }
       i += 1;
       await sleep(3000);

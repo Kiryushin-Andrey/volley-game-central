@@ -19,6 +19,8 @@ Pattern: [Getting started with Ralph](https://www.aihero.dev/getting-started-wit
 
 There is **no** `ralph-state.json`. The harness resumes **only** by reading `.ralph/progress.txt` on the sprint branch after `git pull`. Sigils in commit messages are **not** used.
 
+After **each** cloud/local agent run, the orchestrator pulls the sprint branch and re-reads `progress.txt` to decide whether an issue is done (not the streamed agent log). Cloud SSE streams have **no** fetch timeout; if the stream drops, the harness polls run status until `FINISHED`, then still checks `progress.txt`.
+
 ## Cloud resume
 
 1. Start a new orchestrator (fresh VM is fine) with the same `--branch` and `--child-issues`.
