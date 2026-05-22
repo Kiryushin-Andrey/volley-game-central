@@ -115,3 +115,33 @@ RALPH_ISSUE_COMPLETE #21
 - `docs/playwright-e2e-scenarios.md`, `scripts/playwright-dev-server.sh`
 
 RALPH_ISSUE_COMPLETE #22
+
+## 2026-05-22 — epic #8 final pass
+
+### Session orientation
+- Branch: `cursor/player-levels-epic8-ad37` (clean, up to date with origin).
+- Prior log: #20–#22 complete with `RALPH_ISSUE_COMPLETE`; no open child issues.
+- Working assumption: close epic — full E2E gate, draft PR to main, completion sigils.
+
+### E2E gate
+- Initial full `npm run test:e2e`: **115 passed**, 1 failed — E2E-HOME-006 flaky `net::ERR_ABORTED` on `switchToUser` → `page.goto('/')` after logout.
+- Fix: `openDevLogin` skips goto when Welcome already visible; `switchToUser` waits for Welcome after logout.
+- Post-fix: HOME-006 ×3 repeat green; full suite **116 passed**, 0 failed.
+
+### Feedback loops
+- `cd backend && npm run build` — OK
+- `cd backend && npm run test:unit` — 25/25 pass
+- `cd tg-mini-app && npm run build` — OK
+- `npm run test:e2e` — **116 passed**, 0 failed
+
+### Epic closure
+- PRD `docs/prd/player-levels-and-game-format.md`: implementation status marked Complete for #20–#22.
+- Draft PR `cursor/player-levels-epic8-ad37` → `main` (Closes #20, #21, #22, parent #8).
+
+### Files touched (this pass)
+- `e2e/support/fixtures.ts`
+- `docs/prd/player-levels-and-game-format.md`
+- `.ralph/progress.txt`
+
+RALPH_E2E_COMPLETE
+RALPH_ALL_COMPLETE

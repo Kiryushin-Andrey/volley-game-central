@@ -191,13 +191,13 @@ Add nullable `player_level` enum column: `beginner` | `intermediate` | `advanced
 
 ## Implementation status
 
-| Issue | Scope |
-|-------|--------|
-| [#20](https://github.com/Kiryushin-Andrey/volley-game-central/issues/20) | Game format enum |
-| [#21](https://github.com/Kiryushin-Andrey/volley-game-central/issues/21) | Player levels admin UI + API |
-| [#22](https://github.com/Kiryushin-Andrey/volley-game-central/issues/22) | Positions game level restrictions |
+| Issue | Scope | Status |
+|-------|--------|--------|
+| [#20](https://github.com/Kiryushin-Andrey/volley-game-central/issues/20) | Game format enum | Complete |
+| [#21](https://github.com/Kiryushin-Andrey/volley-game-central/issues/21) | Player levels admin UI + API | Complete |
+| [#22](https://github.com/Kiryushin-Andrey/volley-game-central/issues/22) | Positions game level restrictions | Complete |
 
-Parent epic: [#8](https://github.com/Kiryushin-Andrey/volley-game-central/issues/8).
+Parent epic: [#8](https://github.com/Kiryushin-Andrey/volley-game-central/issues/8) — implemented on branch `cursor/player-levels-epic8-ad37`.
 
 ## Further Notes
 
