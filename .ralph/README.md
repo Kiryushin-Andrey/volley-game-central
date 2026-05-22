@@ -1,6 +1,6 @@
 # Ralph loop state
 
-Orchestrator: find child issues, **order by dependency** (read + reason — skill **ralph-cloud-loop**), run `scripts/ralph-loop.sh` in the **foreground**, and **proactively report** after each iteration (see skill + `prompts/orchestrator-prompt.md`).
+Orchestrator: find child issues, **order by dependency** (read + reason — skill **ralph-loop**), choose **local or remote workers**, run `scripts/ralph-loop.sh` in the **foreground**, and **proactively report** after each iteration (see skill + `prompts/orchestrator-prompt.md`).
 
 Implementation: TypeScript under `scripts/ralph/` (run via `tsx`).
 
@@ -19,16 +19,26 @@ Pattern: [Getting started with Ralph](https://www.aihero.dev/getting-started-wit
 
 There is **no** `ralph-state.json`. The harness resumes **only** by reading `.ralph/progress.txt` on the sprint branch after `git pull`. Sigils in commit messages are **not** used.
 
-After **each** cloud/local agent run, the orchestrator pulls the sprint branch and re-reads `progress.txt` to decide whether an issue is done (not the streamed agent log). Cloud SSE streams have **no** fetch timeout; if the stream drops, the harness polls run status until `FINISHED`, then still checks `progress.txt`.
+After **each** worker run, the harness pulls the sprint branch and re-reads `progress.txt` to decide whether an issue is done (not the streamed agent log). Remote Cursor SSE streams have **no** fetch timeout; if the stream drops, the harness polls run status until `FINISHED`, then still checks `progress.txt`.
 
-## Cloud resume
+## Remote resume
 
 1. Start a new orchestrator (fresh VM is fine) with the same `--branch` and `--child-issues`.
 2. Use `--push` so agents keep `progress.txt` on the remote branch.
 3. The harness runs `git pull` on the sprint branch, parses `RALPH_ISSUE_COMPLETE #n` (or legacy `RALPH_SLICE_COMPLETE #n`) **in `progress.txt` only**, and skips finished issues.
 4. If a milestone exists only in a commit message and not in `progress.txt`, the loop will **not** treat it as done — update `progress.txt` and push.
 
-## Modes
+## Worker placement
+
+| Workers | Command | Use when |
+|---------|---------|----------|
+| **Local** | `--backend local` (default) | Same machine as the loop; Cursor CLI (`agent`); HITL / learning |
+| **Remote — Cursor** | `--backend cloud --cloud-provider cursor --push` | Unattended; Cursor Cloud Agents |
+| **Remote — Oz** | `--backend cloud --cloud-provider oz --push` | Unattended; [Warp Oz Platform](https://docs.warp.dev/agent-platform/cloud-agents/overview/) |
+
+If the user has not chosen, ask before running (see skill **ralph-loop**).
+
+## Loop modes
 
 | Mode | Command | Use when |
 |------|---------|----------|
@@ -54,7 +64,7 @@ cd scripts/ralph && npm install
   [--cloud-model default] [--prompts-dir .ralph/prompts] …
 ```
 
-Cloud backend runs child agents via a pluggable provider (`scripts/ralph/src/agents/`):
+Remote workers use a pluggable provider (`scripts/ralph/src/agents/`):
 
 | Provider | Flag | Credentials | Notes |
 |----------|------|-------------|-------|
@@ -86,13 +96,13 @@ Child issue numbers and **order** come from the orchestrator. The script does no
 
 Requires Cursor CLI (`agent`), `git`, Node.js 18+, and Playwright deps (`npx playwright install` if needed).
 
-## Cloud backend
+## Remote orchestrator (optional)
 
-See `.cursor/skills/ralph-cloud-loop/SKILL.md`.
+See `.cursor/skills/ralph-loop/SKILL.md`. Starts an orchestrator agent that runs the loop remotely; pass worker flags after `--`.
 
 ```bash
 ./scripts/launch-ralph-orchestrator.sh --branch … -- \
-  --parent-issue … --child-issues … --prd … --backend cloud --push --max-iterations 50
+  --parent-issue … --child-issues … --prd … --backend cloud --cloud-provider cursor --push --max-iterations 50
 ```
 
 When the epic is done, remove or trim `progress.txt` on the branch in a cleanup commit.

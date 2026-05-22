@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Example Ralph loop flags for an epic. Discover and order child issues via ralph-cloud-loop skill.
+# Example Ralph loop flags for an epic. Discover and order child issues via ralph-loop skill.
 # E2E defaults to docs/playwright-e2e-scenarios.md (project-wide Playwright).
 # Usage:
 #   ./scripts/ralph-loop.sh \
@@ -7,7 +7,8 @@
 #     --child-issues <n1> <n2> ... \
 #     --branch <integration-branch> \
 #     --prd <path-to-epic-prd.md> \
-#     --backend cloud --push
+#     --backend local
+#     # or: --backend cloud --cloud-provider cursor --push
 
 set -euo pipefail
 
@@ -15,7 +16,7 @@ RALPH_LOOP_ARGS=(
   --parent-issue 0          # replace with epic issue number
   --branch cursor/my-epic   # replace with your integration branch
   --prd docs/prd/my-epic.md
-  --cloud-provider cursor   # or oz (Warp Oz Platform) + WARP_API_KEY + OZ_ENVIRONMENT_ID
+  --backend local             # or: cloud + --cloud-provider cursor|oz + --push when remote
   --cloud-model default     # Cursor API Auto; or RALPH_CLOUD_MODEL / --cloud-model <id>
 )
 
