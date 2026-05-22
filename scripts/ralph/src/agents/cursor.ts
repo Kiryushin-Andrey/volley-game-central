@@ -2,6 +2,7 @@ import { appendFileSync, createWriteStream, mkdirSync, WriteStream } from "node:
 import { dirname } from "node:path";
 import { createInterface } from "node:readline";
 import { Readable } from "node:stream";
+import { announceCloudSession } from "../session-announce.js";
 import type { AgentRunSession, CloudAgentRunner, RunPromptOptions } from "./types.js";
 import type { CloudRunnerConfig } from "./types.js";
 
@@ -176,6 +177,7 @@ export class CursorCloudAgentRunner implements CloudAgentRunner {
     const autoCreatePr = options?.autoCreatePr ?? this.cfg.autoCreatePr;
     const session = await this.createSession(prompt, autoCreatePr);
     console.log(`Session: ${session.url}`);
+    announceCloudSession(this.cfg.stateDir, title, session.url);
     try {
       const status = await this.streamRunToLog(session, logPath);
       if (status !== "FINISHED") {

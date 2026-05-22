@@ -26,6 +26,8 @@ export interface CloudAgentRunner {
 
 export interface CloudRunnerConfig {
   provider: CloudProvider;
+  /** Ralph state dir (e.g. `.ralph`) for live-sessions.log */
+  stateDir: string;
   pollIntervalSec: number;
   repoUrl: string;
   branch: string;

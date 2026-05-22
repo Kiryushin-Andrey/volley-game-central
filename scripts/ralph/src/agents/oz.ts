@@ -1,5 +1,6 @@
 import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
+import { announceCloudSession } from "../session-announce.js";
 import type { AgentRunSession, CloudAgentRunner, RunPromptOptions } from "./types.js";
 import type { CloudRunnerConfig } from "./types.js";
 
@@ -166,6 +167,7 @@ export class OzCloudAgentRunner implements CloudAgentRunner {
     const created = await this.createRun(title, prompt, autoCreatePr);
     const initialUrl = created.session_link ?? `https://oz.warp.dev/runs/${created.run_id}`;
     console.log(`Session: ${initialUrl}`);
+    announceCloudSession(this.cfg.stateDir, title, initialUrl);
     const runId = created.run_id;
     const run = await this.pollRunToLog(runId, logPath, created);
     const url = this.sessionUrl(run);

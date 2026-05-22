@@ -14,7 +14,8 @@ Do not implement product slices yourself. Your session stays open until the loop
 3. Ensure the integration branch exists on GitHub. Tell the user you are starting the loop
    (worker mode, ordering note if step 2 ran, parent issue, child list, branch). Then run **in the
    foreground** and **wait until it exits** — do not background (`&`, `nohup`, `disown`), do not
-   detach, do not end your turn after only launching the command:
+   detach, do not end your turn after only launching the command — **unless** you use the poll
+   pattern below for remote workers so you can post session URLs in chat while the loop runs.
 
 ```bash
 cd "$(git rev-parse --show-toplevel)"
@@ -23,31 +24,41 @@ cd "$(git rev-parse --show-toplevel)"
 
 (If step 2 applied, append the discovered numbers to `--child-issues`.)
 
-4. **Monitor and report proactively** while the command above is still running. Do not wait for
-   the user to ask for status. Use loop stdout as the primary signal; if output is slow or
-   buffered, `git pull` the integration branch and read `.ralph/progress.txt`.
+4. **Monitor and report proactively** while the loop runs. Do not wait for the user to ask.
 
-   **Cloud session URL (required for `remote-*` in `{{loop_cmd}}`):** whenever harness stdout prints
-   `Session: https://…` for a new iteration, **immediately** tell the user the issue/pass and paste
-   the **full URL on its own line** — do not wait until the iteration ends. One user message per
-   new `Session:` line.
+   **Session URLs must appear in your chat replies** (`remote-*` in `{{loop_cmd}}`):
 
-   Post an update when you see any of these:
+   - Harness prints `RALPH_CLOUD_SESSION <title> <url>` and appends to `.ralph/logs/live-sessions.log`.
+   - URLs trapped only in Shell/tool transcripts are **invisible** to the user (collapsed output).
+   - On **each new** cloud session, send a **normal assistant message** with the full URL on its own
+     line **before** that iteration ends — do not wait for the full loop to finish.
 
-   | Harness output | Meaning |
-   |----------------|---------|
-   | `=== issue-<n>-pass` or `(remote-*)` | Worker starting for issue #n |
-   | **`Session: https://…`** | **Post full URL to user now** (mandatory for remote workers) |
-   | `[cursor] run FINISHED` or `[oz] run SUCCEEDED` | Remote worker ended; harness checks progress.txt |
-   | `OK: RALPH_ISSUE_COMPLETE #n` | Issue #n done — summarize and name the next issue |
-   | `=== final` / `OK: RALPH_ALL_COMPLETE` | Final pass milestone |
-   | `agent error`, `Stopped:`, non-zero exit | Failure — include log path if printed |
+   Example chat message:
 
-   Optional fallback poll (every few minutes if stdout is quiet): `git pull` + `grep RALPH_ .ralph/progress.txt`.
+   ```markdown
+   **Ralph — issue #22 (pass 1)** — cloud worker started
 
-5. When the loop process exits, report: exit code, **`--worker`**, your **ordering note**, worker
-   session URLs from the output (if remote), and whether `.ralph/progress.txt` on the branch has
-   up-to-date `RALPH_*` sigils.
+   https://cursor.com/agents?id=…
+   ```
+
+   If Shell output is buffered until the command ends: start the loop with
+   `2>&1 | tee -a .ralph/logs/live.log` (background `&` if needed), then **Read** or
+   `grep RALPH_CLOUD_SESSION .ralph/logs/live-sessions.log` on a cadence and post **chat**
+   messages for every new URL while the process is still running.
+
+   | Harness signal | Action |
+   |----------------|--------|
+   | `RALPH_CLOUD_SESSION … https://…` | **Chat message** with URL immediately |
+   | `Session: https://…` | Same |
+   | `[cursor] run FINISHED` / `[oz] run SUCCEEDED` | Short chat note: iteration ended, checking progress.txt |
+   | `OK: RALPH_ISSUE_COMPLETE #n` | Chat note: issue done, what's next |
+   | `agent error` / non-zero exit | Chat note with error + any URL for that iteration |
+
+   Optional: `git pull` + `grep RALPH_ .ralph/progress.txt` when stdout is quiet.
+
+5. When the loop process exits, report: exit code, **`--worker`**, ordering note, and whether
+   `.ralph/progress.txt` has up-to-date `RALPH_*` sigils. Session URLs should already have been
+   posted in chat during step 4.
 
 Ralph tips: cap unattended runs with `--max-iterations`; workers use PRD + progress.txt,
 feedback loops before commit, one task per pass. See https://www.aihero.dev/tips-for-ai-coding-with-ralph-wiggum

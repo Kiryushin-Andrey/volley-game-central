@@ -13,6 +13,7 @@ export function cloudRunnerConfigFromRalph(cfg: RalphConfig): CloudRunnerConfig 
   }
   return {
     provider,
+    stateDir: cfg.stateDir,
     pollIntervalSec: cfg.cloudPollInterval,
     repoUrl: cfg.repoUrl,
     branch: cfg.branch,

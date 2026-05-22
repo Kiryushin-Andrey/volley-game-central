@@ -152,6 +152,7 @@ async function main(): Promise<void> {
 
   const runnerConfig: CloudRunnerConfig = {
     provider: cloudProvider,
+    stateDir: ".ralph",
     pollIntervalSec: 15,
     repoUrl: url,
     branch,
