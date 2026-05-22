@@ -37,7 +37,7 @@ const EditGameSettings: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await viewModel.handleSubmit(state, () => {
+    await viewModel.handleSubmit(() => {
       if (gameId) {
         navigate(`/game/${gameId}`);
       } else {

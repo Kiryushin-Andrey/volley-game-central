@@ -34,7 +34,7 @@ const CreateGame: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await viewModel.handleSubmit(state, () => navigate('/'));
+    await viewModel.handleSubmit(() => navigate('/'));
   };
   
   const handleCancel = useCallback(() => {
