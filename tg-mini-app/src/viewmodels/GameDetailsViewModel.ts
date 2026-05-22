@@ -125,7 +125,7 @@ export class GameDetailsViewModel {
 
   get gameCategory(): GameCategory | null {
     if (!this.game) return null;
-    return classifyGame(this.game.dateTime, this.game.withPositions);
+    return classifyGame(this.game.dateTime, this.game.gameFormat);
   }
 
   get isLoading(): boolean {
@@ -495,7 +495,7 @@ export class GameDetailsViewModel {
     this.confirmAndUnregister(this.state.gameData.game, guestName);
   }
 
-  handleRemovePlayerFromWaitingList(userId: number, guestName?: string): void {
+  handleRemovePlayerFromWaitingList(_userId: number, guestName?: string): void {
     if (!this.state.gameData.game || this.state.action.isActionLoading) return;
 
     this.confirmAndUnregister(this.state.gameData.game, guestName);
@@ -693,23 +693,48 @@ export class GameDetailsViewModel {
       }
     } else {
       // If user is not registered, check if they can join
-      if (!canJoinGame(this.state.gameData.game.dateTime, this.state.gameData.game.registrationOpensAt)) {
-        const gameDateTime = new Date(this.state.gameData.game.dateTime);
-        const registrationOpenDays = this.state.gameData.game.registrationOpenDays || DAYS_BEFORE_GAME_TO_JOIN;
-        const daysBeforeGame = new Date(gameDateTime.getTime());
-        daysBeforeGame.setDate(daysBeforeGame.getDate() - registrationOpenDays);
-        
-        let message = `Registration opens ${daysBeforeGame.toLocaleDateString()} (${registrationOpenDays} days before the game).`;
-        
-        // Add disclaimer for non-priority users about priority players
-        if (
-          this.state.gameData.game.withPriorityPlayers &&
-          !this.state.gameData.game.isPriorityPlayer &&
-          isGameUpcoming(this.state.gameData.game.dateTime)
-        ) {
-          message += ' This game has priority players who can register ahead of others.';
+      if (!this.userCanSelfRegisterNow()) {
+        const game = this.state.gameData.game;
+        const opensAt = game.registrationOpensAt
+          ? new Date(game.registrationOpensAt)
+          : null;
+        if (typeof game.canSelfRegister === 'boolean') {
+          if (!opensAt || opensAt <= new Date()) {
+            return null;
+          }
         }
-        
+        if (opensAt && opensAt > new Date()) {
+          let message = `Registration opens ${opensAt.toLocaleDateString()}.`;
+          if (
+            game.gameFormat === 'priority_players' &&
+            !game.isPriorityPlayer &&
+            isGameUpcoming(game.dateTime)
+          ) {
+            message +=
+              ' This game has priority players who can register ahead of others.';
+          }
+          return message;
+        }
+
+        const gameDateTime = new Date(game.dateTime);
+        const registrationOpenDays =
+          game.registrationOpenDays || DAYS_BEFORE_GAME_TO_JOIN;
+        const daysBeforeGame = new Date(gameDateTime.getTime());
+        daysBeforeGame.setDate(
+          daysBeforeGame.getDate() - registrationOpenDays
+        );
+
+        let message = `Registration opens ${daysBeforeGame.toLocaleDateString()} (${registrationOpenDays} days before the game).`;
+
+        if (
+          game.gameFormat === 'priority_players' &&
+          !game.isPriorityPlayer &&
+          isGameUpcoming(game.dateTime)
+        ) {
+          message +=
+            ' This game has priority players who can register ahead of others.';
+        }
+
         return message;
       }
     }
@@ -730,7 +755,21 @@ export class GameDetailsViewModel {
     }
     
     // Only show for upcoming games with open guest registration (3 days before)
-    return canRegisterGuest(game.dateTime);
+    if (!canRegisterGuest(game.dateTime)) {
+      return false;
+    }
+    // Host must be allowed to self-register (level restrictions on positions games)
+    return this.userCanSelfRegisterNow();
+  }
+
+  /** Join/self-register eligibility from API or registration-open timing. */
+  private userCanSelfRegisterNow(): boolean {
+    const game = this.state.gameData.game;
+    if (!game) return false;
+    if (typeof game.canSelfRegister === 'boolean') {
+      return game.canSelfRegister;
+    }
+    return canJoinGame(game.dateTime, game.registrationOpensAt);
   }
 
   getMainButtonProps(): { show: boolean; text?: string; onClick?: () => void } {
@@ -767,8 +806,8 @@ export class GameDetailsViewModel {
         };
       }
     } else {
-      // Check if user can join the game (starting X days before)
-      if (canJoinGame(this.state.gameData.game.dateTime, this.state.gameData.game.registrationOpensAt)) {
+      // Check if user can join the game (API canSelfRegister or timing fallback)
+      if (this.userCanSelfRegisterNow()) {
         return {
           show: true,
           text: "Join Game",

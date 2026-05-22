@@ -7,6 +7,7 @@ import bunqRoutes from './routes/bunqConfig';
 import gameRoutes from './routes/games';
 import gamesAdminRoutes from './routes/gamesAdmin';
 import usersAdminRoutes from './routes/usersAdmin';
+import adminUsersRoutes from './routes/adminUsers';
 import gameAdministratorsRoutes from './routes/gameAdministrators';
 import gameAdministratorsMeRoutes from './routes/gameAdministratorsMe';
 import priorityPlayersRoutes from './routes/priorityPlayers';
@@ -18,6 +19,7 @@ import { authMiddleware } from './middleware/auth';
 import { adminAuthMiddleware } from './middleware/adminAuth';
 import { adminOrAssignedAdminMiddleware } from './middleware/adminOrAssignedAdmin';
 import { BUILD_TIMESTAMP } from './buildInfo.generated';
+import { positionsGameLevelRestrictionsEnabled } from './config/positionsGameLevelRestrictions';
 
 // Initialize Express app
 const app = express();
@@ -41,7 +43,10 @@ app.use(cookieParser());
 
 // Public routes
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
+  res.status(200).json({
+    status: 'ok',
+    positionsGameLevelRestrictionsEnabled,
+  });
 });
 
 app.get('/build-info', (_req, res) => {
@@ -65,6 +70,7 @@ app.use('/users/admin/id/:collectorUserId/bunq', authMiddleware, adminAuthMiddle
 app.use('/game-administrators/me', authMiddleware, gameAdministratorsMeRoutes);
 app.use('/game-administrators', authMiddleware, adminAuthMiddleware, gameAdministratorsRoutes);
 app.use('/priority-players', authMiddleware, priorityPlayersRoutes);
+app.use('/admin', authMiddleware, adminAuthMiddleware, adminUsersRoutes);
 
 // Start the server
 const PORT = process.env.PORT || 3000;

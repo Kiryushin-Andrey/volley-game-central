@@ -218,6 +218,20 @@
       "when": 1762846570440,
       "tag": "0030_add_with_priority_players_to_games",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "5",
+      "when": 1762946570440,
+      "tag": "0031_game_format",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "5",
+      "when": 1763046570440,
+      "tag": "0032_player_level",
+      "breakpoints": true
     }
   ]
 }

@@ -85,6 +85,22 @@
   font-weight: 600;
 }
 
+.player-info-dialog .player-level-row {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.player-info-dialog .player-level-select {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 16px;
+  border-radius: 8px;
+  border: 1px solid var(--tg-theme-hint-color, #ccc);
+  background: var(--tg-theme-bg-color, #fff);
+  color: var(--tg-theme-text-color);
+}
+
 .player-info-dialog .link {
   color: var(--tg-theme-link-color, #5ea3ff);
   text-decoration: none;

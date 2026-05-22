@@ -1,0 +1,17 @@
+{
+  "name": "@volley-game-central/ralph",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "ralph-loop": "tsx src/ralph-loop.ts",
+    "launch-orchestrator": "tsx src/launch-orchestrator.ts"
+  },
+  "dependencies": {
+    "handlebars": "^4.7.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.52",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  }
+}

@@ -1,0 +1,24 @@
+.level-pill {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+  line-height: 1.2;
+}
+
+.level-pill--advanced {
+  background: #d4edda;
+  color: #155724;
+}
+
+.level-pill--intermediate {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.level-pill--beginner {
+  background: #f8d7da;
+  color: #721c24;
+}

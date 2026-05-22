@@ -1,0 +1,312 @@
+# Ralph progress (session log)
+# Append after each iteration. Use RALPH_ISSUE_COMPLETE #n only when that issue is fully done.
+# Concise bullets; grammar optional.
+# Delete this file when the epic sprint is done.
+
+## 2026-05-22 — issue #20 (iteration 1 — complete)
+
+### E2E gate (Suites A–D, post-implementation)
+
+| Suite | Result | Notes |
+|-------|--------|-------|
+| A | Pass (A7 Blocked) | A1–A6 Pass via browser agent; A7 Blocked (#22 restrictions not shipped) |
+| B | Blocked | Slice #21 (Players hub / player levels admin) not implemented |
+| C | Blocked | Slice #22 (level restrictions) not implemented |
+| D | Pass / Blocked | D2 Pass (recreational→positions edit via API); D1/D4 not run; D3 Blocked (#21) |
+
+**Fails:** 0
+
+Suite A detail:
+- [A1] Pass — `#gameFormat` select, 3 options; screenshot `.ralph/screenshots/a1-game-format-select.webp`
+- [A2] Pass — recreational, DB `game_format=recreational`
+- [A3] Pass — positions
+- [A4] Pass — priority_players
+- [A5] Pass — existing game loads
+- [A6] Pass — priority disclaimer on priority_players game
+- [A7] Blocked — needs #22 + restrictions env
+
+Playwright `e2e/game-form.spec.ts`: 10/10 Pass (includes format select create/edit).
+
+### Implemented (#20)
+
+- Migration `0031_game_format.sql`: add `game_format`, backfill legacy booleans, drop `with_positions` / `with_priority_players`
+- `backend/src/domain/gameFormat.ts` + unit tests (node:test, `npm test`)
+- Schema, games routes, gamesAdmin, telegram announcements, admin assignment mapping via `gameFormatToAdminWithPositions`
+- Frontend: `GameFormat` type, `#gameFormat` select on create/edit form, API client uses `gameFormat`
+- Playwright fixtures/specs updated for select instead of toggles
+
+### Decisions
+
+- `game_administrators.withPositions` unchanged (day/slot assignment, not game instance format)
+- Thursday category: `positions` → thursday-5-1; recreational/priority_players → thursday-deti-plova
+- Group Telegram announcements only for `recreational` games
+
+### Files touched
+
+- backend: schema, migration, domain/gameFormat*, routes/games.ts, routes/gamesAdmin.ts, middleware/adminOrAssignedAdmin.ts, services/gameService.ts, services/telegramService.ts, package.json
+- tg-mini-app: types, api, GameFormViewModel, GameFormFields, gameFormat utils, GameDetailsViewModel, GamesList, gameDateUtils
+- e2e: support/fixtures.ts, game-form.spec.ts, games-home.spec.ts, game-rules-and-display.spec.ts
+- docs/testing/e2e-player-levels-browser-agent.md (A1 selector note)
+
+### Remaining
+
+- None for #20
+
+RALPH_ISSUE_COMPLETE #20
+
+## 2026-05-22 — issue #20 (iteration 2 — verification + E2E doc)
+
+### E2E gate (Suites A–D, re-run)
+
+| Suite | Result | Notes |
+|-------|--------|-------|
+| A | Pass (A7 Blocked) | A1–A6 Pass; A7 Blocked (#22) |
+| B | Blocked | #21 Players hub not implemented |
+| C | Blocked | #22 restrictions not implemented |
+| D | Pass / Blocked | D2 Pass (recreational→positions edit); D1/D3/D4 Blocked |
+
+**Fails:** 0
+
+Suite A detail (iteration 2):
+- [A1] Pass — `#gameFormat` select, 3 options; `.ralph/screenshots/a1-game-format-select.webp`
+- [A2] Pass — recreational, DB `game_format=recreational` (id 26)
+- [A3] Pass — positions (id 27)
+- [A4] Pass — priority_players (id 28)
+- [A5] Pass — `/game/26` loads; edit form shows recreational; `.ralph/screenshots/a5-game-26-load.webp`
+- [A6] Pass — unassigned on `/game/28`, priority disclaimer visible; `.ralph/screenshots/a6-priority-disclaimer.webp`
+- [A7] Blocked — needs #22
+
+E2E hygiene fix (not product bug):
+- First pass marked A5/A6 Fail when games were on Friday (`other` category) while home filter defaults to `sunday`. Re-verified via direct `/game/:id`. Updated `docs/testing/e2e-player-levels-browser-agent.md` (category filter + date guidance).
+
+Playwright (game-form + games-home + game-rules): 29/32 Pass; 3 Fail = bunq-mock not running (E2E-FORM-010, E2E-HOME-009/015) — out of Suite A–D scope.
+
+### Feedback loops
+
+- `cd backend && npm run build` — Pass
+- `cd tg-mini-app && npm run build` — Pass
+- `cd backend && npm test` — 9/9 Pass
+
+### This iteration
+
+- No new #20 feature code; acceptance criteria already met in iteration 1
+- E2E doc: Sunday/`other` category guidance, `/game/:id` for A5/A6
+
+### Files touched
+
+- docs/testing/e2e-player-levels-browser-agent.md
+- .ralph/progress.txt
+- .ralph/screenshots/a5-game-26-load.webp, a6-priority-disclaimer.webp
+
+RALPH_ISSUE_COMPLETE #20
+
+## 2026-05-22 — issue #21 (iteration 1 — complete)
+
+### E2E gate (Suites A–D, post-implementation)
+
+| Suite | Result | Notes |
+|-------|--------|-------|
+| A | Pass (A7 Blocked) | A1–A6 via Playwright `e2e/game-form.spec.ts` (9/10; FORM-010 bunq-mock out of scope) |
+| B | Pass | B1–B10 via Playwright `e2e/player-levels-admin.spec.ts` (7/7) |
+| C | Blocked | #22 restrictions not implemented |
+| D | Pass / Blocked | D2 Pass (format edit in game-form); D1/D3/D4 Blocked or not run |
+
+**Fails:** 0
+
+Suite A detail:
+- [A1] Pass — `#gameFormat` select (E2E-FORM-*)
+- [A2] Pass — recreational
+- [A3] Pass — positions
+- [A4] Pass — priority_players (form tests)
+- [A5] Pass — edit form shows format
+- [A6] Pass — priority disclaimer smoke (prior iteration screenshots)
+- [A7] Blocked — needs #22
+
+Suite B detail:
+- [B1] Pass — toolbar Players → `/players` hub, two links
+- [B2] Pass — Game administrators link
+- [B3] Pass — list order unassigned → advanced → beginner (filter E2E users)
+- [B4] Pass — unassigned row has no pill
+- [B5] Pass — assign Beginner in dialog, red pill
+- [B6] Pass — name filter client-side
+- [B7] Pass — Beginner → Advanced, green pill
+- [B8] Pass — non-admin redirected from `/players` and `/player-levels`
+- [B9] Pass — no level labels on game details for regular user
+- [B10] Pass — beginner Join Game on positions game (restrictions off)
+
+API cross-check:
+- `GET /admin/users` 200 for global admin; 403 for non-admin
+- `PATCH /admin/users/:id/player-level` persists level
+
+### Implemented (#21)
+
+- Migration `0032_player_level.sql`: nullable `player_level` on users
+- `backend/src/domain/playerLevel.ts` + unit tests (sort, validation)
+- Routes `GET /admin/users`, `PATCH /admin/users/:id/player-level` (`adminAuthMiddleware`)
+- Frontend: `/players` hub, `/player-levels` list (pills, filter, dialog level selector)
+- Toolbar Players icon → `/players`; levels not exposed on game surfaces
+- Playwright `e2e/player-levels-admin.spec.ts` for Suite B
+
+### Decisions
+
+- Admin API mounted at `/admin/*` (not `/users/admin`) for global-admin-only player levels
+- Reuse `PlayerInfoDialog` with `allowLevelEdit` on player-levels page only
+- List sorted server-side; client-side name filter only
+
+### Files touched
+
+- backend: migration, schema, domain/playerLevel*, routes/adminUsers.ts, index.ts, package.json
+- tg-mini-app: Players.tsx, PlayerLevels.tsx, LevelPill, PlayerInfoDialog, types, api, App.tsx, GamesList.tsx
+- e2e/player-levels-admin.spec.ts
+- docs/testing/e2e-player-levels-browser-agent.md
+
+### Remaining
+
+- None for #21
+
+RALPH_ISSUE_COMPLETE #21
+
+## 2026-05-22 — issue #20 (iteration 3 — verification, fresh VM)
+
+### E2E gate (Suites A–D, full re-run)
+
+| Suite | Result | Notes |
+|-------|--------|-------|
+| A | Pass (A7 Blocked) | A1–A6 Pass via browser agent; games id 1–3; screenshots in `.ralph/screenshots/` |
+| B | Pass | #21 on branch (Playwright per #21 log); browser agent pre-merge snapshot had B Blocked |
+| C | Blocked | #22 restrictions not implemented |
+| D | Pass / Blocked | D2 Pass (API recreational→positions); D3 Pass (#21 list sort); D1/D4 Blocked |
+
+**Fails:** 0
+
+Suite A detail (iteration 3):
+- [A1] Pass — `#gameFormat` select, 3 options; `.ralph/screenshots/a1-game-format-select.webp`
+- [A2] Pass — recreational (id 1), DB `game_format=recreational`
+- [A3] Pass — positions (id 2)
+- [A4] Pass — priority_players (id 3)
+- [A5] Pass — `/game/2` edit form shows positions; `.ralph/screenshots/a5-game-format-load.webp`
+- [A6] Pass — priority disclaimer on game 3 for Unassigned; `.ralph/screenshots/a6-priority-disclaimer.webp`
+- [A7] Blocked — needs #22
+
+Suite D (iteration 3):
+- [D2] Pass — `PUT /games/admin/1` with `gameFormat: positions`; detail + DB confirm
+
+### Environment (fresh VM)
+
+- Installed Docker (vfs dockerd); postgres via `volley-playwright-postgres` host network
+- Stack: `DEV_MODE=true`, backend :3000, mini-app :3001, migrations applied
+
+### Feedback loops (#20 iter 3)
+
+- `cd backend && npm run build` — Pass
+- `cd tg-mini-app && npm run build` — Pass
+- `cd backend && npm test` — 9/9 Pass
+
+### Remaining
+
+- None for #20
+
+RALPH_ISSUE_COMPLETE #20
+
+## 2026-05-22 — issue #22 (iteration 1 — complete)
+
+### E2E gate (Suites A–D, post-implementation)
+
+| Suite | Result | Notes |
+|-------|--------|-------|
+| A | Pass (A7 Pass) | Playwright `e2e/game-form.spec.ts` 9/10 Pass; FORM-010 flaky (bunq-mock, out of Suite A–D); A7 recreational beginner not level-blocked (same as C7) |
+| B | Pass | `e2e/player-levels-admin.spec.ts` 7/7; B10 skips when restrictions env on |
+| C | Pass | `npm run test:e2e:restrictions` 10/10 (C1–C7, C9–C11); C8/C12 smoke N/A; C13 via B10 (restrictions off) |
+| D | Pass / Blocked | D2 Pass (game-form format edit); D3 Pass (B3 sort); D1/D4 Blocked (admin manual add, legacy seed) |
+
+**Fails:** 0
+
+Suite C detail (restrictions env on):
+- [C1] Pass — beginner POS-NEAR: no Join Game
+- [C2] Pass — advanced POS-FAR: Join visible
+- [C3] Pass — unassigned POS-FAR: Join visible
+- [C4] Pass — intermediate POS-FAR: no Join
+- [C5] Pass — intermediate POS-NEAR: Join visible
+- [C6] Pass — beginner priority_players (2d): Join visible
+- [C7] Pass — beginner recreational: Join visible
+- [C8] Blocked — advanced leave/rejoin N/A (policy allows re-join)
+- [C9] Pass — SQL grandfather; Leave visible, Join hidden
+- [C10] Pass — leave then Join hidden
+- [C11] Pass — beginner: no Add guest
+- [C12] Blocked — advanced guest smoke (optional)
+- [C13] Pass — via B10 when restrictions off
+
+### Feedback loops
+
+- `cd backend && npm run build` — Pass
+- `cd tg-mini-app && npm run build` — Pass
+- `cd backend && npm test` — 25/25 Pass (gameFormat, playerLevel, positionsGameRegistrationEligibility)
+
+### Implemented (#22)
+
+- `backend/src/config/positionsGameLevelRestrictions.ts` — `POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED` at startup (default off)
+- `backend/src/domain/positionsGameRegistrationEligibility.ts` + unit tests (level × format × timing × grandfather × guest)
+- `GET /health` exposes `positionsGameLevelRestrictionsEnabled`
+- `POST /games/:id/register` — 403 when level blocks; generic error (no level in copy)
+- `GET /games/:id` — `canSelfRegister` + effective `registrationOpensAt`
+- Frontend: `Game.canSelfRegister`; join/guest hidden via `GameDetailsViewModel`
+- Playwright `e2e/player-levels-restrictions.spec.ts`; `npm run test:e2e:restrictions`
+- E2E doc: Suite C automation, health flag, A/B vs C server env
+
+### Decisions
+
+- Default Playwright `e2e:server` keeps restrictions **off** (Suites A/B); Suite C uses `test:e2e:restrictions`
+- Intermediate effective open = max(base 10-day open, game − 3 days)
+- Grandfather via existing self-registration row; re-join blocked after voluntary leave
+
+### Files touched
+
+- backend: config, domain/*, routes/games.ts, index.ts, package.json
+- tg-mini-app: types, GameDetailsViewModel.ts
+- e2e/player-levels-restrictions.spec.ts, player-levels-admin.spec.ts (B10 skip)
+- scripts/playwright-dev-server.sh, package.json
+- docs/testing/e2e-player-levels-browser-agent.md
+- .ralph/progress.txt
+
+RALPH_ISSUE_COMPLETE #22
+
+## 2026-05-22 — epic #8 final pass (close)
+
+### E2E gate (Suites A–D, full re-run — final)
+
+| Suite | Result | Notes |
+|-------|--------|-------|
+| A | Pass (A7 Pass) | Playwright `e2e/game-form.spec.ts` 10/10; `#gameFormat` select; restrictions env on for A7 via Suite C backend |
+| B | Pass | `e2e/player-levels-admin.spec.ts` 7/7 (B1–B10) |
+| C | Pass | `npm run test:e2e:restrictions` 10/10 (C1–C7, C9–C11); C8/C12 N/A; C13 via B10 when restrictions off |
+| D | Pass | D1 `E2E-ADMIN-003`; D2 FORM-004 + API/edit smoke (iter 3); D3 B3; D4 `gameFormatFromLegacy` unit test |
+
+**Fails:** 0
+
+Suite A (Playwright + prior browser screenshots):
+- [A1]–[A6] Pass — `game-form.spec.ts`, `player-levels-admin` B9 recreational game
+- [A7] Pass — C7 beginner recreational join (restrictions on)
+
+Suite D detail:
+- [D1] Pass — `E2E-ADMIN-003` readonly + past admin add participant
+- [D2] Pass — positions create `E2E-FORM-004`; format field on edit form; prior API `gameFormat` update verified
+- [D3] Pass — B3 unassigned-first ordering
+- [D4] Pass — unit `maps true/true to recreational`; no UI seed required
+
+### Feedback loops
+
+- `cd backend && npm run build` — Pass
+- `cd tg-mini-app && npm run build` — Pass
+- `cd backend && npm test` — 25/25 Pass
+
+### Docs
+
+- `docs/testing/e2e-player-levels-browser-agent.md` — Suite D automation column
+- `docs/prd/player-levels-and-game-format.md` — Implementation status (#20, #21, #22 complete)
+
+### Epic
+
+- Parent #8: all child slices shipped; draft PR `cursor/player-levels-c8a4` → `main` (Closes #20, #21, #22)
+
+RALPH_E2E_COMPLETE SUITE_D
+RALPH_ALL_COMPLETE

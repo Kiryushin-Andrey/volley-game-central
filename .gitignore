@@ -80,3 +80,10 @@ test-results/
 # Package archives
 *.tgz
 *.zip
+
+# Ralph loop runtime (see .ralph/README.md)
+.ralph/logs/
+.ralph/screenshots/
+.ralph/STEERING.md
+__pycache__/
+scripts/ralph/node_modules/

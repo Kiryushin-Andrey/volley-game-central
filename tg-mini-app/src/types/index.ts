@@ -3,6 +3,16 @@ export enum PricingMode {
   TOTAL_COST = 'total_cost'
 }
 
+export type GameFormat = 'recreational' | 'positions' | 'priority_players';
+
+export type PlayerLevel = 'beginner' | 'intermediate' | 'advanced';
+
+export const PLAYER_LEVELS: readonly PlayerLevel[] = [
+  'beginner',
+  'intermediate',
+  'advanced',
+] as const;
+
 // Minimal user info used across UI for player dialogs and click handlers
 export interface UserPublicInfo {
   id: number;
@@ -12,6 +22,11 @@ export interface UserPublicInfo {
   avatarUrl?: string | null;
   blockReason?: string | null;
   phoneNumber?: string | null;
+}
+
+/** Admin list row — includes player level (never exposed on game surfaces). */
+export interface AdminUserListItem extends UserPublicInfo {
+  playerLevel: PlayerLevel | null;
 }
 
 export interface User {
@@ -39,8 +54,7 @@ export interface Game {
   paymentAmount: number;
   pricingMode: PricingMode;
   fullyPaid: boolean;
-  withPositions: boolean;
-  withPriorityPlayers: boolean;
+  gameFormat: GameFormat;
   readonly: boolean;
   locationName?: string | null;
   locationLink?: string | null;
@@ -54,6 +68,8 @@ export interface Game {
   registrationOpenDays?: number;
   registrationOpensAt?: string;
   isPriorityPlayer?: boolean;
+  /** When set, drives join button visibility (positions level restrictions). */
+  canSelfRegister?: boolean;
 }
 
 export interface GameRegistration {

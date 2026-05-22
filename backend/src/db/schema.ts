@@ -10,6 +10,7 @@ export const users = pgTable('users', {
   blockReason: text('block_reason'),
   blockedById: integer('blocked_by_id').references((): any => users.id, { onDelete: 'set null' }),
   isAdmin: boolean('is_admin').notNull().default(false),
+  playerLevel: varchar('player_level', { length: 20 }),
   phoneNumber: varchar('phone_number', { length: 50 }),
   createdAt: timestamp('created_at').defaultNow(),
 });
@@ -22,8 +23,7 @@ export const games = pgTable('games', {
   paymentAmount: integer('payment_amount').notNull(),
   pricingMode: varchar('pricing_mode', { length: 20 }).notNull().default('per_participant'), // 'per_participant' or 'total_cost'
   fullyPaid: boolean('fully_paid').notNull().default(false),
-  withPositions: boolean('with_positions').notNull().default(false),
-  withPriorityPlayers: boolean('with_priority_players').notNull().default(false),
+  gameFormat: varchar('game_format', { length: 20 }).notNull().default('recreational'),
   readonly: boolean('readonly').notNull().default(false),
   locationName: varchar('location_name', { length: 255 }),
   locationLink: varchar('location_link', { length: 1000 }),

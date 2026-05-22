@@ -1,0 +1,41 @@
+.players-hub {
+  padding: 16px;
+  min-height: 100vh;
+  box-sizing: border-box;
+  color: var(--tg-theme-text-color);
+  background-color: var(--tg-theme-bg-color);
+}
+
+.players-hub-header {
+  margin-bottom: 24px;
+  text-align: center;
+
+  h1 {
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0;
+  }
+}
+
+.players-hub-links {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hub-link {
+  display: block;
+  padding: 16px 20px;
+  border-radius: 12px;
+  background: var(--tg-theme-secondary-bg-color, #f8f9fa);
+  border: 1px solid var(--tg-theme-hint-color, #e1e8ed);
+  color: var(--tg-theme-link-color, #007aff);
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 500;
+  text-align: center;
+
+  &:active {
+    opacity: 0.85;
+  }
+}

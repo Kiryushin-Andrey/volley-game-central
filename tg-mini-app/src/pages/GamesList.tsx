@@ -31,7 +31,7 @@ const GameItem = memo(({ game, onClick, formatDate }: {
 
   return (
     <div
-      className={`game-card ${game.isUserRegistered ? 'registered' : ''} ${isHalloween ? 'halloween-theme' : ''} ${isNewYear ? 'newyear-theme' : ''} ${isMarch8 ? 'march8-theme' : ''} ${game.withPositions ? 'with-positions' : 'without-positions'}`}
+      className={`game-card ${game.isUserRegistered ? 'registered' : ''} ${isHalloween ? 'halloween-theme' : ''} ${isNewYear ? 'newyear-theme' : ''} ${isMarch8 ? 'march8-theme' : ''} ${game.gameFormat === 'positions' ? 'with-positions' : 'without-positions'}`}
       onClick={() => onClick(game.id)}
     >
       {isHalloween && <HalloweenDecorations variant="card" />}
@@ -259,9 +259,9 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
                     {user.isAdmin && (
                       <div className="admin-icon-buttons">
                         <Link
-                          to="/game-administrators"
+                          to="/players"
                           className="icon-button"
-                          title="Game Administrators"
+                          title="Players"
                         >
                           <FaUsers />
                         </Link>

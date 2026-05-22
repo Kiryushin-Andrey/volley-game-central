@@ -21,7 +21,7 @@ type UiGameInput = {
   unregisterDeadlineHours?: number;
   paymentAmount?: string;
   pricingMode?: 'per_participant' | 'total_cost';
-  withPositions?: boolean;
+  gameFormat?: 'recreational' | 'positions' | 'priority_players';
   readonly?: boolean;
   locationName?: string;
   locationLink?: string;
@@ -189,8 +189,8 @@ export async function createGameViaUi(page: Page, input: UiGameInput): Promise<G
   if (input.pricingMode === 'total_cost') {
     await setCheckbox(page, '#pricingMode');
   }
-  if (input.withPositions !== undefined) {
-    await setCheckbox(page, '#withPositions', input.withPositions);
+  if (input.gameFormat !== undefined) {
+    await page.locator('#gameFormat').selectOption(input.gameFormat);
   }
   if (input.readonly) {
     await setCheckbox(page, '#readonly');

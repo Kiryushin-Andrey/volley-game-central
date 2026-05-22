@@ -15,7 +15,9 @@
     "db:logs": "docker compose logs -f postgres",
     "bunq-mock:dev": "cd bunq-mock && npm run dev",
     "e2e:server": "bash scripts/playwright-dev-server.sh",
+    "e2e:server:restrictions": "POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED=true bash scripts/playwright-dev-server.sh",
     "test:e2e": "playwright test",
+    "test:e2e:restrictions": "POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED=true playwright test e2e/player-levels-restrictions.spec.ts",
     "test:e2e:auth": "playwright test e2e/auth-session.spec.ts"
   },
   "devDependencies": {

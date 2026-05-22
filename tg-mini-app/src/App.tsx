@@ -8,6 +8,8 @@ import EditGameSettings from './pages/EditGameSettings';
 import BunqSettings from './pages/BunqSettings';
 import CheckPayments from './pages/CheckPayments';
 import GameAdministrators from './pages/GameAdministrators';
+import Players from './pages/Players';
+import PlayerLevels from './pages/PlayerLevels';
 import PriorityPlayers from './pages/PriorityPlayers';
 import LoadingSpinner from './components/LoadingSpinner';
 import PhoneAuth from './components/auth/PhoneAuth';
@@ -223,7 +225,9 @@ function App() {
         <Route path="/bunq-settings" element={<BunqSettings />} />
         <Route path="/bunq-settings/user/:assignedUserId" element={<BunqSettings />} />
         <Route path="/check-payments" element={<CheckPayments />} />
+        <Route path="/players" element={<Players />} />
         <Route path="/game-administrators" element={<GameAdministrators />} />
+        <Route path="/player-levels" element={<PlayerLevels />} />
         <Route path="/priority-players/:gameAdministratorId" element={<PriorityPlayers />} />
       </Routes>
     );
