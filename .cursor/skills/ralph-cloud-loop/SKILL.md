@@ -1,6 +1,6 @@
 ---
 name: ralph-cloud-loop
-description: Runs the generic Ralph loop with cloud orchestrator and separate cloud child sessions per step. Orchestrator discovers child GitHub issues, orders them by reading and reasoning about dependencies, then runs scripts/ralph-loop.sh. Use for Ralph loop, epic automation, or unattended multi-issue agent runs.
+description: Runs the generic Ralph loop with cloud orchestrator and separate cloud child sessions per step. Orchestrator discovers child GitHub issues, orders them by dependency, runs scripts/ralph-loop.sh in the foreground, and proactively reports status after each iteration until the loop exits. Use for Ralph loop, epic automation, or unattended multi-issue agent runs.
 ---
 
 # Ralph cloud loop
@@ -76,7 +76,7 @@ If dependencies are unclear, read related issues again or ask the user — do no
 
 ---
 
-## Step 3 — Run the loop
+## Step 3 — Run the loop (foreground + proactive updates)
 
 ```bash
 cd "$(git rev-parse --show-toplevel)"
@@ -92,7 +92,35 @@ cd scripts/ralph && npm install && cd ../..
   --max-iterations 50
 ```
 
-Run in the **foreground**. Do **not** implement slices in the orchestrator session. Prefer `--max-iterations` on unattended runs.
+Run in the **foreground** and **block until the process exits**. Do **not** background the loop (`&`, `nohup`, `disown`, or a fire-and-forget terminal). Do **not** end the orchestrator turn after only starting the script — the orchestrator session must stay active for the full run.
+
+Do **not** implement slices in the orchestrator session. Prefer `--max-iterations` on unattended runs.
+
+### Monitor the loop and report without being asked
+
+While `ralph-loop.sh` is running, **proactively** tell the user what just finished and what is next. Do **not** wait for periodic “what’s the status?” prompts.
+
+1. **Before** the loop: post a short start message (ordering note, parent issue, `--child-issues`, branch).
+2. **During** the loop: after **each** child iteration completes, post an update **before** the harness starts the next child session. Use harness stdout as the primary signal.
+3. **After** the loop exits: final report (exit code, session URLs, sigils on the branch).
+
+| Harness stdout | Post to user |
+|----------------|--------------|
+| `=== issue-<n>-pass` (cloud) | Issue #n child session starting |
+| `Session: https://…` | Child Cloud Agent link for this iteration |
+| `[cloud] run FINISHED` | Child session ended; harness is checking `progress.txt` |
+| `OK: RALPH_ISSUE_COMPLETE #n` | Issue #n complete — note remaining issues |
+| `=== final` / `OK: RALPH_ALL_COMPLETE` | Final-pass milestone |
+| `agent error`, `Stopped:`, non-zero exit | Failure — include log path from output |
+
+If stdout is slow or buffered, poll the branch every few minutes:
+
+```bash
+git pull origin <branch>
+grep RALPH_ .ralph/progress.txt | tail -20
+```
+
+Compare new `RALPH_ISSUE_COMPLETE #n` lines to your last update and report the delta.
 
 ### Example epic
 
@@ -135,7 +163,7 @@ The orchestrator Cloud Agent must run `npm install` under `scripts/ralph` before
 
 ## After the run
 
-Report: exit code, your **ordering note**, cloud session URLs from the loop output, and whether `.ralph/progress.txt` on the integration branch contains up-to-date `RALPH_*` sigils.
+When the loop process has exited, report: exit code, your **ordering note**, cloud session URLs from the loop output, and whether `.ralph/progress.txt` on the integration branch contains up-to-date `RALPH_*` sigils. Iteration-level updates should already have been sent during step 3 — the final report is a summary, not the first status the user hears.
 
 ## Resume
 

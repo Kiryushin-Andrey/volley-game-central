@@ -1,6 +1,6 @@
 # Ralph loop state
 
-Orchestrator: find child issues, **order by dependency** (read + reason — skill **ralph-cloud-loop**), then `scripts/ralph-loop.sh`.
+Orchestrator: find child issues, **order by dependency** (read + reason — skill **ralph-cloud-loop**), run `scripts/ralph-loop.sh` in the **foreground**, and **proactively report** after each iteration (see skill + `prompts/orchestrator-prompt.md`).
 
 Implementation: TypeScript under `scripts/ralph/` (run via `tsx`).
 
