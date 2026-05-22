@@ -15,6 +15,7 @@ RALPH_LOOP_ARGS=(
   --parent-issue 0          # replace with epic issue number
   --branch cursor/my-epic   # replace with your integration branch
   --prd docs/prd/my-epic.md
+  --cloud-provider cursor   # or oz (Warp Oz Platform) + WARP_API_KEY + OZ_ENVIRONMENT_ID
   --cloud-model default     # Cursor API Auto; or RALPH_CLOUD_MODEL / --cloud-model <id>
 )
 

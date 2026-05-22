@@ -22,7 +22,7 @@ Override the directory with `--prompts-dir` on `ralph-loop.sh` or `launch-ralph-
 
 Partials are registered from `partials/` by basename (e.g. `workflow.md` → `{{> workflow}}`).
 
-Boolean context flags: `has_children`, `has_steering`, `has_issue`, `is_cloud`.
+Boolean context flags: `has_children`, `has_steering`, `has_issue`, `is_cloud`. String: `cloud_provider` (`cursor` | `oz`) when `is_cloud`.
 
 ## Files
 

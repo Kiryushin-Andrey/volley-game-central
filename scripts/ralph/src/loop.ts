@@ -1,7 +1,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { dirname, join } from "node:path";
-import { CloudAgentClient } from "./cloud.js";
+import { createCloudAgentRunnerFromRalph } from "./agents/factory.js";
+import type { CloudAgentRunner } from "./agents/types.js";
 import {
   commandExists,
   commitPaths,
@@ -45,20 +46,8 @@ export class RalphLoop {
     }
   }
 
-  private cloudClient(autoCreatePr = false): CloudAgentClient {
-    if (!this.cfg.cursorApiKey) {
-      throw new Error("CURSOR_API_KEY required for cloud backend");
-    }
-    return new CloudAgentClient(
-      this.cfg.cursorApiKey,
-      this.cfg.repoUrl,
-      this.cfg.branch,
-      this.cfg.cloudPollInterval,
-      this.cfg.cloudEnv,
-      autoCreatePr,
-      undefined,
-      this.cfg.cloudModel,
-    );
+  private cloudRunner(): CloudAgentRunner {
+    return createCloudAgentRunnerFromRalph(this.cfg);
   }
 
   issueUrl(number: number): string {
@@ -184,6 +173,7 @@ export class RalphLoop {
       steering_file: steer,
       has_issue: issueNumber !== undefined,
       is_cloud: this.cfg.backend === "cloud",
+      cloud_provider: this.cfg.cloudProvider,
       feedback_loops: this.cfg.feedbackLoops.map((item) => `- ${item}`).join("\n"),
     };
     if (issueNumber !== undefined) {
@@ -239,8 +229,8 @@ export class RalphLoop {
     logPath: string,
     autoCreatePr: boolean,
   ): Promise<void> {
-    const client = this.cloudClient(autoCreatePr);
-    const session = await client.runPrompt(title, prompt, logPath);
+    const runner = this.cloudRunner();
+    const session = await runner.runPrompt(title, prompt, logPath, { autoCreatePr });
     this.recordCloudSession(title, session.url);
   }
 
@@ -418,8 +408,10 @@ export class RalphLoop {
     );
     console.log(`Progress log: ${progressFile(this.cfg)} (branch resume source)`);
     if (this.cfg.backend === "cloud") {
-      console.log(`Remote: ${this.cfg.repoUrl} @ ${this.cfg.branch}`);
-      console.log("Each loop iteration is one Cloud Agent session on one issue.");
+      console.log(
+        `Remote (${this.cfg.cloudProvider}): ${this.cfg.repoUrl} @ ${this.cfg.branch}`,
+      );
+      console.log("Each loop iteration is one remote agent session on one issue.");
     }
 
     if (this.finalDone()) return;
@@ -444,7 +436,7 @@ export class RalphLoop {
     maybePush(this.root, this.cfg.branch, this.cfg.push);
 
     if (this.cfg.backend === "cloud" && this.cloudSessions.length) {
-      console.log("\nCloud sessions:");
+      console.log(`\nRemote agent sessions (${this.cfg.cloudProvider}):`);
       for (const entry of this.cloudSessions) {
         console.log(`  - ${entry.title}: ${entry.url}`);
       }

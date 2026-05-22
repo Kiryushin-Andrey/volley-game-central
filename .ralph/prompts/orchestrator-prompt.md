@@ -33,9 +33,9 @@ cd "$(git rev-parse --show-toplevel)"
 
    | Harness output | Meaning |
    |----------------|---------|
-   | `=== issue-<n>-pass` (cloud) | Child session starting for issue #n |
-   | `Session: https://…` | Child Cloud Agent URL — include in your update |
-   | `[cloud] run FINISHED` | Child session ended; harness checks progress.txt |
+   | `=== issue-<n>-pass` or `(cursor)` / `(oz)` | Child session starting for issue #n |
+   | `Session: https://…` | Child agent URL — include in your update |
+   | `[cursor] run FINISHED` or `[oz] run SUCCEEDED` | Child session ended; harness checks progress.txt |
    | `OK: RALPH_ISSUE_COMPLETE #n` | Issue #n done — summarize and name the next issue |
    | `=== final` / `OK: RALPH_ALL_COMPLETE` | Final pass milestone |
    | `agent error`, `Stopped:`, non-zero exit | Failure — include log path if printed |

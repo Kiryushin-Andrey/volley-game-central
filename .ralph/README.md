@@ -54,11 +54,23 @@ cd scripts/ralph && npm install
   [--cloud-model default] [--prompts-dir .ralph/prompts] …
 ```
 
-Cloud backend uses Cursor model id **`default`** (UI **Auto**) by default. Override with `--cloud-model <id>` or `RALPH_CLOUD_MODEL`. Run `./scripts/ralph-loop.sh --help` for all flags.
+Cloud backend runs child agents via a pluggable provider (`scripts/ralph/src/agents/`):
+
+| Provider | Flag | Credentials | Notes |
+|----------|------|-------------|-------|
+| **cursor** (default) | `--cloud-provider cursor` | `CURSOR_API_KEY`, `--cloud-model` | Cursor Cloud Agents API |
+| **oz** (Warp) | `--cloud-provider oz` | `WARP_API_KEY`, `OZ_ENVIRONMENT_ID` | [Oz Platform](https://docs.warp.dev/agent-platform/cloud-agents/overview/) |
 
 ```bash
-./scripts/ralph-loop.sh ... --backend cloud ...
+# Cursor (default)
+./scripts/ralph-loop.sh ... --backend cloud --push ...
+
+# Warp Oz
+./scripts/ralph-loop.sh ... --backend cloud --cloud-provider oz \
+  --oz-environment-id <uid> --push ...
 ```
+
+Run `./scripts/ralph-loop.sh --help` for all flags.
 
 - **`--prd`** — feature-specific epic PRD (required).
 - **`--e2e`** — optional; defaults to project-wide Playwright checklist. Do not point this at feature-only browser-agent plans.

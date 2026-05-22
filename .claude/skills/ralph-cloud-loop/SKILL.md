@@ -9,6 +9,8 @@ Ralph pattern: [getting started](https://www.aihero.dev/getting-started-with-ral
 
 The **orchestrator** discovers child slice issues, **orders them by dependency** (by reading issue text — not numeric sort, not regex on section headings), then runs `scripts/ralph-loop.sh`. The script runs slices **one at a time** in that order. It does not call GitHub.
 
+Remote agent execution is **pluggable** (`scripts/ralph/src/agents/`): the loop only calls `CloudAgentRunner.runPrompt()`; providers implement Cursor or Warp Oz APIs.
+
 Each child pass reads **PRD + `.ralph/progress.txt`**, runs **feedback loops** before commit, appends to **progress.txt**, and emits a completion sigil (`RALPH_*` or `<promise>…</promise>`).
 
 Agent instructions live in **`.ralph/prompts/`** (`*-prompt.md`, `partials/*.md`; Handlebars: `{{var}}`, `{{#if}}`, `{{> partial}}` — see `prompts/README.md`). Edit those files to tune behavior; use `--prompts-dir` to override.
@@ -33,7 +35,12 @@ Entrypoints are shell wrappers around `tsx` (`scripts/ralph-loop.sh`, `scripts/l
 | PRD path | Feature epic PRD (`--prd`, required) |
 | E2E | Defaults to `docs/playwright-e2e-scenarios.md` (project-wide; optional `--e2e`) |
 
-Optional: `--push` (required for cloud resume), `--cloud-env KEY=VAL`, `--cloud-model default` (Cursor API **Auto**; default is `default`), `--max-iterations N` (cap AFK cost), `--once` (HITL / single attempt per pass), `--max-slice N` (retries per child), `--feedback-loop` (override default typecheck builds).
+Optional: `--cloud-provider cursor|oz` (default **cursor**), `--push` (required for cloud resume), `--max-iterations N` (cap AFK cost), `--once` (HITL / single attempt per pass), `--max-slice N` (retries per child), `--feedback-loop` (override default typecheck builds).
+
+| Provider | Secrets / config |
+|----------|------------------|
+| **cursor** | `CURSOR_API_KEY`, `--cloud-model` (default `default` = Auto), `--cloud-env KEY=VAL` |
+| **oz** (Warp) | `WARP_API_KEY`, `OZ_ENVIRONMENT_ID` (or `--oz-environment-id`), optional `--oz-model-id` — see [Oz cloud agents](https://docs.warp.dev/agent-platform/cloud-agents/overview/) |
 
 ---
 
@@ -84,6 +91,22 @@ cd scripts/ralph && npm install && cd ../..
 
 ./scripts/ralph-loop.sh \
   --backend cloud \
+  --cloud-provider cursor \
+  --parent-issue <PARENT> \
+  --child-issues <ordered numbers> \
+  --branch <branch> \
+  --prd <path> \
+  --push \
+  --max-iterations 50
+```
+
+Oz (Warp) example — environment must include this repo and branch setup:
+
+```bash
+./scripts/ralph-loop.sh \
+  --backend cloud \
+  --cloud-provider oz \
+  --oz-environment-id <OZ_ENV_UID> \
   --parent-issue <PARENT> \
   --child-issues <ordered numbers> \
   --branch <branch> \
@@ -106,9 +129,9 @@ While `ralph-loop.sh` is running, **proactively** tell the user what just finish
 
 | Harness stdout | Post to user |
 |----------------|--------------|
-| `=== issue-<n>-pass` (cloud) | Issue #n child session starting |
-| `Session: https://…` | Child Cloud Agent link for this iteration |
-| `[cloud] run FINISHED` | Child session ended; harness is checking `progress.txt` |
+| `=== issue-<n>-pass` or `(cursor)` / `(oz)` | Issue #n child session starting |
+| `Session: https://…` | Child agent link for this iteration |
+| `[cursor] run FINISHED` or `[oz] run SUCCEEDED` | Child session ended; harness is checking `progress.txt` |
 | `OK: RALPH_ISSUE_COMPLETE #n` | Issue #n complete — note remaining issues |
 | `=== final` / `OK: RALPH_ALL_COMPLETE` | Final-pass milestone |
 | `agent error`, `Stopped:`, non-zero exit | Failure — include log path from output |
@@ -145,9 +168,18 @@ export CURSOR_API_KEY=...
   --parent-issue 8 --prd … --backend cloud --push
 ```
 
+Oz orchestrator:
+
+```bash
+export WARP_API_KEY=...
+export OZ_ENVIRONMENT_ID=...
+./scripts/launch-ralph-orchestrator.sh --branch <branch> --cloud-provider oz -- \
+  --parent-issue 8 --prd … --backend cloud --cloud-provider oz --push
+```
+
 Omit `--child-issues` so the cloud orchestrator runs steps 1–2 from this skill, then adds the ordered list to the command.
 
-The orchestrator Cloud Agent must run `npm install` under `scripts/ralph` before invoking the loop (see **Setup** above).
+The orchestrator remote agent must run `npm install` under `scripts/ralph` before invoking the loop (see **Setup** above).
 
 ---
 
@@ -155,9 +187,11 @@ The orchestrator Cloud Agent must run `npm install` under `scripts/ralph` before
 
 | Secret | Who |
 |--------|-----|
-| `CURSOR_API_KEY` | Orchestrator + child sessions |
+| `CURSOR_API_KEY` | Orchestrator + child sessions (cursor provider) |
+| `WARP_API_KEY` | Orchestrator + child sessions (oz provider) |
+| `OZ_ENVIRONMENT_ID` | Oz provider — cloud environment with repo + setup |
 | `gh` / GitHub access | Orchestrator (read issues for steps 1–2) |
-| Cursor GitHub App | git clone/push in cloud VMs |
+| GitHub access in cloud env | Remote VMs clone/push the integration branch |
 
 ---
 
