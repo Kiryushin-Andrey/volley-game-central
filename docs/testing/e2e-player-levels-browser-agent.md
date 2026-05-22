@@ -55,6 +55,8 @@ To turn off again: unset variable and restart.
 | Switch user | Header **Logout** → phone auth again with different number |
 | Avoid cookie bleed | Use separate browser profiles for parallel personas, or always logout before switching |
 | See future games | As global admin: Games list → enable **Show all scheduled games** |
+| See games not on Sun/Thu | Category multiselect includes **other** (default filter is **sunday** only; games on Mon–Sat except Thu are `other`) |
+| Open a game by id | Navigate to `/game/:id` when the card is hidden by category filter |
 | Hard refresh after deploy | Full page reload if API behavior changed mid-run |
 
 ---
@@ -160,14 +162,14 @@ SELECT id, title, game_format, date_time FROM games ORDER BY id DESC LIMIT 5;
 | ID | Steps | Expected |
 |----|--------|----------|
 | A1 | Login as **Global Admin** → Create game | Form has **one select** `#gameFormat` (three formats), not two toggles |
-| A2 | Create **Recreational** game (future date, e.g. +14 days) | Game saves; details show no positions/priority-only behavior |
-| A3 | Create **Positions** game | `game_format = positions` in DB; category/badge reflects positions where applicable |
-| A4 | Create **Priority players** game | `game_format = priority_players`; **not** treated as positions game |
-| A5 | Open existing migrated game (if any) | Loads without error; format matches legacy mapping |
-| A6 | **Priority players** game as **Unassigned** player | Priority disclaimer / 10-day vs 3-day behavior unchanged from before (join window differs for priority list — smoke only) |
+| A2 | Create **Recreational** game (future date; use a **Sunday** datetime or +2 days within registration window — see §10) | Game saves; details show no positions/priority-only behavior |
+| A3 | Create **Positions** game (same date guidance as A2) | `game_format = positions` in DB; category/badge reflects positions where applicable |
+| A4 | Create **Priority players** game (same date guidance as A2) | `game_format = priority_players`; **not** treated as positions game |
+| A5 | Open a game from A2–A4: card on home **or** direct `/game/:id` | Loads without error; format visible in edit form `#gameFormat` |
+| A6 | **Priority players** game (id from A4) as **Unassigned** (`610000002`) via `/game/:id` | Priority disclaimer / 10-day vs 3-day behavior unchanged from before (join window differs for priority list — smoke only) |
 | A7 | **Recreational** game as **Beginner** with restrictions **on** (if #22 already shipped) | Join **not** blocked by level (recreational exempt) |
 
-**Demo checkpoint:** Three created games visible with “Show all scheduled games”; DB shows three distinct `game_format` values.
+**Demo checkpoint:** Three created games in DB with distinct `game_format`; on home list after **Show all scheduled games** + category **other** (if dates are not Sunday/Thursday), or open each via `/game/:id`.
 
 ---
 
@@ -299,6 +301,7 @@ Screenshot: artifacts/c4-intermediate-far.png
 | Registration-open uses 10-day default for non-priority games | Use “Show all scheduled games”; set `date_time` within open window or use SQL |
 | Intermediate 3-day rule needs clock alignment | Use SQL `date_time` offsets; document “now” at test start |
 | Single browser session | Strict logout between personas |
+| Default category filter is Sunday | For Suite A create/edit smoke, pick a Sunday `date_time`, or add **other** (and Thu categories if needed) in the multiselect |
 | Dev login sets `isAdmin` only at create | Use checkbox on first login or SQL `UPDATE users SET is_admin = true` |
 | `player_level` column absent before #21 | Run Suite B/C only after migration |
 

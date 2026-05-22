@@ -53,3 +53,49 @@ Playwright `e2e/game-form.spec.ts`: 10/10 Pass (includes format select create/ed
 - None for #20
 
 RALPH_ISSUE_COMPLETE #20
+
+## 2026-05-22 — issue #20 (iteration 2 — verification + E2E doc)
+
+### E2E gate (Suites A–D, re-run)
+
+| Suite | Result | Notes |
+|-------|--------|-------|
+| A | Pass (A7 Blocked) | A1–A6 Pass; A7 Blocked (#22) |
+| B | Blocked | #21 Players hub not implemented |
+| C | Blocked | #22 restrictions not implemented |
+| D | Pass / Blocked | D2 Pass (recreational→positions edit); D1/D3/D4 Blocked |
+
+**Fails:** 0
+
+Suite A detail (iteration 2):
+- [A1] Pass — `#gameFormat` select, 3 options; `.ralph/screenshots/a1-game-format-select.webp`
+- [A2] Pass — recreational, DB `game_format=recreational` (id 26)
+- [A3] Pass — positions (id 27)
+- [A4] Pass — priority_players (id 28)
+- [A5] Pass — `/game/26` loads; edit form shows recreational; `.ralph/screenshots/a5-game-26-load.webp`
+- [A6] Pass — unassigned on `/game/28`, priority disclaimer visible; `.ralph/screenshots/a6-priority-disclaimer.webp`
+- [A7] Blocked — needs #22
+
+E2E hygiene fix (not product bug):
+- First pass marked A5/A6 Fail when games were on Friday (`other` category) while home filter defaults to `sunday`. Re-verified via direct `/game/:id`. Updated `docs/testing/e2e-player-levels-browser-agent.md` (category filter + date guidance).
+
+Playwright (game-form + games-home + game-rules): 29/32 Pass; 3 Fail = bunq-mock not running (E2E-FORM-010, E2E-HOME-009/015) — out of Suite A–D scope.
+
+### Feedback loops
+
+- `cd backend && npm run build` — Pass
+- `cd tg-mini-app && npm run build` — Pass
+- `cd backend && npm test` — 9/9 Pass
+
+### This iteration
+
+- No new #20 feature code; acceptance criteria already met in iteration 1
+- E2E doc: Sunday/`other` category guidance, `/game/:id` for A5/A6
+
+### Files touched
+
+- docs/testing/e2e-player-levels-browser-agent.md
+- .ralph/progress.txt
+- .ralph/screenshots/a5-game-26-load.webp, a6-priority-disclaimer.webp
+
+RALPH_ISSUE_COMPLETE #20
