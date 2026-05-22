@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './PlayerInfoDialog.scss';
-import type { UserPublicInfo } from '../types';
+import type { UserPublicInfo, PlayerLevel } from '../types';
+import { PLAYER_LEVELS } from '../types';
 import { userApi, type UnpaidRegistration } from '../services/api';
 import UnpaidGamesList from './UnpaidGamesList';
 
@@ -46,9 +47,28 @@ interface PlayerInfoDialogProps {
   isOpen: boolean;
   onClose: () => void;
   user: UserPublicInfo | null;
+  /** When true (player-levels page), show level selector with immediate save */
+  allowLevelEdit?: boolean;
+  playerLevel?: PlayerLevel | null;
+  onPlayerLevelChange?: (level: PlayerLevel) => void;
+  levelChangeBusy?: boolean;
 }
 
-const PlayerInfoDialog: React.FC<PlayerInfoDialogProps> = ({ isOpen, onClose, user }) => {
+const levelLabels: Record<PlayerLevel, string> = {
+  beginner: 'Beginner',
+  intermediate: 'Intermediate',
+  advanced: 'Advanced',
+};
+
+const PlayerInfoDialog: React.FC<PlayerInfoDialogProps> = ({
+  isOpen,
+  onClose,
+  user,
+  allowLevelEdit = false,
+  playerLevel = null,
+  onPlayerLevelChange,
+  levelChangeBusy = false,
+}) => {
   const [unpaidGames, setUnpaidGames] = useState<UnpaidRegistration[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -166,6 +186,33 @@ const PlayerInfoDialog: React.FC<PlayerInfoDialogProps> = ({ isOpen, onClose, us
               <div className="row">
                 <span className="label">Phone</span>
                 <a className="value link" href={`tel:${user.phoneNumber}`}>{user.phoneNumber}</a>
+              </div>
+            )}
+            {allowLevelEdit && onPlayerLevelChange && (
+              <div className="row player-level-row">
+                <span className="label">Player level</span>
+                <select
+                  className="player-level-select"
+                  value={playerLevel ?? ''}
+                  disabled={levelChangeBusy}
+                  onChange={(e) => {
+                    const v = e.target.value as PlayerLevel;
+                    if (v && PLAYER_LEVELS.includes(v)) {
+                      onPlayerLevelChange(v);
+                    }
+                  }}
+                >
+                  {!playerLevel && (
+                    <option value="" disabled>
+                      Select level…
+                    </option>
+                  )}
+                  {PLAYER_LEVELS.map((lvl) => (
+                    <option key={lvl} value={lvl}>
+                      {levelLabels[lvl]}
+                    </option>
+                  ))}
+                </select>
               </div>
             )}
           </div>

@@ -225,6 +225,13 @@
       "when": 1762946570440,
       "tag": "0031_game_format",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "5",
+      "when": 1763046570440,
+      "tag": "0032_player_level",
+      "breakpoints": true
     }
   ]
 }

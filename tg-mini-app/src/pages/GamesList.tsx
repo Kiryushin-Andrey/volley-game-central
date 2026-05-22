@@ -259,9 +259,9 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
                     {user.isAdmin && (
                       <div className="admin-icon-buttons">
                         <Link
-                          to="/game-administrators"
+                          to="/players"
                           className="icon-button"
-                          title="Game Administrators"
+                          title="Players"
                         >
                           <FaUsers />
                         </Link>

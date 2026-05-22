@@ -5,6 +5,14 @@ export enum PricingMode {
 
 export type GameFormat = 'recreational' | 'positions' | 'priority_players';
 
+export type PlayerLevel = 'beginner' | 'intermediate' | 'advanced';
+
+export const PLAYER_LEVELS: readonly PlayerLevel[] = [
+  'beginner',
+  'intermediate',
+  'advanced',
+] as const;
+
 // Minimal user info used across UI for player dialogs and click handlers
 export interface UserPublicInfo {
   id: number;
@@ -14,6 +22,11 @@ export interface UserPublicInfo {
   avatarUrl?: string | null;
   blockReason?: string | null;
   phoneNumber?: string | null;
+}
+
+/** Admin list row — includes player level (never exposed on game surfaces). */
+export interface AdminUserListItem extends UserPublicInfo {
+  playerLevel: PlayerLevel | null;
 }
 
 export interface User {

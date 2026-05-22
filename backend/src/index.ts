@@ -7,6 +7,7 @@ import bunqRoutes from './routes/bunqConfig';
 import gameRoutes from './routes/games';
 import gamesAdminRoutes from './routes/gamesAdmin';
 import usersAdminRoutes from './routes/usersAdmin';
+import adminUsersRoutes from './routes/adminUsers';
 import gameAdministratorsRoutes from './routes/gameAdministrators';
 import gameAdministratorsMeRoutes from './routes/gameAdministratorsMe';
 import priorityPlayersRoutes from './routes/priorityPlayers';
@@ -65,6 +66,7 @@ app.use('/users/admin/id/:collectorUserId/bunq', authMiddleware, adminAuthMiddle
 app.use('/game-administrators/me', authMiddleware, gameAdministratorsMeRoutes);
 app.use('/game-administrators', authMiddleware, adminAuthMiddleware, gameAdministratorsRoutes);
 app.use('/priority-players', authMiddleware, priorityPlayersRoutes);
+app.use('/admin', authMiddleware, adminAuthMiddleware, adminUsersRoutes);
 
 // Start the server
 const PORT = process.env.PORT || 3000;
