@@ -1,0 +1,89 @@
+# Volleyball game registration
+
+Telegram mini-app for scheduling volleyball sessions, registering players, and managing game administration.
+
+## Language
+
+**Positions game**:
+A scheduled game played with assigned positions. One of three **Game format** options; not a priority players game. Subject to **Positions game level restrictions** when those are active.
+_Avoid_: 5-1 game (use only in user-facing copy where the community already expects it, e.g. category labels)
+
+**Game format**:
+How a game is configured — exactly one of: **Recreational game**, **Positions game**, or **Priority players game**. Stored as a single three-value field: `recreational`, `positions`, or `priority_players`. Drives positions play, priority registration windows, and whether **Positions game level restrictions** apply.
+
+**Recreational game**:
+A standard game without assigned positions and without priority registration windows.
+_Avoid_: Regular game
+
+**Priority players game**:
+A game that uses priority-player registration windows (10-day / 3-day rules) but is not a positions game. Player levels do not restrict access to these games.
+
+**Player level**:
+A skill tier assigned to a player by an administrator. Stored as `beginner`, `intermediate`, or `advanced`; unassigned players have no value (`null`). Used to gate access to positions games when restrictions are enabled.
+_Avoid_: Level (ambiguous — could mean game difficulty or Nevobo class)
+
+**Level pill**:
+A read-only, color-coded label on the player-levels admin list, right-aligned on each row. Advanced: light green; intermediate: light yellow; beginner: light red. Unassigned players have no pill. Assignment happens in the player info dialog, not via the pill; changes save immediately. Once assigned, a level is only changed to another level — not cleared back to unassigned.
+
+**Unassigned player**:
+A registered player who has no player level set. Treated like a newcomer for positions-game access when restrictions are enabled.
+
+**Global administrator**:
+A user with system-wide admin privileges (`isAdmin`). Only global administrators may access the Players hub, view player levels, and assign or change them.
+_Avoid_: Game administrator (day/positions assignment — different role)
+
+**Players hub**:
+Admin landing page (toolbar “Players” → `/players`) with links to game administrators and player levels management.
+
+**Intermediate registration window**:
+For positions games, an intermediate player may register (roster or waitlist) only starting 3 days before game start. Before that window, registration is rejected entirely — no early waitlist.
+
+**Positions game level restrictions**:
+When active, player levels determine who may register for **Positions games** only (beginner blocked; intermediate from 3 days out; advanced and unassigned unrestricted). Does not apply to recreational or priority players games. When inactive, level does not affect registration — useful for a phased rollout.
+
+**Grandfathered registration**:
+A player who is already on the roster or waitlist for a positions game keeps that spot when their level changes or when restrictions are turned on. They are not removed automatically.
+
+**Level-blocked re-registration**:
+After a level-blocked player unregisters from a positions game, they cannot re-join that game via self-serve registration while restrictions apply and their level still blocks them.
+
+**Level-blocked registration (UX)**:
+When restrictions block self-serve registration (e.g. beginner on a positions game), the join control is hidden — same pattern as when registration is not yet open. No level is shown in the UI; organizers handle questions out of band.
+
+**Guest registration under level restrictions**:
+A host who cannot self-register for a positions game also cannot register guests for that game. When the host may register, guests follow the usual guest rules only.
+
+## Relationships
+
+- Only a **Positions game** is subject to **Positions game level restrictions**
+- A **Priority players game** uses priority registration timing but is not a **Positions game**
+- **Game format** determines whether positions apply, whether priority windows apply, and whether level restrictions can apply
+- An **Unassigned player** has no **Player level** until an administrator assigns one
+- **Positions game level restrictions** control whether **Player level** affects registration for **Positions games**
+- **Grandfathered registration** protects existing spots; **Level-blocked re-registration** applies only after the player leaves voluntarily
+
+## Example dialogue
+
+> **Dev:** "Should Saturday's game with positions block beginners?"
+> **Domain expert:** "Yes — any **Positions game** uses the same rules, not only Thursdays."
+
+## Flagged ambiguities
+
+- "5-1 game" vs **Positions game** — resolved: prefer **Positions game** / "with positions" in domain language; legacy UI may still say "5-1".
+- Intermediate early waitlist — resolved: no registration at all until the 3-day window opens.
+- How restrictions are toggled — resolved: globally on/off via `POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED` (unset or false = off); inactive by default at deploy.
+- Existing registrations when level changes — resolved: **Grandfathered registration**; no auto-remove.
+- Admin adding players — resolved: same rules as today (game must be past or readonly; no payment requests sent yet); player level does not relax those gates.
+- Where level is edited — resolved: assign/change in **Player info dialog** on the player-levels page; **Level pill** on each row is display-only.
+- Player-levels search — resolved: name filter above the list (client-side or debounced API); not search inside the dialog.
+- Who manages levels — resolved: **Global administrator** only (`isAdmin`).
+- **Game format** vs level restrictions — resolved: only **Positions game** is level-gated; **Priority players game** is not a positions game and has no level restrictions.
+- "Regular game" naming — resolved: **Recreational game**.
+- Game storage shape — resolved: one three-value **Game format** field (`recreational` | `positions` | `priority_players`) replaces the two booleans in the data model and UI.
+- Level assignment UX — resolved: immediate save in dialog; no “clear to unassigned” action.
+- Players hub — resolved: title “Players” at `/players`; links **Game administrators** → `/game-administrators`, **Player levels** → `/player-levels`.
+- Blocked registration UX — resolved: hide join button when level blocks registration; no level revealed in UI (Option A if an error is ever needed elsewhere).
+- Guests vs levels — resolved: **Guest registration under level restrictions** (Option A).
+- Player level storage — resolved: nullable `beginner` | `intermediate` | `advanced` on the user.
+- Player-levels list loading — resolved: load all users once (~300), filter client-side; list order: unassigned → advanced → intermediate → beginner, alphabetical within each group.
+- Legacy `withPositions` + `withPriorityPlayers` both true — resolved: none expected; if any exist, migrate to `recreational`.
