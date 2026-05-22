@@ -48,12 +48,12 @@ export class CloudAgentClient {
     if (acceptSse) {
       headers.Accept = "text/event-stream";
     }
-    const res = await fetch(`${this.apiBase.replace(/\/$/, "")}${path}`, {
-      method,
-      headers,
-      body: payload,
-      signal: AbortSignal.timeout(600_000),
-    });
+    // SSE runs can exceed 10+ minutes; no fetch timeout on streams (poll fallback if stream drops).
+    const init: RequestInit = { method, headers, body: payload };
+    if (!acceptSse) {
+      init.signal = AbortSignal.timeout(120_000);
+    }
+    const res = await fetch(`${this.apiBase.replace(/\/$/, "")}${path}`, init);
     if (!res.ok) {
       const detail = await res.text();
       throw new Error(`Cloud API ${method} ${path} failed (${res.status}): ${detail}`);
