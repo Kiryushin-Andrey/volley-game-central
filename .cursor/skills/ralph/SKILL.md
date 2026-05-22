@@ -159,17 +159,38 @@ Do **not** implement slices in the orchestrator session — only discover, order
 While `ralph-loop.sh` is running, **proactively** tell the user what just finished and what is next.
 
 1. **Before** the run: `--worker`, ordering note, parent issue, `--child-issues`, branch.
-2. **During** the run: after **each** worker iteration completes, post an update **before** the next one starts.
-3. **After** exit: final summary (exit code, session links if remote, sigils on branch).
+2. **During** the run: post updates as harness output arrives — do not batch URLs until the end.
+3. **After** exit: final summary (exit code, all session URLs collected, sigils on branch).
+
+#### Cloud session URLs (`remote-*` workers) — required
+
+Whenever the harness starts a **new** cloud worker session for an iteration, stdout includes a line like:
+
+```text
+Session: https://…
+```
+
+**As soon as you see that line**, send the user a message (before the iteration finishes). **Always** include the full URL on its own line, for example:
+
+```text
+Cloud worker started for issue #22 (pass 1): https://cursor.com/agents?id=…
+```
+
+Rules:
+
+- **One message per new `Session:` line** — each loop iteration that spawns a remote agent gets its own URL posted.
+- **Do not skip** the URL because you plan a longer summary later; post it when the session is created.
+- If stdout is buffered and you only see `Session:` late, post it **immediately** when it appears, then continue monitoring.
+- Local workers (`local-*`) have no cloud session URL — skip this block for them.
 
 | Harness stdout | Post to user |
 |----------------|--------------|
-| `=== issue-<n>-pass` or `(local-*)` / `(remote-*)` | Worker starting for issue #n |
-| `Session: https://…` | Remote worker link (if printed) |
+| `=== issue-<n>-pass` or `(remote-*)` | Worker starting for issue #n (remote: watch for `Session:` next) |
+| **`Session: https://…`** | **Required:** post the full URL to the user immediately (see above) |
 | `[cursor] run FINISHED` or `[oz] run SUCCEEDED` | Remote worker ended; harness checks `progress.txt` |
 | `OK: RALPH_ISSUE_COMPLETE #n` | Issue #n done — note remaining issues |
 | `=== final` / `OK: RALPH_ALL_COMPLETE` | Final pass milestone |
-| `agent error`, `Stopped:`, non-zero exit | Failure — include log path from output |
+| `agent error`, `Stopped:`, non-zero exit | Failure — include log path and any `Session:` URL from that iteration |
 
 If stdout is slow or buffered (common with remote workers), poll the branch:
 

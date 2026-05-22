@@ -24,17 +24,20 @@ cd "$(git rev-parse --show-toplevel)"
 (If step 2 applied, append the discovered numbers to `--child-issues`.)
 
 4. **Monitor and report proactively** while the command above is still running. Do not wait for
-   the user to ask for status. After **each** worker iteration finishes, post an update **before**
-   the harness starts the next one. Use loop stdout as the primary signal; if output is slow or
+   the user to ask for status. Use loop stdout as the primary signal; if output is slow or
    buffered, `git pull` the integration branch and read `.ralph/progress.txt`.
 
-   Post an update when you see any of these (include issue #, worker session URL when printed,
-   and what is next):
+   **Cloud session URL (required for `remote-*` in `{{loop_cmd}}`):** whenever harness stdout prints
+   `Session: https://…` for a new iteration, **immediately** tell the user the issue/pass and paste
+   the **full URL on its own line** — do not wait until the iteration ends. One user message per
+   new `Session:` line.
+
+   Post an update when you see any of these:
 
    | Harness output | Meaning |
    |----------------|---------|
-   | `=== issue-<n>-pass` or `(local-cursor)` / `(local-claude)` / `(local-codex)` / `(remote-*)` | Worker starting for issue #n |
-   | `Session: https://…` | Remote worker URL — include in your update |
+   | `=== issue-<n>-pass` or `(remote-*)` | Worker starting for issue #n |
+   | **`Session: https://…`** | **Post full URL to user now** (mandatory for remote workers) |
    | `[cursor] run FINISHED` or `[oz] run SUCCEEDED` | Remote worker ended; harness checks progress.txt |
    | `OK: RALPH_ISSUE_COMPLETE #n` | Issue #n done — summarize and name the next issue |
    | `=== final` / `OK: RALPH_ALL_COMPLETE` | Final pass milestone |
