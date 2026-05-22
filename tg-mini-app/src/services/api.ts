@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Game, User, GameWithStats, PricingMode, UserPublicInfo } from '../types';
+import { AdminUserWithPlayerLevel, Game, PlayerLevel, User, GameWithStats, PricingMode, UserPublicInfo } from '../types';
 import { logDebug } from '../debug';
 
 // Use /api prefix for proxy, fallback to environment variable for production
@@ -116,6 +116,18 @@ export const userApi = {
    */
   getUserById: async (userId: number): Promise<User> => {
     const response = await api.get(`/users/admin/id/${userId}`);
+    return response.data;
+  },
+};
+
+export const playerLevelsApi = {
+  listUsers: async (): Promise<AdminUserWithPlayerLevel[]> => {
+    const response = await api.get('/users/admin/player-levels');
+    return response.data;
+  },
+
+  updatePlayerLevel: async (userId: number, playerLevel: PlayerLevel): Promise<AdminUserWithPlayerLevel> => {
+    const response = await api.patch(`/users/admin/player-levels/${userId}/player-level`, { playerLevel });
     return response.data;
   },
 };

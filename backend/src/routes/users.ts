@@ -4,6 +4,7 @@ import { users } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import { getUserUnpaidItems } from '../services/unpaidService';
 import { isDevMode } from '../utils/devMode';
+import { omitPlayerLevel } from '../utils/userPublic';
 
 const router = Router();
 
@@ -17,7 +18,7 @@ router.get('/me', async (req, res) => {
     }
     
     res.json({
-      user: req.user,
+      user: omitPlayerLevel(req.user as Record<string, unknown>),
       isDevMode: isDevMode(),
     });
   } catch (error) {

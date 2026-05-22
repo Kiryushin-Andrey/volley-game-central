@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './PlayerInfoDialog.scss';
-import type { UserPublicInfo } from '../types';
+import type { PlayerLevel, UserPublicInfo } from '../types';
+import { PLAYER_LEVEL_LABELS } from '../utils/playerLevel';
 import { userApi, type UnpaidRegistration } from '../services/api';
 import UnpaidGamesList from './UnpaidGamesList';
 
@@ -46,9 +47,19 @@ interface PlayerInfoDialogProps {
   isOpen: boolean;
   onClose: () => void;
   user: UserPublicInfo | null;
+  showPlayerLevelEditor?: boolean;
+  playerLevelSaving?: boolean;
+  onPlayerLevelChange?: (level: PlayerLevel) => void | Promise<void>;
 }
 
-const PlayerInfoDialog: React.FC<PlayerInfoDialogProps> = ({ isOpen, onClose, user }) => {
+const PlayerInfoDialog: React.FC<PlayerInfoDialogProps> = ({
+  isOpen,
+  onClose,
+  user,
+  showPlayerLevelEditor = false,
+  playerLevelSaving = false,
+  onPlayerLevelChange,
+}) => {
   const [unpaidGames, setUnpaidGames] = useState<UnpaidRegistration[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -169,6 +180,39 @@ const PlayerInfoDialog: React.FC<PlayerInfoDialogProps> = ({ isOpen, onClose, us
               </div>
             )}
           </div>
+
+          {showPlayerLevelEditor && onPlayerLevelChange && (
+            <div className="player-level-editor" style={{ marginTop: 16 }}>
+              <div className="row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 8 }}>
+                <span className="label">Player level</span>
+                <select
+                  className="player-level-select"
+                  value={user.playerLevel ?? ''}
+                  disabled={playerLevelSaving}
+                  onChange={async (e) => {
+                    const value = e.target.value as PlayerLevel | '';
+                    if (!value || value === user.playerLevel) return;
+                    try {
+                      await onPlayerLevelChange(value);
+                    } catch {
+                      e.target.value = user.playerLevel ?? '';
+                    }
+                  }}
+                >
+                  {!user.playerLevel && <option value="">Unassigned — pick a level</option>}
+                  {(Object.keys(PLAYER_LEVEL_LABELS) as PlayerLevel[]).map((level) => (
+                    <option key={level} value={level}>
+                      {PLAYER_LEVEL_LABELS[level]}
+                    </option>
+                  ))}
+                </select>
+                {!user.playerLevel && (
+                  <span className="hint">Choose beginner, intermediate, or advanced to assign.</span>
+                )}
+                {playerLevelSaving && <span className="hint">Saving…</span>}
+              </div>
+            </div>
+          )}
 
           {(loading || error || (unpaidGames && unpaidGames.length > 0)) && (
             <div className="unpaid-section" style={{ marginTop: 16 }}>

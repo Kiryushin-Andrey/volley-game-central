@@ -6,6 +6,7 @@ import type { InferSelectModel } from 'drizzle-orm';
 import { getUserUnpaidItems } from '../services/unpaidService';
 import { notifyUser } from '../services/notificationService';
 import { formatGameDateShort } from '../utils/dateUtils';
+import { omitPlayerLevel } from '../utils/userPublic';
 
 const router = Router();
 
@@ -177,7 +178,7 @@ router.get('/id/:userId', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.json(user);
+    res.json(omitPlayerLevel(user as Record<string, unknown>));
   } catch (error) {
     console.error('Error fetching user:', error);
     res.status(500).json({ error: 'Failed to fetch user' });

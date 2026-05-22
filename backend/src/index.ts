@@ -7,6 +7,7 @@ import bunqRoutes from './routes/bunqConfig';
 import gameRoutes from './routes/games';
 import gamesAdminRoutes from './routes/gamesAdmin';
 import usersAdminRoutes from './routes/usersAdmin';
+import playerLevelsAdminRoutes from './routes/playerLevelsAdmin';
 import gameAdministratorsRoutes from './routes/gameAdministrators';
 import gameAdministratorsMeRoutes from './routes/gameAdministratorsMe';
 import priorityPlayersRoutes from './routes/priorityPlayers';
@@ -60,6 +61,7 @@ app.use('/users', authMiddleware, userRoutes);
 app.use('/users/me/bunq', authMiddleware, adminOrAssignedAdminMiddleware, bunqRoutes);
 
 app.use('/games/admin', authMiddleware, adminOrAssignedAdminMiddleware, gamesAdminRoutes);
+app.use('/users/admin/player-levels', authMiddleware, adminAuthMiddleware, playerLevelsAdminRoutes);
 app.use('/users/admin', authMiddleware, adminOrAssignedAdminMiddleware, usersAdminRoutes);
 app.use('/users/admin/id/:collectorUserId/bunq', authMiddleware, adminAuthMiddleware, bunqRoutes);
 app.use('/game-administrators/me', authMiddleware, gameAdministratorsMeRoutes);

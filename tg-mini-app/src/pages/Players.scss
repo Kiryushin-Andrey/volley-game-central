@@ -1,0 +1,38 @@
+.players-hub {
+  padding: 16px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.players-hub-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+
+  h1 {
+    margin: 0;
+    font-size: 1.5rem;
+  }
+}
+
+.players-hub-links {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.players-hub-link {
+  display: block;
+  padding: 16px;
+  border-radius: 8px;
+  background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+  color: var(--tg-theme-text-color, #000);
+  text-decoration: none;
+  font-weight: 500;
+
+  &:hover,
+  &:active {
+    opacity: 0.9;
+  }
+}

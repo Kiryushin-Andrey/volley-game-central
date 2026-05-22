@@ -106,6 +106,14 @@
   font-weight: 600;
 }
 
+.player-info-dialog .player-level-select {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--tg-theme-hint-color, #ccc);
+  font-size: 1rem;
+}
+
 .player-info-dialog .danger-btn {
   background: #e05252;
   color: #fff;
