@@ -16,12 +16,17 @@ import { emptyResume, readProgressResume, type ProgressResume } from "./progress
 import { promiseIssueComplete, textHasIssueComplete, textHasPromise } from "./sigil.js";
 import type { RalphConfig } from "./types.js";
 import {
+  cfgIsRemote,
+  cfgRemoteProvider,
   logsDir,
   progressFile,
   progressTemplateFile,
   screenshotsDir,
   steeringFile,
 } from "./types.js";
+import { buildLocalInvocation } from "./workers/registry.js";
+import type { LocalWorkerKind } from "./workers/types.js";
+import { workerAgentName } from "./workers/types.js";
 
 export class RalphLoop {
   cfg: RalphConfig;
@@ -172,8 +177,9 @@ export class RalphLoop {
       has_steering: existsSync(steer),
       steering_file: steer,
       has_issue: issueNumber !== undefined,
-      is_cloud: this.cfg.backend === "cloud",
-      cloud_provider: this.cfg.cloudProvider,
+      is_remote: cfgIsRemote(this.cfg),
+      worker: this.cfg.worker,
+      worker_agent: workerAgentName(this.cfg.worker),
       feedback_loops: this.cfg.feedbackLoops.map((item) => `- ${item}`).join("\n"),
     };
     if (issueNumber !== undefined) {
@@ -198,9 +204,10 @@ export class RalphLoop {
   }
 
   private async runAgentLocal(title: string, prompt: string, logPath: string): Promise<void> {
-    console.log(`=== ${title} ===`);
+    const inv = buildLocalInvocation(this.cfg.worker as LocalWorkerKind, prompt);
+    console.log(`=== ${title} (${this.cfg.worker}) ===`);
     mkdirSync(dirname(logPath), { recursive: true });
-    const child = spawn(this.cfg.agentCmd, ["-p", "--force", "--", prompt], {
+    const child = spawn(inv.command, inv.args, {
       stdio: ["ignore", "pipe", "pipe"],
     });
     const chunks: Buffer[] = [];
@@ -214,7 +221,7 @@ export class RalphLoop {
       child.on("close", (code) => {
         writeFileSync(logPath, Buffer.concat(chunks));
         if (code !== 0 && code !== null) {
-          reject(new Error(`agent exited with code ${code}`));
+          reject(new Error(`${inv.command} exited with code ${code}`));
         } else {
           resolve();
         }
@@ -242,11 +249,11 @@ export class RalphLoop {
   ): Promise<void> {
     this.agentRuns += 1;
     if (this.cfg.dryRun) {
-      console.log(`=== ${title} (${this.cfg.backend}) ===`);
+      console.log(`=== ${title} (${this.cfg.worker}) ===`);
       console.log(prompt);
       return;
     }
-    if (this.cfg.backend === "cloud") {
+    if (cfgIsRemote(this.cfg)) {
       await this.runAgentCloud(title, prompt, logPath, autoCreatePr);
     } else {
       await this.runAgentLocal(title, prompt, logPath);
@@ -379,9 +386,14 @@ export class RalphLoop {
       console.error("need: git");
       process.exit(1);
     }
-    if (!this.cfg.dryRun && this.cfg.backend === "local" && !commandExists(this.cfg.agentCmd)) {
-      console.error(`need: ${this.cfg.agentCmd}`);
-      process.exit(1);
+    if (!this.cfg.dryRun && !cfgIsRemote(this.cfg)) {
+      const inv = buildLocalInvocation(this.cfg.worker as LocalWorkerKind, "dry-run");
+      if (!commandExists(inv.command)) {
+        console.error(
+          `Worker ${this.cfg.worker} requires ${inv.command} on PATH (install the CLI for that agent).`,
+        );
+        process.exit(1);
+      }
     }
 
     requireRepoFiles([this.cfg.context, this.cfg.prd, this.cfg.e2e]);
@@ -402,16 +414,15 @@ export class RalphLoop {
         ? String(this.cfg.maxTotalIterations)
         : "unlimited";
     console.log(
-      `Backend: ${this.cfg.backend} (${mode}) | repo: ${this.cfg.repo} | ` +
+      `Worker: ${this.cfg.worker} (${mode}) | repo: ${this.cfg.repo} | ` +
         `Parent #${this.cfg.parentIssue} → children: ${this.issueNumbers.join(" ")} | ` +
         `max agent runs: ${capS}`,
     );
     console.log(`Progress log: ${progressFile(this.cfg)} (branch resume source)`);
-    if (this.cfg.backend === "cloud") {
-      console.log(
-        `Remote (${this.cfg.cloudProvider}): ${this.cfg.repoUrl} @ ${this.cfg.branch}`,
-      );
-      console.log("Each loop iteration is one remote agent session on one issue.");
+    if (cfgIsRemote(this.cfg)) {
+      const provider = cfgRemoteProvider(this.cfg);
+      console.log(`Remote (${provider}): ${this.cfg.repoUrl} @ ${this.cfg.branch}`);
+      console.log("Each loop iteration is one remote worker session on one issue.");
     }
 
     if (this.finalDone()) return;
@@ -435,8 +446,8 @@ export class RalphLoop {
     this.markFinalDone();
     maybePush(this.root, this.cfg.branch, this.cfg.push);
 
-    if (this.cfg.backend === "cloud" && this.cloudSessions.length) {
-      console.log(`\nRemote agent sessions (${this.cfg.cloudProvider}):`);
+    if (cfgIsRemote(this.cfg) && this.cloudSessions.length) {
+      console.log(`\nRemote worker sessions (${cfgRemoteProvider(this.cfg)}):`);
       for (const entry of this.cloudSessions) {
         console.log(`  - ${entry.title}: ${entry.url}`);
       }

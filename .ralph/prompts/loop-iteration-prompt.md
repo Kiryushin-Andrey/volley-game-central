@@ -1,4 +1,4 @@
-{{#if is_cloud}}{{> cloud-preamble}}
+{{#if is_remote}}{{> remote-preamble}}
 
 {{/if}}Ralph loop — issue #{{issue_number}} (one iteration; continue until this issue is fully done).
 

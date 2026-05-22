@@ -2,7 +2,7 @@
 
 You may have **no memory** of earlier passes. Treat **{{progress_file}}**, **git**, and what is **pushed** to **{{branch}}** as the only source of truth.
 
-{{#if is_cloud}}
+{{#if is_remote}}
 The next session is a **fresh VM** — it only sees commits you pushed. Leave **{{branch}}** and **{{progress_file}}** in a state the next agent can run from cold.
 {{/if}}
 

@@ -1,8 +1,10 @@
 import { parseArgs } from "node:util";
 import { CURSOR_MODEL_AUTO } from "./agents/factory.js";
-import type { Backend, CloudProvider, RalphConfig } from "./types.js";
-import { DEFAULT_E2E_SCENARIOS } from "./types.js";
 import { DEFAULT_PROMPTS_DIR } from "./prompts.js";
+import type { RalphConfig } from "./types.js";
+import { DEFAULT_E2E_SCENARIOS } from "./types.js";
+import { isRemoteWorker } from "./workers/types.js";
+import { resolveWorkerFromArgv } from "./workers/registry.js";
 
 export const DEFAULT_FEEDBACK_LOOPS = [
   "Backend TypeScript: cd backend && npm run build",
@@ -66,9 +68,10 @@ export function parseRalphArgs(argv: string[]): RalphConfig {
       e2e: { type: "string" },
       "state-dir": { type: "string", default: ".ralph" },
       "prompts-dir": { type: "string", default: DEFAULT_PROMPTS_DIR },
-      backend: { type: "string", default: "local" },
-      "cloud-provider": { type: "string", default: "cursor" },
-      "agent-cmd": { type: "string", default: "agent" },
+      worker: { type: "string" },
+      backend: { type: "string" },
+      "cloud-provider": { type: "string" },
+      "agent-cmd": { type: "string" },
       "cursor-api-key": { type: "string" },
       "warp-api-key": { type: "string" },
       "oz-environment-id": { type: "string" },
@@ -120,12 +123,12 @@ export function parseRalphArgs(argv: string[]): RalphConfig {
     process.exit(1);
   }
 
-  const backend = values.backend as Backend;
-  const cloudProvider = (values["cloud-provider"] ?? "cursor") as CloudProvider;
-  if (cloudProvider !== "cursor" && cloudProvider !== "oz") {
-    console.error(`--cloud-provider must be cursor or oz, got: ${JSON.stringify(cloudProvider)}`);
-    process.exit(1);
-  }
+  const worker = resolveWorkerFromArgv({
+    worker: values.worker,
+    backend: values.backend,
+    "cloud-provider": values["cloud-provider"],
+    "agent-cmd": values["agent-cmd"],
+  });
 
   const dryRun = values["dry-run"] ?? false;
   const cursorApiKey = values["cursor-api-key"] ?? process.env.CURSOR_API_KEY;
@@ -133,21 +136,19 @@ export function parseRalphArgs(argv: string[]): RalphConfig {
   const ozEnvironmentId =
     values["oz-environment-id"] ?? process.env.OZ_ENVIRONMENT_ID ?? process.env.RALPH_OZ_ENVIRONMENT_ID;
 
-  if (backend === "cloud" && !dryRun) {
-    if (cloudProvider === "cursor" && !cursorApiKey) {
-      console.error(
-        "Cloud provider cursor requires --cursor-api-key or CURSOR_API_KEY.",
-      );
+  if (isRemoteWorker(worker) && !dryRun) {
+    if (worker === "remote-cursor" && !cursorApiKey) {
+      console.error("Worker remote-cursor requires --cursor-api-key or CURSOR_API_KEY.");
       process.exit(1);
     }
-    if (cloudProvider === "oz") {
+    if (worker === "remote-oz") {
       if (!warpApiKey) {
-        console.error("Cloud provider oz requires --warp-api-key or WARP_API_KEY.");
+        console.error("Worker remote-oz requires --warp-api-key or WARP_API_KEY.");
         process.exit(1);
       }
       if (!ozEnvironmentId) {
         console.error(
-          "Cloud provider oz requires --oz-environment-id or OZ_ENVIRONMENT_ID " +
+          "Worker remote-oz requires --oz-environment-id or OZ_ENVIRONMENT_ID " +
             "(create an environment at https://oz.warp.dev/).",
         );
         process.exit(1);
@@ -174,16 +175,14 @@ export function parseRalphArgs(argv: string[]): RalphConfig {
     e2e: e2ePath,
     stateDir,
     promptsDir: values["prompts-dir"] ?? DEFAULT_PROMPTS_DIR,
-    backend,
-    agentCmd: values["agent-cmd"] ?? "agent",
-    cloudProvider,
+    worker,
     cursorApiKey,
     warpApiKey,
     ozEnvironmentId,
     ozModelId:
       values["oz-model-id"] ??
       process.env.RALPH_OZ_MODEL_ID ??
-      (cloudProvider === "oz" ? values["cloud-model"] : undefined),
+      (worker === "remote-oz" ? values["cloud-model"] : undefined),
     ozConfigName: values["oz-config-name"] ?? process.env.RALPH_OZ_CONFIG_NAME ?? "ralph-loop",
     cloudPollInterval: Number(values["cloud-poll-interval"] ?? "15"),
     cloudEnv: parseCloudEnv(values["cloud-env"] ?? []),

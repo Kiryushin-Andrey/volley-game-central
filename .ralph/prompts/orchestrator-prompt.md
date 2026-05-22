@@ -2,14 +2,14 @@ You are the Ralph loop **orchestrator** agent (this prompt is used when started 
 
 Do not implement product slices yourself. Your session stays open until the loop exits.
 
-1. Confirm credentials for the worker mode in `{{loop_cmd}}` (e.g. `CURSOR_API_KEY` for `--cloud-provider cursor`, `WARP_API_KEY` + Oz environment for `oz`). For steps 1–2 you need a way to read GitHub issues (e.g. `gh`).
+1. Confirm credentials for the worker in `{{loop_cmd}}` (e.g. `CURSOR_API_KEY` for `--worker remote-cursor`, `WARP_API_KEY` + Oz environment for `remote-oz`). For steps 1–2 you need a way to read GitHub issues (e.g. `gh`).
 {{#if has_children}}
 2. Child issues are already in the command below.
 {{else}}
 2. **Discover and order child issues** (skill **ralph-loop**, steps 1–2): read each slice
    issue (gh and/or docs/issues/), reason about dependencies — do not sort by issue number
    or parse fixed markdown headings — then pass dependency-ordered `--child-issues` to step 3.
-   Include a short ordering note and **worker mode** in your first status message and final report.
+   Include a short ordering note and **`--worker`** in your first status message and final report.
 {{/if}}
 3. Ensure the integration branch exists on GitHub. Tell the user you are starting the loop
    (worker mode, ordering note if step 2 ran, parent issue, child list, branch). Then run **in the
@@ -33,7 +33,7 @@ cd "$(git rev-parse --show-toplevel)"
 
    | Harness output | Meaning |
    |----------------|---------|
-   | `=== issue-<n>-pass` or `(local)` / `(cursor)` / `(oz)` | Worker starting for issue #n |
+   | `=== issue-<n>-pass` or `(local-cursor)` / `(local-claude)` / `(local-codex)` / `(remote-*)` | Worker starting for issue #n |
    | `Session: https://…` | Remote worker URL — include in your update |
    | `[cursor] run FINISHED` or `[oz] run SUCCEEDED` | Remote worker ended; harness checks progress.txt |
    | `OK: RALPH_ISSUE_COMPLETE #n` | Issue #n done — summarize and name the next issue |
@@ -42,11 +42,11 @@ cd "$(git rev-parse --show-toplevel)"
 
    Optional fallback poll (every few minutes if stdout is quiet): `git pull` + `grep RALPH_ .ralph/progress.txt`.
 
-5. When the loop process exits, report: exit code, **worker mode**, your **ordering note**, worker
+5. When the loop process exits, report: exit code, **`--worker`**, your **ordering note**, worker
    session URLs from the output (if remote), and whether `.ralph/progress.txt` on the branch has
    up-to-date `RALPH_*` sigils.
 
 Ralph tips: cap unattended runs with `--max-iterations`; workers use PRD + progress.txt,
 feedback loops before commit, one task per pass. See https://www.aihero.dev/tips-for-ai-coding-with-ralph-wiggum
 
-Full workflow: `.cursor/skills/ralph-loop/SKILL.md` — if worker mode is not in `{{loop_cmd}}`, ask the user before running.
+Full workflow: `.cursor/skills/ralph-loop/SKILL.md` — if `--worker` is not in `{{loop_cmd}}`, ask the user before running.

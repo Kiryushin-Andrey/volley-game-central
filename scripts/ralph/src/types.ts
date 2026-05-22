@@ -1,12 +1,10 @@
 import { join } from "node:path";
+import { isRemoteWorker, remoteProvider, type RemoteProvider, type WorkerKind } from "./workers/types.js";
 
 /** Project-wide Playwright scenario checklist (feature-agnostic). */
 export const DEFAULT_E2E_SCENARIOS = "docs/playwright-e2e-scenarios.md";
 
-export type Backend = "local" | "cloud";
-
-/** Remote agent platform when `backend` is `cloud`. */
-export type CloudProvider = "cursor" | "oz";
+export type { RemoteProvider, WorkerKind };
 
 export interface RalphConfig {
   repo: string;
@@ -20,17 +18,13 @@ export interface RalphConfig {
   e2e: string;
   stateDir: string;
   promptsDir: string;
-  backend: Backend;
-  agentCmd: string;
-  /** Which cloud platform runs child/orchestrator agents (default: cursor). */
-  cloudProvider: CloudProvider;
+  /** Slice worker: local-* (CLI on PATH) or remote-* (cloud APIs). */
+  worker: WorkerKind;
   cursorApiKey: string | undefined;
   warpApiKey: string | undefined;
-  /** Oz cloud environment UID (required when cloudProvider is oz). */
+  /** Oz cloud environment UID (required for remote-oz). */
   ozEnvironmentId: string | undefined;
-  /** Oz AmbientAgentConfig.model_id (optional). */
   ozModelId: string | undefined;
-  /** Oz AmbientAgentConfig.name for run grouping (optional). */
   ozConfigName: string | undefined;
   cloudPollInterval: number;
   cloudEnv: Record<string, string>;
@@ -43,6 +37,15 @@ export interface RalphConfig {
   once: boolean;
   maxTotalIterations: number;
   feedbackLoops: readonly string[];
+}
+
+export function cfgIsRemote(cfg: RalphConfig): boolean {
+  return isRemoteWorker(cfg.worker);
+}
+
+export function cfgRemoteProvider(cfg: RalphConfig): RemoteProvider | null {
+  if (!isRemoteWorker(cfg.worker)) return null;
+  return remoteProvider(cfg.worker);
 }
 
 export function logsDir(cfg: RalphConfig): string {

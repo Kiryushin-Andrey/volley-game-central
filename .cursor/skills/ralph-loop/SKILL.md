@@ -1,6 +1,6 @@
 ---
 name: ralph-loop
-description: Runs the Ralph loop for epic automation — discover and order child GitHub issues, run scripts/ralph-loop.sh in the foreground with proactive per-iteration updates. Supports local worker agents (Cursor CLI) or remote workers (Cursor Cloud, Warp Oz). Ask the user where workers should run when not clear from context. Use for Ralph loop, multi-issue agent runs, or orchestrating slice work.
+description: Runs the Ralph loop for epic automation — discover and order child GitHub issues, run scripts/ralph-loop.sh with --worker (local-cursor, local-claude, local-codex, remote-cursor, remote-oz). Proactive per-iteration updates. Ask the user which --worker when not clear from context.
 ---
 
 # Ralph loop
@@ -13,25 +13,27 @@ Each **worker** iteration reads **PRD + `.ralph/progress.txt`**, runs **feedback
 
 Agent instructions live in **`.ralph/prompts/`** (`*-prompt.md`, `partials/*.md`; Handlebars: `{{var}}`, `{{#if}}`, `{{> partial}}` — see `prompts/README.md`). Edit those files to tune behavior; use `--prompts-dir` to override.
 
-## Where should worker agents run?
+## Where should worker agents run? (`--worker`)
 
-**Before** you run `ralph-loop.sh`, decide where **slice worker** sessions execute. The orchestrator can stay in your current chat; workers are what the harness spawns per issue.
+**Before** you run `ralph-loop.sh`, choose **`--worker`** — where each slice iteration runs. The orchestrator can stay in your current chat; workers are what the harness spawns per issue.
 
 **Ask the user** when it is not already clear from their request or context, for example:
 
-- They did not say local vs remote, or which remote platform.
-- They said “run Ralph” without `--backend`, `--cloud-provider`, or “on my machine”.
+- They did not specify `--worker` (or legacy `--backend`).
+- They said “run Ralph” without saying local vs remote or which agent (Cursor / Claude / Codex).
 - You are unsure whether they need `--push` for resume across machines.
 
-Do **not** guess remote vs local if the tradeoff matters (laptop must stay on, API keys, Oz environment setup).
+Do **not** guess if the tradeoff matters (laptop on vs AFK, API keys, Oz environment).
 
-| Worker mode | When to use | Harness flags |
-|-------------|-------------|---------------|
-| **Local** | Interactive / HITL, learning prompts, same machine as the terminal running the loop | `--backend local` (default). Requires Cursor CLI (`agent`). |
-| **Remote — Cursor** | Unattended AFK, close laptop; agents run on Cursor Cloud | `--backend cloud --cloud-provider cursor --push` + `CURSOR_API_KEY` |
-| **Remote — Oz (Warp)** | Unattended on [Oz Platform](https://docs.warp.dev/agent-platform/cloud-agents/overview/) | `--backend cloud --cloud-provider oz --push` + `WARP_API_KEY` + `OZ_ENVIRONMENT_ID` |
+| `--worker` | CLI / platform | When to use |
+|------------|----------------|-------------|
+| **`local-cursor`** (default) | `agent` on PATH | Interactive / HITL; Cursor local agent |
+| **`local-claude`** | `claude` on PATH | Claude Code CLI (`claude -p`, `acceptEdits`) |
+| **`local-codex`** | `codex` on PATH | Codex CLI (`codex exec`, workspace-write) |
+| **`remote-cursor`** | Cursor Cloud API | Unattended AFK + `CURSOR_API_KEY` + `--push` |
+| **`remote-oz`** | [Warp Oz](https://docs.warp.dev/agent-platform/cloud-agents/overview/) | Unattended + `WARP_API_KEY` + `OZ_ENVIRONMENT_ID` + `--push` |
 
-Remote execution uses pluggable runners in `scripts/ralph/src/agents/` (Cursor API, Oz API). The loop only calls `runPrompt()`; it does not embed platform details.
+No custom binary paths — install the CLI so the command name is on `PATH`. Remote runners live in `scripts/ralph/src/agents/`.
 
 **Orchestrator** (steps 1–2 + monitoring step 3) can be: this chat, a local shell, or `./scripts/launch-ralph-orchestrator.sh` (starts a **remote** orchestrator agent that then runs the loop in the foreground).
 
@@ -51,19 +53,16 @@ Entrypoints: `scripts/ralph-loop.sh`, `scripts/ralph-once.sh`, `scripts/launch-r
 
 | Input | You supply |
 |-------|------------|
-| **Worker mode** | Local, or remote + provider (confirm with user if unclear) |
+| **`--worker`** | One of the table above (confirm with user if unclear) |
 | Parent issue # | Epic / PRD issue |
 | Child issue #s | **Dependency-ordered** list for `--child-issues` |
 | Integration branch | Single PR branch |
 | PRD path | Feature epic PRD (`--prd`, required) |
 | E2E | Defaults to `docs/playwright-e2e-scenarios.md` (optional `--e2e`) |
 
-Optional: `--push` (required for **remote** resume), `--cloud-env KEY=VAL` (Cursor only), `--cloud-model` / `--oz-model-id`, `--max-iterations N`, `--max-slice N`, `--feedback-loop`.
+Optional: `--push` (required for **`remote-*`** resume), `--cloud-env KEY=VAL` (`remote-cursor`), `--cloud-model` / `--oz-model-id`, `--max-iterations N`, `--max-slice N`, `--feedback-loop`.
 
-| Remote provider | Secrets / config |
-|-----------------|------------------|
-| **cursor** | `CURSOR_API_KEY`, `--cloud-model` (default `default` = Auto) |
-| **oz** | `WARP_API_KEY`, `OZ_ENVIRONMENT_ID` (or `--oz-environment-id`) |
+Deprecated (still accepted with a warning): `--backend`, `--cloud-provider`, `--agent-cmd`.
 
 ---
 
@@ -97,7 +96,7 @@ For **each** child issue, read the full description (and title). Build a mental 
 **Before step 3, write a short ordering note** (in your reply or orchestrator log), for example:
 
 ```text
-Workers: local (user machine). Ordering: #20, #21 independent → 20 then 21; #22 last.
+Worker: local-claude. Ordering: #20, #21 independent → 20 then 21; #22 last.
 → --child-issues 20 21 22
 ```
 
@@ -112,11 +111,11 @@ cd "$(git rev-parse --show-toplevel)"
 cd scripts/ralph && npm install && cd ../..
 ```
 
-**Local workers** (orchestrator terminal stays on this machine):
+**Local worker** (example: Claude Code — swap `--worker` for `local-cursor` or `local-codex`):
 
 ```bash
 ./scripts/ralph-loop.sh \
-  --backend local \
+  --worker local-claude \
   --parent-issue <PARENT> \
   --child-issues <ordered numbers> \
   --branch <branch> \
@@ -124,12 +123,11 @@ cd scripts/ralph && npm install && cd ../..
   --max-iterations 50
 ```
 
-**Remote workers — Cursor:**
+**Remote — Cursor:**
 
 ```bash
 ./scripts/ralph-loop.sh \
-  --backend cloud \
-  --cloud-provider cursor \
+  --worker remote-cursor \
   --parent-issue <PARENT> \
   --child-issues <ordered numbers> \
   --branch <branch> \
@@ -138,12 +136,11 @@ cd scripts/ralph && npm install && cd ../..
   --max-iterations 50
 ```
 
-**Remote workers — Oz (Warp)** — Oz environment must include this repo and branch setup:
+**Remote — Oz** — environment must include this repo and branch setup:
 
 ```bash
 ./scripts/ralph-loop.sh \
-  --backend cloud \
-  --cloud-provider oz \
+  --worker remote-oz \
   --oz-environment-id <OZ_ENV_UID> \
   --parent-issue <PARENT> \
   --child-issues <ordered numbers> \
@@ -161,13 +158,13 @@ Do **not** implement slices in the orchestrator session — only discover, order
 
 While `ralph-loop.sh` is running, **proactively** tell the user what just finished and what is next.
 
-1. **Before** the loop: worker mode, ordering note, parent issue, `--child-issues`, branch.
+1. **Before** the loop: `--worker`, ordering note, parent issue, `--child-issues`, branch.
 2. **During** the loop: after **each** worker iteration completes, post an update **before** the next one starts.
 3. **After** exit: final summary (exit code, session links if remote, sigils on branch).
 
 | Harness stdout | Post to user |
 |----------------|--------------|
-| `=== issue-<n>-pass` or `(local)` / `(cursor)` / `(oz)` | Worker starting for issue #n |
+| `=== issue-<n>-pass` or `(local-*)` / `(remote-*)` | Worker starting for issue #n |
 | `Session: https://…` | Remote worker link (if printed) |
 | `[cursor] run FINISHED` or `[oz] run SUCCEEDED` | Remote worker ended; harness checks `progress.txt` |
 | `OK: RALPH_ISSUE_COMPLETE #n` | Issue #n done — note remaining issues |
@@ -187,7 +184,7 @@ grep RALPH_ .ralph/progress.txt | tail -20
 source .ralph/examples/example-epic.sh
 ./scripts/ralph-loop.sh "${RALPH_LOOP_ARGS[@]}" \
   --child-issues <n1> <n2> <n3> \
-  --backend local   # or cloud + provider + --push
+  --worker local-cursor   # or local-claude, local-codex, remote-* + --push
 ```
 
 Edit `example-epic.sh` with your epic’s parent issue, branch, and PRD path. Set worker mode in the script or after asking the user.
@@ -196,12 +193,12 @@ Edit `example-epic.sh` with your epic’s parent issue, branch, and PRD path. Se
 
 ## Start a remote orchestrator from laptop
 
-Use when the **orchestrator** itself should run remotely (you can close the laptop). Pass the same worker flags after `--` so the remote orchestrator runs the loop with the chosen backend.
+Use when the **orchestrator** itself should run remotely (you can close the laptop). Pass the same `--worker` after `--`.
 
 ```bash
 export CURSOR_API_KEY=...
-./scripts/launch-ralph-orchestrator.sh --branch <branch> -- \
-  --parent-issue 8 --prd … --backend cloud --cloud-provider cursor --push
+./scripts/launch-ralph-orchestrator.sh --branch <branch> --worker remote-cursor -- \
+  --parent-issue 8 --prd … --worker remote-cursor --push
 ```
 
 Oz:
@@ -209,31 +206,30 @@ Oz:
 ```bash
 export WARP_API_KEY=...
 export OZ_ENVIRONMENT_ID=...
-./scripts/launch-ralph-orchestrator.sh --branch <branch> --cloud-provider oz -- \
-  --parent-issue 8 --prd … --backend cloud --cloud-provider oz --push
+./scripts/launch-ralph-orchestrator.sh --branch <branch> --worker remote-oz -- \
+  --parent-issue 8 --prd … --worker remote-oz --push
 ```
 
 Omit `--child-issues` so the orchestrator runs steps 1–2 from this skill, then adds the ordered list.
 
 ---
 
-## Secrets (remote workers / remote orchestrator)
+## Secrets
 
 | Secret | When |
 |--------|------|
-| `CURSOR_API_KEY` | Remote workers or orchestrator with `--cloud-provider cursor` |
-| `WARP_API_KEY` + `OZ_ENVIRONMENT_ID` | Remote workers or orchestrator with `--cloud-provider oz` |
+| (none extra) | `local-*` — install `agent`, `claude`, or `codex` on PATH |
+| `CURSOR_API_KEY` | `--worker remote-cursor` |
+| `WARP_API_KEY` + `OZ_ENVIRONMENT_ID` | `--worker remote-oz` |
 | `gh` / GitHub access | Orchestrator issue discovery (steps 1–2) |
-| GitHub in remote environment | Remote workers clone/push the integration branch |
-
-Local workers need Cursor CLI (`agent`) and git; no cloud API keys.
+| GitHub in remote environment | `remote-*` workers clone/push the integration branch |
 
 ---
 
 ## After the run
 
-Report: exit code, **worker mode**, ordering note, worker session URLs (if remote), and whether `.ralph/progress.txt` on the integration branch has up-to-date `RALPH_*` sigils. Per-iteration updates should already have been sent during step 3.
+Report: exit code, **`--worker`**, ordering note, worker session URLs (if `remote-*`), and whether `.ralph/progress.txt` on the integration branch has up-to-date `RALPH_*` sigils. Per-iteration updates should already have been sent during step 3.
 
 ## Resume
 
-Re-run the **same** command (same `--branch`, `--child-issues`, and worker mode). For remote workers use `--push`. The harness pulls the branch and skips issues already marked `RALPH_ISSUE_COMPLETE #n` in `.ralph/progress.txt` only.
+Re-run the **same** command (same `--branch`, `--child-issues`, and `--worker`). For `remote-*` use `--push`. The harness pulls the branch and skips issues already marked `RALPH_ISSUE_COMPLETE #n` in `.ralph/progress.txt` only.

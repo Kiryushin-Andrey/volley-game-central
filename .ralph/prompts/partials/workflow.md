@@ -10,7 +10,7 @@ Work style:
 - Continue open work from {{progress_file}}. Partial iterations **append** to the log only (no completion sigil). Emit `RALPH_ISSUE_COMPLETE #n` only when the issue is done and the **full project** suite is green.
 - When **your** change alters behavior: update **`docs/playwright-e2e-scenarios.md`** and **`e2e/`** (not a feature-only E2E doc).
 - After changes: run feedback loops, re-run full Playwright E2E, **append** to {{progress_file}}, commit, **push** to {{branch}}.
-{{#if is_cloud}}
+{{#if is_remote}}
 - **Next VM:** push branch + **{{progress_file}}** together when possible; leave a **clean working tree** (no surprise uncommitted files) unless you document intentional WIP in the log.
 {{/if}}
 

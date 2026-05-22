@@ -1,6 +1,6 @@
 # Ralph loop state
 
-Orchestrator: find child issues, **order by dependency** (read + reason — skill **ralph-loop**), choose **local or remote workers**, run `scripts/ralph-loop.sh` in the **foreground**, and **proactively report** after each iteration (see skill + `prompts/orchestrator-prompt.md`).
+Orchestrator: find child issues, **order by dependency** (read + reason — skill **ralph-loop**), choose **`--worker`**, run `scripts/ralph-loop.sh` in the **foreground**, and **proactively report** after each iteration (see skill + `prompts/orchestrator-prompt.md`).
 
 Implementation: TypeScript under `scripts/ralph/` (run via `tsx`).
 
@@ -23,20 +23,24 @@ After **each** worker run, the harness pulls the sprint branch and re-reads `pro
 
 ## Remote resume
 
-1. Start a new orchestrator (fresh VM is fine) with the same `--branch` and `--child-issues`.
-2. Use `--push` so agents keep `progress.txt` on the remote branch.
+1. Start a new orchestrator (fresh VM is fine) with the same `--branch`, `--child-issues`, and **`--worker`** (a `remote-*` value).
+2. Use `--push` so workers keep `progress.txt` on the remote branch.
 3. The harness runs `git pull` on the sprint branch, parses `RALPH_ISSUE_COMPLETE #n` (or legacy `RALPH_SLICE_COMPLETE #n`) **in `progress.txt` only**, and skips finished issues.
 4. If a milestone exists only in a commit message and not in `progress.txt`, the loop will **not** treat it as done — update `progress.txt` and push.
 
-## Worker placement
+## Worker placement (`--worker`)
 
-| Workers | Command | Use when |
-|---------|---------|----------|
-| **Local** | `--backend local` (default) | Same machine as the loop; Cursor CLI (`agent`); HITL / learning |
-| **Remote — Cursor** | `--backend cloud --cloud-provider cursor --push` | Unattended; Cursor Cloud Agents |
-| **Remote — Oz** | `--backend cloud --cloud-provider oz --push` | Unattended; [Warp Oz Platform](https://docs.warp.dev/agent-platform/cloud-agents/overview/) |
+| `--worker` | Runs on | CLI / API |
+|------------|---------|------------|
+| **`local-cursor`** (default) | This machine | `agent` |
+| **`local-claude`** | This machine | `claude` |
+| **`local-codex`** | This machine | `codex exec` |
+| **`remote-cursor`** | Cursor Cloud | `CURSOR_API_KEY` + `--push` |
+| **`remote-oz`** | Warp Oz | `WARP_API_KEY` + `OZ_ENVIRONMENT_ID` + `--push` |
 
 If the user has not chosen, ask before running (see skill **ralph-loop**).
+
+Deprecated: `--backend`, `--cloud-provider`, `--agent-cmd` (mapped to `--worker` with a warning).
 
 ## Loop modes
 
@@ -59,50 +63,30 @@ cd scripts/ralph && npm install
   --child-issues <n1> <n2> ... \
   --branch <integration-branch> \
   --prd <path-to-epic-prd.md> \
+  [--worker local-cursor] \
   [--e2e docs/playwright-e2e-scenarios.md] \
-  [--backend local|cloud] [--push] [--once] [--max-iterations N] \
-  [--cloud-model default] [--prompts-dir .ralph/prompts] …
+  [--push] [--once] [--max-iterations N] \
+  [--prompts-dir .ralph/prompts] …
 ```
 
-Remote workers use a pluggable provider (`scripts/ralph/src/agents/`):
-
-| Provider | Flag | Credentials | Notes |
-|----------|------|-------------|-------|
-| **cursor** (default) | `--cloud-provider cursor` | `CURSOR_API_KEY`, `--cloud-model` | Cursor Cloud Agents API |
-| **oz** (Warp) | `--cloud-provider oz` | `WARP_API_KEY`, `OZ_ENVIRONMENT_ID` | [Oz Platform](https://docs.warp.dev/agent-platform/cloud-agents/overview/) |
-
-```bash
-# Cursor (default)
-./scripts/ralph-loop.sh ... --backend cloud --push ...
-
-# Warp Oz
-./scripts/ralph-loop.sh ... --backend cloud --cloud-provider oz \
-  --oz-environment-id <uid> --push ...
-```
-
-Run `./scripts/ralph-loop.sh --help` for all flags.
+Run `./scripts/ralph-loop.sh --help` for all workers and flags.
 
 - **`--prd`** — feature-specific epic PRD (required).
 - **`--e2e`** — optional; defaults to project-wide Playwright checklist. Do not point this at feature-only browser-agent plans.
 
 Child issue numbers and **order** come from the orchestrator. The script does not call GitHub.
 
-## Local backend
+## Local workers
 
-```bash
-./scripts/ralph-loop.sh --help
-./scripts/ralph-once.sh --parent-issue … --child-issues … --branch … --prd … --dry-run
-```
-
-Requires Cursor CLI (`agent`), `git`, Node.js 18+, and Playwright deps (`npx playwright install` if needed).
+Requires the CLI for your `--worker` on `PATH` (`agent`, `claude`, or `codex`), plus `git`, Node.js 18+, and Playwright deps (`npx playwright install` if needed).
 
 ## Remote orchestrator (optional)
 
-See `.cursor/skills/ralph-loop/SKILL.md`. Starts an orchestrator agent that runs the loop remotely; pass worker flags after `--`.
+See `.cursor/skills/ralph-loop/SKILL.md`.
 
 ```bash
-./scripts/launch-ralph-orchestrator.sh --branch … -- \
-  --parent-issue … --child-issues … --prd … --backend cloud --cloud-provider cursor --push --max-iterations 50
+./scripts/launch-ralph-orchestrator.sh --branch … --worker remote-cursor -- \
+  --parent-issue … --child-issues … --prd … --worker remote-cursor --push --max-iterations 50
 ```
 
 When the epic is done, remove or trim `progress.txt` on the branch in a cleanup commit.

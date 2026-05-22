@@ -7,8 +7,8 @@
 #     --child-issues <n1> <n2> ... \
 #     --branch <integration-branch> \
 #     --prd <path-to-epic-prd.md> \
-#     --backend local
-#     # or: --backend cloud --cloud-provider cursor --push
+#     --worker local-cursor
+#     # or: --worker local-claude | local-codex | remote-cursor | remote-oz (+ --push for remote-*)
 
 set -euo pipefail
 
@@ -16,8 +16,8 @@ RALPH_LOOP_ARGS=(
   --parent-issue 0          # replace with epic issue number
   --branch cursor/my-epic   # replace with your integration branch
   --prd docs/prd/my-epic.md
-  --backend local             # or: cloud + --cloud-provider cursor|oz + --push when remote
-  --cloud-model default     # Cursor API Auto; or RALPH_CLOUD_MODEL / --cloud-model <id>
+  --worker local-cursor     # local-claude, local-codex, remote-cursor, remote-oz
+  --cloud-model default     # remote-cursor only; or RALPH_CLOUD_MODEL
 )
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

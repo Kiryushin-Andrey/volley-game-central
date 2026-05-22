@@ -1,13 +1,18 @@
 import { CursorCloudAgentRunner, CURSOR_MODEL_AUTO } from "./cursor.js";
 import { OzCloudAgentRunner } from "./oz.js";
 import type { CloudAgentRunner, CloudProvider, CloudRunnerConfig } from "./types.js";
+import { cfgRemoteProvider } from "../types.js";
 import type { RalphConfig } from "../types.js";
 
 export { CURSOR_MODEL_AUTO };
 
 export function cloudRunnerConfigFromRalph(cfg: RalphConfig): CloudRunnerConfig {
+  const provider = cfgRemoteProvider(cfg);
+  if (!provider) {
+    throw new Error(`Worker ${cfg.worker} is not a remote worker`);
+  }
   return {
-    provider: cfg.cloudProvider,
+    provider,
     pollIntervalSec: cfg.cloudPollInterval,
     repoUrl: cfg.repoUrl,
     branch: cfg.branch,
