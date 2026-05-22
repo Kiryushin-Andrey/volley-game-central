@@ -68,6 +68,8 @@ export interface Game {
   registrationOpenDays?: number;
   registrationOpensAt?: string;
   isPriorityPlayer?: boolean;
+  /** When set, drives join button visibility (positions level restrictions). */
+  canSelfRegister?: boolean;
 }
 
 export interface GameRegistration {

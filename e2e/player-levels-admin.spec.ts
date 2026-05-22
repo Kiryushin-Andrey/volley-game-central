@@ -133,6 +133,13 @@ test.describe('Suite B — player levels admin (#21)', () => {
   });
 
   test('B10: beginner can join positions game when restrictions off', async ({ page, request }, testInfo) => {
+    const health = await request.get('/api/health');
+    const healthBody = await health.json();
+    test.skip(
+      healthBody.positionsGameLevelRestrictionsEnabled === true,
+      'Suite B10 requires POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED=false'
+    );
+
     const beginner = await createDevUserViaApi(request, testInfo, 'Beginner B10', false);
     const { Pool } = await import('pg');
     const pool = new Pool({

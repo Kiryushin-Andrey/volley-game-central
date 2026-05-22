@@ -306,6 +306,9 @@ Screenshot: artifacts/c4-intermediate-far.png
 | `player_level` column absent before #21 | Run Suite B/C only after migration |
 | Automated Suite B | `e2e/player-levels-admin.spec.ts` (Playwright; maps B1–B10) |
 | Admin list API | `GET /api/admin/users`, `PATCH /api/admin/users/:id/player-level` (global admin cookie) |
+| Automated Suite C | `npm run test:e2e:restrictions` → `e2e/player-levels-restrictions.spec.ts` (C1–C7, C11; starts backend with `POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED=true`) |
+| Automated Suite A/B | `e2e/game-form.spec.ts`, `e2e/player-levels-admin.spec.ts` (restrictions **off** on default `e2e:server`) |
+| Health check | `GET /api/health` includes `positionsGameLevelRestrictionsEnabled` |
 
 ---
 

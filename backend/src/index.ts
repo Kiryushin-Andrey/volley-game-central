@@ -19,6 +19,7 @@ import { authMiddleware } from './middleware/auth';
 import { adminAuthMiddleware } from './middleware/adminAuth';
 import { adminOrAssignedAdminMiddleware } from './middleware/adminOrAssignedAdmin';
 import { BUILD_TIMESTAMP } from './buildInfo.generated';
+import { positionsGameLevelRestrictionsEnabled } from './config/positionsGameLevelRestrictions';
 
 // Initialize Express app
 const app = express();
@@ -42,7 +43,10 @@ app.use(cookieParser());
 
 // Public routes
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
+  res.status(200).json({
+    status: 'ok',
+    positionsGameLevelRestrictionsEnabled,
+  });
 });
 
 app.get('/build-info', (_req, res) => {
