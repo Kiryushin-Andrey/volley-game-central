@@ -2,3 +2,8 @@
 # Append after each iteration. Use RALPH_ISSUE_COMPLETE #n only when that issue is fully done.
 # Concise bullets; grammar optional.
 # Delete this file when the epic sprint is done.
+
+## Steering (epic #8 — mandatory)
+- Implement from scratch per PRD and issue acceptance criteria.
+- Do NOT copy or cherry-pick from branches that already implement this epic (e.g. cursor/player-levels-c8a4, cursor/player-levels-and-game-format-*, cursor/player-levels-five-one-spec-ee6d).
+- No `git show` / diff against those branches as a porting source.
