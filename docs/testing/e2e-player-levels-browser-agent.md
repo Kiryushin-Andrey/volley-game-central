@@ -101,7 +101,7 @@ UPDATE users SET player_level = 'beginner'     WHERE phone_number LIKE '%6100000
 | Games list | `/` |
 | Game details | `/game/:id` (click card) |
 | Create game | Admin toolbar **+** → `/games/new` |
-| Players hub | Admin toolbar **people icon** → `/players` |
+| Players hub | Admin toolbar **people icon** (title “Players”) → `/players` |
 | Game administrators | `/game-administrators` or hub link |
 | Player levels | `/player-levels` or hub link |
 | Logout | Header control |
@@ -304,6 +304,8 @@ Screenshot: artifacts/c4-intermediate-far.png
 | Default category filter is Sunday | For Suite A create/edit smoke, pick a Sunday `date_time`, or add **other** (and Thu categories if needed) in the multiselect |
 | Dev login sets `isAdmin` only at create | Use checkbox on first login or SQL `UPDATE users SET is_admin = true` |
 | `player_level` column absent before #21 | Run Suite B/C only after migration |
+| Automated Suite B | `e2e/player-levels-admin.spec.ts` (Playwright; maps B1–B10) |
+| Admin list API | `GET /api/admin/users`, `PATCH /api/admin/users/:id/player-level` (global admin cookie) |
 
 ---
 

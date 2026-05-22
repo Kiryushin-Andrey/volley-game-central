@@ -99,3 +99,69 @@ Playwright (game-form + games-home + game-rules): 29/32 Pass; 3 Fail = bunq-mock
 - .ralph/screenshots/a5-game-26-load.webp, a6-priority-disclaimer.webp
 
 RALPH_ISSUE_COMPLETE #20
+
+## 2026-05-22 — issue #21 (iteration 1 — complete)
+
+### E2E gate (Suites A–D, post-implementation)
+
+| Suite | Result | Notes |
+|-------|--------|-------|
+| A | Pass (A7 Blocked) | A1–A6 via Playwright `e2e/game-form.spec.ts` (9/10; FORM-010 bunq-mock out of scope) |
+| B | Pass | B1–B10 via Playwright `e2e/player-levels-admin.spec.ts` (7/7) |
+| C | Blocked | #22 restrictions not implemented |
+| D | Pass / Blocked | D2 Pass (format edit in game-form); D1/D3/D4 Blocked or not run |
+
+**Fails:** 0
+
+Suite A detail:
+- [A1] Pass — `#gameFormat` select (E2E-FORM-*)
+- [A2] Pass — recreational
+- [A3] Pass — positions
+- [A4] Pass — priority_players (form tests)
+- [A5] Pass — edit form shows format
+- [A6] Pass — priority disclaimer smoke (prior iteration screenshots)
+- [A7] Blocked — needs #22
+
+Suite B detail:
+- [B1] Pass — toolbar Players → `/players` hub, two links
+- [B2] Pass — Game administrators link
+- [B3] Pass — list order unassigned → advanced → beginner (filter E2E users)
+- [B4] Pass — unassigned row has no pill
+- [B5] Pass — assign Beginner in dialog, red pill
+- [B6] Pass — name filter client-side
+- [B7] Pass — Beginner → Advanced, green pill
+- [B8] Pass — non-admin redirected from `/players` and `/player-levels`
+- [B9] Pass — no level labels on game details for regular user
+- [B10] Pass — beginner Join Game on positions game (restrictions off)
+
+API cross-check:
+- `GET /admin/users` 200 for global admin; 403 for non-admin
+- `PATCH /admin/users/:id/player-level` persists level
+
+### Implemented (#21)
+
+- Migration `0032_player_level.sql`: nullable `player_level` on users
+- `backend/src/domain/playerLevel.ts` + unit tests (sort, validation)
+- Routes `GET /admin/users`, `PATCH /admin/users/:id/player-level` (`adminAuthMiddleware`)
+- Frontend: `/players` hub, `/player-levels` list (pills, filter, dialog level selector)
+- Toolbar Players icon → `/players`; levels not exposed on game surfaces
+- Playwright `e2e/player-levels-admin.spec.ts` for Suite B
+
+### Decisions
+
+- Admin API mounted at `/admin/*` (not `/users/admin`) for global-admin-only player levels
+- Reuse `PlayerInfoDialog` with `allowLevelEdit` on player-levels page only
+- List sorted server-side; client-side name filter only
+
+### Files touched
+
+- backend: migration, schema, domain/playerLevel*, routes/adminUsers.ts, index.ts, package.json
+- tg-mini-app: Players.tsx, PlayerLevels.tsx, LevelPill, PlayerInfoDialog, types, api, App.tsx, GamesList.tsx
+- e2e/player-levels-admin.spec.ts
+- docs/testing/e2e-player-levels-browser-agent.md
+
+### Remaining
+
+- None for #21
+
+RALPH_ISSUE_COMPLETE #21
