@@ -159,17 +159,55 @@ Do **not** implement slices in the orchestrator session — only discover, order
 While `ralph-loop.sh` is running, **proactively** tell the user what just finished and what is next.
 
 1. **Before** the run: `--worker`, ordering note, parent issue, `--child-issues`, branch.
-2. **During** the run: after **each** worker iteration completes, post an update **before** the next one starts.
-3. **After** exit: final summary (exit code, session links if remote, sigils on branch).
+2. **During** the run: post updates as harness output arrives — do not batch URLs until the end.
+3. **After** exit: final summary (exit code, all session URLs collected, sigils on branch).
 
-| Harness stdout | Post to user |
-|----------------|--------------|
-| `=== issue-<n>-pass` or `(local-*)` / `(remote-*)` | Worker starting for issue #n |
-| `Session: https://…` | Remote worker link (if printed) |
+#### Cloud session URLs in **chat** (`remote-*` workers) — required
+
+The harness prints each new remote session to stdout/stderr and appends to **`.ralph/logs/live-sessions.log`**:
+
+```text
+RALPH_CLOUD_SESSION issue-22-pass1-iter1 https://cursor.com/agents?id=…
+```
+
+**Critical:** URLs only in Shell/terminal tool output are **hidden** (collapsed “orchestrator output”). The user will **not** see them unless you put them in a **normal assistant message** in the thread.
+
+**As soon as** a new session exists, send a **user-visible chat message** (not thinking-only, not tool logs alone), for example:
+
+```markdown
+**Ralph — issue #22 (pass 1)** — cloud worker started
+
+https://cursor.com/agents?id=…
+```
+
+Rules:
+
+- **One chat message per new URL** — when the iteration starts, not when the whole loop finishes.
+- **Do not** wait until `ralph-loop.sh` exits to list URLs.
+- Track URLs you already posted; never duplicate the same link.
+- Local workers (`local-*`) have no cloud session URL — skip this block.
+
+**How to get URLs in real time**
+
+1. **Streaming Shell** — if partial output is available, on every `RALPH_CLOUD_SESSION` or `Session:` line, **send the chat message above immediately**, then keep monitoring.
+2. **Poll while the loop runs** (required if Shell buffers until exit):
+   - Start the loop with logging:  
+     `./scripts/ralph-loop.sh … 2>&1 | tee -a .ralph/logs/live.log`  
+     (background `&` is OK if you can still run other tools.)
+   - Between checks (or on a timer), **Read** `.ralph/logs/live-sessions.log` or run  
+     `grep RALPH_CLOUD_SESSION .ralph/logs/live-sessions.log | tail -5`
+   - For **each new** line, send a **chat message** with that URL before doing anything else.
+3. Do **not** tell the user to expand terminal output to find URLs — you paste them in chat.
+
+| Harness signal | You must |
+|----------------|----------|
+| `RALPH_CLOUD_SESSION <title> <url>` | **Chat message** with `<url>` now |
+| `Session: https://…` | Same (legacy line; still post in chat) |
+| `=== issue-<n>-pass` + `(remote-*)` | Expect a session URL seconds later; post when it appears |
 | `[cursor] run FINISHED` or `[oz] run SUCCEEDED` | Remote worker ended; harness checks `progress.txt` |
 | `OK: RALPH_ISSUE_COMPLETE #n` | Issue #n done — note remaining issues |
 | `=== final` / `OK: RALPH_ALL_COMPLETE` | Final pass milestone |
-| `agent error`, `Stopped:`, non-zero exit | Failure — include log path from output |
+| `agent error`, `Stopped:`, non-zero exit | Failure — include log path and any `Session:` URL from that iteration |
 
 If stdout is slow or buffered (common with remote workers), poll the branch:
 
