@@ -1,3 +1,4 @@
 # Ralph sessions registry (append-only; commit after each chain)
 # started_at	role	worker	session_ref	notes
 # Cloud: full https:// URL. Local: tmux:session-name
+2026-05-23T14:12:08.712Z	bootstrap	remote-cursor	https://cursor.com/agents/bc-2880531f-bb27-4d33-80d7-b6ab6f3fdf87	issue #20
