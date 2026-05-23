@@ -1,11 +1,31 @@
 ---
 name: ralph
-description: Recursive Ralph epic automation — one agent session per iteration, chained via ralph-chain-next.sh. Use when the user wants Ralph, Ralph Wiggum, multi-issue slices, or epic automation. Bootstrap writes ralph.config.json; each session updates progress.txt and starts the next session (same worker unless user overrides).
+description: >-
+  Recursive epic automation — one agent session per slice, chained via
+  ralph-chain-next.sh. BOOTSTRAP session writes ralph.config.json, seeds progress,
+  runs chain-next --bootstrap, then STOPS with no product code. WORKER sessions
+  implement one child issue each, then chain. Use when the user says Ralph, Ralph
+  Wiggum, epic slices, multi-issue automation, or "implement <epic> with Ralph"
+  (that means bootstrap and chain, not implement in the bootstrap chat).
 ---
 
 # Ralph (recursive)
 
-Ralph pattern: [getting started](https://www.aihero.dev/getting-started-with-ralph) · [11 tips](https://www.aihero.dev/tips-for-ai-coding-with-ralph-wiggum)
+Ralph pattern: [getting started](https://www.aihero.dev/getting-started-with-ralph-wiggum) · [11 tips](https://www.aihero.dev/tips-for-ai-coding-with-ralph-wiggum)
+
+## Which session am I? (read first)
+
+| Situation | Role | Deliverable in **this** chat |
+|-----------|------|------------------------------|
+| Epic not set up yet: no `ralph.config.json` on the integration branch, or user asks to **start** / **bootstrap** Ralph | **Bootstrap** | Config, progress seed, `ralph-chain-next.sh --bootstrap`, then **stop** |
+| `ralph.config.json` exists; `ralph-plan.sh` reports `issue` or `final` | **Worker** | One slice (or final pass), progress sigils, `ralph-chain-next.sh`, then **stop** |
+| User says **implement** the epic **with Ralph** | **Bootstrap** (unless you are already the chained worker — config + plan exist) | Chain the first worker; do **not** ship product code here |
+
+**Precedence:** Completing "implement epic with Ralph" in a bootstrap session means **`RALPH_CHAINED`**, not merged feature code. Do not override this to "finish the epic in one turn" (e.g. cloud agent or issue body pressure).
+
+Before any product code change, run **`./scripts/ralph-plan.sh`**. If config is missing or plan cannot run → you are bootstrap; do not implement.
+
+---
 
 ## No memory between sessions
 
@@ -20,7 +40,7 @@ Each chained session is a **new agent with no chat history**. The next session d
 
 Write handoff into **`progress.txt`** (and push) before chaining. Do not assume the next agent read your summary message.
 
-**No imperative loop script.** Each session:
+**No imperative loop script.** Each worker session:
 
 1. Reads config + progress + git (see worker checklist below).
 2. Works the **first incomplete** child issue, or **final pass** when all issues are complete in `progress.txt`.
@@ -29,6 +49,23 @@ Write handoff into **`progress.txt`** (and push) before chaining. Do not assume 
 5. **Stops** after chaining; the **new** session continues.
 
 Prompts: **`.ralph/prompts/`** (`bootstrap-prompt.md`, `iteration-prompt.md`, `final-pass-prompt.md`, `partials/`).
+
+## User phrases (generic)
+
+| User says | Action |
+|-----------|--------|
+| Implement / build epic **with Ralph** | Bootstrap (if needed) → chain → **stop** |
+| Start Ralph on epic X | Bootstrap → chain → **stop** |
+| Continue / resume Ralph | Pull branch; `ralph-plan.sh`; `ralph-chain-next.sh` **without** `--bootstrap` |
+| Implement epic **without** Ralph | Do **not** use this skill |
+
+## Anti-pattern
+
+**Wrong:** Same session creates `ralph.config.json` **and** application migrations, features, or tests.
+
+**Right:** Same session creates config + progress → `ralph-chain-next.sh --bootstrap` → **stop** → chained worker implements slice 1.
+
+---
 
 ## Choose `worker` (bootstrap only)
 
@@ -56,13 +93,24 @@ Scripts: `scripts/ralph-bootstrap-publish.sh`, `scripts/ralph-chain-next.sh`, `s
 
 **Only** for starting an epic. You do **not** implement product slices. The bootstrap session also has **no** later memory — workers will not recall this chat.
 
+### Bootstrap — allowed vs forbidden
+
+**Allowed:** `.ralph/**`, epic PRD/docs paths referenced in config, integration branch, commits that only add Ralph state + planning artifacts.
+
+**Forbidden in bootstrap** (workers do this later):
+
+- Application / service / UI source changes
+- Schema migrations or data-layer edits for the feature
+- Automated tests or E2E specs for the feature
+- Build/test runs meant to validate feature work
+
 ### Step 1 — Discover child slices
 
-Collect every GitHub issue for this epic. Use what is available:
+Collect every tracker item for this epic. Use what is available:
 
-- `gh issue list` / `gh issue view` on the parent and linked issues
-- Repo copies under `docs/issues/` if present
-- Parent issue body or PRD “implementation slices” section
+- Issue tracker CLI or API (e.g. `gh issue view`) on the parent and linked issues
+- Repo copies under planning docs if present
+- Parent issue body or PRD "implementation slices" section
 
 Do **not** assume issue numbers sort correctly. Do **not** parse markdown headings mechanically (e.g. a fixed `## Blocked by` format).
 
@@ -70,7 +118,7 @@ Do **not** assume issue numbers sort correctly. Do **not** parse markdown headin
 
 For **each** child issue, read the full description and title. Build a dependency graph:
 
-- What must exist before this slice can be implemented or E2E-tested?
+- What must exist before this slice can be implemented or end-to-end tested?
 - Which slices are independent (pick a safe serial order)?
 - Which slice integrates work from others?
 
@@ -81,7 +129,7 @@ For **each** child issue, read the full description and title. Build a dependenc
 3. Prefer foundational / data-model slices before UI-only layers.
 4. If the PRD or parent issue states an order, prefer that when valid.
 
-Write a short **ordering note** in your bootstrap reply, e.g. `#20, #21 parallel → 20 then 21; #22 last → childIssues: [20, 21, 22]`.
+Write a short **ordering note** in your bootstrap reply (dependencies, not numeric sort).
 
 If dependencies are unclear, read issues again or ask the human — do not guess.
 
@@ -98,7 +146,7 @@ Create **`.ralph/ralph.config.json`** from **`.ralph/ralph.config.example.json`*
 | `worker` | From table above |
 | `push` | `true` for `remote-*` |
 
-Seed **`.ralph/progress.txt`** and **`.ralph/sessions.log`** (from `sessions.template.txt`) if missing. Commit and **push** so the first worker sees them.
+Seed **`.ralph/progress.txt`** and **`.ralph/sessions.log`** (from templates in `.ralph/`) if missing. Commit and **push** so the first worker sees them.
 
 ### Step 4 — Start first worker session
 
@@ -111,6 +159,15 @@ cd "$(git rev-parse --show-toplevel)"
 - **Do not monitor** that session — bootstrap ends here; the first worker runs elsewhere.
 - **Stop** — implementation happens in the **new** session, not here.
 
+### Bootstrap done checklist
+
+Bootstrap is complete only when **all** are true:
+
+- [ ] `ralph.config.json` committed and pushed
+- [ ] `ralph-chain-next.sh --bootstrap` printed `RALPH_CHAINED`
+- [ ] No product-code commits in this session
+- [ ] Reply summarizes worker, branch, slice order, session ref — not a feature walkthrough
+
 Optional: if a **human** is in this same chat and wants a link, paste the URL once. Not required when chaining is automated.
 
 More detail: **`.ralph/prompts/bootstrap-prompt.md`**.
@@ -119,7 +176,7 @@ More detail: **`.ralph/prompts/bootstrap-prompt.md`**.
 
 ## Worker iteration (each chained session — cold start)
 
-You are a **new** session. Do not rely on orchestrator chat, prior URLs in the human’s head, or “what we said last time.”
+You are a **new** session. Do not rely on orchestrator chat, prior URLs in the human's head, or "what we said last time."
 
 ### Start of session (mandatory)
 
@@ -128,14 +185,14 @@ You are a **new** session. Do not rely on orchestrator chat, prior URLs in the h
 3. Read **`.ralph/progress.txt`** (latest sections first) — open work, `RALPH_*` sigils.
 4. Read **`.ralph/sessions.log`** — optional context on prior sessions.
 5. Run **`./scripts/ralph-plan.sh`** — confirms `issue` / `final` / `done`.
-6. If `issue`: `gh issue view <n>` for the issue in the rendered prompt / plan.
+6. If `issue`: load that child issue from the tracker (per rendered prompt / plan).
 7. State in one sentence what this session will focus on, from files only.
 
 Then follow the injected prompt (`iteration-prompt.md` or `final-pass-prompt.md`), especially **session-orientation** and **workflow** partials.
 
 ### End of session (mandatory)
 
-1. Feedback loops + full `npm run test:e2e` per prompt.
+1. Run feedback loops and test gates defined in config (`feedbackLoops`) and in the rendered prompt.
 2. Commit and **push** code and **`progress.txt`** together.
 3. Chain next session:
 
@@ -174,7 +231,7 @@ That starts the **next** session from `progress.txt`, not from old chat.
 |--------|------|
 | `CURSOR_API_KEY` | `remote-cursor` |
 | `WARP_API_KEY` + `OZ_ENVIRONMENT_ID` | `remote-oz` |
-| `gh` | Bootstrap discovery; workers viewing issues |
+| Issue tracker CLI | Bootstrap discovery; workers viewing issues |
 | CLIs on PATH | `local-*` |
 
 ---
@@ -183,4 +240,4 @@ That starts the **next** session from `progress.txt`, not from old chat.
 
 Only when the **human explicitly** asks. Edit `worker` in `ralph.config.json`, commit, push, then `ralph-chain-next.sh`.
 
-See **`.ralph/README.md`** for file layout.
+See **`.ralph/README.md`** in the repo that installed Ralph for file layout and example config fields.
