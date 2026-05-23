@@ -97,7 +97,7 @@ test.describe('cross-user and state-transition scenarios', () => {
     await expect(page.getByRole('heading', { name: 'Edit Game Settings' })).toBeVisible();
     await page.locator('#maxPlayers').fill('2');
     await page.getByRole('button', { name: 'Save Changes' }).click();
-    await expect(page).toHaveURL(new RegExp(`/game/${game.id}$`));
+    await expect(page).toHaveURL(new RegExp(`/game/${game.id}(\\?refresh=\\d+)?$`));
 
     await expect(page.locator('.registered-count')).toHaveText('2');
     await expect(page.locator('.max-count')).toHaveText('2');
@@ -121,7 +121,7 @@ test.describe('cross-user and state-transition scenarios', () => {
 
     await page.reload();
 
-    await expect(page).toHaveURL(new RegExp(`/game/${game.id}$`));
+    await expect(page).toHaveURL(new RegExp(`/game/${game.id}(\\?refresh=\\d+)?$`));
     await expect(page.getByRole('button', { name: 'Logout' })).toBeVisible();
     await expect(page.getByText(game.title)).toBeVisible();
   });

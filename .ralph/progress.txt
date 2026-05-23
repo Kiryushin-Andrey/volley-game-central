@@ -74,3 +74,32 @@ RALPH_ISSUE_COMPLETE #20
 - `e2e/player-levels.spec.ts`, `e2e/games-home.spec.ts`, `e2e/auth-session.spec.ts`, `e2e/game-form.spec.ts`, `docs/playwright-e2e-scenarios.md`
 
 RALPH_ISSUE_COMPLETE #21
+
+## 2026-05-23 — Issue #22 (positions game level restrictions)
+
+### Session orientation
+- Branch `cursor/player-levels-issue8-dbd5` up to date; `ralph-plan.sh` → issue #22; #20–#21 complete.
+- Focus: env-gated enforcement for positions games only.
+
+### E2E gate (before feature work)
+- Initial full suite: **110 passed**, 1 failed (`E2E-FORM-010` stale title after edit — fixed via `?refresh=` reload on return from edit).
+
+### Implemented (#22)
+- `POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED` parsed at module load (`backend/src/config/positionsGameLevelRestrictions.ts`); default off when unset; Playwright dev server defaults `true` for restriction specs.
+- Pure module `positionsGameRegistrationEligibility` + 10 unit tests (level × format × dates × grandfather × guest).
+- `backend/src/utils/registrationEligibility.ts` — DB helpers + wiring to config flag.
+- `POST /games/:id/register` — eligibility before insert; generic 403 when level-blocked (no level in copy).
+- `GET /games/:id` — `canSelfRegister` + effective `registrationOpensAt` per user.
+- Frontend `GameDetailsViewModel` — join/guest/info text respect `canSelfRegister`; level-blocked shows generic unavailable message.
+- E2E: `e2e/positions-level-restrictions.spec.ts` (`E2E-POSLVL-001`–`004`); checklist section; edit-save reload via `?refresh=` timestamp (updated URL assertions in form/state specs).
+
+### E2E gate (before commit)
+- `npm run test:e2e`: **115 passed**, 0 failed.
+- `cd backend && npm run build` OK; `cd tg-mini-app && npm run build` OK; `cd backend && npm test` OK (23 domain tests).
+
+### Files touched (main)
+- `backend/src/config/positionsGameLevelRestrictions.ts`, `backend/src/domain/positionsGameRegistrationEligibility.*`, `backend/src/utils/registrationEligibility.ts`, `backend/src/routes/games.ts`
+- `tg-mini-app/src/types/index.ts`, `viewmodels/GameDetailsViewModel.ts`, `pages/GameDetails.tsx`, `pages/EditGameSettings.tsx`
+- `e2e/positions-level-restrictions.spec.ts`, `e2e/support/fixtures.ts`, `e2e/game-form.spec.ts`, `e2e/cross-user-state.spec.ts`, `docs/playwright-e2e-scenarios.md`, `scripts/playwright-dev-server.sh`
+
+RALPH_ISSUE_COMPLETE #22

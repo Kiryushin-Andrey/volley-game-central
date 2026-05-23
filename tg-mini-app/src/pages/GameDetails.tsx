@@ -92,7 +92,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
     if (gameId) {
       viewModel.loadGame(parseInt(gameId));
     }
-  }, [gameId, viewModel, location.pathname]);
+  }, [gameId, viewModel, location.pathname, location.search]);
 
   // Check Bunq integration status for admin users
   useEffect(() => {

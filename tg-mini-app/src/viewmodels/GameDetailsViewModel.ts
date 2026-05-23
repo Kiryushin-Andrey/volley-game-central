@@ -693,9 +693,15 @@ export class GameDetailsViewModel {
       }
     } else {
       // If user is not registered, check if they can join
-      if (!canJoinGame(this.state.gameData.game.dateTime, this.state.gameData.game.registrationOpensAt)) {
-        const gameDateTime = new Date(this.state.gameData.game.dateTime);
-        const registrationOpenDays = this.state.gameData.game.registrationOpenDays || DAYS_BEFORE_GAME_TO_JOIN;
+      if (!this.userMaySelfRegister()) {
+        const game = this.state.gameData.game;
+        const timingAllowsJoin = canJoinGame(game.dateTime, game.registrationOpensAt);
+        if (game.canSelfRegister === false && timingAllowsJoin) {
+          return 'Registration is not available for this game at this time.';
+        }
+
+        const gameDateTime = new Date(game.dateTime);
+        const registrationOpenDays = game.registrationOpenDays || DAYS_BEFORE_GAME_TO_JOIN;
         const daysBeforeGame = new Date(gameDateTime.getTime());
         daysBeforeGame.setDate(daysBeforeGame.getDate() - registrationOpenDays);
         
@@ -729,8 +735,22 @@ export class GameDetailsViewModel {
       return this.user.isAdmin || (game.isAssignedAdmin ?? false);
     }
     
+    if (!this.userMaySelfRegister()) {
+      return false;
+    }
+
     // Only show for upcoming games with open guest registration (3 days before)
     return canRegisterGuest(game.dateTime);
+  }
+
+  /** Backend-driven eligibility; falls back to registrationOpensAt timing when omitted. */
+  userMaySelfRegister(): boolean {
+    const game = this.state.gameData.game;
+    if (!game) return false;
+    if (game.canSelfRegister === false) {
+      return false;
+    }
+    return canJoinGame(game.dateTime, game.registrationOpensAt);
   }
 
   getMainButtonProps(): { show: boolean; text?: string; onClick?: () => void } {
@@ -768,7 +788,7 @@ export class GameDetailsViewModel {
       }
     } else {
       // Check if user can join the game (starting X days before)
-      if (canJoinGame(this.state.gameData.game.dateTime, this.state.gameData.game.registrationOpensAt)) {
+      if (this.userMaySelfRegister()) {
         return {
           show: true,
           text: "Join Game",

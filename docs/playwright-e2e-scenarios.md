@@ -85,6 +85,17 @@ Global administrators manage internal skill tiers via the **Players** hub (`/pla
 - [x] E2E-LEVELS-003: Participant is redirected to games home when visiting `/players` or `/player-levels`.
 - [x] E2E-LEVELS-004: Assigned Admin (non-global) does not see the **Players** toolbar icon.
 
+## Positions game level restrictions scenarios
+
+Spec: `e2e/positions-level-restrictions.spec.ts`
+
+Requires `POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED=true` (default in `scripts/playwright-dev-server.sh`). Only **positions** format games enforce level rules; recreational and priority players games are unchanged.
+
+- [x] E2E-POSLVL-001: Beginner on a positions game within the normal registration window sees no **Join Game** button and a generic unavailable message (no level wording).
+- [x] E2E-POSLVL-002: Advanced player on a positions game within the registration window sees **Join Game**.
+- [x] E2E-POSLVL-003: Intermediate player more than three days before a positions game sees no **Join Game** and registration-opens info text.
+- [x] E2E-POSLVL-004: Beginner on a recreational game within the registration window can still join.
+
 ## Game details participant scenarios
 
 Spec: `e2e/game-details-participant.spec.ts`

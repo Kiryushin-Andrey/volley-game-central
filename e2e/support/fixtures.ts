@@ -110,6 +110,27 @@ export async function devLoginAs(page: Page, user: DevUser): Promise<DevUser> {
   };
 }
 
+export async function assignPlayerLevelViaApi(
+  request: APIRequestContext,
+  testInfo: TestInfo,
+  userId: number,
+  playerLevel: 'beginner' | 'intermediate' | 'advanced',
+): Promise<void> {
+  const admin = await createDevUserViaApi(request, testInfo, 'Level Assign Admin', true);
+  const login = await request.post('/api/auth/dev-login', {
+    data: {
+      phoneNumber: `+31${admin.phoneLocal}`,
+      displayName: admin.displayName,
+      isAdmin: true,
+    },
+  });
+  expect(login.ok()).toBeTruthy();
+  const patch = await request.patch(`/api/player-levels/users/${userId}`, {
+    data: { playerLevel },
+  });
+  expect(patch.ok()).toBeTruthy();
+}
+
 export async function createDevUserViaApi(request: APIRequestContext, testInfo: TestInfo, label: string, isAdmin = false): Promise<DevUser> {
   const displayName = uniqueName(testInfo, label);
   const phoneLocal = uniquePhoneLocal(testInfo, isAdmin ? 9 : 2);
@@ -431,7 +452,7 @@ export async function moveGameToPastViaUi(page: Page, gameId: number, pastDate =
   if (page.url().includes('/edit')) {
     await page.goto(`/game/${gameId}`);
   }
-  await expect(page).toHaveURL(new RegExp(`/game/${gameId}$`));
+  await expect(page).toHaveURL(new RegExp(`/game/${gameId}(\\?refresh=\\d+)?$`));
 }
 
 export async function addParticipantViaUi(page: Page, displayName: string) {

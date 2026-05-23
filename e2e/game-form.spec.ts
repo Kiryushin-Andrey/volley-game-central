@@ -144,7 +144,7 @@ test.describe('game creation and editing scenarios', () => {
     await page.locator('#maxPlayers').fill('16');
     await page.getByRole('button', { name: 'Save Changes' }).click();
 
-    await expect(page).toHaveURL(new RegExp(`/game/${game.id}$`));
+    await expect(page).toHaveURL(new RegExp(`/game/${game.id}(\\?refresh=\\d+)?$`));
     await expect(page.getByText(updatedTitle)).toBeVisible({ timeout: 15000 });
     await expect(page.getByRole('link', { name: 'E2E Edited Hall' })).toBeVisible();
   });
@@ -160,7 +160,7 @@ test.describe('game creation and editing scenarios', () => {
     await page.locator('#title').fill(cancelledTitle);
     await page.getByRole('button', { name: 'Cancel' }).click();
 
-    await expect(page).toHaveURL(new RegExp(`/game/${game.id}$`));
+    await expect(page).toHaveURL(new RegExp(`/game/${game.id}(\\?refresh=\\d+)?$`));
     await expect(page.getByText(originalTitle)).toBeVisible();
     await expect(page.getByText(cancelledTitle)).toHaveCount(0);
   });
@@ -207,7 +207,7 @@ test.describe('game creation and editing scenarios', () => {
     const updateResponse = await updatePromise;
     expect(updateResponse.ok()).toBeTruthy();
 
-    await expect(page).toHaveURL(new RegExp(`/game/${game.id}$`));
+    await expect(page).toHaveURL(new RegExp(`/game/${game.id}(\\?refresh=\\d+)?$`));
     await expect(page.getByText(updatedTitle)).toBeVisible({ timeout: 15000 });
     await expect(page.getByText(originalTitle)).toHaveCount(0);
   });
