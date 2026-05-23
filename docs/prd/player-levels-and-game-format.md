@@ -1,7 +1,7 @@
 # Player levels and game format refactor
 
-**Implementation branch:** `cursor/player-levels-c8a4`  
-**Domain glossary:** `CONTEXT.md` (repo root)  
+**Implementation branch:** `cursor/player-levels-issue8-dbd5` (base: `cursor/recursive-ralph-babb`)  
+**Parent issue:** #8 · **Slices:** #20 (game format), #21 (player levels admin), #22 (positions restrictions)  
 **Full PRD file:** `docs/prd/player-levels-and-game-format.md`
 
 ## Problem Statement
@@ -182,5 +182,5 @@ Add nullable `player_level` enum column: `beginner` | `intermediate` | `advanced
 
 ## Further Notes
 
-- Confirm whether branch `cursor/player-levels-five-one-spec-ee6d` duplicates this work before implementing.
+- Implemented on `cursor/player-levels-issue8-dbd5` (Ralph epic #8). Older exploratory branches (`cursor/player-levels-c8a4`, `cursor/player-levels-five-one-spec-ee6d`) are superseded — do not merge in parallel.
 
