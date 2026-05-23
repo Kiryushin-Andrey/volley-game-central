@@ -107,28 +107,27 @@ RALPH_ISSUE_COMPLETE #22
 ### Chain (final pass)
 - `./scripts/ralph-chain-next.sh --from-notes "issue #22"` → Cursor API 400: cannot verify branch on GitHub (all refs). `ralph-plan.sh` → **final** pass pending. Re-run chain when API/repo access works.
 
-## 2026-05-23 — Final pass (epic #8 closure)
+## 2026-05-23 — Final pass (epic #8 closure + retry)
 
 ### Session orientation
-- Branch `cursor/player-levels-issue8-dbd5` clean, up to date; `ralph-plan.sh` → **final**; #20–#22 `RALPH_ISSUE_COMPLETE` in log.
-- PR #39 open (draft): `cursor/player-levels-issue8-dbd5` → `cursor/recursive-ralph-babb`.
-- Focus: full E2E gate, feedback loops, PR/PRD polish, completion sigils, `ralph-chain-next.sh` → `RALPH_DONE`.
+- Branch `cursor/player-levels-issue8-dbd5`; `ralph-plan.sh` → **final**; #20–#22 complete.
+- PR #39 (draft): `cursor/player-levels-issue8-dbd5` → `cursor/recursive-ralph-babb`.
 
 ### E2E gate
-- `npm run test:e2e`: **115 passed**, 0 failed (full `e2e/` suite).
-- `docs/playwright-e2e-scenarios.md` aligned with specs (LEVELS, POSLVL, game format form).
+- First final attempt: **115 passed** on prior commit; chain failed (Cursor API 400 branch verify).
+- Retry: **114 passed**, 1 failed (`E2E-FORM-010` — edit `loadGame` overwrote title after fast open).
+- Fix: `GameDetailsViewModel.loadGame` generation guard; `GameFormViewModel.syncFormFieldsFromDom` on submit; E2E `setControlledInputValue` + wait for `#title` before edit.
+- Final retry: **115 passed**, 0 failed.
 
 ### Feedback loops
-- `cd backend && npm run build` OK; `cd backend && npm test` OK (23 domain tests).
-- `cd tg-mini-app && npm run build` OK.
+- `cd backend && npm run build` OK; `cd tg-mini-app && npm run build` OK; `cd backend && npm test` OK (23 domain tests).
 
 ### Epic closure
-- PRD: branch + slice refs updated; superseded branch note.
-- PR #39 body updated (Closes #20, #21, #22; verification summary).
-- No product code changes this pass (validation-only).
+- PRD: branch + slice refs; superseded `cursor/player-levels-c8a4` note.
+- PR #39 body lists Closes #20, #21, #22.
 
 ### Chain
-- `./scripts/ralph-chain-next.sh --from-notes "iteration"` after push → expect `RALPH_DONE`.
+- Prior `./scripts/ralph-chain-next.sh` → API 400; this pass pushes fix + sigils → `RALPH_DONE`.
 
 RALPH_E2E_COMPLETE
 RALPH_ALL_COMPLETE

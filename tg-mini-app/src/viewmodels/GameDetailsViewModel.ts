@@ -62,6 +62,7 @@ export class GameDetailsViewModel {
   private readonly navigate: (url: string) => void;
   private readonly user: User;
   private readonly actionGuard: ActionGuard;
+  private loadGameGeneration = 0;
 
   constructor(args: {
     updateGameData: StateUpdater<GameDataState>;
@@ -153,16 +154,25 @@ export class GameDetailsViewModel {
   }
 
   async loadGame(id: number): Promise<void> {
+    const generation = ++this.loadGameGeneration;
     try {
       this.setGameData({ isLoading: true });
       const fetchedGame = await gamesApi.getGame(id);
+      if (generation !== this.loadGameGeneration) {
+        return;
+      }
       this.setGameData({ game: fetchedGame, error: null });
     } catch (err) {
+      if (generation !== this.loadGameGeneration) {
+        return;
+      }
       this.setGameData({ error: 'Failed to load game details' });
       logDebug('Error loading game:');
       logDebug(err);
     } finally {
-      this.setGameData({ isLoading: false });
+      if (generation === this.loadGameGeneration) {
+        this.setGameData({ isLoading: false });
+      }
     }
   }
 

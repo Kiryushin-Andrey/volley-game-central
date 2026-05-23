@@ -2,6 +2,7 @@
 
 **Implementation branch:** `cursor/player-levels-issue8-dbd5` (base: `cursor/recursive-ralph-babb`)  
 **Parent issue:** #8 · **Slices:** #20 (game format), #21 (player levels admin), #22 (positions restrictions)  
+**Domain glossary:** `CONTEXT.md` (repo root)  
 **Full PRD file:** `docs/prd/player-levels-and-game-format.md`
 
 ## Problem Statement

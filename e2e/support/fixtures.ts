@@ -287,6 +287,17 @@ export async function countRegistrations(gameId: number) {
   return result.rows[0].count as number;
 }
 
+/** Set a React controlled <input> value and fire input/change so ViewModel state updates. */
+export async function setControlledInputValue(page: Page, selector: string, value: string) {
+  await page.locator(selector).evaluate((el, val) => {
+    const input = el as HTMLInputElement;
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+    setter?.call(input, val);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  }, value);
+}
+
 /** PUT /api/games/admin/:gameId — await immediately before clicking Save Changes on edit form. */
 export function waitForAdminGameUpdateResponse(page: Page, gameId: number) {
   return page.waitForResponse(

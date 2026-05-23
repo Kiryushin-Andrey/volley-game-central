@@ -207,10 +207,58 @@ export class GameFormViewModel {
   }
 
   /**
-   * Submit form (create or update). Reads the ViewModel's form state so submit
-   * always matches the latest field values, even if React has not re-rendered yet.
+   * Read controlled inputs from the DOM so submit matches what the user (or E2E fill)
+   * sees even when React has not yet applied the latest onChange handlers.
+   */
+  private syncFormFieldsFromDom(): void {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    const titleEl = document.getElementById('title') as HTMLInputElement | null;
+    if (titleEl) {
+      this.handleTitleChange(titleEl.value);
+    }
+
+    const locationNameEl = document.getElementById('locationName') as HTMLInputElement | null;
+    if (locationNameEl) {
+      this.handleLocationNameChange(locationNameEl.value);
+    }
+
+    const locationLinkEl = document.getElementById('locationLink') as HTMLInputElement | null;
+    if (locationLinkEl) {
+      this.handleLocationLinkChange(locationLinkEl.value);
+    }
+
+    const maxPlayersEl = document.getElementById('maxPlayers') as HTMLInputElement | null;
+    if (maxPlayersEl?.value) {
+      this.handleMaxPlayersChange(parseInt(maxPlayersEl.value, 10));
+    }
+
+    const unregisterEl = document.getElementById('unregisterDeadlineHours') as HTMLInputElement | null;
+    if (unregisterEl?.value) {
+      this.handleUnregisterDeadlineHoursChange(parseInt(unregisterEl.value, 10));
+    }
+
+    const paymentEl = document.getElementById('paymentAmount') as HTMLInputElement | null;
+    if (paymentEl) {
+      this.handlePaymentAmountChange({
+        target: paymentEl,
+      } as React.ChangeEvent<HTMLInputElement>);
+    }
+
+    const gameFormatEl = document.getElementById('gameFormat') as HTMLSelectElement | null;
+    if (gameFormatEl?.value) {
+      this.handleGameFormatChange(gameFormatEl.value);
+    }
+  }
+
+  /**
+   * Submit form (create or update). Syncs from DOM then reads ViewModel form state.
    */
   async handleSubmit(onSuccess: () => void): Promise<void> {
+    this.syncFormFieldsFromDom();
+
     if (!this.formState.selectedDate) {
       this.updateState({ error: 'Please select a date and time' });
       return;

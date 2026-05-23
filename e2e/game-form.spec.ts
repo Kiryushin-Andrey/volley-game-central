@@ -11,6 +11,7 @@ import {
   moveGameToPastViaUi,
   resetBunqMock,
   sendPaymentRequestsViaUi,
+  setControlledInputValue,
   waitForAdminGameCreateResponse,
   waitForAdminGameUpdateResponse,
   waitForBackend,
@@ -136,9 +137,9 @@ test.describe('game creation and editing scenarios', () => {
     const game = await createGameViaUi(page, { title: originalTitle });
     await page.goto(`/game/${game.id}/edit`);
     await expect(page.getByRole('heading', { name: 'Edit Game Settings' })).toBeVisible();
-    await expect(page.locator('#title')).toHaveValue(originalTitle);
+    await expect(page.locator('#title')).toHaveValue(originalTitle, { timeout: 15_000 });
 
-    await page.locator('#title').fill(updatedTitle);
+    await setControlledInputValue(page, '#title', updatedTitle);
     await expect(page.locator('#title')).toHaveValue(updatedTitle);
     await page.locator('#locationName').fill('E2E Edited Hall');
     await page.locator('#maxPlayers').fill('16');
@@ -157,7 +158,7 @@ test.describe('game creation and editing scenarios', () => {
     await devLoginAs(page, admin);
     const game = await createGameViaUi(page, { title: originalTitle });
     await page.goto(`/game/${game.id}/edit`);
-    await page.locator('#title').fill(cancelledTitle);
+    await setControlledInputValue(page, '#title', cancelledTitle);
     await page.getByRole('button', { name: 'Cancel' }).click();
 
     await expect(page).toHaveURL(new RegExp(`/game/${game.id}(\\?refresh=\\d+)?$`));
@@ -201,11 +202,15 @@ test.describe('game creation and editing scenarios', () => {
 
     await page.getByTitle('Edit Game Settings').click();
     await expect(page.getByRole('heading', { name: 'Edit Game Settings' })).toBeVisible();
-    await page.locator('#title').fill(updatedTitle);
+    await expect(page.locator('#title')).toHaveValue(originalTitle);
+    await setControlledInputValue(page, '#title', updatedTitle);
+    await expect(page.locator('#title')).toHaveValue(updatedTitle);
     const updatePromise = waitForAdminGameUpdateResponse(page, game.id);
     await page.getByRole('button', { name: 'Save Changes' }).click();
     const updateResponse = await updatePromise;
     expect(updateResponse.ok()).toBeTruthy();
+    const updated = (await updateResponse.json()) as { title?: string | null };
+    expect(updated.title).toBe(updatedTitle);
 
     await expect(page).toHaveURL(new RegExp(`/game/${game.id}(\\?refresh=\\d+)?$`));
     await expect(page.getByText(updatedTitle)).toBeVisible({ timeout: 15000 });
