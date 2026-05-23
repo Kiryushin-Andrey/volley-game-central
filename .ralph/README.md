@@ -1,6 +1,6 @@
 # Ralph recursive loop
 
-Each **iteration is one agent session**. When it finishes, it updates **`.ralph/progress.txt`**, runs **`scripts/ralph-chain-next.sh`** to start the **next** session (same `worker` from config unless changed), appends the new session to **`.ralph/sessions.log`**, commits, and **stops**. No foreground multi-iteration harness.
+Each **iteration is one agent session** with **no memory** of prior chats. When it finishes, it updates **`.ralph/progress.txt`**, runs **`scripts/ralph-chain-next.sh`** to start the **next** session (same `worker` from config unless the human changed it), appends the new session to **`.ralph/sessions.log`**, commits, and **stops**. The next agent reads only **config**, **progress.txt**, **sessions.log**, and **git** — not your conversation.
 
 Pattern: [Getting started with Ralph](https://www.aihero.dev/getting-started-with-ralph) · [11 tips](https://www.aihero.dev/tips-for-ai-coding-with-ralph-wiggum)
 
