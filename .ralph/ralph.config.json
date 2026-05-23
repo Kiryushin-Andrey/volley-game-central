@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "parentIssue": 8,
+  "childIssues": [20, 21, 22],
+  "branch": "cursor/player-levels-issue8-dbd5",
+  "base": "cursor/recursive-ralph-babb",
+  "prd": "docs/prd/player-levels-and-game-format.md",
+  "context": "CONTEXT.md",
+  "e2e": "docs/playwright-e2e-scenarios.md",
+  "stateDir": ".ralph",
+  "promptsDir": ".ralph/prompts",
+  "worker": "remote-cursor",
+  "push": true,
+  "feedbackLoops": [
+    "Backend TypeScript: cd backend && npm run build",
+    "Frontend TypeScript: cd tg-mini-app && npm run build"
+  ],
+  "cloudModel": "default",
+  "cloudCreatePrOnFinal": false,
+  "ozEnvironmentId": "",
+  "ozConfigName": "ralph-recursive"
+}

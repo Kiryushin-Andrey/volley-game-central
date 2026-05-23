@@ -1,0 +1,18 @@
+# Ralph progress (session log)
+# Append after each iteration. Use RALPH_ISSUE_COMPLETE #n only when that issue is fully done.
+# Chain the next session via scripts/ralph-chain-next.sh (see sessions.log for URLs).
+# Concise bullets; grammar optional.
+# Delete this file when the epic sprint is done.
+
+## 2026-05-23 — Bootstrap (epic #8)
+
+- Parent: https://github.com/Kiryushin-Andrey/volley-game-central/issues/8
+- Integration branch: `cursor/player-levels-issue8-dbd5` (base: `cursor/recursive-ralph-babb`)
+- Worker: `remote-cursor` (push: true)
+- PRD: `docs/prd/player-levels-and-game-format.md`
+- Child slices (dependency order, not numeric sort):
+  1. #20 — Game format enum (foundation; replaces withPositions/withPriorityPlayers)
+  2. #21 — Player levels admin (schema + global-admin UI; no enforcement yet)
+  3. #22 — Positions game level restrictions (needs #20 format + #21 levels; env-gated enforcement)
+- Do not use branch `cursor/player-levels-c8a4` or other existing player-levels branches — implement from scratch on this branch.
+- First worker: implement slice #20 only, then chain.
