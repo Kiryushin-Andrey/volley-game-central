@@ -16,3 +16,30 @@
   3. #22 — Positions game level restrictions (needs #20 format + #21 levels; env-gated enforcement)
 - Do not use branch `cursor/player-levels-c8a4` or other existing player-levels branches — implement from scratch on this branch.
 - First worker: implement slice #20 only, then chain.
+
+## 2026-05-23 — Issue #20 (game format enum)
+
+### Session orientation
+- Branch `cursor/player-levels-issue8-dbd5` up to date; `ralph-plan.sh` → issue #20.
+- Prior progress: bootstrap only; no product code yet.
+
+### E2E gate (before feature work)
+- `npm run test:e2e`: **107 passed**, 0 failed (baseline green).
+
+### Implemented (#20)
+- Drizzle migration `0031_add_game_format_to_games.sql`: add `game_format`, backfill from `with_positions`/`with_priority_players`, drop legacy columns.
+- `backend/src/domain/gameFormat.ts` + unit tests (`npm test`, 9 cases): `gameFormatFromLegacy`, `isPositionsGame`, `usesPriorityPlayerWindows`, `adminAssignmentWithPositionsForGameFormat`.
+- Backend: schema, `games` / `gamesAdmin` routes, `gameService` defaults (`defaultGameFormat`), `telegramService` announcements (recreational only), assignment helpers use format → admin `with_positions` slot.
+- Frontend: `GameFormat` on `Game` type; create/edit **game format** `<select>` (Recreational / With positions / With priority players); list/details use `isPositionsGame` for 5-1 styling; `GameDetails` reloads on `location.key` after edit (fixes E2E-FORM-010 stale title).
+- E2E: `createGameViaUi` selects `#gameFormat`; E2E-FORM-004 uses positions option; checklist note for FORM-004.
+
+### E2E gate (before commit)
+- `npm run test:e2e`: **107 passed**, 0 failed.
+- Feedback loops: `cd backend && npm run build` OK; `cd tg-mini-app && npm run build` OK; `cd backend && npm test` OK.
+
+### Files touched (main)
+- `backend/drizzle/0031_*`, `backend/src/domain/gameFormat.*`, `backend/src/db/schema.ts`, `backend/src/routes/games.ts`, `gamesAdmin.ts`, `middleware/adminOrAssignedAdmin.ts`, `services/gameService.ts`, `telegramService.ts`
+- `tg-mini-app/src/types`, `utils/gameFormat.ts`, `GameForm*`, `GamesList.tsx`, `GameDetails.tsx`, `gameDateUtils.ts`, `GameDetailsViewModel.ts`, `api.ts`
+- `e2e/support/fixtures.ts`, `e2e/game-form.spec.ts`, `docs/playwright-e2e-scenarios.md`
+
+RALPH_ISSUE_COMPLETE #20

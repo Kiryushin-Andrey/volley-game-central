@@ -31,6 +31,8 @@ export interface CollectorUser {
   avatarUrl?: string | null;
 }
 
+export type GameFormat = 'recreational' | 'positions' | 'priority_players';
+
 export interface Game {
   id: number;
   dateTime: string;
@@ -39,8 +41,7 @@ export interface Game {
   paymentAmount: number;
   pricingMode: PricingMode;
   fullyPaid: boolean;
-  withPositions: boolean;
-  withPriorityPlayers: boolean;
+  gameFormat: GameFormat;
   readonly: boolean;
   locationName?: string | null;
   locationLink?: string | null;

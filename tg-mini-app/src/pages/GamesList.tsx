@@ -4,6 +4,7 @@ import { FaUsers, FaCog, FaPlus } from 'react-icons/fa';
 import { useGamesListViewModel } from './GamesListViewModel';
 import { GameWithStats, User } from '../types';
 import { isGameUpcoming } from '../utils/gameDateUtils';
+import { isPositionsGame } from '../utils/gameFormat';
 import { resolveLocationLink } from '../utils/locationUtils';
 import { HalloweenDecorations } from '../components/HalloweenDecorations';
 import { NewYearDecorations } from '../components/NewYearDecorations';
@@ -31,7 +32,7 @@ const GameItem = memo(({ game, onClick, formatDate }: {
 
   return (
     <div
-      className={`game-card ${game.isUserRegistered ? 'registered' : ''} ${isHalloween ? 'halloween-theme' : ''} ${isNewYear ? 'newyear-theme' : ''} ${isMarch8 ? 'march8-theme' : ''} ${game.withPositions ? 'with-positions' : 'without-positions'}`}
+      className={`game-card ${game.isUserRegistered ? 'registered' : ''} ${isHalloween ? 'halloween-theme' : ''} ${isNewYear ? 'newyear-theme' : ''} ${isMarch8 ? 'march8-theme' : ''} ${isPositionsGame(game.gameFormat) ? 'with-positions' : 'without-positions'}`}
       onClick={() => onClick(game.id)}
     >
       {isHalloween && <HalloweenDecorations variant="card" />}

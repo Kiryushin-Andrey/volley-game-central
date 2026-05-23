@@ -10,15 +10,23 @@ import { getNotificationSubjectWithVerb } from '../utils/notificationUtils';
 import { formatGameDate } from '../utils/dateUtils';
 import { isUserAssignedToGameById } from '../middleware/adminOrAssignedAdmin';
 import { getUserSelectFields } from '../utils/dbQueryUtils';
+import {
+  adminAssignmentWithPositionsForGameFormat,
+  asGameFormat,
+  isPositionsGame,
+  usesPriorityPlayerWindows,
+  type GameFormat,
+} from '../domain/gameFormat';
 
 const router = Router();
 
 // Helper function to check if a user is a priority player for a game
 async function isUserPriorityPlayerForGame(
   userId: number,
-  game: { dateTime: Date | string; withPositions: boolean; withPriorityPlayers: boolean }
+  game: { dateTime: Date | string; gameFormat: GameFormat | string }
 ): Promise<boolean> {
-  if (!game.withPriorityPlayers) {
+  const format = asGameFormat(String(game.gameFormat));
+  if (!usesPriorityPlayerWindows(format)) {
     return false;
   }
 
@@ -40,7 +48,10 @@ async function isUserPriorityPlayerForGame(
     .where(
       and(
         eq(gameAdministrators.dayOfWeek, dayOfWeek),
-        eq(gameAdministrators.withPositions, game.withPositions),
+        eq(
+          gameAdministrators.withPositions,
+          adminAssignmentWithPositionsForGameFormat(format),
+        ),
         eq(priorityPlayers.userId, userId)
       )
     )
@@ -52,14 +63,15 @@ async function isUserPriorityPlayerForGame(
 // Helper function to get registration open days for a user and game
 async function getRegistrationOpenDays(
   userId: number,
-  game: { dateTime: Date | string; withPositions: boolean; withPriorityPlayers: boolean },
+  game: { dateTime: Date | string; gameFormat: GameFormat | string },
   isGuest: boolean
 ): Promise<number> {
+  const format = asGameFormat(String(game.gameFormat));
   if (isGuest) {
     return GUEST_REGISTRATION_OPEN_DAYS;
   }
 
-  if (game.withPriorityPlayers) {
+  if (usesPriorityPlayerWindows(format)) {
     const isPriority = await isUserPriorityPlayerForGame(userId, game);
     return isPriority ? REGISTRATION_OPEN_DAYS : REGULAR_PLAYER_REGISTRATION_OPEN_DAYS;
   }
@@ -70,7 +82,8 @@ async function getRegistrationOpenDays(
 // Helper function to classify a game into a category
 type GameCategory = 'thursday-5-1' | 'thursday-deti-plova' | 'sunday' | 'other';
 
-function classifyGame(game: { dateTime: Date | string; withPositions: boolean }): GameCategory {
+function classifyGame(game: { dateTime: Date | string; gameFormat: GameFormat | string }): GameCategory {
+  const format = asGameFormat(String(game.gameFormat));
   const gameDate = new Date(game.dateTime);
   let dayOfWeek = gameDate.getDay();
   // Convert JavaScript day (0=Sunday, 1=Monday, ..., 6=Saturday) to Monday=0 format
@@ -78,7 +91,7 @@ function classifyGame(game: { dateTime: Date | string; withPositions: boolean })
   
   // Thursday = 3, Sunday = 6
   if (dayOfWeek === 3) { // Thursday
-    return game.withPositions ? 'thursday-5-1' : 'thursday-deti-plova';
+    return isPositionsGame(format) ? 'thursday-5-1' : 'thursday-deti-plova';
   } else if (dayOfWeek === 6) { // Sunday
     return 'sunday';
   } else {
@@ -151,7 +164,7 @@ router.post('/:gameId/register', async (req, res) => {
     if (now < registrationOpenDate) {
       const errorMessage = isGuestRegistration
         ? `Guest registration is only possible starting ${GUEST_REGISTRATION_OPEN_DAYS} days before the game`
-        : game[0].withPriorityPlayers
+        : usesPriorityPlayerWindows(asGameFormat(game[0].gameFormat))
         ? `Registration is only possible starting ${registrationOpenDays} days before the game`
         : `Registration is only possible starting ${REGISTRATION_OPEN_DAYS} days before the game`;
       
@@ -568,7 +581,8 @@ router.get('/', async (req, res) => {
             return userAssignments.some(
               (assignment) =>
                 assignment.dayOfWeek === dayOfWeek &&
-                assignment.withPositions === game.withPositions
+                assignment.withPositions ===
+                  adminAssignmentWithPositionsForGameFormat(asGameFormat(game.gameFormat))
             );
           });
         } else {

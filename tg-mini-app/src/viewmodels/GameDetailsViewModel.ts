@@ -125,7 +125,7 @@ export class GameDetailsViewModel {
 
   get gameCategory(): GameCategory | null {
     if (!this.game) return null;
-    return classifyGame(this.game.dateTime, this.game.withPositions);
+    return classifyGame(this.game.dateTime, this.game.gameFormat);
   }
 
   get isLoading(): boolean {
@@ -495,7 +495,7 @@ export class GameDetailsViewModel {
     this.confirmAndUnregister(this.state.gameData.game, guestName);
   }
 
-  handleRemovePlayerFromWaitingList(userId: number, guestName?: string): void {
+  handleRemovePlayerFromWaitingList(_userId: number, guestName?: string): void {
     if (!this.state.gameData.game || this.state.action.isActionLoading) return;
 
     this.confirmAndUnregister(this.state.gameData.game, guestName);
@@ -703,7 +703,7 @@ export class GameDetailsViewModel {
         
         // Add disclaimer for non-priority users about priority players
         if (
-          this.state.gameData.game.withPriorityPlayers &&
+          this.state.gameData.game.gameFormat === 'priority_players' &&
           !this.state.gameData.game.isPriorityPlayer &&
           isGameUpcoming(this.state.gameData.game.dateTime)
         ) {
