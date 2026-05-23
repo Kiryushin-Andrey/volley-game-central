@@ -75,9 +75,7 @@ Ralph `local-codex` worker:
 codex exec --sandbox workspace-write --ask-for-approval never "Your prompt"
 ```
 
-See `scripts/ralph/src/workers/registry.ts`.
-
 ## Related
 
-- Repo Codex skills: `.agents/skills/` (Codex); Cursor also loads `.cursor/skills/`.
-- Ralph: `ralph` skill, `--worker local-codex`
+- Skills path for Codex in this repo: `.agents/skills/`
+- Recursive Ralph: `ralph.config.json` with `"worker": "local-codex"` + `scripts/ralph-chain-next.sh` (see `.ralph/README.md`)

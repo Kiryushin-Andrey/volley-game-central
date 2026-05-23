@@ -75,5 +75,4 @@ Docs: [Oz API and SDK](https://docs.warp.dev/reference/api-and-sdk/), [cloud age
 
 ## Related
 
-- Repo reference: `scripts/ralph/src/agents/oz.ts`
-- Multi-issue automation: `.claude/skills/ralph/SKILL.md` (`--worker remote-oz`, `--oz-environment-id`, `--push`)
+- Recursive Ralph: `scripts/ralph-chain-next.sh` with `"worker": "remote-oz"` in `.ralph/ralph.config.json` (see `.ralph/README.md`, ralph skill)

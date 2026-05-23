@@ -72,9 +72,7 @@ Ralph and CI use print mode — **not** a new interactive session:
 agent -p --force -- "Implement issue #42"
 ```
 
-See `scripts/ralph/src/workers/registry.ts` (`local-cursor`).
-
 ## Related
 
 - Cloud: `start-cursor-cloud-session`
-- Ralph local worker: `scripts/ralph-loop.sh --worker local-cursor` (see `.ralph/README.md`)
+- Recursive Ralph: `ralph.config.json` with `"worker": "local-cursor"` + `scripts/ralph-chain-next.sh` (see `.ralph/README.md`)

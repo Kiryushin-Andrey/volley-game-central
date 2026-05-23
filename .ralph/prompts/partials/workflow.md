@@ -5,7 +5,7 @@ Ralph workflow (each pass may be a **fresh context** — you completed **Session
 3. **`docs/playwright-e2e-scenarios.md`** + **`e2e/`** — **whole-project** Playwright gate (independent of **{{prd}}**).
 
 Work style:
-- One **issue** per loop iteration — not other child issues, not the whole epic in one go.
+- One **issue** per session when working a child issue — not other child issues, not the whole epic in one go.
 - **E2E first:** run full **`npm run test:e2e`** (all specs in `e2e/`); any failure anywhere blocks **{{prd}}** work until fixed.
 - Continue open work from {{progress_file}}. Partial iterations **append** to the log only (no completion sigil). Emit `RALPH_ISSUE_COMPLETE #n` only when the issue is done and the **full project** suite is green.
 - When **your** change alters behavior: update **`docs/playwright-e2e-scenarios.md`** and **`e2e/`** (not a feature-only E2E doc).

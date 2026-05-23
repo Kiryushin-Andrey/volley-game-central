@@ -25,3 +25,5 @@ Append to {{progress_file}} and output on their own lines when done:
 
 RALPH_E2E_COMPLETE
 RALPH_ALL_COMPLETE
+
+{{> chain-next}}

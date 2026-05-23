@@ -1,26 +1,28 @@
 #!/usr/bin/env bash
-# Example Ralph flags for an epic. Discover and order child issues via ralph skill.
-# E2E defaults to docs/playwright-e2e-scenarios.md (project-wide Playwright).
-# Usage:
-#   ./scripts/ralph-loop.sh \
-#     --parent-issue <EPIC_ISSUE> \
-#     --child-issues <n1> <n2> ... \
-#     --branch <integration-branch> \
-#     --prd <path-to-epic-prd.md> \
-#     --worker local-cursor
-#     # or: --worker local-claude | local-codex | remote-cursor | remote-oz (+ --push for remote-*)
+# Example ralph.config.json fields for a recursive epic.
+# Discover and order child issues via the ralph skill, then write .ralph/ralph.config.json.
+#
+# Bootstrap:
+#   ./scripts/ralph-chain-next.sh --bootstrap
+#
+# Resume / manual next session:
+#   ./scripts/ralph-chain-next.sh
 
 set -euo pipefail
 
-RALPH_LOOP_ARGS=(
-  --parent-issue 0          # replace with epic issue number
-  --branch cursor/my-epic   # replace with your integration branch
-  --prd docs/prd/my-epic.md
-  --worker local-cursor     # local-claude, local-codex, remote-cursor, remote-oz
-  --cloud-model default     # remote-cursor only; or RALPH_CLOUD_MODEL
-)
+cat <<'EOF'
+Example ralph.config.json (edit paths and numbers):
 
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-  exec "$(git rev-parse --show-toplevel)/scripts/ralph-loop.sh" \
-    "${RALPH_LOOP_ARGS[@]}" "$@"
-fi
+{
+  "version": 1,
+  "parentIssue": 0,
+  "childIssues": [0, 0],
+  "branch": "cursor/my-epic",
+  "base": "main",
+  "prd": "docs/prd/my-epic.md",
+  "worker": "remote-cursor",
+  "push": true
+}
+
+Then: ./scripts/ralph-chain-next.sh --bootstrap
+EOF

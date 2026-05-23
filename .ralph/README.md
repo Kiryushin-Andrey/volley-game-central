@@ -1,92 +1,83 @@
-# Ralph loop state
+# Ralph recursive loop
 
-Orchestrator: find child issues, **order by dependency** (read + reason — skill **ralph**), choose **`--worker`**, run `scripts/ralph-loop.sh` in the **foreground**, and **proactively report** after each iteration (see skill + `prompts/orchestrator-prompt.md`).
-
-Implementation: TypeScript under `scripts/ralph/` (run via `tsx`).
+Each **iteration is one agent session**. When it finishes, it updates **`.ralph/progress.txt`**, runs **`scripts/ralph-chain-next.sh`** to start the **next** session (same `worker` from config unless changed), appends the new session to **`.ralph/sessions.log`**, commits, and **stops**. No foreground multi-iteration harness.
 
 Pattern: [Getting started with Ralph](https://www.aihero.dev/getting-started-with-ralph) · [11 tips](https://www.aihero.dev/tips-for-ai-coding-with-ralph-wiggum)
 
-| File / folder | Purpose |
-|---------------|---------|
-| `prompts/` | Agent prompt templates (edit `.md` files; see `prompts/README.md`) |
-| `progress.template.txt` | Seed for new `progress.txt` (committed) |
-| `progress.txt` | **Sprint resume source** — agents append narrative + `RALPH_*` sigils; commit on integration branch each pass |
-| E2E checklist | Default: `docs/playwright-e2e-scenarios.md` (override with `--e2e` only if needed) |
-| `logs/` | Agent stdout per iteration on the loop host (gitignored) |
-| `screenshots/` | E2E screenshots (gitignored) |
-| `STEERING.md` | Optional overrides (`STEERING.example.md`) |
-| `examples/example-epic.sh` | Example flag template (add `--child-issues` after discovery) |
+Skill: **ralph** (`.cursor/skills/ralph`, `.claude/skills/ralph`, `.agents/skills/` via docs).
 
-There is **no** `ralph-state.json`. The harness resumes **only** by reading `.ralph/progress.txt` on the sprint branch after `git pull`. Sigils in commit messages are **not** used.
+## State on the integration branch
 
-After **each** worker run, the harness pulls the sprint branch and re-reads `progress.txt` to decide whether an issue is done (not the streamed agent log). Remote Cursor SSE streams have **no** fetch timeout; if the stream drops, the harness polls run status until `FINISHED`, then still checks `progress.txt`.
+| File | Purpose |
+|------|---------|
+| `ralph.config.json` | Epic config: ordered `childIssues`, `branch`, `prd`, `worker`, `push`, … |
+| `progress.txt` | Append-only narrative + `RALPH_*` sigils (resume source of truth) |
+| `sessions.log` | Append-only registry of every chained session (URL or `tmux:name`); seed from `sessions.template.txt` |
+| `prompts/` | Handlebars templates for bootstrap / iteration / final |
 
-## Remote resume
+There is **no** `ralph-state.json`. Resume by `git pull` on the sprint branch and reading `progress.txt` + `sessions.log`.
 
-1. Start a new orchestrator (fresh VM is fine) with the same `--branch`, `--child-issues`, and **`--worker`** (a `remote-*` value).
-2. Use `--push` so workers keep `progress.txt` on the remote branch.
-3. The harness runs `git pull` on the sprint branch, parses `RALPH_ISSUE_COMPLETE #n` (or legacy `RALPH_SLICE_COMPLETE #n`) **in `progress.txt` only**, and skips finished issues.
-4. If a milestone exists only in a commit message and not in `progress.txt`, the loop will **not** treat it as done — update `progress.txt` and push.
-
-## Worker placement (`--worker`)
-
-| `--worker` | Runs on | CLI / API |
-|------------|---------|------------|
-| **`local-cursor`** (default) | This machine | `agent` |
-| **`local-claude`** | This machine | `claude` |
-| **`local-codex`** | This machine | `codex exec` |
-| **`remote-cursor`** | Cursor Cloud | `CURSOR_API_KEY` + `--push` |
-| **`remote-oz`** | Warp Oz | `WARP_API_KEY` + `OZ_ENVIRONMENT_ID` + `--push` |
-
-If the user has not chosen, ask before running (see skill **ralph**).
-
-Deprecated: `--backend`, `--cloud-provider`, `--agent-cmd` (mapped to `--worker` with a warning).
-
-## Loop modes
-
-| Mode | Command | Use when |
-|------|---------|----------|
-| HITL | `scripts/ralph-once.sh` or `--once` | Learning, refining prompts, risky work |
-| AFK | `scripts/ralph-loop.sh` + `--max-iterations N` | Unattended runs; always cap iterations |
-
-## Setup
+## Scripts
 
 ```bash
-cd scripts/ralph && npm install
+cd scripts/ralph && npm install   # once per clone
 ```
 
-## Required arguments
+| Script | Role |
+|--------|------|
+| `scripts/ralph-chain-next.sh` | Plan next phase, render prompt, **start** next session, append `sessions.log`, commit, exit |
+| `scripts/ralph-render-prompt.sh` | Render a prompt to stdout or `.ralph/.next-prompt.md` |
+| `scripts/ralph-plan.sh` | JSON: next phase (`issue` / `final` / `done`) from progress |
+| `scripts/start-cursor-cloud-session.sh` | Used by chain-next for `remote-cursor` |
+| `scripts/start-oz-cloud-session.sh` | Used by chain-next for `remote-oz` |
+
+Implementation: `scripts/ralph/src/` (prompt rendering + chaining only).
+
+## Bootstrap (once per epic)
+
+1. Orchestrator discovers and orders child issues (skill **ralph**).
+2. Writes **`.ralph/ralph.config.json`** (see `ralph.config.example.json`), seeds `progress.txt` / `sessions.log`, pushes.
+3. Starts first worker:
+
+   ```bash
+   ./scripts/ralph-chain-next.sh --bootstrap
+   ```
+
+4. Orchestrator **stops**; first iteration runs in the new session.
+
+Optional: paste `bootstrap-prompt.md` into the orchestrator session (render with `ralph-render-prompt.sh --bootstrap` only after a minimal config exists, or follow the skill).
+
+## Each iteration
+
+Prompt: `iteration-prompt.md` (issue # from plan) or `final-pass-prompt.md`.
+
+At end of session (after push + progress update):
 
 ```bash
-./scripts/ralph-loop.sh \
-  --parent-issue <N> \
-  --child-issues <n1> <n2> ... \
-  --branch <integration-branch> \
-  --prd <path-to-epic-prd.md> \
-  [--worker local-cursor] \
-  [--e2e docs/playwright-e2e-scenarios.md] \
-  [--push] [--once] [--max-iterations N] \
-  [--prompts-dir .ralph/prompts] …
+./scripts/ralph-chain-next.sh --from-notes "issue #N pass"
 ```
 
-Run `./scripts/ralph-loop.sh --help` for all workers and flags.
+- **`RALPH_CHAINED <url|tmux:…>`** — next session started; **stop** current session.
+- **`RALPH_DONE`** — `RALPH_ALL_COMPLETE` in progress; epic finished.
 
-- **`--prd`** — feature-specific epic PRD (required).
-- **`--e2e`** — optional; defaults to project-wide Playwright checklist. Do not point this at feature-only browser-agent plans.
+## Worker (`ralph.config.json` → `worker`)
 
-Child issue numbers and **order** come from the orchestrator. The script does not call GitHub.
+| `worker` | Next session started by |
+|----------|-------------------------|
+| `local-cursor` | Detached `tmux` + `agent -p` |
+| `local-claude` | Detached `tmux` + `claude -p` |
+| `local-codex` | Detached `tmux` + `codex` |
+| `remote-cursor` | `start-cursor-cloud-session.sh` (API) |
+| `remote-oz` | `start-oz-cloud-session.sh` (API) |
 
-## Local workers
+Use `"push": true` for `remote-*` so each fresh VM sees the branch.
 
-Requires the CLI for your `--worker` on `PATH` (`agent`, `claude`, or `codex`), plus `git`, Node.js 18+, and Playwright deps (`npx playwright install` if needed).
+## Resume after interruption
 
-## Remote orchestrator (optional)
+1. Ensure `ralph.config.json` and `progress.txt` on the branch are current.
+2. Run **`./scripts/ralph-chain-next.sh`** (no `--bootstrap`) — starts the next incomplete issue or final pass.
+3. Inspect **`sessions.log`** for all session URLs/refs.
 
-See `.cursor/skills/ralph/SKILL.md`.
+## Cleanup
 
-```bash
-./scripts/launch-ralph-orchestrator.sh --branch … --worker remote-cursor -- \
-  --parent-issue … --child-issues … --prd … --worker remote-cursor --push --max-iterations 50
-```
-
-When the epic is done, remove or trim `progress.txt` on the branch in a cleanup commit.
+When the epic is done, trim or remove `progress.txt` / `sessions.log` in a cleanup commit if desired.

@@ -85,5 +85,6 @@ test-results/
 .ralph/logs/
 .ralph/screenshots/
 .ralph/STEERING.md
+.ralph/.next-prompt.md
 __pycache__/
 scripts/ralph/node_modules/

@@ -79,5 +79,4 @@ From a **local** Cursor CLI session, prefix a message with `&` to push work to t
 
 ## Related
 
-- Repo implementation reference: `scripts/ralph/src/agents/cursor.ts`
-- Multi-issue automation: `.cursor/skills/ralph/SKILL.md` (`--worker remote-cursor`, `--push`)
+- Recursive Ralph: `scripts/ralph-chain-next.sh` with `"worker": "remote-cursor"` in `.ralph/ralph.config.json` (see `.ralph/README.md`, ralph skill)
