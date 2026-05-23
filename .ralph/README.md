@@ -36,16 +36,25 @@ Implementation: `scripts/ralph/src/` (prompt rendering + chaining only).
 ## Bootstrap (once per epic)
 
 1. Orchestrator discovers and orders child issues (skill **ralph**).
-2. Writes **`.ralph/ralph.config.json`** (see `ralph.config.example.json`), seeds `progress.txt` / `sessions.log`, pushes.
-3. Starts first worker:
+2. Writes **`.ralph/ralph.config.json`**, seeds **`progress.txt`** (with bootstrap section) and **`sessions.log`** on the integration branch.
+3. **Publish** (before any worker):
+
+   ```bash
+   ./scripts/ralph-bootstrap-publish.sh
+   ```
+
+   - **Cloud** (`remote-*`): push branch + **draft PR** via `gh`
+   - **Local** (`local-*`): push branch only (no PR yet)
+
+4. Start first worker:
 
    ```bash
    ./scripts/ralph-chain-next.sh --bootstrap
    ```
 
-4. Orchestrator **stops**; first iteration runs in the new session.
+5. Orchestrator **stops**; first iteration runs in the new session.
 
-Optional: paste `bootstrap-prompt.md` into the orchestrator session (render with `ralph-render-prompt.sh --bootstrap` only after a minimal config exists, or follow the skill).
+See **`bootstrap-prompt.md`**.
 
 ## Each iteration
 

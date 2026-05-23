@@ -1,57 +1,67 @@
-You are the Ralph **bootstrap** orchestrator. You do **not** implement product code. You set up the recursive epic and start the **first** worker session, then stop.
+You are the Ralph **bootstrap** orchestrator. You do **not** implement product code. You prepare the integration branch and state files, **publish** them to GitHub, then start the **first** worker session and stop.
 
-**No cross-session memory:** the first worker (and every later worker) is a **new** agent. It will not see this chat. Put durable facts in **`ralph.config.json`**, **`progress.txt`**, and git — not only in your reply.
+**No cross-session memory:** the first worker is a **new** agent. It only sees what you pushed to **`branch`**: `ralph.config.json`, `progress.txt`, `sessions.log`, and (for cloud) an open **draft PR**.
 
 ## 1. Choose worker
 
-Confirm **`worker`** in config matches what the user wants (see ralph skill). Default: keep the same runtime across the whole epic unless they explicitly ask to switch.
+Record in config (see ralph skill). This controls bootstrap publish behavior:
 
-| `worker` | Needs |
-|----------|--------|
-| `local-cursor` | `agent` on PATH |
-| `local-claude` | `claude` on PATH |
-| `local-codex` | `codex` on PATH |
-| `remote-cursor` | `CURSOR_API_KEY`, `push: true` |
-| `remote-oz` | `WARP_API_KEY`, `OZ_ENVIRONMENT_ID`, `push: true` |
+| `worker` | Bootstrap publish |
+|----------|-------------------|
+| `remote-cursor`, `remote-oz` | Push **`branch`** + create **draft PR** → `base` |
+| `local-cursor`, `local-claude`, `local-codex` | Create/push **`branch`** only — **no** PR yet |
+
+Set `"push": true` for `remote-*`.
 
 ## 2. Discover and order child issues
 
-Read each slice issue (e.g. `gh issue view`). Order by **dependency** — not numeric sort, not regex on headings. Every blocker must appear before dependents.
+Read each slice (`gh issue view`). Order by **dependency** — not numeric sort. Every blocker before dependents.
 
-Record the parent epic issue number and ordered child issue numbers for config.
+Record `parentIssue` and ordered `childIssues` for config.
 
-## 3. Write `.ralph/ralph.config.json` on the integration branch
+## 3. Prepare files on the integration branch
 
-Use `.ralph/ralph.config.example.json` as a template. Required fields:
+Checkout or create **`branch`** from **`base`** (do not start workers on `base`).
 
-- `version`: 1
-- `parentIssue`, `childIssues` (ordered), `branch`, `base`, `prd`
-- `worker`, `push` (true for `remote-*`)
-- `promptsDir`: `.ralph/prompts`
-- `feedbackLoops` as in the example
+1. Write **`.ralph/ralph.config.json`** from **`.ralph/ralph.config.example.json`** (`version`, `parentIssue`, `childIssues`, `branch`, `base`, `prd`, `worker`, `push`, …).
+2. Seed **`.ralph/progress.txt`** from **`.ralph/progress.template.txt`** if missing. Add a **dated bootstrap section**: epic #, ordered children, worker, branch — what the first worker should know.
+3. Seed **`.ralph/sessions.log`** from **`.ralph/sessions.template.txt`** if missing (header only; iterations append later).
 
-Commit and push config before chaining.
+Do **not** run `ralph-chain-next.sh` until after step 4.
 
-## 4. Seed state files
-
-If missing, copy `.ralph/progress.template.txt` → `.ralph/progress.txt` and `.ralph/sessions.template.txt` → `.ralph/sessions.log`. Commit if newly created.
-
-## 5. Start the first iteration (then stop)
+## 4. Publish bootstrap state (required before first iteration)
 
 From repo root:
+
+```bash
+./scripts/ralph-bootstrap-publish.sh --state-dir .ralph
+```
+
+This script:
+
+- Commits **`.ralph/ralph.config.json`**, **`progress.txt`**, **`sessions.log`**
+- **Pushes** `branch` to `origin`
+- **Cloud workers:** runs `gh pr create --draft` (or reuses existing PR for that branch)
+- **Local workers:** push only — no GitHub PR at bootstrap
+
+Verify output: `OK: bootstrap publish complete`. For cloud, note `RALPH_BOOTSTRAP_PR <url>`.
+
+Requires **`gh`** and push access for cloud bootstrap.
+
+## 5. Start the first worker (then stop)
+
+Only after step 4 succeeded:
 
 ```bash
 ./scripts/ralph-chain-next.sh --bootstrap --state-dir .ralph
 ```
 
-- Note `RALPH_CHAINED` and the session ref (also in `.ralph/sessions.log` after push).
-- **Do not monitor** the first worker — your session ends when chain-next exits.
-- **Do not** keep implementing here — the first worker continues in the new session.
-
-Optional: paste the cloud URL in chat only if a **human** in this thread asked for it.
+- Note `RALPH_CHAINED` (next session ref; also appended to `sessions.log`).
+- **Do not monitor** the first worker.
+- **Stop** — implementation is in the new session.
 
 ## 6. Report
 
-Short summary: worker, ordered `childIssues`, branch, first session ref (from **`.ralph/sessions.log`**).
+Worker, ordered `childIssues`, `branch`, draft PR URL (cloud) or “branch only” (local), first entry in `sessions.log`.
 
 Ralph tips: https://www.aihero.dev/tips-for-ai-coding-with-ralph-wiggum · Full flow: ralph skill.

@@ -48,7 +48,7 @@ Ask the **human** when unclear (local vs cloud, Cursor / Claude / Codex). Record
 cd "$(git rev-parse --show-toplevel)/scripts/ralph" && npm install
 ```
 
-Scripts: `scripts/ralph-chain-next.sh`, `scripts/ralph-render-prompt.sh`, `scripts/ralph-plan.sh`.
+Scripts: `scripts/ralph-bootstrap-publish.sh`, `scripts/ralph-chain-next.sh`, `scripts/ralph-render-prompt.sh`, `scripts/ralph-plan.sh`.
 
 ---
 

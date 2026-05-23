@@ -5,6 +5,7 @@
   "scripts": {
     "render": "tsx src/render-cli.ts",
     "chain-next": "tsx src/chain-next.ts",
+    "bootstrap-publish": "tsx src/bootstrap-publish.ts",
     "plan": "tsx src/plan-cli.ts"
   },
   "dependencies": {
