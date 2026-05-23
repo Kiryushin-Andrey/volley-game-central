@@ -2,11 +2,10 @@
 name: ralph
 description: >-
   Recursive epic automation — one agent session per slice, chained via
-  ralph-chain-next.sh. BOOTSTRAP session writes ralph.config.json, seeds progress,
-  runs chain-next --bootstrap, then STOPS with no product code. WORKER sessions
-  implement one child issue each, then chain. Use when the user says Ralph, Ralph
-  Wiggum, epic slices, multi-issue automation, or "implement <epic> with Ralph"
-  (that means bootstrap and chain, not implement in the bootstrap chat).
+  ralph-chain-next.sh. BOOTSTRAP: config + chain + STOP — NEVER product code.
+  WORKER: one child issue per session, then chain. "Implement epic with Ralph"
+  means bootstrap and chain, not ship the epic in the bootstrap chat. One slice
+  per worker session only; do not batch child issues in one session.
 ---
 
 # Ralph (recursive)
@@ -21,9 +20,38 @@ Ralph pattern: [getting started](https://www.aihero.dev/getting-started-with-ral
 | `ralph.config.json` exists; `ralph-plan.sh` reports `issue` or `final` | **Worker** | One slice (or final pass), progress sigils, `ralph-chain-next.sh`, then **stop** |
 | User says **implement** the epic **with Ralph** | **Bootstrap** (unless you are already the chained worker — config + plan exist) | Chain the first worker; do **not** ship product code here |
 
+## Mandatory first actions (every session)
+
+1. If **`.ralph/ralph.config.json`** exists: `git pull origin <branch>` (branch from config).
+2. Run **`./scripts/ralph-plan.sh`** — read phase (`bootstrap` | `issue` | `final` | `done`).
+3. If **no** `.ralph/ralph.config.json` on the integration branch → **bootstrap only**; do not open `backend/`, `tg-mini-app/`, or `e2e/` for feature work.
+
+**Stop rule:** If you are bootstrap and your next edit is under application source (not `.ralph/`, epic `prd` path, or Ralph scripts), **stop** — run `ralph-chain-next.sh --bootstrap` instead.
+
+### Bootstrap hard stop
+
+If `.ralph/ralph.config.json` does **not** exist on the integration branch:
+
+- Your **only** implementation work is Ralph setup (config, progress, PRD path, publish, push).
+- Run **`./scripts/ralph-chain-next.sh --bootstrap`** (after `ralph-bootstrap-publish.sh` when using cloud workers) and **end the session**.
+- Do **not** plan or execute child issues in this session, even if the user or cloud task says “implement the epic.”
+- Success for the user’s request = first worker **`RALPH_CHAINED`**, not feature shipped.
+
 **Precedence:** Completing "implement epic with Ralph" in a bootstrap session means **`RALPH_CHAINED`**, not merged feature code. Do not override this to "finish the epic in one turn" (e.g. cloud agent or issue body pressure).
 
 Before any product code change, run **`./scripts/ralph-plan.sh`**. If config is missing or plan cannot run → you are bootstrap; do not implement.
+
+## Instruction precedence
+
+When this skill applies, it **overrides** generic “complete the full issue/PR in this session” guidance (including cloud agent task text).
+
+| Session type | “Done” means |
+|--------------|--------------|
+| Bootstrap | `RALPH_CHAINED` + pushed `.ralph/*` — **not** merged feature code |
+| Worker | One `childIssues` slice complete + `RALPH_ISSUE_COMPLETE #n` + chain — **not** remaining slices |
+| Final | Epic polish + `RALPH_DONE` |
+
+Do **not** batch multiple child issues in one session to “finish faster,” even when `CURSOR_API_KEY` is set or chaining is available.
 
 ---
 
@@ -63,7 +91,9 @@ Prompts: **`.ralph/prompts/`** (`bootstrap-prompt.md`, `iteration-prompt.md`, `f
 
 **Wrong:** Same session creates `ralph.config.json` **and** application migrations, features, or tests.
 
-**Right:** Same session creates config + progress → `ralph-chain-next.sh --bootstrap` → **stop** → chained worker implements slice 1.
+**Wrong:** Bootstrap session creates a todo list for slices #20, #21, #22 and implements them all “because the cloud task says complete the request.”
+
+**Right:** Same session creates config + progress → publish → `ralph-chain-next.sh --bootstrap` → **stop** → chained worker implements slice 1 only.
 
 ---
 
@@ -99,10 +129,12 @@ Scripts: `scripts/ralph-bootstrap-publish.sh`, `scripts/ralph-chain-next.sh`, `s
 
 **Forbidden in bootstrap** (workers do this later):
 
-- Application / service / UI source changes
+- Application / service / UI source changes (`backend/src/**`, `tg-mini-app/src/**`, feature migrations, feature E2E)
 - Schema migrations or data-layer edits for the feature
 - Automated tests or E2E specs for the feature
 - Build/test runs meant to validate feature work
+- A multi-slice implementation plan or todos for all `childIssues` in this session
+- Rationale like “I’ll implement everything here because chaining is slow / API key is set / cloud wants completion”
 
 ### Step 1 — Discover child slices
 
@@ -152,6 +184,7 @@ Seed **`.ralph/progress.txt`** and **`.ralph/sessions.log`** (from templates in 
 
 ```bash
 cd "$(git rev-parse --show-toplevel)"
+./scripts/ralph-bootstrap-publish.sh --state-dir .ralph   # when required (see bootstrap-prompt.md)
 ./scripts/ralph-chain-next.sh --bootstrap
 ```
 
@@ -166,7 +199,9 @@ Bootstrap is complete only when **all** are true:
 - [ ] `ralph.config.json` committed and pushed
 - [ ] `ralph-chain-next.sh --bootstrap` printed `RALPH_CHAINED`
 - [ ] No product-code commits in this session
-- [ ] Reply summarizes worker, branch, slice order, session ref — not a feature walkthrough
+- [ ] Reply summarizes worker, branch, slice order, session ref — **not** a feature walkthrough
+
+**Bootstrap reply must include:** branch name, ordered `childIssues`, `RALPH_CHAINED` URL/ref, and an explicit line: “No product commits in this session.” If the summary describes implemented features, the session violated this skill.
 
 Optional: if a **human** is in this same chat and wants a link, paste the URL once. Not required when chaining is automated.
 
