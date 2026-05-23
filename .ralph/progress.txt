@@ -103,3 +103,6 @@ RALPH_ISSUE_COMPLETE #21
 - `e2e/positions-level-restrictions.spec.ts`, `e2e/support/fixtures.ts`, `e2e/game-form.spec.ts`, `e2e/cross-user-state.spec.ts`, `docs/playwright-e2e-scenarios.md`, `scripts/playwright-dev-server.sh`
 
 RALPH_ISSUE_COMPLETE #22
+
+### Chain (final pass)
+- `./scripts/ralph-chain-next.sh --from-notes "issue #22"` → Cursor API 400: cannot verify branch on GitHub (all refs). `ralph-plan.sh` → **final** pass pending. Re-run chain when API/repo access works.
