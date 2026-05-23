@@ -39,4 +39,16 @@ RALPH_ISSUE_COMPLETE #{{issue_number}}
 
 (Legacy alias: `RALPH_SLICE_COMPLETE #{{issue_number}}`.)
 
+{{#if is_last_issue}}
+## Epic closure (last child issue)
+
+When issue #{{issue_number}} is complete and the **full project** E2E suite is green:
+
+- Re-read **{{prd}}** and **{{context}}** for any epic-level acceptance not covered by this issue alone.
+- Update **{{prd}}** if checklist items use `passes: true/false`.
+- Ensure a draft PR exists from **{{branch}}** → **{{base}}** ({{closes_clause}}) if your workflow uses one; cloud bootstrap may have opened it already — otherwise note PR status in {{progress_file}}.
+
+After you chain, `ralph-chain-next.sh` should print **`RALPH_DONE`** (no further child issues).
+{{/if}}
+
 {{> chain-next}}

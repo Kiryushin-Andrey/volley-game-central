@@ -21,7 +21,6 @@ export interface RalphConfigFile {
   push: boolean;
   feedbackLoops: string[];
   cloudModel?: string;
-  cloudCreatePrOnFinal?: boolean;
   ozEnvironmentId?: string;
   ozModelId?: string;
   ozConfigName?: string;
@@ -93,7 +92,6 @@ function normalizeConfig(raw: Partial<RalphConfigFile>, stateDir: string): Ralph
       "Frontend TypeScript: cd tg-mini-app && npm run build",
     ],
     cloudModel: raw.cloudModel ?? "default",
-    cloudCreatePrOnFinal: raw.cloudCreatePrOnFinal ?? false,
     ozEnvironmentId: raw.ozEnvironmentId,
     ozModelId: raw.ozModelId,
     ozConfigName: raw.ozConfigName ?? "ralph-recursive",

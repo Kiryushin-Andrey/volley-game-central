@@ -7,11 +7,10 @@ Edit these markdown files to change what agents see. Templates use **[Handlebars
 | Template | When |
 |----------|------|
 | `bootstrap-prompt.md` | Orchestrator sets up config and runs first `ralph-chain-next.sh --bootstrap` |
-| `iteration-prompt.md` | One session on the current incomplete child issue |
-| `final-pass-prompt.md` | All children complete; epic closure + `RALPH_ALL_COMPLETE` |
+| `iteration-prompt.md` | One session on the current incomplete child issue (includes epic closure on the last issue) |
 | `partials/` | Shared blocks (`workflow`, `session-orientation`, `chain-next`, …) |
 
-Legacy names removed: `loop-iteration-prompt.md`, `orchestrator-prompt.md` (replaced by recursive flow).
+Legacy names removed: `loop-iteration-prompt.md`, `orchestrator-prompt.md`, `final-pass-prompt.md` (replaced by last-issue closure in `iteration-prompt.md`).
 
 ## Render locally
 
@@ -24,4 +23,4 @@ Context is built in `scripts/ralph/src/render-context.ts` from `ralph.config.jso
 
 ## Chain partial
 
-Every iteration and final pass includes **`partials/chain-next.md`**: commit, run `ralph-chain-next.sh`, record next session in `sessions.log`, **stop** (no monitoring the next run).
+Every iteration includes **`partials/chain-next.md`**: commit, run `ralph-chain-next.sh`, record next session in `sessions.log`, **stop** (no monitoring the next run).

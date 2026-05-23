@@ -37,21 +37,21 @@ export function buildPromptContext(
     feedback_loops: cfg.feedbackLoops.map((item) => `- ${item}`).join("\n"),
     bootstrap: opts?.bootstrap === true,
     screenshots_dir: `${cfg.stateDir}/screenshots`,
+    is_last_issue: false,
+    closes_clause: "",
   };
 
   if (phase.type === "issue") {
     ctx.has_issue = true;
     ctx.issue_number = phase.issueNumber;
     ctx.issue_url = issueUrl(cfg, repo, phase.issueNumber);
+    const last = cfg.childIssues[cfg.childIssues.length - 1];
+    if (phase.issueNumber === last) {
+      ctx.is_last_issue = true;
+      ctx.closes_clause = cfg.childIssues.map((n) => `Closes #${n}`).join(", ");
+    }
   } else {
     ctx.has_issue = false;
-  }
-
-  if (phase.type === "final") {
-    ctx.is_final = true;
-    ctx.closes_clause = cfg.childIssues.map((n) => `Closes #${n}`).join(", ");
-  } else {
-    ctx.is_final = false;
   }
 
   if (phase.type === "done") {

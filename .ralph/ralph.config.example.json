@@ -16,7 +16,6 @@
     "Frontend TypeScript: cd tg-mini-app && npm run build"
   ],
   "cloudModel": "default",
-  "cloudCreatePrOnFinal": false,
   "ozEnvironmentId": "",
   "ozConfigName": "ralph-recursive"
 }

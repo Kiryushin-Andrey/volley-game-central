@@ -7,7 +7,7 @@ import type { WorkerKind } from "./workers/types.js";
 export function appendSessionLine(
   cfg: RalphConfigFile,
   fields: {
-    role: "bootstrap" | "iteration" | "final";
+    role: "bootstrap" | "iteration";
     worker: WorkerKind;
     sessionRef: string;
     notes: string;

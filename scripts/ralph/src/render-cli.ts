@@ -12,9 +12,8 @@ import { PromptLoader } from "./prompts.js";
 import { buildPromptContext } from "./render-context.js";
 import type { RalphPhase } from "./plan.js";
 
-function templateForPhase(phase: RalphPhase, bootstrap: boolean): string {
+function templateForPhase(bootstrap: boolean): string {
   if (bootstrap) return "bootstrap-prompt";
-  if (phase.type === "final") return "final-pass-prompt";
   return "iteration-prompt";
 }
 
@@ -35,7 +34,7 @@ async function main(): Promise<void> {
       "ralph-render — render Handlebars prompt from ralph.config.json\n\n" +
         "  --state-dir .ralph\n" +
         "  --bootstrap          bootstrap-prompt.md\n" +
-        "  --phase issue|final  override auto plan (default: from progress.txt)\n" +
+        "  --phase issue|done   override auto plan (default: from progress.txt)\n" +
         "  --issue-number N     with --phase issue\n" +
         "  --out path           write prompt to file (default: stdout)\n",
     );
@@ -53,14 +52,12 @@ async function main(): Promise<void> {
       process.exit(1);
     }
     phase = { type: "issue", issueNumber: Number(n) };
-  } else if (values.phase === "final") {
-    phase = { type: "final" };
   } else if (values.phase === "done") {
     phase = { type: "done" };
   }
 
   const bootstrap = values.bootstrap === true;
-  const name = templateForPhase(phase, bootstrap);
+  const name = templateForPhase(bootstrap);
   const prompts = new PromptLoader(cfg.promptsDir);
   const text = prompts.render(name, buildPromptContext(cfg, root, phase, { bootstrap }));
   const outPath = values.out ?? join(cfg.stateDir, ".next-prompt.md");
