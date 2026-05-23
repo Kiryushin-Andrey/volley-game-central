@@ -32,7 +32,8 @@ async function createAdminAssignmentViaUi(
   const dayOptionValue = options?.dayOptionValue ?? '6';
   const withPositions = options?.withPositions ?? false;
 
-  await page.goto('/game-administrators');
+  await page.goto('/players');
+  await page.getByRole('link', { name: 'Game administrators' }).click();
   await expect(page.getByRole('heading', { name: 'Game Administrators' })).toBeVisible();
   await page.getByRole('button', { name: 'Add Assignment' }).click();
   await page.getByLabel('Day of Week').selectOption(dayOptionValue);
@@ -197,7 +198,7 @@ test.describe('games home scenarios', () => {
   test('E2E-HOME-010 global admin sees non-integration admin controls', async ({ page }, testInfo) => {
     await devLogin(page, testInfo, 'Toolbar Admin', true);
 
-    await expect(page.getByTitle('Game Administrators')).toBeVisible();
+    await expect(page.getByTitle('Players')).toBeVisible();
     await expect(page.getByTitle('Create New Game')).toBeVisible();
   });
 
@@ -210,7 +211,7 @@ test.describe('games home scenarios', () => {
     await switchToUser(page, assignedAdmin);
 
     await expect(page.getByTitle('Create New Game')).toBeVisible();
-    await expect(page.getByTitle('Game Administrators')).toHaveCount(0);
+    await expect(page.getByTitle('Players')).toHaveCount(0);
   });
 
   test('E2E-HOME-012 home error state retries after games API failure', async ({ page }, testInfo) => {

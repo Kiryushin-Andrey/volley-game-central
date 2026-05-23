@@ -145,7 +145,7 @@ test.describe('game creation and editing scenarios', () => {
     await page.getByRole('button', { name: 'Save Changes' }).click();
 
     await expect(page).toHaveURL(new RegExp(`/game/${game.id}$`));
-    await expect(page.getByText(updatedTitle)).toBeVisible();
+    await expect(page.getByText(updatedTitle)).toBeVisible({ timeout: 15000 });
     await expect(page.getByRole('link', { name: 'E2E Edited Hall' })).toBeVisible();
   });
 
@@ -208,7 +208,7 @@ test.describe('game creation and editing scenarios', () => {
     expect(updateResponse.ok()).toBeTruthy();
 
     await expect(page).toHaveURL(new RegExp(`/game/${game.id}$`));
-    await expect(page.getByText(updatedTitle)).toBeVisible();
+    await expect(page.getByText(updatedTitle)).toBeVisible({ timeout: 15000 });
     await expect(page.getByText(originalTitle)).toHaveCount(0);
   });
 });

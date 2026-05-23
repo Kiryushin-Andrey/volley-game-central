@@ -3,6 +3,8 @@ export enum PricingMode {
   TOTAL_COST = 'total_cost'
 }
 
+export type PlayerLevel = 'beginner' | 'intermediate' | 'advanced';
+
 // Minimal user info used across UI for player dialogs and click handlers
 export interface UserPublicInfo {
   id: number;
@@ -12,6 +14,10 @@ export interface UserPublicInfo {
   avatarUrl?: string | null;
   blockReason?: string | null;
   phoneNumber?: string | null;
+}
+
+export interface UserWithPlayerLevel extends UserPublicInfo {
+  playerLevel: PlayerLevel | null;
 }
 
 export interface User {

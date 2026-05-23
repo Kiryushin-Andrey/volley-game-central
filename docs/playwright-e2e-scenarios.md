@@ -65,7 +65,7 @@ Spec: `e2e/games-home.spec.ts`
 - [x] E2E-HOME-007: Global Admin switches between `Upcoming` and `Past` filters.
 - [x] E2E-HOME-008: Global Admin toggles `Show all scheduled games` for upcoming games and sees games outside the default registration window.
 - [x] E2E-HOME-009: Global Admin switches to past games and toggles `Show fully paid games`.
-- [x] E2E-HOME-010: Global Admin sees `Game Administrators` and `Create New Game` controls for non-integration admin access.
+- [x] E2E-HOME-010: Global Admin sees `Players` and `Create New Game` controls for non-integration admin access.
 - [x] E2E-HOME-011: Assigned Admin sees `Create New Game` access without global-only administration links.
 - [x] E2E-HOME-012: Home error state shows `Error` and `Retry` when the games API fails, then recovers after retry.
 - [x] E2E-HOME-013: With default category filter (Sunday), participant sees `No games available` when the only upcoming game is a Thursday 5-1 game.
@@ -73,6 +73,17 @@ Spec: `e2e/games-home.spec.ts`
 - [x] E2E-HOME-015: Participant A with an unpaid past game (after admin sent payment requests) sees `Your unpaid games` on the upcoming home view, opens the entry, and **Pay now** opens the Bunq payment link in a new browser tab (or window).
 - [x] E2E-HOME-016: Games home cards use a yellow left border for 5-1 games and a green left border for non-5-1 games.
 - [x] E2E-HOME-017: Category info blocks on the games home use yellow background for 5-1 and green for other selected categories.
+
+## Player levels admin scenarios
+
+Spec: `e2e/player-levels.spec.ts`
+
+Global administrators manage internal skill tiers via the **Players** hub (`/players`); non-admins must not reach these routes.
+
+- [x] E2E-LEVELS-001: Global Admin opens **Players** from the games home toolbar, sees the hub, and navigates to **Player levels**.
+- [x] E2E-LEVELS-002: Global Admin filters the list, opens a player row, assigns **Intermediate** in the player details dialog, and sees the level pill on the list.
+- [x] E2E-LEVELS-003: Participant is redirected to games home when visiting `/players` or `/player-levels`.
+- [x] E2E-LEVELS-004: Assigned Admin (non-global) does not see the **Players** toolbar icon.
 
 ## Game details participant scenarios
 

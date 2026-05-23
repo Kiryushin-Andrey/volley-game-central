@@ -43,3 +43,34 @@
 - `e2e/support/fixtures.ts`, `e2e/game-form.spec.ts`, `docs/playwright-e2e-scenarios.md`
 
 RALPH_ISSUE_COMPLETE #20
+
+## 2026-05-23 — Issue #21 (player levels admin)
+
+### Session orientation
+- Branch `cursor/player-levels-issue8-dbd5` up to date; `ralph-plan.sh` → issue #21; #20 complete in progress.
+- Focus: global-admin player levels (schema + API + UI); no registration enforcement (slice #22).
+
+### E2E gate (before feature work)
+- Initial run: backend down after ts-node-dev restart (Telegraf stop) — `Failed to load players` on new routes; restarted `npm run e2e:server`.
+- After restart: **111 passed**, 0 failed (includes 4 new `E2E-LEVELS-*` specs).
+
+### Implemented (#21)
+- Migration `0032_add_player_level_to_users.sql`: nullable `player_level` on `users`.
+- Domain `playerLevel.ts` + unit tests: parse, list sort (unassigned → advanced → intermediate → beginner, alpha within group).
+- API `GET/PATCH /player-levels/users` (global admin only via `adminAuthMiddleware`).
+- `toPublicAuthUser` strips `playerLevel` from `/users/me` and public user GETs.
+- UI: **Players** hub `/players`, **Player levels** `/player-levels` (filter, pills, row → dialog with level selector + immediate PATCH).
+- Toolbar **Players** icon → `/players` (was direct `/game-administrators`).
+- E2E: `e2e/player-levels.spec.ts`, checklist section; HOME-010/AUTH-004 toolbar title **Players**; games-home assignment helper via hub.
+- Fix: `GameDetails` reload on `location.pathname` after edit (stabilizes E2E-FORM-007/010 under full suite).
+
+### E2E gate (before commit)
+- `npm run test:e2e`: **111 passed**, 0 failed.
+- `cd backend && npm run build` OK; `cd tg-mini-app && npm run build` OK; `cd backend && npm test` OK (13 domain tests).
+
+### Files touched (main)
+- `backend/drizzle/0032_*`, `backend/src/domain/playerLevel.*`, `backend/src/routes/playerLevels.ts`, `backend/src/utils/userResponse.ts`, `backend/src/db/schema.ts`, `backend/src/index.ts`, `backend/src/routes/users.ts`
+- `tg-mini-app/src/pages/PlayersHub.*`, `PlayerLevels.*`, `utils/playerLevel.ts`, `viewmodels/PlayerLevelsViewModel.ts`, `components/PlayerInfoDialog.*`, `App.tsx`, `GamesList.tsx`, `GameDetails.tsx`, `EditGameSettings.tsx`, `types`, `services/api.ts`
+- `e2e/player-levels.spec.ts`, `e2e/games-home.spec.ts`, `e2e/auth-session.spec.ts`, `e2e/game-form.spec.ts`, `docs/playwright-e2e-scenarios.md`
+
+RALPH_ISSUE_COMPLETE #21

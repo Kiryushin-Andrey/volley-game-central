@@ -1,0 +1,120 @@
+.player-levels-page {
+  padding: 16px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.player-levels-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+
+  h1 {
+    margin: 0;
+    font-size: 1.5rem;
+  }
+}
+
+.player-levels-filter {
+  margin-bottom: 16px;
+
+  input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--tg-theme-hint-color, #ccc);
+    background: var(--tg-theme-bg-color, #fff);
+    color: var(--tg-theme-text-color, #111);
+    font-size: 1rem;
+  }
+}
+
+.player-levels-list {
+  border: 1px solid var(--tg-theme-hint-color, #eee);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.player-levels-row {
+  display: flex;
+  align-items: center;
+  padding: 10px 15px;
+  border-bottom: 1px solid var(--tg-theme-hint-color, #eee);
+  background-color: var(--tg-theme-bg-color, #fff);
+  cursor: pointer;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background-color: var(--tg-theme-secondary-bg-color, #f8f8f8);
+  }
+
+  .player-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .player-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+
+    .avatar-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .avatar-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--tg-theme-secondary-bg-color, #e8e8e8);
+      font-weight: 600;
+    }
+  }
+
+  .player-name {
+    font-weight: 500;
+  }
+}
+
+.level-pill {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-left: auto;
+}
+
+.level-pill--advanced {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.level-pill--intermediate {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.level-pill--beginner {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.empty-state {
+  padding: 24px;
+  text-align: center;
+  color: var(--tg-theme-hint-color, #666);
+}

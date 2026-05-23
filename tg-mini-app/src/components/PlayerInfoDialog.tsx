@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './PlayerInfoDialog.scss';
-import type { UserPublicInfo } from '../types';
+import type { PlayerLevel, UserPublicInfo } from '../types';
 import { userApi, type UnpaidRegistration } from '../services/api';
 import UnpaidGamesList from './UnpaidGamesList';
+import { PLAYER_LEVEL_LABELS } from '../utils/playerLevel';
 
 // ViewModel encapsulating state and async loading logic for unpaid games
 class PlayerInfoDialogViewModel {
@@ -46,9 +47,21 @@ interface PlayerInfoDialogProps {
   isOpen: boolean;
   onClose: () => void;
   user: UserPublicInfo | null;
+  allowLevelEdit?: boolean;
+  playerLevel?: PlayerLevel | null;
+  onPlayerLevelChange?: (level: PlayerLevel) => Promise<boolean>;
+  levelChangeBusy?: boolean;
 }
 
-const PlayerInfoDialog: React.FC<PlayerInfoDialogProps> = ({ isOpen, onClose, user }) => {
+const PlayerInfoDialog: React.FC<PlayerInfoDialogProps> = ({
+  isOpen,
+  onClose,
+  user,
+  allowLevelEdit,
+  playerLevel,
+  onPlayerLevelChange,
+  levelChangeBusy,
+}) => {
   const [unpaidGames, setUnpaidGames] = useState<UnpaidRegistration[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -193,6 +206,30 @@ const PlayerInfoDialog: React.FC<PlayerInfoDialogProps> = ({ isOpen, onClose, us
                   </button>
                 </div>
               )}
+            </div>
+          )}
+
+          {allowLevelEdit && onPlayerLevelChange && (
+            <div className="player-level-section" style={{ marginTop: 20 }}>
+              <div className="row" style={{ justifyContent: 'flex-start', marginBottom: 8 }}>
+                <span className="label">Player level</span>
+              </div>
+              <div className="level-selector" role="group" aria-label="Player level">
+                {(['beginner', 'intermediate', 'advanced'] as PlayerLevel[]).map((level) => (
+                  <button
+                    key={level}
+                    type="button"
+                    className={`level-selector-btn${playerLevel === level ? ' active' : ''}`}
+                    disabled={levelChangeBusy}
+                    onClick={async () => {
+                      if (playerLevel === level || levelChangeBusy) return;
+                      await onPlayerLevelChange(level);
+                    }}
+                  >
+                    {PLAYER_LEVEL_LABELS[level]}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
