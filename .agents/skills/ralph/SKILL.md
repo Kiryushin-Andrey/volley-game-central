@@ -107,9 +107,11 @@ cd "$(git rev-parse --show-toplevel)"
 ./scripts/ralph-chain-next.sh --bootstrap
 ```
 
-- Read **`RALPH_CHAINED`** and the session ref.
-- **Cloud:** post the URL in a **normal chat message** for the human (not only terminal output).
+- Note **`RALPH_CHAINED`** and the session ref (also in **`.ralph/sessions.log`** after push).
+- **Do not monitor** that session — bootstrap ends here; the first worker runs elsewhere.
 - **Stop** — implementation happens in the **new** session, not here.
+
+Optional: if a **human** is in this same chat and wants a link, paste the URL once. Not required when chaining is automated.
 
 More detail: **`.ralph/prompts/bootstrap-prompt.md`**.
 
@@ -143,10 +145,10 @@ Then follow the injected prompt (`iteration-prompt.md` or `final-pass-prompt.md`
 
 | Output | Action |
 |--------|--------|
-| `RALPH_CHAINED <url\|tmux:…>` | Post cloud URL to human if applicable — **stop** |
+| `RALPH_CHAINED <url\|tmux:…>` | Next session started; ref in **`sessions.log`** — **stop** (do not monitor it) |
 | `RALPH_DONE` | Epic complete — summarize from `progress.txt` — **stop** |
 
-**Do not** run another slice in this session after `ralph-chain-next.sh`.
+**Do not** poll cloud/Oz APIs for the next run. **Do not** run another slice in this session after `ralph-chain-next.sh`.
 
 ---
 

@@ -24,4 +24,4 @@ Context is built in `scripts/ralph/src/render-context.ts` from `ralph.config.jso
 
 ## Chain partial
 
-Every iteration and final pass includes **`partials/chain-next.md`**: commit, run `ralph-chain-next.sh`, post cloud URL, **stop**.
+Every iteration and final pass includes **`partials/chain-next.md`**: commit, run `ralph-chain-next.sh`, record next session in `sessions.log`, **stop** (no monitoring the next run).

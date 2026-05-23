@@ -44,9 +44,11 @@ From repo root:
 ./scripts/ralph-chain-next.sh --bootstrap --state-dir .ralph
 ```
 
-- Note `RALPH_CHAINED` and the session URL (cloud) or `tmux:…` (local).
-- For **cloud**, post the URL in a normal chat message for the user.
-- **Do not** keep implementing in this session — the first worker continues in the new session.
+- Note `RALPH_CHAINED` and the session ref (also in `.ralph/sessions.log` after push).
+- **Do not monitor** the first worker — your session ends when chain-next exits.
+- **Do not** keep implementing here — the first worker continues in the new session.
+
+Optional: paste the cloud URL in chat only if a **human** in this thread asked for it.
 
 ## 6. Report
 

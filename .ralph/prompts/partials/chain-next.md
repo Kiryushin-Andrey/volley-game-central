@@ -7,9 +7,9 @@ cd "$(git rev-parse --show-toplevel)"
 ./scripts/ralph-chain-next.sh --from-notes "{{#if has_issue}}issue #{{issue_number}}{{else}}iteration{{/if}}"
 ```
 
-1. If output includes **`RALPH_CHAINED`** — note the session ref (cloud URL or `tmux:name`). For cloud, **post that URL in chat** for the user. **Stop this session**; do not continue coding here.
-2. If output is **`RALPH_DONE`** — epic complete; summarize and stop (no new session).
-3. **`sessions.log`** — the script appends the **new** session and commits **{{sessions_file}}** so you can audit the full chain on the branch.
+1. If output includes **`RALPH_CHAINED <session-ref>`** — the script has started the **next** session and appended it to **{{sessions_file}}** (committed). **Stop this session immediately.**
+2. If output is **`RALPH_DONE`** — epic complete; summarize from **{{progress_file}}** and stop (no new session).
+3. **Do not monitor** the next session — no polling, no waiting for it to finish, no streaming its logs. The next agent is independent; your job ends when chain-next exits.
 
 Use the **`worker`** in **{{config_file}}** for the next session unless the user explicitly requested a different runtime (then update config before chaining).
 

@@ -242,7 +242,8 @@ async function main(): Promise<void> {
   formatSessionStdout(role, sessionRef, notes);
   console.log(`RALPH_CHAINED ${sessionRef}`);
   console.log(
-    "\nStop this session — the next agent continues in the new session above.",
+    "\nStop this session now — do not monitor the next run. " +
+      "The next agent continues independently; see sessions.log on the branch.",
   );
 }
 

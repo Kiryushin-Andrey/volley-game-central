@@ -32,15 +32,24 @@ git push -u origin "$(git branch --show-current)"
   "Your task prompt here"
 ```
 
-The script prints `url=...` and the session link on the last line. **Paste that URL in chat** for the user — do not rely on collapsed terminal output alone (same rule as `ralph` for `remote-cursor`).
+The script prints `url=...` and the session link on the last line. Capture that URL if you need to record it (e.g. append to a log file). **Do not** poll, stream, or wait for the run to finish unless the user **explicitly** asked you to watch this session.
 
 ## Workflow
 
 1. **Confirm intent** — New cloud VM vs continuing an existing agent (follow-up runs use `POST /v1/agents/{id}/runs`, not this skill).
 2. **Prepare git** — Checkout the integration branch; `git push` so the cloud VM can pull it when using `--work-on-branch` (default).
-3. **Start session** — Run the helper script or `curl` (see API below).
-4. **Deliver URL** — Send the `agent.url` in a normal assistant message immediately.
-5. **Monitor** — User opens the URL in browser or app; poll `GET /v1/agents/{id}/runs/{runId}` or stream SSE if you need status in automation.
+3. **Start session** — Run the helper script or `curl` (see API below). The API returns immediately; work runs asynchronously on Cursor infrastructure.
+4. **Record URL (if needed)** — Save `agent.url` where your workflow expects it (e.g. `.ralph/sessions.log` via `ralph-chain-next.sh`). **Stop** — do not monitor the run.
+
+## Ralph / recursive chaining
+
+When **`ralph-chain-next.sh`** (or an iteration ending with chain-next) starts the next cloud session:
+
+- **Fire-and-forget** — return as soon as the create API succeeds and you have the URL.
+- **Do not** monitor, poll, or stream the next session from the current session.
+- **`sessions.log`** on the branch is the session registry for humans and later agents — not your chat transcript.
+
+Optional: if a **human** is in the same interactive chat and asked for a link, you may paste the URL once. That is not required for Ralph workers chaining to the next VM.
 
 ## Helper script options
 

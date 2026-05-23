@@ -30,15 +30,24 @@ export OZ_ENVIRONMENT_ID=...
   "Your task prompt here"
 ```
 
-Prints `url=...` and the session link. **Post that URL in chat** for the user (same visibility rule as `ralph` / `remote-oz`).
+Prints `url=...` and the session link. Capture the URL if you need to record it. **Do not** poll or wait for completion unless the user **explicitly** asked you to watch this run.
 
 ## Workflow
 
 1. **Confirm environment** — `OZ_ENVIRONMENT_ID` must match a configured environment (branch, secrets, MCP). Wrong env → agent lacks context.
 2. **Push branch if needed** — Environments usually clone from GitHub; ensure the target branch exists on the remote before starting long AFK work.
-3. **Start run** — Helper script or API `POST /agent/run`.
-4. **Deliver URL** — Use `session_link` from the response when present.
-5. **Monitor** — Poll `GET /agent/runs/{run_id}` until state is terminal (`SUCCEEDED`, `FAILED`, etc.).
+3. **Start run** — Helper script or API `POST /agent/run`. The run executes asynchronously on Oz infrastructure.
+4. **Record URL (if needed)** — Save `session_link` (or `https://oz.warp.dev/runs/{run_id}`). **Stop** — do not monitor the run.
+
+## Ralph / recursive chaining
+
+When **`ralph-chain-next.sh`** starts the next Oz session:
+
+- **Fire-and-forget** — exit after create + URL; do not poll `GET /agent/runs/{run_id}` from the previous session.
+- **Do not** monitor the next session from the current agent.
+- **`sessions.log`** on the branch lists chained sessions for humans and cold-start workers.
+
+Optional: paste the URL in chat only if a **human** in the same thread asked for it — not required for Ralph iteration handoff.
 
 ## Helper script options
 
