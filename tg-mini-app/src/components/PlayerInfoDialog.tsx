@@ -42,14 +42,6 @@ class PlayerInfoDialogViewModel {
     }
   }
 }
-
-function formatPlayerLevelSetAt(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  });
-}
-
 interface PlayerInfoDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -266,7 +258,6 @@ const PlayerInfoDialog: React.FC<PlayerInfoDialogProps> = ({
               {profile.playerLevel && profile.playerLevelSetBy && (
                 <p className="hint" style={{ marginTop: 8 }}>
                   Set by {profile.playerLevelSetBy.displayName}
-                  {profile.playerLevelSetAt ? ` on ${formatPlayerLevelSetAt(profile.playerLevelSetAt)}` : ''}
                 </p>
               )}
             </div>
