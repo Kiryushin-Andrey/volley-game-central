@@ -258,6 +258,7 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
                     </div>
                     {user.isAdmin && (
                       <div className="admin-icon-buttons">
+                        {canManagePlayerLevels(user) && (
                         <Link
                           to="/players"
                           className="icon-button"
@@ -265,6 +266,7 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
                         >
                           <FaUsers />
                         </Link>
+                        )}
                         <Link
                           to="/bunq-settings"
                           className="icon-button"

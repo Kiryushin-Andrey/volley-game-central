@@ -56,6 +56,26 @@ test.describe('player levels admin scenarios', () => {
     await expect(page.getByText(beta.displayName)).toHaveCount(0);
   });
 
+  test('E2E-LEVEL-005 TC user can manage player levels but not game administrators', async ({ page, request }, testInfo) => {
+    const tcUser = await createDevUserViaApi(request, testInfo, 'Level TC User', { isTc: true });
+    const target = await createDevUserViaApi(request, testInfo, 'Level TC Target');
+
+    await devLoginAs(page, tcUser);
+    await page.getByTitle('Players').click();
+    await expect(page).toHaveURL('/players');
+    await expect(page.getByRole('link', { name: 'Player levels' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Game administrators' })).toHaveCount(0);
+
+    await page.getByRole('link', { name: 'Player levels' }).click();
+    await expect(page.getByText(target.displayName)).toBeVisible();
+    await page.getByText(target.displayName).click();
+    await page.locator('.player-level-select').selectOption('advanced');
+    await expect(page.locator('.player-level-select')).toHaveValue('advanced');
+
+    await page.goto('/game-administrators');
+    await expect(page).toHaveURL('/');
+  });
+
   test('E2E-LEVEL-004 non-admin cannot access players hub or player levels', async ({ page, request }, testInfo) => {
     const participant = await createDevUserViaApi(request, testInfo, 'Level Blocked Participant');
     await devLoginAs(page, participant);

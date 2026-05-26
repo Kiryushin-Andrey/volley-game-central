@@ -72,6 +72,17 @@ const PhoneStep: React.FC<PhoneStepProps> = ({
             />
             <label htmlFor="wa-admin" style={{ cursor: 'pointer', fontSize: 14 }}>Administrator</label>
           </div>
+          <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input
+              id="wa-tc"
+              type="checkbox"
+              checked={isTc}
+              onChange={(e) => setIsTc(e.target.checked)}
+              disabled={isProcessing}
+              style={{ width: 18, height: 18, cursor: 'pointer' }}
+            />
+            <label htmlFor="wa-tc" style={{ cursor: 'pointer', fontSize: 14 }}>TC (player levels)</label>
+          </div>
           <p className="wa-note">Dev mode: No SMS verification required</p>
         </>
       ) : (

@@ -89,7 +89,7 @@ const PlayerLevels: React.FC = () => {
     }
   };
 
-  if (user && !user.isAdmin) {
+  if (user && !canManagePlayerLevels(user)) {
     return null;
   }
 

@@ -232,6 +232,13 @@
       "when": 1763046570440,
       "tag": "0032_player_level",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "5",
+      "when": 1763146570440,
+      "tag": "0033_add_is_tc_to_users",
+      "breakpoints": true
     }
   ]
 }

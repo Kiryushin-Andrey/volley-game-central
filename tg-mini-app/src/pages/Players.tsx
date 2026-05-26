@@ -27,9 +27,11 @@ const Players: React.FC = () => {
         <h1>Players</h1>
       </div>
       <nav className="players-hub-links">
-        <Link to="/game-administrators" className="players-hub-link">
-          Game administrators
-        </Link>
+        {user?.isAdmin && (
+          <Link to="/game-administrators" className="players-hub-link">
+            Game administrators
+          </Link>
+        )}
         <Link to="/player-levels" className="players-hub-link">
           Player levels
         </Link>

@@ -173,7 +173,7 @@ class PhoneAuthViewModel {
     }
     try {
       this.setState({ isProcessing: true, error: null });
-      await authApi.devLogin(this.fullPhone, name, isAdmin);
+      await authApi.devLogin(this.fullPhone, name, isAdmin, isTc);
       onSuccess();
     } catch (e: any) {
       const message = e?.response?.data?.error || 'Dev login failed';

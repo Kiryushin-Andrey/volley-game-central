@@ -527,9 +527,10 @@ export const authApi = {
   devLogin: async (
     phoneNumber: string,
     displayName: string,
-    isAdmin?: boolean
+    isAdmin?: boolean,
+    isTc?: boolean,
   ): Promise<{ success: boolean; user: User }> => {
-    const response = await api.post('/auth/dev-login', { phoneNumber, displayName, isAdmin }, {
+    const response = await api.post('/auth/dev-login', { phoneNumber, displayName, isAdmin, isTc }, {
       withCredentials: true,
     });
     return response.data;

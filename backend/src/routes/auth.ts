@@ -349,10 +349,11 @@ router.post('/dev-login', async (req, res) => {
           phoneNumber: normalizedPhoneNumber,
           displayName,
           isAdmin: adminStatus,
+          isTc: tcStatus,
         })
         .returning();
       user = newUser;
-      logDevMode(`Created new user ${user.id}: ${user.displayName}, admin: ${user.isAdmin}`);
+      logDevMode(`Created new user ${user.id}: ${user.displayName}, admin: ${user.isAdmin}, tc: ${user.isTc}`);
     }
 
     // Issue JWT cookie just like regular phone auth

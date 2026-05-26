@@ -6,6 +6,7 @@ export type DevUser = {
   displayName: string;
   phoneLocal: string;
   isAdmin: boolean;
+  isTc: boolean;
 };
 
 export type GameFixture = {

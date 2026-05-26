@@ -29,6 +29,7 @@ export interface User {
   displayName: string;
   telegramUsername?: string | null;
   isAdmin: boolean;
+  isTc: boolean;
   createdAt: Date | null;
   blockReason?: string | null;
 }
