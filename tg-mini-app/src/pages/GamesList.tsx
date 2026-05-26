@@ -12,6 +12,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import UnpaidGamesList from '../components/UnpaidGamesList';
 import CategoryMultiSelect from '../components/CategoryMultiSelect';
 import CategoryInfoBlock from '../components/CategoryInfoBlock';
+import { isTcOnly, playersManagementPath } from '../utils/userRoles';
 import './GamesList.scss';
 
 interface GamesListProps {
@@ -229,6 +230,19 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
               </div>
             )}
             
+
+            {isTcOnly(user) && (
+              <div className="admin-icon-buttons tc-player-levels-actions">
+                <Link
+                  to={playersManagementPath(user)}
+                  className="icon-button"
+                  title="Player levels"
+                >
+                  <FaUsers />
+                </Link>
+              </div>
+            )}
+
             {/* Admin controls */}
               {(user.isAdmin || vm.hasAdminAssignments) && (
                 <div className="admin-controls">
@@ -258,7 +272,6 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
                     </div>
                     {user.isAdmin && (
                       <div className="admin-icon-buttons">
-                        {canManagePlayerLevels(user) && (
                         <Link
                           to="/players"
                           className="icon-button"
@@ -266,7 +279,6 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
                         >
                           <FaUsers />
                         </Link>
-                        )}
                         <Link
                           to="/bunq-settings"
                           className="icon-button"

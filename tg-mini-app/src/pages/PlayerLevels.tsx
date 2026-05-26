@@ -7,6 +7,7 @@ import { playerLevelsApi } from '../services/api';
 import type { AdminUserWithPlayerLevel, PlayerLevel, UserPublicInfo } from '../types';
 import PlayerInfoDialog from '../components/PlayerInfoDialog';
 import { PLAYER_LEVEL_LABELS, playerLevelPillClass } from '../utils/playerLevel';
+import { canManagePlayerLevels } from '../utils/userRoles';
 import './PlayerLevels.scss';
 
 const PlayerLevels: React.FC = () => {
@@ -39,11 +40,11 @@ const PlayerLevels: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (user && !user.isAdmin) {
+    if (user && !canManagePlayerLevels(user)) {
       navigate('/');
       return;
     }
-    if (user?.isAdmin) {
+    if (user && canManagePlayerLevels(user)) {
       loadUsers();
     }
   }, [user, navigate, loadUsers]);

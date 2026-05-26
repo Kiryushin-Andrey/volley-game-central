@@ -8,7 +8,7 @@ interface PhoneStepProps {
   onPhoneChange: (val: string) => void;
   onContinue: () => void;
   isDevMode?: boolean;
-  onDevLogin?: (displayName: string, isAdmin: boolean) => void;
+  onDevLogin?: (displayName: string, isAdmin: boolean, isTc: boolean) => void;
 }
 
 const PhoneStep: React.FC<PhoneStepProps> = ({
@@ -23,6 +23,7 @@ const PhoneStep: React.FC<PhoneStepProps> = ({
 }) => {
   const [displayName, setDisplayName] = React.useState('');
   const [isAdmin, setIsAdmin] = React.useState(false);
+  const [isTc, setIsTc] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement | null>(null);
   const nameInputRef = React.useRef<HTMLInputElement | null>(null);
   
@@ -99,7 +100,7 @@ const PhoneStep: React.FC<PhoneStepProps> = ({
             type="button"
             className="wa-button"
             disabled={!phoneLocal.trim() || !displayName.trim() || isProcessing}
-            onClick={() => onDevLogin(displayName, isAdmin)}
+            onClick={() => onDevLogin(displayName, isAdmin, isTc)}
           >
             {isProcessing ? 'Logging in…' : 'Dev Login'}
           </button>

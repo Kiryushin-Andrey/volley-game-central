@@ -61,13 +61,13 @@ test.describe('player levels admin scenarios', () => {
     const target = await createDevUserViaApi(request, testInfo, 'Level TC Target');
 
     await devLoginAs(page, tcUser);
-    await page.getByTitle('Players').click();
-    await expect(page).toHaveURL('/players');
-    await expect(page.getByRole('link', { name: 'Player levels' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Game administrators' })).toHaveCount(0);
-
-    await page.getByRole('link', { name: 'Player levels' }).click();
+    await page.getByTitle('Player levels').click();
+    await expect(page).toHaveURL('/player-levels');
+    await expect(page.getByRole('heading', { name: 'Player levels' })).toBeVisible();
     await expect(page.getByText(target.displayName)).toBeVisible();
+
+    await page.goto('/players');
+    await expect(page).toHaveURL('/player-levels');
     await page.getByText(target.displayName).click();
     await page.locator('.player-level-select').selectOption('advanced');
     await expect(page.locator('.player-level-select')).toHaveValue('advanced');
