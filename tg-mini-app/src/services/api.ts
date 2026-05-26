@@ -126,6 +126,11 @@ export const playerLevelsApi = {
     return response.data;
   },
 
+  getUser: async (userId: number): Promise<AdminUserWithPlayerLevel> => {
+    const response = await api.get(`/users/admin/player-levels/${userId}`);
+    return response.data;
+  },
+
   updatePlayerLevel: async (userId: number, playerLevel: PlayerLevel): Promise<AdminUserWithPlayerLevel> => {
     const response = await api.patch(`/users/admin/player-levels/${userId}/player-level`, { playerLevel });
     return response.data;

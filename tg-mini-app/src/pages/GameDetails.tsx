@@ -32,6 +32,7 @@ import { ActionLoadingOverlay } from "../components/game-details/ActionLoadingOv
 import { AdminActions } from "../components/game-details/AdminActions";
 import PlayerInfoDialog from "../components/PlayerInfoDialog";
 import CategoryInfoBlock from "../components/CategoryInfoBlock";
+import { canManagePlayerLevels } from "../utils/userRoles";
 
 interface GameDetailsProps {
   user: User;
@@ -133,6 +134,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
   const isPastGame = isGamePast(gameData.game.dateTime);
   const hasPaymentRequests = !!gameData.game.collectorUser;
   const isGameAdmin = user.isAdmin || (gameData.game.isAssignedAdmin ?? false);
+  const canViewPlayerLevelInfo = canManagePlayerLevels(user) || isGameAdmin;
   const showAddParticipantButton =
     isGameAdmin && !hasPaymentRequests && (isPastGame || gameData.game.readonly);
 
@@ -368,7 +370,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
               onRemovePlayer={(userId, guestName) => viewModel.handleRemovePlayer(userId, guestName)}
               onTogglePaidStatus={(userId, currentPaidStatus) => viewModel.handleTogglePaidStatus(userId, currentPaidStatus)}
               canUnregister={viewModel.canUnregister()}
-              onShowUserInfo={isGameAdmin ? (user) => viewModel.handleShowPlayerInfo(user) : undefined}
+              onShowUserInfo={canViewPlayerLevelInfo ? (u) => viewModel.handleShowPlayerInfo(u) : undefined}
             />
           </div>
         ) : null}
@@ -380,7 +382,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
               registrations={waitlistRegistrations}
               currentUserId={user.id}
               isAdmin={isGameAdmin}
-              onShowUserInfo={isGameAdmin ? (user) => viewModel.handleShowPlayerInfo(user) : undefined}
+              onShowUserInfo={canViewPlayerLevelInfo ? (u) => viewModel.handleShowPlayerInfo(u) : undefined}
               onRemovePlayer={(userId, guestName) => viewModel.handleRemovePlayerFromWaitingList(userId, guestName)}
             />
           </div>
@@ -451,6 +453,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
         isOpen={dialogs.showPlayerInfo}
         onClose={() => viewModel.handleClosePlayerInfo()}
         user={dialogs.selectedUser}
+        showPlayerLevelInfo={canViewPlayerLevelInfo}
       />
 
       {/* Bring Ball Dialog */}

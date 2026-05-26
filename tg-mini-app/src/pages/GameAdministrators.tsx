@@ -296,6 +296,7 @@ const GameAdministrators: React.FC = () => {
         isOpen={showPlayerInfo}
         onClose={handleClosePlayerInfo}
         user={selectedUser}
+        showPlayerLevelInfo={!!user?.isAdmin}
       />
     </div>
   );

@@ -36,6 +36,7 @@ test.describe('player levels admin scenarios', () => {
     await expect(page.getByRole('heading', { name: 'Player details' })).toBeVisible();
     await page.locator('.player-level-select').selectOption('intermediate');
     await expect(page.locator('.player-level-select')).toHaveValue('intermediate');
+    await expect(page.getByText(/Set by/)).toContainText(admin.displayName);
 
     await page.getByRole('button', { name: 'Close' }).click();
     await expect(page.locator('.player-levels-item').filter({ hasText: target.displayName }).getByText('Intermediate')).toBeVisible();

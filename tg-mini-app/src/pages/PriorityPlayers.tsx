@@ -10,6 +10,7 @@ import {
 } from '../viewmodels/PriorityPlayersViewModel';
 import PlayerInfoDialog from '../components/PlayerInfoDialog';
 import type { UserPublicInfo } from '../types';
+import { canManagePlayerLevels } from '../utils/userRoles';
 import './PriorityPlayers.scss';
 import WebApp from '@twa-dev/sdk';
 import { DAYS_OF_WEEK } from '../utils/constants';
@@ -277,6 +278,7 @@ const PriorityPlayers: React.FC = () => {
         isOpen={showPlayerInfo}
         onClose={handleClosePlayerInfo}
         user={selectedUser}
+        showPlayerLevelInfo={!!user && (user.isAdmin || canManagePlayerLevels(user))}
       />
     </div>
   );

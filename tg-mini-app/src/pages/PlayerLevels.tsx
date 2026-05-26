@@ -76,7 +76,7 @@ const PlayerLevels: React.FC = () => {
       setUsers((prev) =>
         prev.map((u) => (u.id === updated.id ? { ...u, ...updated } : u)),
       );
-      setSelectedUser((prev) => (prev ? { ...prev, playerLevel: updated.playerLevel } : prev));
+      setSelectedUser((prev) => (prev ? { ...prev, ...updated } : prev));
     } catch (e: unknown) {
       const message =
         (e as { response?: { data?: { error?: string } } })?.response?.data?.error ||
@@ -163,6 +163,7 @@ const PlayerLevels: React.FC = () => {
         isOpen={showPlayerInfo}
         onClose={handleClosePlayerInfo}
         user={selectedUser}
+        showPlayerLevelInfo
         showPlayerLevelEditor
         playerLevelSaving={levelSaving}
         onPlayerLevelChange={handlePlayerLevelChange}

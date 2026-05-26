@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import './PlayerInfoDialog.scss';
 import type { PlayerLevel, UserPublicInfo } from '../types';
 import { PLAYER_LEVEL_LABELS } from '../utils/playerLevel';
-import { userApi, type UnpaidRegistration } from '../services/api';
+import { playerLevelsApi, userApi, type UnpaidRegistration } from '../services/api';
 import UnpaidGamesList from './UnpaidGamesList';
 
 // ViewModel encapsulating state and async loading logic for unpaid games
@@ -43,10 +43,18 @@ class PlayerInfoDialogViewModel {
   }
 }
 
+function formatPlayerLevelSetAt(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
+}
+
 interface PlayerInfoDialogProps {
   isOpen: boolean;
   onClose: () => void;
   user: UserPublicInfo | null;
+  showPlayerLevelInfo?: boolean;
   showPlayerLevelEditor?: boolean;
   playerLevelSaving?: boolean;
   onPlayerLevelChange?: (level: PlayerLevel) => void | Promise<void>;
@@ -56,6 +64,7 @@ const PlayerInfoDialog: React.FC<PlayerInfoDialogProps> = ({
   isOpen,
   onClose,
   user,
+  showPlayerLevelInfo = false,
   showPlayerLevelEditor = false,
   playerLevelSaving = false,
   onPlayerLevelChange,
@@ -67,8 +76,10 @@ const PlayerInfoDialog: React.FC<PlayerInfoDialogProps> = ({
   const [reminderError, setReminderError] = useState<string | null>(null);
   const [blockReason, setBlockReason] = useState<string | null | undefined>(null);
   const [moderationBusy, setModerationBusy] = useState(false);
+  const [displayUser, setDisplayUser] = useState<UserPublicInfo | null>(null);
 
   const vm = useMemo(() => new PlayerInfoDialogViewModel(setUnpaidGames, setLoading, setError), []);
+  const showLevelSection = showPlayerLevelInfo || showPlayerLevelEditor;
 
   useEffect(() => {
     const onEsc = (e: KeyboardEvent) => {
@@ -91,10 +102,42 @@ const PlayerInfoDialog: React.FC<PlayerInfoDialogProps> = ({
     setBlockReason(user.blockReason ?? null);
     return () => vm.cancel();
   }, [isOpen, user?.id, vm]);
+  useEffect(() => {
+    if (!isOpen || !user) {
+      setDisplayUser(null);
+      return;
+    }
+    if (!showPlayerLevelInfo) {
+      setDisplayUser(user);
+      return;
+    }
+
+    let cancelled = false;
+    setDisplayUser(user);
+    (async () => {
+      try {
+        const details = await playerLevelsApi.getUser(user.id);
+        if (!cancelled) {
+          setDisplayUser({ ...user, ...details });
+        }
+      } catch {
+        if (!cancelled) {
+          setDisplayUser(user);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, user, showPlayerLevelInfo]);
+
 
   if (!isOpen || !user) return null;
 
-  const tmeLink = user.telegramUsername ? `https://t.me/${encodeURIComponent(user.telegramUsername)}` : undefined;
+  const profile = displayUser ?? user;
+
+  const tmeLink = profile.telegramUsername ? `https://t.me/${encodeURIComponent(profile.telegramUsername)}` : undefined;
 
   const handleSendReminder = async () => {
     if (!user) return;
@@ -152,65 +195,80 @@ const PlayerInfoDialog: React.FC<PlayerInfoDialogProps> = ({
         </div>
         <div className="dialog-content">
           <div className="avatar-wrap">
-            {user.avatarUrl ? (
-              <img src={user.avatarUrl} alt={`${user.displayName}'s avatar`} className="avatar" />
+            {profile.avatarUrl ? (
+              <img src={profile.avatarUrl} alt={`${profile.displayName}'s avatar`} className="avatar" />
             ) : (
-              <div className="avatar placeholder">{(user.displayName || user.telegramUsername || `Player ${user.id}`).charAt(0).toUpperCase()}</div>
+              <div className="avatar placeholder">{(profile.displayName || profile.telegramUsername || `Player ${profile.id}`).charAt(0).toUpperCase()}</div>
             )}
           </div>
           <div className="info-rows">
             <div className="row">
               <span className="label">Display Name</span>
-              <span className="value">{user.displayName || user.telegramUsername || `Player ${user.id}`}</span>
+              <span className="value">{profile.displayName || profile.telegramUsername || `Player ${profile.id}`}</span>
             </div>
             <div className="row">
               <span className="label">Telegram ID</span>
-              <span className="value">{user.telegramId}</span>
+              <span className="value">{profile.telegramId}</span>
             </div>
             {tmeLink && (
               <div className="row">
                 <span className="label">Telegram Username</span>
-                <a className="value link" href={tmeLink} target="_blank" rel="noopener noreferrer">@{user.telegramUsername}</a>
+                <a className="value link" href={tmeLink} target="_blank" rel="noopener noreferrer">@{profile.telegramUsername}</a>
               </div>
             )}
-            {user.phoneNumber && (
+            {profile.phoneNumber && (
               <div className="row">
                 <span className="label">Phone</span>
-                <a className="value link" href={`tel:${user.phoneNumber}`}>{user.phoneNumber}</a>
+                <a className="value link" href={`tel:${profile.phoneNumber}`}>{profile.phoneNumber}</a>
               </div>
             )}
           </div>
 
-          {showPlayerLevelEditor && onPlayerLevelChange && (
+          {showLevelSection && (
             <div className="player-level-editor" style={{ marginTop: 16 }}>
-              <div className="row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 8 }}>
-                <span className="label">Player level</span>
-                <select
-                  className="player-level-select"
-                  value={user.playerLevel ?? ''}
-                  disabled={playerLevelSaving}
-                  onChange={async (e) => {
-                    const value = e.target.value as PlayerLevel | '';
-                    if (!value || value === user.playerLevel) return;
-                    try {
-                      await onPlayerLevelChange(value);
-                    } catch {
-                      e.target.value = user.playerLevel ?? '';
-                    }
-                  }}
-                >
-                  {!user.playerLevel && <option value="">Unassigned — pick a level</option>}
-                  {(Object.keys(PLAYER_LEVEL_LABELS) as PlayerLevel[]).map((level) => (
-                    <option key={level} value={level}>
-                      {PLAYER_LEVEL_LABELS[level]}
-                    </option>
-                  ))}
-                </select>
-                {!user.playerLevel && (
-                  <span className="hint">Choose beginner, intermediate, or advanced to assign.</span>
-                )}
-                {playerLevelSaving && <span className="hint">Saving…</span>}
-              </div>
+              {showPlayerLevelEditor && onPlayerLevelChange ? (
+                <div className="row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 8 }}>
+                  <span className="label">Player level</span>
+                  <select
+                    className="player-level-select"
+                    value={profile.playerLevel ?? ''}
+                    disabled={playerLevelSaving}
+                    onChange={async (e) => {
+                      const value = e.target.value as PlayerLevel | '';
+                      if (!value || value === profile.playerLevel) return;
+                      try {
+                        await onPlayerLevelChange(value);
+                      } catch {
+                        e.target.value = profile.playerLevel ?? '';
+                      }
+                    }}
+                  >
+                    {!profile.playerLevel && <option value="">Unassigned — pick a level</option>}
+                    {(Object.keys(PLAYER_LEVEL_LABELS) as PlayerLevel[]).map((level) => (
+                      <option key={level} value={level}>
+                        {PLAYER_LEVEL_LABELS[level]}
+                      </option>
+                    ))}
+                  </select>
+                  {!profile.playerLevel && (
+                    <span className="hint">Choose beginner, intermediate, or advanced to assign.</span>
+                  )}
+                  {playerLevelSaving && <span className="hint">Saving…</span>}
+                </div>
+              ) : (
+                <div className="row">
+                  <span className="label">Player level</span>
+                  <span className="value">
+                    {profile.playerLevel ? PLAYER_LEVEL_LABELS[profile.playerLevel] : 'Unassigned'}
+                  </span>
+                </div>
+              )}
+              {profile.playerLevel && profile.playerLevelSetBy && (
+                <p className="hint" style={{ marginTop: 8 }}>
+                  Set by {profile.playerLevelSetBy.displayName}
+                  {profile.playerLevelSetAt ? ` on ${formatPlayerLevelSetAt(profile.playerLevelSetAt)}` : ''}
+                </p>
+              )}
             </div>
           )}
 

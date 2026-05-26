@@ -17,7 +17,14 @@ import {
   type GameFormat,
 } from '../domain/gameFormat';
 import type { PlayerLevel } from '../domain/playerLevel';
+import { canManagePlayerLevels } from '../domain/userRoles';
 import { evaluateRegistrationEligibility } from '../utils/registrationEligibility';
+import {
+  attachPlayerLevelMetadataToUser,
+  playerLevelMetadataJoin,
+  playerLevelMetadataSelect,
+  playerLevelSetter,
+} from '../utils/playerLevelUser';
 
 const router = Router();
 
@@ -493,8 +500,11 @@ router.get('/:gameId', async (req, res) => {
       }
     }
 
-    // Get registrations with user information joined
-    const registrations = await db
+    const parsedGameId = parseInt(gameId);
+    const isAssignedAdmin = await isUserAssignedToGameById(req.user.id, parsedGameId);
+    const includePlayerLevelMetadata = canManagePlayerLevels(req.user) || isAssignedAdmin;
+
+    let registrationQuery = db
       .select({
         id: gameRegistrations.id,
         gameId: gameRegistrations.gameId,
@@ -504,19 +514,53 @@ router.get('/:gameId', async (req, res) => {
         bringingTheBall: gameRegistrations.bringingTheBall,
         createdAt: gameRegistrations.createdAt,
         user: getUserSelectFields(),
+        ...(includePlayerLevelMetadata ? playerLevelMetadataSelect : {}),
       })
       .from(gameRegistrations)
-      .innerJoin(users, eq(gameRegistrations.userId, users.id))
-      .where(eq(gameRegistrations.gameId, parseInt(gameId)))
-      .orderBy(gameRegistrations.createdAt); // Order by registration time
+      .innerJoin(users, eq(gameRegistrations.userId, users.id));
 
-    // Add isWaitlist field dynamically based on registration order
-    const registrationsWithWaitlistStatus = registrations.map((reg, index) => ({
-      ...reg,
-      isWaitlist: index >= game[0].maxPlayers,
-    }));
+    if (includePlayerLevelMetadata) {
+      registrationQuery = registrationQuery.leftJoin(
+        playerLevelSetter,
+        playerLevelMetadataJoin(),
+      ) as typeof registrationQuery;
+    }
 
-    let isAssignedAdmin = await isUserAssignedToGameById(req.user.id, parseInt(gameId));
+    const registrations = await registrationQuery
+      .where(eq(gameRegistrations.gameId, parsedGameId))
+      .orderBy(gameRegistrations.createdAt);
+
+    const registrationsWithWaitlistStatus = registrations.map((reg, index) => {
+      const {
+        playerLevel,
+        playerLevelSetAt,
+        setterId,
+        setterDisplayName,
+        user,
+        ...rest
+      } = reg as typeof reg & {
+        playerLevel?: string | null;
+        playerLevelSetAt?: Date | null;
+        setterId?: number | null;
+        setterDisplayName?: string | null;
+        user: Record<string, unknown>;
+      };
+
+      const userPayload = includePlayerLevelMetadata
+        ? attachPlayerLevelMetadataToUser(user, {
+            playerLevel: playerLevel ?? null,
+            playerLevelSetAt: playerLevelSetAt ?? null,
+            setterId: setterId ?? null,
+            setterDisplayName: setterDisplayName ?? null,
+          }, true)
+        : user;
+
+      return {
+        ...rest,
+        user: userPayload,
+        isWaitlist: index >= game[0].maxPlayers,
+      };
+    });
 
     // Check if user is a priority player for this game (for frontend display)
     const isPriorityPlayer = await isUserPriorityPlayerForGame(req.user.id, gameRowForFormatHelpers(game[0]));
