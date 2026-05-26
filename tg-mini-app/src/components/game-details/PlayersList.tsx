@@ -40,10 +40,10 @@ export const PlayersList: React.FC<Props> = ({
           <div className="player-info">
             <div
               className={`player-avatar ${
-                isAdmin && registration.user ? 'clickable' : ''
+                registration.user && onShowUserInfo ? 'clickable' : ''
               }`}
               onClick={() => {
-                if (isAdmin && registration.user && onShowUserInfo) {
+                if (registration.user && onShowUserInfo) {
                   onShowUserInfo(registration.user);
                 }
               }}
@@ -66,10 +66,10 @@ export const PlayersList: React.FC<Props> = ({
             </div>
             <div
               className={`player-details ${
-                isAdmin && registration.user ? 'clickable' : ''
+                registration.user && onShowUserInfo ? 'clickable' : ''
               }`}
               onClick={() => {
-                if (isAdmin && registration.user && onShowUserInfo) {
+                if (registration.user && onShowUserInfo) {
                   onShowUserInfo(registration.user);
                 }
               }}

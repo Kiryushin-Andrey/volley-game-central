@@ -9,6 +9,15 @@ export type DevUser = {
   isTc: boolean;
 };
 
+export type DevUserOptions = {
+  isAdmin?: boolean;
+  isTc?: boolean;
+};
+
+function normalizeDevUserOptions(options: boolean | DevUserOptions): DevUserOptions {
+  return typeof options === 'boolean' ? { isAdmin: options } : options;
+}
+
 export type GameFixture = {
   id: number;
   title: string;
@@ -75,11 +84,17 @@ export async function openDevLogin(page: Page) {
   await expect(page.getByText('Dev mode: No SMS verification required')).toBeVisible();
 }
 
-export async function devLogin(page: Page, testInfo: TestInfo, label: string, isAdmin = false): Promise<DevUser> {
+export async function devLogin(
+  page: Page,
+  testInfo: TestInfo,
+  label: string,
+  options: boolean | DevUserOptions = false,
+): Promise<DevUser> {
+  const { isAdmin = false, isTc = false } = normalizeDevUserOptions(options);
   const displayName = uniqueName(testInfo, label);
-  const phoneLocal = uniquePhoneLocal(testInfo, isAdmin ? 8 : 1);
+  const phoneLocal = uniquePhoneLocal(testInfo, isAdmin ? 8 : isTc ? 7 : 1);
 
-  return devLoginAs(page, { id: 0, displayName, phoneLocal, isAdmin });
+  return devLoginAs(page, { id: 0, displayName, phoneLocal, isAdmin, isTc });
 }
 
 export async function devLoginAs(page: Page, user: DevUser): Promise<DevUser> {
@@ -87,8 +102,18 @@ export async function devLoginAs(page: Page, user: DevUser): Promise<DevUser> {
   await page.getByLabel('Phone number').fill(user.phoneLocal);
   await page.getByLabel('Display name').fill(user.displayName);
 
+  const adminCheckbox = page.getByLabel('Administrator');
   if (user.isAdmin) {
-    await page.getByLabel('Administrator').check();
+    await adminCheckbox.check();
+  } else {
+    await adminCheckbox.uncheck();
+  }
+
+  const tcCheckbox = page.getByLabel('TC (player levels)');
+  if (user.isTc) {
+    await tcCheckbox.check();
+  } else {
+    await tcCheckbox.uncheck();
   }
 
   await page.getByRole('button', { name: 'Dev Login' }).click();
@@ -106,17 +131,25 @@ export async function devLoginAs(page: Page, user: DevUser): Promise<DevUser> {
     displayName: user.displayName,
     phoneLocal: user.phoneLocal,
     isAdmin: user.isAdmin,
+    isTc: user.isTc,
   };
 }
 
-export async function createDevUserViaApi(request: APIRequestContext, testInfo: TestInfo, label: string, isAdmin = false): Promise<DevUser> {
+export async function createDevUserViaApi(
+  request: APIRequestContext,
+  testInfo: TestInfo,
+  label: string,
+  options: boolean | DevUserOptions = false,
+): Promise<DevUser> {
+  const { isAdmin = false, isTc = false } = normalizeDevUserOptions(options);
   const displayName = uniqueName(testInfo, label);
-  const phoneLocal = uniquePhoneLocal(testInfo, isAdmin ? 9 : 2);
+  const phoneLocal = uniquePhoneLocal(testInfo, isAdmin ? 9 : isTc ? 8 : 2);
   const response = await request.post('/api/auth/dev-login', {
     data: {
       phoneNumber: `+31${phoneLocal}`,
       displayName,
       isAdmin,
+      isTc,
     },
   });
   expect(response.ok()).toBeTruthy();
@@ -126,6 +159,7 @@ export async function createDevUserViaApi(request: APIRequestContext, testInfo: 
     displayName,
     phoneLocal,
     isAdmin,
+    isTc,
   };
 }
 
@@ -228,20 +262,30 @@ export async function switchToUser(page: Page, user: DevUser) {
 
 export async function assignPlayerLevelViaAdminUi(
   page: Page,
-  admin: DevUser,
+  manager: DevUser,
   target: DevUser,
   level: 'beginner' | 'intermediate' | 'advanced',
-  options?: { adminAlreadyLoggedIn?: boolean },
+  options?: { managerAlreadyLoggedIn?: boolean; adminAlreadyLoggedIn?: boolean },
 ) {
-  if (!options?.adminAlreadyLoggedIn) {
-    await devLoginAs(page, admin);
+  if (!options?.managerAlreadyLoggedIn && !options?.adminAlreadyLoggedIn) {
+    await devLoginAs(page, manager);
   }
   await page.goto('/player-levels');
   await expect(page.getByRole('heading', { name: 'Player levels' })).toBeVisible();
-  await page.getByPlaceholder('Search players…').fill(target.displayName);
+  await page.getByLabel('Filter by name').fill(target.displayName);
   await page.locator('.player-levels-item').filter({ hasText: target.displayName }).click();
   await page.locator('.player-level-select').selectOption(level);
   await page.locator('.player-info-dialog').getByRole('button', { name: 'Close' }).click();
+}
+
+export async function openPlayerInfoFromGameRoster(page: Page, displayName: string) {
+  const row = page.locator('.players-section .player-item').filter({ hasText: displayName });
+  await row.locator('.player-details.clickable').click();
+  await expect(page.getByRole('heading', { name: 'Player details' })).toBeVisible();
+}
+
+export function playerInfoDialog(page: Page) {
+  return page.locator('.player-info-dialog');
 }
 
 export async function registerForGameViaUi(page: Page, user: DevUser, gameId: number, expectedStatus = "You're in") {

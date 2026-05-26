@@ -17,7 +17,8 @@ Scope: browser-based tests for the Telegram Mini App running locally in dev mode
   - Choose `Phone number`.
   - Enter a local Dutch phone number after the fixed `+31` prefix.
   - Enter a display name.
-  - Toggle `Administrator` only for personas that need global admin rights.
+  - Toggle `Administrator` for global admin personas.
+  - Toggle **TC (player levels)** for tournament-committee personas who manage player levels without full admin access (do not check `Administrator` unless the scenario needs both).
   - Submit `Dev Login`.
 - Use isolated browser contexts for each persona so cookies do not leak between tests.
 - **Implementation rule:** Do not use direct database access or direct HTTP calls to the **application** (including Playwright `request` fixtures against `/api`) to perform setup or actions that a real user or administrator could complete through the visible UI. Use the UI instead. Exceptions are allowed only when no in-app UI exists:
@@ -31,6 +32,8 @@ Use unique phone numbers per test run when tests create mutable state.
 - Participant A: non-admin user for normal registration and profile flows.
 - Participant B: non-admin user for capacity, waitlist, and multi-user scenarios.
 - Global Admin: dev login with `Administrator` checked.
+- TC User: dev login with **TC (player levels)** checked and `Administrator` unchecked (TC-only).
+- Admin + TC: dev login with both `Administrator` and **TC (player levels)** checked.
 - Assigned Admin: non-admin user who becomes a game administrator through an assignment created by Global Admin.
 
 ## Out of scope for this checklist
@@ -171,12 +174,41 @@ Spec: `e2e/game-administrators-assignment.spec.ts`
 
 Spec: `e2e/player-levels.spec.ts`
 
-Routes: `/players` (global admin hub from games home **Players** toolbar icon), `/player-levels` (list + dialog assignment). Entry: games home **Players** → **Player levels**, or direct navigation for tests.
+Routes: `/players` (global admin hub from games home **Players** toolbar icon), `/player-levels` (list + dialog assignment). TC-only entry: games home **Player levels** toolbar icon (`title="Player levels"`), or direct `/player-levels`. Visiting `/players` as TC-only redirects to `/player-levels`.
+
+| Persona | `/players` hub | `/player-levels` manage | `/game-administrators` | Level in player info dialog |
+| --- | --- | --- | --- | --- |
+| Global Admin | Yes | Yes (editor on player-levels page) | Yes | Yes (read-only on game details; editor on `/player-levels`) |
+| TC-only | Redirect → `/player-levels` | Yes (editor) | No | Yes on game details (read-only) |
+| Assigned Admin | No | No | No | Yes on game details only (read-only) |
+| Participant | No | No | No | No |
+
+### Navigation and access control
 
 - [x] E2E-LEVEL-001: Global Admin opens **Players** from the games home toolbar and sees hub links to **Game administrators** and **Player levels**.
-- [x] E2E-LEVEL-002: Global Admin opens **Player levels**, assigns **intermediate** to a user via the player info dialog, and sees the level pill on the list row.
-- [x] E2E-LEVEL-003: Name filter above the list hides players that do not match (client-side filter on the loaded roster).
 - [x] E2E-LEVEL-004: Non-admin Participant A is redirected away from `/players` and `/player-levels`.
+- [x] E2E-LEVEL-005: TC-only user opens **Player levels** from the games home toolbar, manages a level on `/player-levels`, is redirected from `/players` to `/player-levels`, and is redirected away from `/game-administrators`.
+- [x] E2E-LEVEL-006: TC-only user on games home does **not** see the **Players** hub toolbar icon and **does** see the **Player levels** icon.
+- [x] E2E-LEVEL-007: User with both **Administrator** and **TC** checked opens `/players` and sees the full hub (not TC-only redirect).
+
+### Managing levels on `/player-levels`
+
+- [x] E2E-LEVEL-002: Global Admin opens **Player levels**, assigns **intermediate** via the player info dialog, sees the list pill, and **Set by {admin}** in the dialog (no assignment timestamp).
+- [x] E2E-LEVEL-003: Name filter above the list hides players that do not match (client-side filter).
+- [x] E2E-LEVEL-008: TC-only user assigns **advanced** on `/player-levels`; dialog shows **Set by {TC display name}**.
+
+### Read-only level visibility in player info dialog
+
+- [x] E2E-LEVEL-009: Global Admin opens a registered player from **game details**; read-only **Player level**, **Set by**, no level `<select>`.
+- [x] E2E-LEVEL-010: TC-only user opens the same player from **game details**; same read-only level and **Set by** (roster row openable when `onShowUserInfo` is provided).
+- [x] E2E-LEVEL-011: Assigned Admin on a game they administer sees read-only player level on **game details**.
+- [x] E2E-LEVEL-012: Participant on **game details** cannot open another player's **Player details** dialog from the roster.
+
+### Game administrators and priority players dialogs
+
+- [x] E2E-LEVEL-013: Global Admin opens a user from **Game Administrators**; read-only **Player level** and **Set by** when set; no editor.
+- [x] E2E-LEVEL-014: Global Admin opens a **Priority players** entry; read-only **Player level** and **Set by** when set.
+- [x] E2E-LEVEL-015: Assigned Admin opens a **Priority players** entry; **Player details** without **Player level** or **Set by**.
 
 ## Positions game level restrictions scenarios
 

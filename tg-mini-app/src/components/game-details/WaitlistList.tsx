@@ -11,16 +11,16 @@ interface Props {
   onShowUserInfo?: (user: UserPublicInfo) => void;
 }
 
-export const WaitlistList: React.FC<Props> = ({ registrations, currentUserId, isAdmin, onRemovePlayer, onShowUserInfo }) => {
+export const WaitlistList: React.FC<Props> = ({ registrations, currentUserId, onRemovePlayer, onShowUserInfo }) => {
   return (
     <div className="players-list">
       {registrations.map((registration) => (
         <div key={registration.id} className="player-item waitlist">
           <div className="player-info">
             <div
-              className={`player-avatar ${isAdmin && registration.user ? 'clickable' : ''}`}
+              className={`player-avatar ${registration.user && onShowUserInfo ? 'clickable' : ''}`}
               onClick={() => {
-                if (isAdmin && registration.user && onShowUserInfo) {
+                if (registration.user && onShowUserInfo) {
                   onShowUserInfo(registration.user);
                 }
               }}
@@ -43,9 +43,9 @@ export const WaitlistList: React.FC<Props> = ({ registrations, currentUserId, is
             </div>
 
             <div
-              className={`player-details ${isAdmin && registration.user ? 'clickable' : ''}`}
+              className={`player-details ${registration.user && onShowUserInfo ? 'clickable' : ''}`}
               onClick={() => {
-                if (isAdmin && registration.user && onShowUserInfo) {
+                if (registration.user && onShowUserInfo) {
                   onShowUserInfo(registration.user);
                 }
               }}
@@ -121,5 +121,3 @@ export const WaitlistList: React.FC<Props> = ({ registrations, currentUserId, is
     </div>
   );
 };
-
-
