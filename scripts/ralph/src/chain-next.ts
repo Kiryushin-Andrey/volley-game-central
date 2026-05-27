@@ -145,7 +145,7 @@ function ensureStateFiles(root: string, cfg: ReturnType<typeof loadConfig>): voi
       sessions,
       existsSync(tpl)
         ? readFileSync(tpl, "utf-8")
-        : "# started_at\trole\tworker\tsession_ref\tnotes\n",
+        : "# session_ref\tnotes\n",
       "utf-8",
     );
   }
@@ -216,8 +216,6 @@ async function main(): Promise<void> {
   }
 
   appendSessionLine(cfg, {
-    role,
-    worker: cfg.worker,
     sessionRef,
     notes: values["from-notes"] ? `${notes}; after ${values["from-notes"]}` : notes,
   });

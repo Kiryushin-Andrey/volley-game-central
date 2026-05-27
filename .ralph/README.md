@@ -12,7 +12,7 @@ Skill: **ralph** (`.cursor/skills/ralph`, `.claude/skills/ralph`, `.agents/skill
 |------|---------|
 | `ralph.config.json` | Epic config: ordered `childIssues`, `branch`, `prd`, `worker`, `push`, … |
 | `progress.txt` | Append-only narrative + `RALPH_*` sigils (resume source of truth) |
-| `sessions.log` | Append-only registry of every chained session (URL or `tmux:name`); seed from `sessions.template.txt` |
+| `sessions.log` | Append-only registry: tab-separated `session_ref` + `notes` per line; seed from `sessions.template.txt` |
 | `prompts/` | Handlebars templates for bootstrap / iteration |
 
 There is **no** `ralph-state.json`. Resume by `git pull` on the sprint branch and reading `progress.txt` + `sessions.log`.

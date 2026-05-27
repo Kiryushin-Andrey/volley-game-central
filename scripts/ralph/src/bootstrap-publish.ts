@@ -39,7 +39,7 @@ function ensureBootstrapStateFiles(cfg: ReturnType<typeof loadConfig>): void {
   seedFile(
     sessionsPath(cfg.stateDir),
     sessionsTemplatePath(cfg.stateDir),
-    "# started_at\trole\tworker\tsession_ref\tnotes\n",
+    "# session_ref\tnotes\n",
   );
 }
 
