@@ -12,6 +12,8 @@ import {
   nextWeekday,
   openPlayerInfoFromGameRoster,
   playerInfoDialog,
+  selectUserInUserSearch,
+  waitForPlayerOnPlayerLevelsPage,
   switchToUser,
   type DevUser,
   waitForBackend,
@@ -27,13 +29,12 @@ async function createAssignmentViaUi(
   await page.getByRole('button', { name: 'Add Assignment' }).click();
   await page.getByLabel('Day of Week').selectOption(options?.dayOptionValue ?? '6');
   await page.getByRole('checkbox', { name: /5-1 positions game/i }).uncheck();
-  await page.getByPlaceholder('Search for a user...').fill(userDisplayName);
-  await page.getByText(userDisplayName, { exact: true }).click();
+  await selectUserInUserSearch(page, userDisplayName);
   await page.getByRole('button', { name: 'Create' }).click();
   await expect(page.getByText(userDisplayName)).toBeVisible();
 }
 
-async function setupLeveledPlayerOnUpcomingGame(
+async function setupLeveledPlayerOnGameWithTarget(
   page: Page,
   request: APIRequestContext,
   testInfo: TestInfo,
@@ -47,6 +48,7 @@ async function setupLeveledPlayerOnUpcomingGame(
     title: e2eTitle(testInfo, 'Level Visibility Game'),
     dateTime: options?.gameDate ?? daysFromNow(2),
     maxPlayers: 12,
+    readonly: true,
   });
   await page.goto(`/game/${game.id}`);
   await addParticipantViaUi(page, target.displayName);
@@ -136,8 +138,7 @@ test.describe('player levels admin scenarios', () => {
     await devLoginAs(page, tcUser);
     await page.getByTitle('Player levels').click();
     await expect(page).toHaveURL('/player-levels');
-    await expect(page.getByRole('heading', { name: 'Player levels' })).toBeVisible();
-    await expect(page.getByText(target.displayName)).toBeVisible();
+    await waitForPlayerOnPlayerLevelsPage(page, target.displayName);
 
     await page.goto('/players');
     await expect(page).toHaveURL('/player-levels');
@@ -175,13 +176,14 @@ test.describe('player levels admin scenarios', () => {
 
     await devLoginAs(page, tcUser);
     await page.goto('/player-levels');
-    await page.getByText(target.displayName).click();
+    await waitForPlayerOnPlayerLevelsPage(page, target.displayName);
+    await page.locator('.player-levels-item').filter({ hasText: target.displayName }).click();
     await page.locator('.player-level-select').selectOption('advanced');
     await expect(playerInfoDialog(page).getByText(/Set by/)).toContainText(tcUser.displayName);
   });
 
   test('E2E-LEVEL-009 global admin sees read-only player level on game details', async ({ page, request }, testInfo) => {
-    const { admin, target, game } = await setupLeveledPlayerOnUpcomingGame(page, request, testInfo);
+    const { admin, target, game } = await setupLeveledPlayerOnGameWithTarget(page, request, testInfo);
     await devLoginAs(page, admin);
     await page.goto(`/game/${game.id}`);
     await openPlayerInfoFromGameRoster(page, target.displayName);
@@ -189,7 +191,7 @@ test.describe('player levels admin scenarios', () => {
   });
 
   test('E2E-LEVEL-010 TC user sees read-only player level on game details', async ({ page, request }, testInfo) => {
-    const { admin, target, game } = await setupLeveledPlayerOnUpcomingGame(page, request, testInfo);
+    const { admin, target, game } = await setupLeveledPlayerOnGameWithTarget(page, request, testInfo);
     const tcUser = await createDevUserViaApi(request, testInfo, 'Level TC Game Details', { isTc: true });
     await switchToUser(page, tcUser);
     await page.goto(`/game/${game.id}`);
@@ -209,6 +211,7 @@ test.describe('player levels admin scenarios', () => {
       title: e2eTitle(testInfo, 'Assigned Admin Level Game'),
       dateTime: nextWeekday(6),
       maxPlayers: 12,
+      readonly: true,
     });
     await page.goto(`/game/${game.id}`);
     await addParticipantViaUi(page, target.displayName);
@@ -220,7 +223,7 @@ test.describe('player levels admin scenarios', () => {
   });
 
   test('E2E-LEVEL-012 participant cannot open player info from game details roster', async ({ page, request }, testInfo) => {
-    const { target, game } = await setupLeveledPlayerOnUpcomingGame(page, request, testInfo);
+    const { target, game } = await setupLeveledPlayerOnGameWithTarget(page, request, testInfo);
     const participant = await createDevUserViaApi(request, testInfo, 'Level Roster Participant');
     await switchToUser(page, participant);
     await page.goto(`/game/${game.id}`);
@@ -260,10 +263,10 @@ test.describe('player levels admin scenarios', () => {
     const manageLink = assignmentRow.getByTitle('Manage Priority Players');
     await manageLink.click();
     await expect(page.getByRole('heading', { name: 'Priority Players' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Add Priority Player' })).toBeVisible({ timeout: 15_000 });
 
     await page.getByRole('button', { name: 'Add Priority Player' }).click();
-    await page.getByPlaceholder('Search users to add...').fill(priorityPlayer.displayName);
-    await page.getByText(priorityPlayer.displayName, { exact: true }).click();
+    await selectUserInUserSearch(page, priorityPlayer.displayName);
     await expect(page.locator('.priority-player-item').filter({ hasText: priorityPlayer.displayName })).toBeVisible();
 
     await page.locator('.priority-player-item').filter({ hasText: priorityPlayer.displayName }).locator('.user-name.clickable').click();
@@ -287,10 +290,10 @@ test.describe('player levels admin scenarios', () => {
     await switchToUser(page, assignedAdmin);
     await page.goto(assignmentHref!);
     await expect(page.getByRole('heading', { name: 'Priority Players' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Add Priority Player' })).toBeVisible({ timeout: 15_000 });
 
     await page.getByRole('button', { name: 'Add Priority Player' }).click();
-    await page.getByPlaceholder('Search users to add...').fill(priorityPlayer.displayName);
-    await page.getByText(priorityPlayer.displayName, { exact: true }).click();
+    await selectUserInUserSearch(page, priorityPlayer.displayName);
 
     await page.locator('.priority-player-item').filter({ hasText: priorityPlayer.displayName }).locator('.user-name.clickable').click();
     await expect(page.getByRole('heading', { name: 'Player details' })).toBeVisible();

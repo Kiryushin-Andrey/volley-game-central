@@ -17,6 +17,7 @@ import {
   sendPaymentRequestsViaUi,
   submitSendPaymentRequestsPassword,
   switchToUser,
+  selectUserInUserSearch,
   waitForBackend,
 } from './support/fixtures';
 
@@ -35,8 +36,7 @@ async function createAssignmentForDate(
   await page.getByRole('button', { name: 'Add Assignment' }).click();
   await page.getByLabel('Day of Week').selectOption(assignmentDayOptionForDate(gameDate));
   await page.getByRole('checkbox', { name: /5-1 positions game/i }).uncheck();
-  await page.getByPlaceholder('Search for a user...').fill(assigneeDisplayName);
-  await page.getByText(assigneeDisplayName, { exact: true }).click();
+  await selectUserInUserSearch(page, assigneeDisplayName);
   await page.getByRole('button', { name: 'Create' }).click();
 }
 

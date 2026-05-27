@@ -49,7 +49,7 @@ const PriorityPlayers: React.FC = () => {
       navigate('/game-administrators');
       return;
     }
-    viewModel.initialize(adminIdNum);
+    viewModel.initialize(adminIdNum, !!user?.isAdmin);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameAdministratorId, navigate]);
 

@@ -26,19 +26,30 @@ export class PriorityPlayersViewModel {
   /**
    * Initialize the viewmodel with a game administrator ID from URL
    */
-  async initialize(gameAdministratorId: number | null): Promise<boolean> {
+  async initialize(gameAdministratorId: number | null, isGlobalAdmin = false): Promise<boolean> {
     if (!gameAdministratorId || Number.isNaN(gameAdministratorId)) {
       this.updateState({ error: 'Invalid game administrator ID' });
       return false;
     }
 
     this.updateState({ currentAdminId: gameAdministratorId });
-    await Promise.all([
-      this.loadPriorityPlayersForAdmin(gameAdministratorId),
-      this.loadGameAdministrators(),
-    ]);
+    const assignmentLoad = isGlobalAdmin
+      ? this.loadGameAdministrators()
+      : this.loadGameAdministratorById(gameAdministratorId);
+    await Promise.all([this.loadPriorityPlayersForAdmin(gameAdministratorId), assignmentLoad]);
     this.setSelectedGameAdministratorId(gameAdministratorId);
     return true;
+  }
+
+  async loadGameAdministratorById(gameAdministratorId: number): Promise<void> {
+    try {
+      const assignment = await gameAdministratorsApi.getById(gameAdministratorId);
+      this.updateState({ gameAdministrators: [assignment] });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load game administrator';
+      this.updateState({ error: errorMessage, gameAdministrators: [] });
+      console.error('Error loading game administrator:', err);
+    }
   }
 
   /**

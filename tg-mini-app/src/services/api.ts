@@ -367,6 +367,14 @@ export const gameAdministratorsApi = {
   },
 
   /**
+   * Get one assignment with user details (global admin or assigned user)
+   */
+  getById: async (id: number): Promise<GameAdministrator> => {
+    const response = await api.get(`/game-administrators/me/assignments/${id}`);
+    return response.data;
+  },
+
+  /**
    * Delete a game administrator assignment
    */
   delete: async (id: number): Promise<void> => {

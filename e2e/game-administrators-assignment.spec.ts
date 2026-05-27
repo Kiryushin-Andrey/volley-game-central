@@ -3,6 +3,7 @@ import {
   cleanupE2eData,
   createDevUserViaApi,
   devLoginAs,
+  selectUserInUserSearch,
   waitForBackend,
 } from './support/fixtures';
 
@@ -28,8 +29,7 @@ async function createAssignmentViaUi(
   } else {
     await positionsCheckbox.uncheck();
   }
-  await page.getByPlaceholder('Search for a user...').fill(options.userDisplayName);
-  await page.getByText(options.userDisplayName, { exact: true }).click();
+  await selectUserInUserSearch(page, options.userDisplayName);
   await page.getByRole('button', { name: 'Create' }).click();
 }
 

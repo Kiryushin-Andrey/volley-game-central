@@ -17,8 +17,8 @@ import './services/telegramService'; // Import to ensure the bot is initialized
 import cookieParser from 'cookie-parser';
 import { authMiddleware } from './middleware/auth';
 import { adminAuthMiddleware } from './middleware/adminAuth';
-import { tcOrAdminAuthMiddleware } from './middleware/tcOrAdminAuth';
 import { adminOrAssignedAdminMiddleware } from './middleware/adminOrAssignedAdmin';
+import { tcOrAdminAuthMiddleware } from './middleware/tcOrAdminAuth';
 import { BUILD_TIMESTAMP } from './buildInfo.generated';
 import { POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED } from './config/positionsGameLevelRestrictions';
 
@@ -67,7 +67,7 @@ app.use('/users', authMiddleware, userRoutes);
 app.use('/users/me/bunq', authMiddleware, adminOrAssignedAdminMiddleware, bunqRoutes);
 
 app.use('/games/admin', authMiddleware, adminOrAssignedAdminMiddleware, gamesAdminRoutes);
-app.use('/users/admin/player-levels', authMiddleware, adminAuthMiddleware, playerLevelsAdminRoutes);
+app.use('/users/admin/player-levels', authMiddleware, tcOrAdminAuthMiddleware, playerLevelsAdminRoutes);
 app.use('/users/admin', authMiddleware, adminOrAssignedAdminMiddleware, usersAdminRoutes);
 app.use('/users/admin/id/:collectorUserId/bunq', authMiddleware, adminAuthMiddleware, bunqRoutes);
 app.use('/game-administrators/me', authMiddleware, gameAdministratorsMeRoutes);

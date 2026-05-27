@@ -497,10 +497,30 @@ export async function moveGameToPastViaUi(page: Page, gameId: number, pastDate =
   await expect(page).toHaveURL(new RegExp(`/game/${gameId}$`));
 }
 
+
+export async function selectUserInUserSearch(page: Page, displayName: string) {
+  const searchInput = page
+    .getByPlaceholder('Search users to add...')
+    .or(page.getByPlaceholder('Search for a user...'));
+  await searchInput.fill(displayName);
+  const item = page.locator('.user-search-item').filter({ hasText: displayName });
+  await expect(item.first()).toBeVisible({ timeout: 15_000 });
+  await item.first().click();
+}
+
+export async function waitForPlayerOnPlayerLevelsPage(page: Page, displayName: string) {
+  await expect(page.getByRole('heading', { name: 'Player levels' })).toBeVisible();
+  await page.getByLabel('Filter by name').fill(displayName);
+  await expect(page.locator('.player-levels-item').filter({ hasText: displayName })).toBeVisible({
+    timeout: 15_000,
+  });
+}
+
 export async function addParticipantViaUi(page: Page, displayName: string) {
-  await page.locator('.admin-actions').getByRole('button', { name: 'Add Participant' }).click();
-  await page.getByPlaceholder('Search users to add...').fill(displayName);
-  await page.getByText(displayName, { exact: true }).click();
+  const addButton = page.locator('.admin-actions').getByRole('button', { name: 'Add Participant' });
+  await expect(addButton).toBeVisible({ timeout: 15_000 });
+  await addButton.click();
+  await selectUserInUserSearch(page, displayName);
   await expect(page.locator('.player-item').filter({ hasText: displayName })).toBeVisible();
 }
 
