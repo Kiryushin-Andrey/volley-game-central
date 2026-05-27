@@ -31,7 +31,7 @@ cd scripts/ralph && npm install   # once per clone
 | `scripts/start-cursor-cloud-session.sh` | Used by chain-next for `remote-cursor` |
 | `scripts/start-oz-cloud-session.sh` | Used by chain-next for `remote-oz` |
 
-Implementation: `scripts/ralph/src/` (prompt rendering + chaining only).
+Implementation: `scripts/ralph/src/` — prompt rendering, plan, chain-next, bootstrap-publish (no imperative loop runner; `ralph-loop.ts` / `loop.ts` / `agents/*` were removed in the recursive refactor).
 
 ## Bootstrap (once per epic)
 

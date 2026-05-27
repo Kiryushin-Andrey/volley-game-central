@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { detectRepoSlug, repoSlugToUrl } from "./git.js";
+import { detectRepoSlug } from "./git.js";
 import type { RalphConfigFile } from "./config.js";
 import { progressPath, steeringPath } from "./paths.js";
 import type { RalphPhase } from "./plan.js";
@@ -36,7 +36,6 @@ export function buildPromptContext(
     worker_agent: workerAgentName(cfg.worker),
     feedback_loops: cfg.feedbackLoops.map((item) => `- ${item}`).join("\n"),
     bootstrap: opts?.bootstrap === true,
-    screenshots_dir: `${cfg.stateDir}/screenshots`,
     is_last_issue: false,
     closes_clause: "",
   };
@@ -59,10 +58,4 @@ export function buildPromptContext(
   }
 
   return ctx;
-}
-
-export function resolveRepoUrl(cfg: RalphConfigFile, root: string): string {
-  if (cfg.repoUrl) return cfg.repoUrl;
-  const slug = cfg.repo ?? detectRepoSlug(root);
-  return repoSlugToUrl(slug);
 }

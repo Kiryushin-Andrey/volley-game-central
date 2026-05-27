@@ -14,28 +14,20 @@ export const WORKER_KINDS: readonly WorkerKind[] = [
   "remote-oz",
 ] as const;
 
-export const DEFAULT_WORKER: WorkerKind = "local-cursor";
-
-export type LocalWorkerKind = Extract<WorkerKind, `local-${string}`>;
 export type RemoteWorkerKind = Extract<WorkerKind, `remote-${string}`>;
 
-/** Remote platform id (suffix after `remote-`). */
-export type RemoteProvider = "cursor" | "oz";
-
-export interface LocalWorkerInvocation {
-  /** Binary on PATH (checked before spawn). */
-  command: string;
-  args: string[];
+export function parseWorkerKind(raw: string): WorkerKind {
+  const normalized = raw.trim().toLowerCase();
+  if ((WORKER_KINDS as readonly string[]).includes(normalized)) {
+    return normalized as WorkerKind;
+  }
+  throw new Error(
+    `ralph.config.json worker must be one of: ${WORKER_KINDS.join(", ")}; got: ${JSON.stringify(raw)}`,
+  );
 }
 
 export function isRemoteWorker(kind: WorkerKind): kind is RemoteWorkerKind {
   return kind.startsWith("remote-");
-}
-
-export function remoteProvider(kind: RemoteWorkerKind): RemoteProvider {
-  const suffix = kind.slice("remote-".length);
-  if (suffix === "cursor" || suffix === "oz") return suffix;
-  throw new Error(`Unknown remote worker: ${kind}`);
 }
 
 /** Short label for logs and prompts (e.g. `cursor`, `claude`). */
