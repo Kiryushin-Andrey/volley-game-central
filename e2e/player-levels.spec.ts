@@ -9,6 +9,7 @@ import {
   devLogin,
   devLoginAs,
   e2eTitle,
+  dayOfWeekOptionFromDate,
   nextWeekday,
   openPlayerInfoFromGameRoster,
   playerInfoDialog,
@@ -184,7 +185,6 @@ test.describe('player levels admin scenarios', () => {
 
   test('E2E-LEVEL-009 global admin sees read-only player level on game details', async ({ page, request }, testInfo) => {
     const { admin, target, game } = await setupLeveledPlayerOnGameWithTarget(page, request, testInfo);
-    await devLoginAs(page, admin);
     await page.goto(`/game/${game.id}`);
     await openPlayerInfoFromGameRoster(page, target.displayName);
     await expectReadOnlyPlayerLevelInDialog(page, { levelLabel: 'Intermediate', setByName: admin.displayName });
@@ -206,10 +206,13 @@ test.describe('player levels admin scenarios', () => {
 
     await devLoginAs(page, globalAdmin);
     await assignPlayerLevelViaAdminUi(page, globalAdmin, target, 'intermediate', { managerAlreadyLoggedIn: true });
-    await createAssignmentViaUi(page, assignedAdmin.displayName, { dayOptionValue: '6' });
+    const gameDate = nextWeekday(6);
+    await createAssignmentViaUi(page, assignedAdmin.displayName, {
+      dayOptionValue: dayOfWeekOptionFromDate(gameDate),
+    });
     const game = await createGameViaUi(page, {
       title: e2eTitle(testInfo, 'Assigned Admin Level Game'),
-      dateTime: nextWeekday(6),
+      dateTime: gameDate,
       maxPlayers: 12,
       readonly: true,
     });
@@ -223,14 +226,12 @@ test.describe('player levels admin scenarios', () => {
   });
 
   test('E2E-LEVEL-012 participant cannot open player info from game details roster', async ({ page, request }, testInfo) => {
-    const { target, game } = await setupLeveledPlayerOnGameWithTarget(page, request, testInfo);
+    const { admin, target, game } = await setupLeveledPlayerOnGameWithTarget(page, request, testInfo);
     const participant = await createDevUserViaApi(request, testInfo, 'Level Roster Participant');
+    await page.goto(`/game/${game.id}`);
+    await addParticipantViaUi(page, participant.displayName);
     await switchToUser(page, participant);
     await page.goto(`/game/${game.id}`);
-    await page.getByRole('button', { name: 'Join Game' }).click();
-    await expect(page.getByRole('heading', { name: 'Will you bring a volleyball?' })).toBeVisible();
-    await page.getByRole('button', { name: /No, I won't bring one/ }).click();
-    await expect(page.getByText("You're in", { exact: true })).toBeVisible();
 
     const otherRow = page.locator('.players-section .player-item').filter({ hasText: target.displayName });
     await otherRow.locator('.player-details').click();
@@ -263,6 +264,7 @@ test.describe('player levels admin scenarios', () => {
     const manageLink = assignmentRow.getByTitle('Manage Priority Players');
     await manageLink.click();
     await expect(page.getByRole('heading', { name: 'Priority Players' })).toBeVisible();
+    await expect(page.locator('.assignment-group')).toBeVisible({ timeout: 15_000 });
     await expect(page.getByRole('button', { name: 'Add Priority Player' })).toBeVisible({ timeout: 15_000 });
 
     await page.getByRole('button', { name: 'Add Priority Player' }).click();
@@ -290,6 +292,7 @@ test.describe('player levels admin scenarios', () => {
     await switchToUser(page, assignedAdmin);
     await page.goto(assignmentHref!);
     await expect(page.getByRole('heading', { name: 'Priority Players' })).toBeVisible();
+    await expect(page.locator('.assignment-group')).toBeVisible({ timeout: 15_000 });
     await expect(page.getByRole('button', { name: 'Add Priority Player' })).toBeVisible({ timeout: 15_000 });
 
     await page.getByRole('button', { name: 'Add Priority Player' }).click();

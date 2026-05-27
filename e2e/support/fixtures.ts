@@ -74,6 +74,13 @@ export function uniquePhoneLocal(testInfo: TestInfo, suffix: number) {
   return `6${timestamp}${testInfo.workerIndex}${suffix}`;
 }
 
+/** Monday=0 … Sunday=6, matching the Game Administrators day-of-week select options. */
+export function dayOfWeekOptionFromDate(date: Date): string {
+  const jsDay = date.getDay();
+  const monday0 = jsDay === 0 ? 6 : jsDay - 1;
+  return String(monday0);
+}
+
 export async function openDevLogin(page: Page) {
   const welcomeHeading = page.getByRole('heading', { name: 'Welcome' });
   if (!(await welcomeHeading.isVisible().catch(() => false))) {

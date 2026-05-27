@@ -42,16 +42,16 @@ const PriorityPlayers: React.FC = () => {
   }
   const viewModel = viewModelRef.current;
 
-  // Load data on mount
+  // Load data once auth user is known (isAdmin selects list vs single-assignment API)
   useEffect(() => {
     const adminIdNum = gameAdministratorId ? parseInt(gameAdministratorId) : null;
     if (!adminIdNum || Number.isNaN(adminIdNum)) {
       navigate('/game-administrators');
       return;
     }
-    viewModel.initialize(adminIdNum, !!user?.isAdmin);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameAdministratorId, navigate]);
+    if (!user) return;
+    viewModel.initialize(adminIdNum, user.isAdmin);
+  }, [gameAdministratorId, navigate, user, viewModel]);
 
   const handleUserSelect = async (userId: number) => {
     if (!adminId || Number.isNaN(adminId)) {
