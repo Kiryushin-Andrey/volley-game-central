@@ -88,9 +88,9 @@ Global administrators manage internal skill tiers via the **Players** hub (`/pla
 - [x] E2E-LEVELS-006: TC-only user is redirected from `/players` (Players hub).
 - [x] E2E-LEVELS-007: Global Admin or TC assigns level; **Set by** shows assigner display name on list and/or dialog.
 - [x] E2E-LEVELS-008: Global Admin or TC uses level filter (e.g. **Beginner**) combined with name filter.
-- [ ] E2E-LEVELS-009: TC-only taps participant on game details; read-only level; no payment/moderation UI.
-- [ ] E2E-LEVELS-010: Global Admin on game details sees read-only level outside player levels page.
-- [ ] E2E-LEVELS-011: Assigned Admin (not TC or global admin) opens participant dialog; no level fields.
+- [x] E2E-LEVELS-009: TC-only taps participant on game details; read-only level; no payment/moderation UI.
+- [x] E2E-LEVELS-010: Global Admin on game details sees read-only level outside player levels page.
+- [x] E2E-LEVELS-011: Assigned Admin (not TC or global admin) opens participant dialog; no level fields.
 
 ## Positions game level restrictions scenarios
 

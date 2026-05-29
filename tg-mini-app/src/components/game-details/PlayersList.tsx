@@ -16,6 +16,7 @@ interface Props {
   onRemovePlayer: (userId: number, guestName?: string) => void | Promise<void>;
   onTogglePaidStatus: (userId: number, paid: boolean) => void;
   canUnregister: boolean;
+  canTapPlayerInfo?: boolean;
   onShowUserInfo?: (user: UserPublicInfo) => void;
 }
 
@@ -31,6 +32,7 @@ export const PlayersList: React.FC<Props> = ({
   onRemovePlayer,
   onTogglePaidStatus,
   canUnregister: canUnregister,
+  canTapPlayerInfo = false,
   onShowUserInfo,
 }) => {
   return (
@@ -40,10 +42,10 @@ export const PlayersList: React.FC<Props> = ({
           <div className="player-info">
             <div
               className={`player-avatar ${
-                isAdmin && registration.user ? 'clickable' : ''
+                canTapPlayerInfo && registration.user ? 'clickable' : ''
               }`}
               onClick={() => {
-                if (isAdmin && registration.user && onShowUserInfo) {
+                if (canTapPlayerInfo && registration.user && onShowUserInfo) {
                   onShowUserInfo(registration.user);
                 }
               }}
@@ -66,10 +68,10 @@ export const PlayersList: React.FC<Props> = ({
             </div>
             <div
               className={`player-details ${
-                isAdmin && registration.user ? 'clickable' : ''
+                canTapPlayerInfo && registration.user ? 'clickable' : ''
               }`}
               onClick={() => {
-                if (isAdmin && registration.user && onShowUserInfo) {
+                if (canTapPlayerInfo && registration.user && onShowUserInfo) {
                   onShowUserInfo(registration.user);
                 }
               }}

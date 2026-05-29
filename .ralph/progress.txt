@@ -220,3 +220,31 @@ RALPH_ISSUE_COMPLETE #43
 - `e2e/player-levels.spec.ts`, `docs/playwright-e2e-scenarios.md`
 
 RALPH_ISSUE_COMPLETE #44
+
+## 2026-05-29 — Issue #45 (TC game details dialog)
+
+### Session orientation
+- Branch `cursor/player-levels-issue8-dbd5` up to date; `ralph-plan.sh` → issue #45; #42–#44 complete.
+- Focus: role-based **Player info dialog** on game details; lazy `GET /player-levels/users/:userId`; E2E-LEVELS-009–011.
+
+### E2E gate (before feature work)
+- `npm run test:e2e`: **119 passed**, 0 failed (baseline green).
+
+### Implemented (#45)
+- `PlayerInfoDialog`: `viewer` (`globalAdmin` | `tc` | `assignedGameAdmin`); TC sees identity + read-only level only (no unpaid/moderation); global admin keeps full sections with read-only level off player levels page; assigned game admin unchanged (no level).
+- Lazy level profile via `playerLevelsApi.getUser` when `loadLevelProfile` (game details for global admin / TC).
+- `GameDetails`: `canOpenPlayerInfo = isGameAdmin || isTc`; roster/waitlist taps use `canTapPlayerInfo` separate from admin remove/paid controls.
+- `PlayersList` / `WaitlistList`: `canTapPlayerInfo` prop for clickable names without granting admin actions.
+- `userRoles.ts`: helpers `canOpenPlayerInfoOnGame`, `playerInfoDialogViewer`, etc.
+- E2E: `E2E-LEVELS-009`–`011` in `e2e/player-levels.spec.ts`; checklist updated.
+
+### E2E gate (before commit)
+- `npm run test:e2e`: **122 passed**, 0 failed.
+- `cd backend && npm run build` OK; `cd tg-mini-app && npm run build` OK.
+
+### Files touched (main)
+- `tg-mini-app/src/components/PlayerInfoDialog.tsx`, `game-details/PlayersList.tsx`, `WaitlistList.tsx`
+- `tg-mini-app/src/pages/GameDetails.tsx`, `PlayerLevels.tsx`, `utils/userRoles.ts`
+- `e2e/player-levels.spec.ts`, `docs/playwright-e2e-scenarios.md`
+
+RALPH_ISSUE_COMPLETE #45

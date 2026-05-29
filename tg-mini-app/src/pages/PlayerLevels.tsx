@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BackButton } from '@twa-dev/sdk/react';
 import { useAuthenticatedUser } from '../hooks/useAuthenticatedUser';
-import { canManagePlayerLevels } from '../utils/userRoles';
+import { canManagePlayerLevels, playerInfoDialogViewer } from '../utils/userRoles';
 import { isTelegramApp } from '../utils/telegram';
 import PlayerInfoDialog from '../components/PlayerInfoDialog';
 import {
@@ -176,6 +176,7 @@ const PlayerLevels: React.FC = () => {
         isOpen={showDialog}
         onClose={closeDialog}
         user={dialogUser}
+        viewer={playerInfoDialogViewer(user)}
         allowLevelEdit
         playerLevel={dialogUser?.playerLevel ?? null}
         playerLevelSetBy={dialogUser?.playerLevelSetBy ?? null}

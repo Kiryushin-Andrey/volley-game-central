@@ -3,8 +3,12 @@ import {
   assignPlayerLevelViaApi,
   cleanupE2eData,
   createDevUserViaApi,
+  createGameViaUi,
+  daysFromNow,
   devLogin,
   devLoginAs,
+  e2eTitle,
+  registerForGameViaUi,
   switchToUser,
   waitForBackend,
 } from './support/fixtures';
@@ -137,5 +141,95 @@ test.describe('player levels admin scenarios', () => {
     await page.getByLabel('Filter by level').selectOption('beginner');
     await expect(page.getByText(advanced.displayName, { exact: true })).toHaveCount(0);
     await expect(page.getByText(beginner.displayName, { exact: true })).toHaveCount(0);
+  });
+
+  test('E2E-LEVELS-009 TC-only sees read-only level on game details without payment or moderation', async ({
+    page,
+    request,
+  }, testInfo) => {
+    const globalAdmin = await createDevUserViaApi(request, testInfo, 'Levels TC Dialog GA', true);
+    const tcUser = await createDevUserViaApi(request, testInfo, 'Levels TC Dialog TC', false, true);
+    const player = await createDevUserViaApi(request, testInfo, 'Levels TC Dialog Player');
+    await assignPlayerLevelViaApi(request, testInfo, player.id, 'intermediate');
+    await devLoginAs(page, globalAdmin);
+    const game = await createGameViaUi(page, {
+      title: e2eTitle(testInfo, 'TC Dialog Game'),
+      dateTime: daysFromNow(2),
+    });
+    await registerForGameViaUi(page, player, game.id);
+
+    await switchToUser(page, tcUser);
+    await page.goto(`/game/${game.id}`);
+    await page
+      .locator('.player-item')
+      .filter({ hasText: player.displayName })
+      .locator('.player-details')
+      .click();
+
+    const dialog = page.locator('.player-info-dialog');
+    await expect(dialog.getByRole('heading', { name: 'Player details' })).toBeVisible();
+    await expect(dialog.getByText('Player level')).toBeVisible();
+    await expect(dialog.getByText('Intermediate')).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Beginner' })).toHaveCount(0);
+    await expect(dialog.getByText('Unpaid games')).toHaveCount(0);
+    await expect(dialog.getByRole('button', { name: 'Block' })).toHaveCount(0);
+  });
+
+  test('E2E-LEVELS-010 global admin sees read-only level on game details', async ({ page, request }, testInfo) => {
+    const admin = await createDevUserViaApi(request, testInfo, 'Levels GA Dialog Admin', true);
+    const player = await createDevUserViaApi(request, testInfo, 'Levels GA Dialog Player');
+    await assignPlayerLevelViaApi(request, testInfo, player.id, 'advanced');
+    await devLoginAs(page, admin);
+    const game = await createGameViaUi(page, {
+      title: e2eTitle(testInfo, 'GA Dialog Game'),
+      dateTime: daysFromNow(2),
+    });
+    await registerForGameViaUi(page, player, game.id);
+    await switchToUser(page, admin);
+    await page.goto(`/game/${game.id}`);
+    await page
+      .locator('.player-item')
+      .filter({ hasText: player.displayName })
+      .locator('.player-details')
+      .click();
+
+    const dialog = page.locator('.player-info-dialog');
+    await expect(dialog.getByText('Player level')).toBeVisible();
+    await expect(dialog.getByText('Advanced')).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Beginner' })).toHaveCount(0);
+    await expect(dialog.getByRole('button', { name: 'Block' })).toBeVisible();
+  });
+
+  test('E2E-LEVELS-011 assigned-only admin dialog has no level fields', async ({ page, request }, testInfo) => {
+    const globalAdmin = await createDevUserViaApi(request, testInfo, 'Levels Assign Dialog GA', true);
+    const assignedAdmin = await createDevUserViaApi(request, testInfo, 'Levels Assign Dialog AA');
+    const player = await createDevUserViaApi(request, testInfo, 'Levels Assign Dialog Player');
+    await devLoginAs(page, globalAdmin);
+    await page.goto('/players');
+    await page.getByRole('link', { name: 'Game administrators' }).click();
+    await page.getByRole('button', { name: 'Add Assignment' }).click();
+    await page.getByLabel('Day of Week').selectOption('6');
+    await page.getByPlaceholder('Search for a user...').fill(assignedAdmin.displayName);
+    await page.getByText(assignedAdmin.displayName, { exact: true }).click();
+    await page.getByRole('button', { name: 'Create' }).click();
+
+    await switchToUser(page, assignedAdmin);
+    const game = await createGameViaUi(page, {
+      title: e2eTitle(testInfo, 'Assign Dialog Game'),
+      dateTime: daysFromNow(2),
+    });
+    await registerForGameViaUi(page, player, game.id);
+    await switchToUser(page, assignedAdmin);
+    await page.goto(`/game/${game.id}`);
+    await page
+      .locator('.player-item')
+      .filter({ hasText: player.displayName })
+      .locator('.player-details')
+      .click();
+
+    const dialog = page.locator('.player-info-dialog');
+    await expect(dialog.getByRole('heading', { name: 'Player details' })).toBeVisible();
+    await expect(dialog.getByText('Player level')).toHaveCount(0);
+    await expect(dialog.getByText('Unassigned')).toHaveCount(0);
   });
 });
