@@ -1,0 +1,10 @@
+{
+  "publishedAt": "2026-05-29T22:02:35Z",
+  "sourceCommit": "ae56fa8d270350b3603dfa45995c82b5702fbfdd",
+  "sourceBranch": "main",
+  "reportDir": "/opt/cursor/artifacts/playwright-report",
+  "lastRun": {
+    "status": "passed",
+    "failedTests": []
+  }
+}
