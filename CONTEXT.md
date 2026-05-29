@@ -19,7 +19,7 @@ _Avoid_: Regular game
 A game that uses priority-player registration windows (10-day / 3-day rules) but is not a positions game. Player levels do not restrict access to these games.
 
 **Player level**:
-A skill tier assigned to a player by an administrator. Stored as `beginner`, `intermediate`, or `advanced`; unassigned players have no value (`null`). Used to gate access to positions games when restrictions are enabled.
+A skill tier assigned to a player by a **Global administrator** or **Technical Committee member**. Stored as `beginner`, `intermediate`, or `advanced`; unassigned players have no value (`null`). Used to gate access to positions games when restrictions are enabled.
 _Avoid_: Level (ambiguous — could mean game difficulty or Nevobo class)
 
 **Level pill**:
@@ -29,8 +29,16 @@ A read-only, color-coded label on the player-levels admin list, right-aligned on
 A registered player who has no player level set. Treated like a newcomer for positions-game access when restrictions are enabled.
 
 **Global administrator**:
-A user with system-wide admin privileges (`isAdmin`). Only global administrators may access the Players hub, view player levels, and assign or change them.
+A user with system-wide admin privileges (`isAdmin`). Has all **Technical Committee member** capabilities for player levels, plus broader club administration (including granting or revoking TC membership).
 _Avoid_: Game administrator (day/positions assignment — different role)
+
+**Technical Committee member** (TC member):
+A user flagged for player-level stewardship (`is_tc`). May view and assign **Player level** on the player-levels page and in the **Player info dialog** wherever it is opened. Does not receive global-admin powers unless also a **Global administrator**.
+_Avoid_: TC (use spelled-out term in glossary; “TC” is fine in UI labels if the club prefers)
+
+**Assigned game administrator**:
+A user assigned to run games for specific weekdays and formats via `game_administrators`. May manage games, rosters, and related flows for those assignments but not player levels unless also a TC member or global administrator.
+_Avoid_: Restricted admin (informal), game administrator when meaning global admin
 
 **Players hub**:
 Admin landing page (toolbar “Players” → `/players`) with links to game administrators and player levels management.
@@ -58,7 +66,9 @@ A host who cannot self-register for a positions game also cannot register guests
 - Only a **Positions game** is subject to **Positions game level restrictions**
 - A **Priority players game** uses priority registration timing but is not a **Positions game**
 - **Game format** determines whether positions apply, whether priority windows apply, and whether level restrictions can apply
-- An **Unassigned player** has no **Player level** until an administrator assigns one
+- An **Unassigned player** has no **Player level** until a **Global administrator** or **Technical Committee member** assigns one
+- A **Global administrator** may perform every **Technical Committee member** action on player levels; a **Technical Committee member** who is not a global administrator may not perform global-admin-only actions
+- An **Assigned game administrator** without TC or global admin role cannot view or change **Player level**
 - **Positions game level restrictions** control whether **Player level** affects registration for **Positions games**
 - **Grandfathered registration** protects existing spots; **Level-blocked re-registration** applies only after the player leaves voluntarily
 
@@ -76,7 +86,7 @@ A host who cannot self-register for a positions game also cannot register guests
 - Admin adding players — resolved: same rules as today (game must be past or readonly; no payment requests sent yet); player level does not relax those gates.
 - Where level is edited — resolved: assign/change in **Player info dialog** on the player-levels page; **Level pill** on each row is display-only.
 - Player-levels search — resolved: name filter above the list (client-side or debounced API); not search inside the dialog.
-- Who manages levels — resolved: **Global administrator** only (`isAdmin`).
+- Who manages levels — resolved: **Global administrator** or **Technical Committee member** (`isAdmin` or `is_tc`); **Assigned game administrator** excluded unless they also hold one of those roles.
 - **Game format** vs level restrictions — resolved: only **Positions game** is level-gated; **Priority players game** is not a positions game and has no level restrictions.
 - "Regular game" naming — resolved: **Recreational game**.
 - Game storage shape — resolved: one three-value **Game format** field (`recreational` | `positions` | `priority_players`) replaces the two booleans in the data model and UI.
