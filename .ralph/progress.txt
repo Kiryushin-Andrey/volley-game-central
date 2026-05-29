@@ -131,3 +131,12 @@ RALPH_ISSUE_COMPLETE #22
 
 RALPH_E2E_COMPLETE
 RALPH_ALL_COMPLETE
+
+## TC role follow-on (planned child slices under #8)
+
+PRD updated: `docs/prd/player-levels-and-game-format.md`. Issue bodies in `.scratch/tc-slices/`; publish via `docs/issues/tc-role-vertical-slices.md`.
+
+1. **#23** — TC role foundation (`is_tc`, steward API, `/users/me` `isTc`, TC routing, E2E 005–006)
+2. **#24** — Level assignment audit + `GET /player-levels/users/:userId` (E2E 007) — blocked by #23
+3. **#25** — Player levels level filter (E2E 008) — blocked by #23; parallel with #24
+4. **#26** — TC game details dialog + role-based player info dialog (E2E 009–011) — blocked by #23, #24
