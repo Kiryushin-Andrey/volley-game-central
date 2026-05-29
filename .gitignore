@@ -68,6 +68,7 @@ docker-data/
 .nyc_output/
 playwright-report/
 test-results/
+.gh-pages-worktree/
 
 # Yarn Plug'n'Play files (even if project uses npm, these sometimes show up)
 .pnp

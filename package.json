@@ -16,7 +16,8 @@
     "bunq-mock:dev": "cd bunq-mock && npm run dev",
     "e2e:server": "bash scripts/playwright-dev-server.sh",
     "test:e2e": "playwright test",
-    "test:e2e:auth": "playwright test e2e/auth-session.spec.ts"
+    "test:e2e:auth": "playwright test e2e/auth-session.spec.ts",
+    "e2e:publish-report": "bash scripts/publish-e2e-report-to-gh-pages.sh"
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
