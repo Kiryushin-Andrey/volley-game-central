@@ -192,3 +192,31 @@ RALPH_ISSUE_COMPLETE #42
 - `e2e/player-levels.spec.ts`, `docs/playwright-e2e-scenarios.md`
 
 RALPH_ISSUE_COMPLETE #43
+
+## 2026-05-29 — Issue #44 (player levels page level filter)
+
+### Session orientation
+- Branch `cursor/player-levels-issue8-dbd5` up to date; `ralph-plan.sh` → issue #44; #42–#43 complete.
+- Focus: client-side level filter (All / Unassigned / Advanced / Intermediate / Beginner) on `/player-levels`; E2E-LEVELS-008.
+
+### E2E gate (before feature work)
+- `npm run test:e2e`: **118 passed**, 0 failed (baseline green).
+
+### Implemented (#44)
+- `PlayerLevelsViewModel`: `levelFilter` state (default `all`); `setLevelFilter`; `filterUsers` applies level then name filter client-side.
+- `PlayerLevels.tsx`: level `<select>` with `aria-label="Filter by level"` below name search; options from `PLAYER_LEVEL_FILTER_OPTIONS`.
+- `playerLevel.ts`: `PlayerLevelFilter` type + filter option labels.
+- E2E: `E2E-LEVELS-008` (Beginner / Unassigned / combined name+level); updated LEVELS-001 visibility check; LEVELS-002/005 pill assertions scoped to `.level-pill--*`.
+- Checklist: E2E-LEVELS-008 marked implemented.
+
+### E2E gate (before commit)
+- Initial post-impl run: **117 passed**, 2 failed (LEVELS-002/005 strict mode — level select option text matched pill locators).
+- Fix: use `.level-pill--intermediate` / `.level-pill--advanced` in LEVELS-002/005.
+- Final: `npm run test:e2e`: **119 passed**, 0 failed.
+- `cd backend && npm run build` OK; `cd tg-mini-app && npm run build` OK.
+
+### Files touched (main)
+- `tg-mini-app/src/utils/playerLevel.ts`, `viewmodels/PlayerLevelsViewModel.ts`, `pages/PlayerLevels.tsx`, `pages/PlayerLevels.scss`
+- `e2e/player-levels.spec.ts`, `docs/playwright-e2e-scenarios.md`
+
+RALPH_ISSUE_COMPLETE #44

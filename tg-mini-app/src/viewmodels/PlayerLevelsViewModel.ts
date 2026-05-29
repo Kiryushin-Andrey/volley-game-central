@@ -1,9 +1,11 @@
 import { playerLevelsApi } from '../services/api';
 import type { PlayerLevel, UserWithPlayerLevel } from '../types';
+import type { PlayerLevelFilter } from '../utils/playerLevel';
 
 export interface PlayerLevelsState {
   users: import('../types').UserWithPlayerLevel[];
   filterQuery: string;
+  levelFilter: PlayerLevelFilter;
   isLoading: boolean;
   error: string | null;
   savingUserId: number | null;
@@ -18,6 +20,7 @@ export class PlayerLevelsViewModel {
     return {
       users: [],
       filterQuery: '',
+      levelFilter: 'all',
       isLoading: true,
       error: null,
       savingUserId: null,
@@ -41,12 +44,24 @@ export class PlayerLevelsViewModel {
     this.updateState({ filterQuery });
   }
 
+  setLevelFilter(levelFilter: PlayerLevelFilter): void {
+    this.updateState({ levelFilter });
+  }
+
   filterUsers(state: PlayerLevelsState): import('../types').UserWithPlayerLevel[] {
+    let users = state.users;
+
+    if (state.levelFilter === 'unassigned') {
+      users = users.filter((u) => !u.playerLevel);
+    } else if (state.levelFilter !== 'all') {
+      users = users.filter((u) => u.playerLevel === state.levelFilter);
+    }
+
     const q = state.filterQuery.trim().toLowerCase();
     if (!q) {
-      return state.users;
+      return users;
     }
-    return state.users.filter((u) => {
+    return users.filter((u) => {
       const name = (u.displayName || u.telegramUsername || '').toLowerCase();
       return name.includes(q);
     });

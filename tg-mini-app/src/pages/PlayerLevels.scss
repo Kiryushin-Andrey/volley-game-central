@@ -16,10 +16,14 @@
   }
 }
 
-.player-levels-filter {
+.player-levels-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   margin-bottom: 16px;
 
-  input {
+  input,
+  select {
     width: 100%;
     box-sizing: border-box;
     padding: 10px 12px;
