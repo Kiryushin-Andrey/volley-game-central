@@ -37,7 +37,7 @@ A user flagged for player-level stewardship (`is_tc` on the user record). Member
 _Avoid_: TC (use spelled-out term in glossary; “TC” is fine in UI labels if the club prefers)
 
 **Assigned game administrator**:
-A user assigned to run games for specific weekdays and formats via `game_administrators`. May manage games, rosters, and related flows for those assignments but not player levels unless also a TC member or global administrator.
+A user assigned to run games for specific weekdays and formats via `game_administrators`. May manage games, rosters, and related flows for those assignments. Cannot view or change **Player level** or **Level assignment record** unless also a **Technical Committee member** or **Global administrator**.
 _Avoid_: Restricted admin (informal), game administrator when meaning global admin
 
 **Players hub**:
@@ -116,3 +116,4 @@ Modal showing a player's profile. For **Global administrator**s it may also incl
 - TC membership management — resolved: `is_tc` set manually in the database; no grant/revoke UI or API in the app.
 - TC player info dialog scope — resolved: TC (non–global-admin) sees identity + level + **Level assignment record** only; no unpaid games, reminders, or block/unblock.
 - TC game details access — resolved: **Technical Committee member** (including TC-only) can tap roster/waitlist on **Game details** to open **Player info dialog** only (`canOpenPlayerInfo`); read-only level there; no remove player, guests, payments, or other **Assigned game administrator** controls unless they also hold that role or **Global administrator**.
+- Assigned admin level visibility — resolved: **Assigned game administrator** without TC/global admin sees no level fields in **Player info dialog** or elsewhere.
