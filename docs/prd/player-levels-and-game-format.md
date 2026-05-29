@@ -55,30 +55,32 @@ Replace the two game booleans with a single **game format** enum: `recreational`
 26. As a global administrator, I want to click a row to open the player info dialog, so that I can see the same details as on game pages.
 27. As a global administrator, I want to set or change a player's level in that dialog with immediate save, so that assignment is quick.
 28. As a global administrator, I want to switch between beginner, intermediate, and advanced only (no clear-to-unassigned), so that once labeled, players stay in the system.
-29. As a global administrator, I want a name filter above the list, so that I can find players quickly.
-30. As a global administrator, I want the full list to load in one request (~300 users) with client-side filtering, so that empty or broad search stays fast.
-31. As a game administrator (non-global), I want no access to player levels or the Players hub, so that tiers remain global-admin-only.
+29. As a global administrator or technical committee member, I want a name filter above the list, so that I can find players quickly.
+30. As a global administrator or technical committee member, I want the full list to load in one request (~300 users) with client-side filtering, so that empty or broad search stays fast.
+31. As a global administrator or technical committee member, I want a level filter on the player levels page (All, Unassigned, Advanced, Intermediate, Beginner), so that I can focus on one tier at a time.
+32. As a global administrator or technical committee member, I want the level filter to apply together with the name filter, so that I can narrow to specific players within a tier.
+33. As a game administrator (non-global), I want no access to player levels or the Players hub, so that tiers remain global-admin-only (unless I am also a technical committee member or global administrator).
 
 ### Game format
 
-32. As a global administrator creating a game, I want one select with three options (recreational / positions / priority players), so that I cannot pick invalid combinations.
-33. As a global administrator, I want “recreational game” naming instead of “regular game,” so that language matches how we talk about sessions.
-34. As a global administrator, I want “priority players” games to mean priority registration windows without positions, so that Thursday-style priority lists apply to non-positions games.
-35. As a global administrator, I want “positions” games to be the only format with position play, so that level restrictions have a clear target.
-36. As a developer migrating data, I want legacy `withPositions=false, withPriorityPlayers=false` → `recreational`, `true/false` → `positions`, `false/true` → `priority_players`, and `true/true` → `recreational`, so that existing rows map cleanly.
+34. As a global administrator creating a game, I want one select with three options (recreational / positions / priority players), so that I cannot pick invalid combinations.
+35. As a global administrator, I want “recreational game” naming instead of “regular game,” so that language matches how we talk about sessions.
+36. As a global administrator, I want “priority players” games to mean priority registration windows without positions, so that Thursday-style priority lists apply to non-positions games.
+37. As a global administrator, I want “positions” games to be the only format with position play, so that level restrictions have a clear target.
+38. As a developer migrating data, I want legacy `withPositions=false, withPriorityPlayers=false` → `recreational`, `true/false` → `positions`, `false/true` → `priority_players`, and `true/true` → `recreational`, so that existing rows map cleanly.
 
 ### Game format — downstream behavior
 
-37. As a player on a priority players game, I want existing 10-day / 3-day priority registration rules unchanged, so that deti-plova-style games behave as today.
-38. As a player on a recreational game, I want no level-based registration gates, so that social games stay open.
-39. As a player on a positions game, I want standard registration-open timing for advanced/unassigned unless level rules tighten it, so that intermediates get the 3-day window under restrictions.
-40. As a global administrator, I want to add any player to any game via existing admin participant flows (past or readonly, no payment requests sent), without level checks overriding those gates, so that manual exceptions stay possible.
+39. As a player on a priority players game, I want existing 10-day / 3-day priority registration rules unchanged, so that deti-plova-style games behave as today.
+40. As a player on a recreational game, I want no level-based registration gates, so that social games stay open.
+41. As a player on a positions game, I want standard registration-open timing for advanced/unassigned unless level rules tighten it, so that intermediates get the 3-day window under restrictions.
+42. As a global administrator, I want to add any player to any game via existing admin participant flows (past or readonly, no payment requests sent), without level checks overriding those gates, so that manual exceptions stay possible.
 
 ### API and consistency
 
-41. As the registration API, I want to reject self-serve registration when level policy blocks it, so that clients cannot bypass hidden buttons.
-42. As the game detail API, I want the client to know whether the current user can self-register (and when registration opens), so that the join button can be hidden consistently.
-43. As a global administrator updating a player's level, I want the change persisted immediately via API, so that the list and dialog stay in sync.
+43. As the registration API, I want to reject self-serve registration when level policy blocks it, so that clients cannot bypass hidden buttons.
+44. As the game detail API, I want the client to know whether the current user can self-register (and when registration opens), so that the join button can be hidden consistently.
+45. As a global administrator or technical committee member updating a player's level, I want the change persisted immediately via API, so that the list and dialog stay in sync.
 
 ## Implementation Decisions
 
@@ -134,7 +136,7 @@ Add nullable `player_level` enum column: `beginner` | `intermediate` | `advanced
 ### Frontend modules to build or modify
 
 1. **Players hub page** — `/players`, links to game administrators and player levels.
-2. **Player levels page** — grouped list, level pills, name filter, admin user API.
+2. **Player levels page** — grouped list, level pills, name and level filters (client-side), admin user API.
 3. **Player info dialog** — level selector on player-levels page only; immediate PATCH on change.
 4. **Game form** — three-option select bound to `gameFormat`.
 5. **Game details view model** — hide join button using `canSelfRegister`; hide guest affordances when host cannot self-register.
@@ -153,6 +155,7 @@ Add nullable `player_level` enum column: `beginner` | `intermediate` | `advanced
 ### UI specifics
 
 - Level pills: advanced light green, intermediate light yellow, beginner light red; no pill if unassigned.
+- Player levels filters: name search plus level control (All, Unassigned, Advanced, Intermediate, Beginner); both apply client-side on the loaded list; default All.
 - Players hub title: “Players”; links “Game administrators” and “Player levels”.
 - Do not expose level in any non-admin surface.
 

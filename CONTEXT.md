@@ -44,7 +44,7 @@ _Avoid_: Restricted admin (informal), game administrator when meaning global adm
 Admin landing page (toolbar “Players” → `/players`) with links to game administrators and player levels management. Shown only to **Global administrator**s.
 
 **Player levels page**:
-The list of all registered users with **Level pill**s, name filter, and row → **Player info dialog**. Toolbar “Players” for **Technical Committee member**s who are not global administrators opens this page directly (`/player-levels`), not the **Players hub**. Data comes from the player-levels admin API: full list with client-side filter on this page; not embedded on game participant payloads.
+The list of all registered users with **Level pill**s, name filter, level filter (All / Unassigned / Advanced / Intermediate / Beginner), and row → **Player info dialog**. Name and level filters combine client-side on the loaded list. Toolbar “Players” for **Technical Committee member**s who are not global administrators opens this page directly (`/player-levels`), not the **Players hub**. Data comes from the player-levels admin API: full list with client-side filter on this page; not embedded on game participant payloads.
 
 
 **Player level profile**:
@@ -128,3 +128,4 @@ Modal showing a player's profile. Which sections appear depends only on the **vi
 - Game roster level data — resolved: **do not** embed level on participant user objects.
 - Steward level fetch — resolved: lazy per-user fetch when **Player info dialog** opens (not on game payload, not full-list preload at sign-in).
 - Player level profile API — resolved: dedicated `GET /player-levels/users/:userId` for lazy dialog load; list endpoint unchanged for management page.
+- Player levels level filter — resolved: client-side level filter on **Player levels page**, combinable with name filter (PRD stories 31–32).
