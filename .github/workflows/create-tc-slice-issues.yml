@@ -1,0 +1,64 @@
+name: Create TC slice issues
+
+on:
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  create-issues:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ensure ready-for-agent label exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        continue-on-error: true
+        run: |
+          gh label create ready-for-agent \
+            --description "Fully specified, ready for an AFK agent" \
+            --color "0E8A16" 2>/dev/null || true
+
+      - name: Create slice issues
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          LABELS="enhancement,ready-for-agent"
+
+          create_issue() {
+            local title="$1"
+            local body_file="$2"
+            gh issue create \
+              --title "$title" \
+              --body-file "$body_file" \
+              --label "$LABELS" \
+              --json number \
+              --jq .number
+          }
+
+          cp .scratch/tc-slices/23-tc-role-foundation.md /tmp/issue-23.md
+          N23=$(create_issue "Slice: TC role foundation (TC/global admin access + routing)" /tmp/issue-23.md)
+          echo "Created #${N23}"
+
+          sed "s/#23/#${N23}/g" .scratch/tc-slices/24-level-assignment-audit.md > /tmp/issue-24.md
+          N24=$(create_issue "Slice: Level assignment audit (Set by + GET profile)" /tmp/issue-24.md)
+          echo "Created #${N24}"
+
+          sed "s/#23/#${N23}/g" .scratch/tc-slices/25-player-levels-filters.md > /tmp/issue-25.md
+          N25=$(create_issue "Slice: Player levels page level filter" /tmp/issue-25.md)
+          echo "Created #${N25}"
+
+          sed -e "s/#23/#${N23}/g" -e "s/#24/#${N24}/g" .scratch/tc-slices/26-tc-game-dialog.md > /tmp/issue-26.md
+          N26=$(create_issue "Slice: TC game details dialog (read-only level)" /tmp/issue-26.md)
+          echo "Created #${N26}"
+
+          echo "## Created issues" >> "$GITHUB_STEP_SUMMARY"
+          echo "- #${N23} TC role foundation" >> "$GITHUB_STEP_SUMMARY"
+          echo "- #${N24} Level assignment audit (blocked by #${N23})" >> "$GITHUB_STEP_SUMMARY"
+          echo "- #${N25} Player levels level filter (blocked by #${N23})" >> "$GITHUB_STEP_SUMMARY"
+          echo "- #${N26} TC game details dialog (blocked by #${N23}, #${N24})" >> "$GITHUB_STEP_SUMMARY"
+          echo "Parent epic: #8" >> "$GITHUB_STEP_SUMMARY"
