@@ -120,3 +120,4 @@ Modal showing a player's profile. Which sections appear depends only on the **vi
 - Player info dialog behavior — resolved: which sections appear is determined by **viewer role** only (same at every entry point); whether **Player level** is editable depends on opening from **Player levels page** vs elsewhere (read-only).
 - TC admin route access — resolved: TC-only users cannot navigate to **Players hub**, game administrators, or priority players pages; they use **Player levels page** and **Game details** participant dialog only.
 - Unassigned steward display — resolved: show “Unassigned” to stewards in dialog and on player levels page; no **Level assignment record** until first assignment.
+- Session exposes isTc — resolved: `/users/me` includes `isTc` for client routing and UI checks; `playerLevel` remains omitted for all users on that endpoint.
