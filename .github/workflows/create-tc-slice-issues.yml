@@ -36,12 +36,12 @@ jobs:
           create_issue() {
             local title="$1"
             local body_file="$2"
-            gh issue create \
+            local url
+            url=$(gh issue create \
               --title "$title" \
               --body-file "$body_file" \
-              --label "$LABELS" \
-              --json number \
-              --jq .number
+              --label "$LABELS")
+            echo "${url##*/}"
           }
 
           cp .scratch/tc-slices/23-tc-role-foundation.md /tmp/issue-23.md
