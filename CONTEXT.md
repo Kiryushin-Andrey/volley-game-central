@@ -44,7 +44,7 @@ _Avoid_: Restricted admin (informal), game administrator when meaning global adm
 Admin landing page (toolbar “Players” → `/players`) with links to game administrators and player levels management. Shown only to **Global administrator**s.
 
 **Player levels page**:
-The list of all registered users with **Level pill**s, name filter, and row → **Player info dialog**. Toolbar “Players” for **Technical Committee member**s who are not global administrators opens this page directly (`/player-levels`), not the **Players hub**.
+The list of all registered users with **Level pill**s, name filter, and row → **Player info dialog**. Toolbar “Players” for **Technical Committee member**s who are not global administrators opens this page directly (`/player-levels`), not the **Players hub**. The client loads the full admin user list once (~300 users) and keeps it in memory for name filtering on this page and for resolving **Player level** / **Level assignment record** when opening **Player info dialog** from **Game details** (no per-user fetch on each tap).
 
 **Intermediate registration window**:
 For positions games, an intermediate player may register (roster or waitlist) only starting 3 days before game start. Before that window, registration is rejected entirely — no early waitlist.
@@ -121,3 +121,4 @@ Modal showing a player's profile. Which sections appear depends only on the **vi
 - TC admin route access — resolved: TC-only users cannot navigate to **Players hub**, game administrators, or priority players pages; they use **Player levels page** and **Game details** participant dialog only.
 - Unassigned steward display — resolved: show “Unassigned” to stewards in dialog and on player levels page; no **Level assignment record** until first assignment.
 - Session exposes isTc — resolved: `/users/me` includes `isTc` for client routing and UI checks; `playerLevel` remains omitted for all users on that endpoint.
+- Player levels client cache — resolved: preload full admin list for **Global administrator** and **Technical Committee member**; use cache for dialog level/audit on game taps; refresh list after a level PATCH.
