@@ -26,7 +26,7 @@ _Avoid_: Level (ambiguous — could mean game difficulty or Nevobo class)
 A read-only, color-coded label on the player-levels admin list, right-aligned on each row. Advanced: light green; intermediate: light yellow; beginner: light red. Unassigned players have no pill. Assignment happens in the player info dialog, not via the pill; changes save immediately. Once assigned, a level is only changed to another level — not cleared back to unassigned.
 
 **Unassigned player**:
-A registered player who has no player level set. Treated like a newcomer for positions-game access when restrictions are enabled.
+A registered player who has no player level set. **Global administrator**s and **Technical Committee member**s see the label “Unassigned” in the **Player info dialog** and on the **Player levels page** until a level is assigned. Treated like a newcomer for positions-game access when restrictions are enabled.
 
 **Global administrator**:
 A user with system-wide admin privileges (`isAdmin`). Has all **Technical Committee member** capabilities for player levels (same **Player info dialog** level fields at every entry point), plus broader club administration including payments and moderation in the dialog. Does not manage TC membership in the app (that flag is set in the database).
@@ -119,3 +119,4 @@ Modal showing a player's profile. Which sections appear depends only on the **vi
 - Assigned admin level visibility — resolved: **Assigned game administrator** without TC/global admin sees no level fields in **Player info dialog** or elsewhere.
 - Player info dialog behavior — resolved: which sections appear is determined by **viewer role** only (same at every entry point); whether **Player level** is editable depends on opening from **Player levels page** vs elsewhere (read-only).
 - TC admin route access — resolved: TC-only users cannot navigate to **Players hub**, game administrators, or priority players pages; they use **Player levels page** and **Game details** participant dialog only.
+- Unassigned steward display — resolved: show “Unassigned” to stewards in dialog and on player levels page; no **Level assignment record** until first assignment.
