@@ -29,11 +29,11 @@ A read-only, color-coded label on the player-levels admin list, right-aligned on
 A registered player who has no player level set. Treated like a newcomer for positions-game access when restrictions are enabled.
 
 **Global administrator**:
-A user with system-wide admin privileges (`isAdmin`). Has all **Technical Committee member** capabilities for player levels, plus broader club administration (including granting or revoking TC membership).
+A user with system-wide admin privileges (`isAdmin`). Has all **Technical Committee member** capabilities for player levels (view in any **Player info dialog**; edit on **Player levels page** only), plus broader club administration (including granting or revoking TC membership).
 _Avoid_: Game administrator (day/positions assignment — different role)
 
 **Technical Committee member** (TC member):
-A user flagged for player-level stewardship (`is_tc`). May view and assign **Player level** on the player-levels page and in the **Player info dialog** wherever it is opened. Does not receive global-admin powers unless also a **Global administrator**.
+A user flagged for player-level stewardship (`is_tc`). May view **Player level** and **Level assignment record** in the **Player info dialog** wherever it is opened; may assign or change **Player level** only on the **Player levels page**. Does not receive global-admin powers unless also a **Global administrator**.
 _Avoid_: TC (use spelled-out term in glossary; “TC” is fine in UI labels if the club prefers)
 
 **Assigned game administrator**:
@@ -65,7 +65,10 @@ When restrictions block self-serve registration (e.g. beginner on a positions ga
 A host who cannot self-register for a positions game also cannot register guests for that game. When the host may register, guests follow the usual guest rules only.
 
 **Level assignment record**:
-Who last set or changed a player's **Player level**, recorded as the setter's display name only in the UI (no date or time shown). Stored as references on the player; updated on every level change. Visible to **Global administrator**s and **Technical Committee member**s on the **Player levels page** (for assigned rows) and in the **Player info dialog**. Unassigned players have no record until a level is assigned.
+Who last set or changed a player's **Player level**, recorded as the setter's display name only in the UI (no date or time shown). Stored as references on the player; updated on every level change. Visible to **Global administrator**s and **Technical Committee member**s on the **Player levels page** (for assigned rows) and in the **Player info dialog** (read-only when the dialog is opened outside the player levels page). Unassigned players have no record until a level is assigned.
+
+**Player info dialog** (level context):
+Modal showing a player's profile, unpaid games, and (for stewards) **Player level** and **Level assignment record**. **Player level** is editable only when the dialog is opened from the **Player levels page**; on game and other admin surfaces it is read-only for **Global administrator**s and **Technical Committee member**s.
 
 ## Relationships
 
@@ -92,7 +95,7 @@ Who last set or changed a player's **Player level**, recorded as the setter's di
 - How restrictions are toggled — resolved: globally on/off via `POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED` (unset or false = off); inactive by default at deploy.
 - Existing registrations when level changes — resolved: **Grandfathered registration**; no auto-remove.
 - Admin adding players — resolved: same rules as today (game must be past or readonly; no payment requests sent yet); player level does not relax those gates.
-- Where level is edited — resolved: assign/change in **Player info dialog** on the player-levels page; **Level pill** on each row is display-only.
+- Where level is edited — resolved: assign/change in **Player info dialog** opened from **Player levels page** only; read-only level in dialog on game and other surfaces; **Level pill** on each row is display-only.
 - Player-levels search — resolved: name filter above the list (client-side or debounced API); not search inside the dialog.
 - Who manages levels — resolved: **Global administrator** or **Technical Committee member** (`isAdmin` or `is_tc`); **Assigned game administrator** excluded unless they also hold one of those roles.
 - **Game format** vs level restrictions — resolved: only **Positions game** is level-gated; **Priority players game** is not a positions game and has no level restrictions.
@@ -107,3 +110,4 @@ Who last set or changed a player's **Player level**, recorded as the setter's di
 - Player-levels list loading — resolved: load all users once (~300), filter client-side; list order: unassigned → advanced → intermediate → beginner, alphabetical within each group.
 - Legacy `withPositions` + `withPriorityPlayers` both true — resolved: none expected; if any exist, migrate to `recreational`.
 - Level assignment audit — resolved: **Level assignment record**; display setter **display name only** (no timestamp); show on **Player levels page** and **Player info dialog** for TC/global admin; nothing for unassigned until first assignment.
+- Level edit surfaces — resolved: edit on **Player levels page** (list + dialog); **view-only** level and **Level assignment record** in **Player info dialog** on game pages and elsewhere.
