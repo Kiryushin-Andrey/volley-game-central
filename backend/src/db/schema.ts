@@ -13,6 +13,8 @@ export const users = pgTable('users', {
   isTc: boolean('is_tc').notNull().default(false),
   phoneNumber: varchar('phone_number', { length: 50 }),
   playerLevel: varchar('player_level', { length: 32 }),
+  playerLevelSetById: integer('player_level_set_by_id').references((): any => users.id, { onDelete: 'set null' }),
+  playerLevelSetAt: timestamp('player_level_set_at'),
   createdAt: timestamp('created_at').defaultNow(),
 });
 

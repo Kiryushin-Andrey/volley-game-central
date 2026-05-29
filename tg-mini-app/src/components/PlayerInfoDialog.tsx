@@ -49,6 +49,7 @@ interface PlayerInfoDialogProps {
   user: UserPublicInfo | null;
   allowLevelEdit?: boolean;
   playerLevel?: PlayerLevel | null;
+  playerLevelSetBy?: { displayName: string } | null;
   onPlayerLevelChange?: (level: PlayerLevel) => Promise<boolean>;
   levelChangeBusy?: boolean;
 }
@@ -59,6 +60,7 @@ const PlayerInfoDialog: React.FC<PlayerInfoDialogProps> = ({
   user,
   allowLevelEdit,
   playerLevel,
+  playerLevelSetBy,
   onPlayerLevelChange,
   levelChangeBusy,
 }) => {
@@ -214,6 +216,11 @@ const PlayerInfoDialog: React.FC<PlayerInfoDialogProps> = ({
               <div className="row" style={{ justifyContent: 'flex-start', marginBottom: 8 }}>
                 <span className="label">Player level</span>
               </div>
+              {!playerLevel && (
+                <div className="hint" style={{ marginBottom: 8 }}>
+                  Unassigned
+                </div>
+              )}
               <div className="level-selector" role="group" aria-label="Player level">
                 {(['beginner', 'intermediate', 'advanced'] as PlayerLevel[]).map((level) => (
                   <button
@@ -230,6 +237,11 @@ const PlayerInfoDialog: React.FC<PlayerInfoDialogProps> = ({
                   </button>
                 ))}
               </div>
+              {playerLevel && playerLevelSetBy && (
+                <div className="hint" style={{ marginTop: 8 }}>
+                  Set by {playerLevelSetBy.displayName}
+                </div>
+              )}
             </div>
           )}
 

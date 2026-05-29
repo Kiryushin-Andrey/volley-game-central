@@ -87,6 +87,12 @@
   .player-name {
     font-weight: 500;
   }
+
+  .player-level-set-by {
+    font-size: 0.75rem;
+    color: var(--tg-theme-hint-color, #666);
+    margin-top: 2px;
+  }
 }
 
 .level-pill {

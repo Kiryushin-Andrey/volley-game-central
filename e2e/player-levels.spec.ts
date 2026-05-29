@@ -88,4 +88,23 @@ test.describe('player levels admin scenarios', () => {
     await page.goto('/players');
     await expect(page).toHaveURL('/player-levels');
   });
+
+  test('E2E-LEVELS-007 set by shows assigner display name on list and dialog', async ({ page, request }, testInfo) => {
+    const admin = await createDevUserViaApi(request, testInfo, 'Levels Audit Admin', true);
+    const player = await createDevUserViaApi(request, testInfo, 'Levels Audit Target');
+    await devLoginAs(page, admin);
+
+    await page.goto('/player-levels');
+    await page.getByPlaceholder('Filter by name...').fill(player.displayName);
+    await page.getByText(player.displayName, { exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Player details' })).toBeVisible();
+    await page.getByRole('button', { name: 'Beginner' }).click();
+    await expect(
+      page.locator('.player-info-dialog').getByText(`Set by ${admin.displayName}`),
+    ).toBeVisible();
+    await page.getByLabel('Close').click();
+    await expect(
+      page.locator('.player-level-set-by').getByText(`Set by ${admin.displayName}`),
+    ).toBeVisible();
+  });
 });

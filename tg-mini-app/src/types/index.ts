@@ -16,8 +16,13 @@ export interface UserPublicInfo {
   phoneNumber?: string | null;
 }
 
+export interface LevelAssignmentRecord {
+  displayName: string;
+}
+
 export interface UserWithPlayerLevel extends UserPublicInfo {
   playerLevel: PlayerLevel | null;
+  playerLevelSetBy: LevelAssignmentRecord | null;
 }
 
 export interface User {

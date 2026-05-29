@@ -323,10 +323,15 @@ export const gamesApi = {
   },
 };
 
-// Player levels (global admin only)
+// Player levels (global admin or TC)
 export const playerLevelsApi = {
   listUsers: async (): Promise<UserWithPlayerLevel[]> => {
     const response = await api.get('/player-levels/users');
+    return response.data;
+  },
+
+  getUser: async (userId: number): Promise<UserWithPlayerLevel> => {
+    const response = await api.get(`/player-levels/users/${userId}`);
     return response.data;
   },
 

@@ -140,6 +140,11 @@ const PlayerLevels: React.FC = () => {
                   <div className="player-name">
                     {row.displayName || row.telegramUsername || `Player ${row.id}`}
                   </div>
+                  {row.playerLevel && row.playerLevelSetBy && (
+                    <div className="player-level-set-by">
+                      Set by {row.playerLevelSetBy.displayName}
+                    </div>
+                  )}
                 </div>
                 {row.playerLevel && (
                   <span className={playerLevelPillClass(row.playerLevel)}>
@@ -158,6 +163,7 @@ const PlayerLevels: React.FC = () => {
         user={dialogUser}
         allowLevelEdit
         playerLevel={dialogUser?.playerLevel ?? null}
+        playerLevelSetBy={dialogUser?.playerLevelSetBy ?? null}
         onPlayerLevelChange={handleLevelChange}
         levelChangeBusy={state.savingUserId === dialogUser?.id}
       />

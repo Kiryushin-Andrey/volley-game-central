@@ -165,3 +165,30 @@ RALPH_ALL_COMPLETE
 - `e2e/player-levels.spec.ts`, `e2e/support/fixtures.ts`, `docs/playwright-e2e-scenarios.md`
 
 RALPH_ISSUE_COMPLETE #42
+
+## 2026-05-29 — Issue #43 (level assignment audit)
+
+### Session orientation
+- Branch `cursor/player-levels-issue8-dbd5` up to date; `ralph-plan.sh` → issue #43; #42 complete.
+- Focus: audit columns, PATCH setter tracking, GET profile, **Set by** UI, E2E-LEVELS-007.
+
+### E2E gate (before feature work)
+- `npm run test:e2e`: **117 passed**, 0 failed (baseline green).
+
+### Implemented (#43)
+- Migration `0034_add_player_level_audit_to_users.sql`: `player_level_set_by_id` (FK users), `player_level_set_at`.
+- Backend: list/PATCH/GET `/player-levels/users/:userId` return `playerLevelSetBy: { displayName } | null`; PATCH sets audit fields from authenticated global admin or TC.
+- `toPublicAuthUser` strips audit columns from `/users/me`.
+- Frontend: list row + dialog show **Set by {name}** when level assigned; **Unassigned** in dialog when no level; no Set by until first assignment.
+- E2E: `E2E-LEVELS-007`; checklist updated.
+
+### E2E gate (before commit)
+- `npm run test:e2e`: **118 passed**, 0 failed.
+- `cd backend && npm run build` OK; `cd tg-mini-app && npm run build` OK; `cd backend && npm test` OK (23 domain tests).
+
+### Files touched (main)
+- `backend/drizzle/0034_*`, `backend/drizzle/meta/_journal.json`, `backend/src/db/schema.ts`, `backend/src/routes/playerLevels.ts`, `backend/src/utils/userResponse.ts`
+- `tg-mini-app/src/types`, `services/api.ts`, `pages/PlayerLevels.*`, `components/PlayerInfoDialog.tsx`
+- `e2e/player-levels.spec.ts`, `docs/playwright-e2e-scenarios.md`
+
+RALPH_ISSUE_COMPLETE #43
