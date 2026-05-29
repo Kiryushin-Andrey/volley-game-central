@@ -71,7 +71,7 @@ Replace the two game booleans with a single **game format** enum: `recreational`
 
 ### Technical Committee role
 
-36. As a technical committee member, I want my role stored as `is_tc` on my user record (set in the database by operators), so that the app can grant level stewardship without making me a global administrator.
+36. As a technical committee member, I want my role stored as `is_tc` on my user record (set in the database by operators), so that the app can let me manage player levels without making me a global administrator.
 37. As a technical committee member who is not a global administrator, I want the toolbar Players button to open the player levels page directly, so that I am not shown the Players hub or game-administrator links I must not use.
 38. As a technical committee member, I want to list, filter, and assign player levels on the player levels page, so that I can do the committee’s tier work.
 39. As a technical committee member, I want the player info dialog to show only identity, player level, and who set the level (no unpaid games, payment reminders, or block/unblock), so that I am not exposed to unrelated admin tools.
@@ -113,10 +113,10 @@ Replace the two game booleans with a single **game format** enum: `recreational`
 ### Roles and authorization
 
 - **`is_tc`** boolean on `users`, default false; granted/revoked only via database (no in-app UI or API).
-- **Level steward** access: `isAdmin || isTc` for player-levels admin routes and for viewing level fields in the player info dialog.
+- **Player levels admin** access (`isAdmin || isTc`): player-levels routes and level fields in the player info dialog.
 - **Global administrator** (`isAdmin`): all TC capabilities plus Players hub, payments, moderation, and other existing global-admin routes.
-- **Assigned game administrator**: unchanged game-admin powers; no level fields unless also steward.
-- Replace global-admin-only middleware on player-levels routes with steward middleware (`tcOrAdminAuth` or equivalent).
+- **Assigned game administrator**: unchanged game-admin powers; no level fields unless also TC or global admin.
+- Replace global-admin-only middleware on player-levels routes with `tcOrAdminAuth` middleware (or equivalent).
 
 ### Schema: users (TC and audit)
 
@@ -146,7 +146,7 @@ Helpers: `gameFormatFromLegacy`, `isPositionsGame`, `usesPriorityPlayerWindows`.
 
 1. **Registration routes** — eligibility module; grandfathering via existing registration row.
 2. **Game detail route** — `canSelfRegister` / `registrationOpensAt`; do not add `playerLevel` to registration user objects.
-3. **Player levels admin routes** — steward auth:
+3. **Player levels admin routes** — `isAdmin || isTc` auth:
    - `GET /player-levels/users` — full list with `playerLevel`, `playerLevelSetBy: { displayName } | null`
    - `GET /player-levels/users/:userId` — single **player level profile** for lazy dialog load
    - `PATCH /player-levels/users/:userId` — non-null enum only; set audit fields to current user
@@ -161,7 +161,7 @@ Helpers: `gameFormatFromLegacy`, `isPositionsGame`, `usesPriorityPlayerWindows`.
 3. **Player info dialog** — sections by **viewer role only** (same at every entry point):
    - Global admin: full dialog including editable level only when `allowLevelEdit` (player levels page); read-only level + audit elsewhere
    - TC (not global admin): identity + level + audit only; editable only with `allowLevelEdit`
-   - Assigned admin (not steward): no level section
+   - Assigned admin (not TC or global admin): no level section
    - Lazy load profile via `GET /player-levels/users/:userId` when dialog opens without list row data
 4. **Game details** — `canOpenPlayerInfo = isGameAdmin || isTc` for roster/waitlist taps; TC does not receive other game-admin UI flags from `isGameAdmin`.
 5. **Game form, game details view model, types/API client** — as in game-format slice; add `isTc` to session user type.
@@ -171,15 +171,15 @@ Helpers: `gameFormatFromLegacy`, `isPositionsGame`, `usesPriorityPlayerWindows`.
 - **Game:** `gameFormat`, `canSelfRegister`, `registrationOpensAt` for current user.
 - **Auth user (`/users/me`):** `isAdmin`, `isTc`; no `playerLevel`.
 - **Player levels list item / profile:** `playerLevel`, `playerLevelSetBy: { displayName } | null`, plus existing public identity fields used in admin UI.
-- **PATCH player level:** steward only; non-null enum; updates audit columns.
+- **PATCH player level:** global administrator or TC only; non-null enum; updates audit columns.
 
 ### UI specifics
 
-- Level pills: advanced light green, intermediate light yellow, beginner light red; no pill if unassigned; stewards see “Unassigned” where applicable.
+- Level pills: advanced light green, intermediate light yellow, beginner light red; no pill if unassigned; global administrators and TCs see “Unassigned” where applicable.
 - Player levels filters: name search + level (All / Unassigned / Advanced / Intermediate / Beginner); combined client-side; default All.
 - Assignment audit in UI: setter **display name only** (no timestamp).
 - Players hub: global administrators only.
-- Do not expose level on participant payloads, game list, or non-steward surfaces.
+- Do not expose level on participant payloads, game list, or to regular players and assigned-only admins.
 
 ## Testing Decisions
 
@@ -189,7 +189,7 @@ Helpers: `gameFormatFromLegacy`, `isPositionsGame`, `usesPriorityPlayerWindows`.
 
 1. **`positionsGameRegistrationEligibility`** — level × format × restrictions × dates × grandfathering × guest/host.
 2. **`gameFormat` helpers** — legacy boolean mapping.
-3. **Steward authorization** — player-levels routes return 403 for assigned-only admin, 200 for `isTc` / `isAdmin`.
+3. **TC / global admin authorization** — player-levels routes return 403 for assigned-only admin, 200 for `isTc` / `isAdmin`.
 4. **PATCH player level** — updates `player_level`, `player_level_set_by_id`, `player_level_set_at`; response includes setter display name.
 5. **Registration route integration** (optional) — 403 vs 201 on positions game when restrictions on.
 
@@ -202,7 +202,7 @@ Helpers: `gameFormatFromLegacy`, `isPositionsGame`, `usesPriorityPlayerWindows`.
 - In-app UI or API to grant/revoke `is_tc` (database only).
 - Clearing a player level back to unassigned via admin UI.
 - Per-game or per-day level overrides.
-- Showing levels to non-stewards (including error messages that name a tier).
+- Showing levels to users who are not global administrators or TC members (including error messages that name a tier).
 - Embedding `playerLevel` on game registration / participant JSON.
 - TC access to Players hub, game administrators, or priority players admin pages.
 - TC gaining game-admin actions (remove player, guests, Bunq) without a separate assignment or global admin role.

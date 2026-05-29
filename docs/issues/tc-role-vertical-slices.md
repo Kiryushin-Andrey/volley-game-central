@@ -7,7 +7,7 @@ Issue bodies: `.scratch/tc-slices/`
 Create issues in order (23 → 26) so **Blocked by** can reference real numbers. Apply label **`ready-for-agent`** when publishing.
 
 ```bash
-gh issue create --title "Slice: TC role foundation (steward access + routing)" --label "enhancement" --label "ready-for-agent" --body-file .scratch/tc-slices/23-tc-role-foundation.md
+gh issue create --title "Slice: TC role foundation (TC/global admin access + routing)" --label "enhancement" --label "ready-for-agent" --body-file .scratch/tc-slices/23-tc-role-foundation.md
 gh issue create --title "Slice: Level assignment audit (Set by + GET profile)" --label "enhancement" --label "ready-for-agent" --body-file .scratch/tc-slices/24-level-assignment-audit.md
 gh issue create --title "Slice: Player levels page level filter" --label "enhancement" --label "ready-for-agent" --body-file .scratch/tc-slices/25-player-levels-filters.md
 gh issue create --title "Slice: TC game details dialog (read-only level)" --label "enhancement" --label "ready-for-agent" --body-file .scratch/tc-slices/26-tc-game-dialog.md

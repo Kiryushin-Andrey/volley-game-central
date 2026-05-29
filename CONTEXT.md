@@ -33,7 +33,7 @@ A user with system-wide admin privileges (`isAdmin`). Has all **Technical Commit
 _Avoid_: Game administrator (day/positions assignment — different role)
 
 **Technical Committee member** (TC member):
-A user flagged for player-level stewardship (`is_tc` on the user record). Membership is granted or revoked by editing the database directly (no in-app admin UI for this flag). May use the **Player levels page** and open the **Player info dialog** from **Game details** (participant tap) and from the player levels list. Cannot access **Players hub**, game administrators, or priority players admin routes unless also **Global administrator**. May assign or change **Player level** in the dialog only on the **Player levels page**; elsewhere read-only. On **Game details**, may tap participants to open the dialog but does not gain other game-admin actions unless also **Assigned game administrator** or **Global administrator**.
+A user flagged to manage **Player level** assignments (`is_tc` on the user record). Membership is granted or revoked by editing the database directly (no in-app admin UI for this flag). May use the **Player levels page** and open the **Player info dialog** from **Game details** (participant tap) and from the player levels list. Cannot access **Players hub**, game administrators, or priority players admin routes unless also **Global administrator**. May assign or change **Player level** in the dialog only on the **Player levels page**; elsewhere read-only. On **Game details**, may tap participants to open the dialog but does not gain other game-admin actions unless also **Assigned game administrator** or **Global administrator**.
 _Avoid_: TC (use spelled-out term in glossary; “TC” is fine in UI labels if the club prefers)
 
 **Assigned game administrator**:
@@ -48,7 +48,7 @@ The list of all registered users with **Level pill**s, name filter, level filter
 
 
 **Player level profile**:
-Steward-facing view of one user’s **Player level** and **Level assignment record**, loaded from the player-levels admin API. On the **Player levels page**, profiles come from the full list (`GET /player-levels/users`). When the **Player info dialog** is opened elsewhere (e.g. **Game details**), the client loads one profile lazily via `GET /player-levels/users/:userId` (TC or global admin only).
+Admin view of one user’s **Player level** (global administrator or Technical Committee member) and **Level assignment record**, loaded from the player-levels admin API. On the **Player levels page**, profiles come from the full list (`GET /player-levels/users`). When the **Player info dialog** is opened elsewhere (e.g. **Game details**), the client loads one profile lazily via `GET /player-levels/users/:userId` (TC or global admin only).
 
 **Intermediate registration window**:
 For positions games, an intermediate player may register (roster or waitlist) only starting 3 days before game start. Before that window, registration is rejected entirely — no early waitlist.
@@ -72,7 +72,7 @@ A host who cannot self-register for a positions game also cannot register guests
 Who last set or changed a player's **Player level**, recorded as the setter's display name only in the UI (no date or time shown). Stored as references on the player; updated on every level change. Visible to **Global administrator**s and **Technical Committee member**s on the **Player levels page** (for assigned rows) and in the **Player info dialog**. Unassigned players have no record until a level is assigned.
 
 **Player info dialog** (level context):
-Modal showing a player's profile. Which sections appear depends only on the **viewer's role** (same at every entry point). **Global administrator**s see unpaid games, payment reminders, block/unblock, **Player level**, and **Level assignment record**. **Technical Committee member**s who are not global administrators see identity, **Player level**, and **Level assignment record** only. **Assigned game administrator**s without TC or global admin see the admin dialog without level fields. **Player level** is **editable** in the dialog only when opened from the **Player levels page**; at all other entry points (e.g. **Game details**, priority players, game administrators) stewards see level and audit **read-only**.
+Modal showing a player's profile. Which sections appear depends only on the **viewer's role** (same at every entry point). **Global administrator**s see unpaid games, payment reminders, block/unblock, **Player level**, and **Level assignment record**. **Technical Committee member**s who are not global administrators see identity, **Player level**, and **Level assignment record** only. **Assigned game administrator**s without TC or global admin see the admin dialog without level fields. **Player level** is **editable** in the dialog only when opened from the **Player levels page**; at all other entry points (e.g. **Game details**, priority players, game administrators) global administrators and Technical Committee members see level and audit **read-only**.
 
 ## Relationships
 
@@ -123,9 +123,9 @@ Modal showing a player's profile. Which sections appear depends only on the **vi
 - Assigned admin level visibility — resolved: **Assigned game administrator** without TC/global admin sees no level fields in **Player info dialog** or elsewhere.
 - Player info dialog behavior — resolved: which sections appear is determined by **viewer role** only (same at every entry point); whether **Player level** is editable depends on opening from **Player levels page** vs elsewhere (read-only).
 - TC admin route access — resolved: TC-only users cannot navigate to **Players hub**, game administrators, or priority players pages; they use **Player levels page** and **Game details** participant dialog only.
-- Unassigned steward display — resolved: show “Unassigned” to stewards in dialog and on player levels page; no **Level assignment record** until first assignment.
+- Unassigned display (TC / global admin) — resolved: show “Unassigned” to global administrators and Technical Committee members in dialog and on player levels page; no **Level assignment record** until first assignment.
 - Session exposes isTc — resolved: `/users/me` includes `isTc` for client routing and UI checks; `playerLevel` remains omitted for all users on that endpoint.
 - Game roster level data — resolved: **do not** embed level on participant user objects.
-- Steward level fetch — resolved: lazy per-user fetch when **Player info dialog** opens (not on game payload, not full-list preload at sign-in).
+- Player level profile fetch — resolved: lazy per-user fetch when **Player info dialog** opens (not on game payload, not full-list preload at sign-in).
 - Player level profile API — resolved: dedicated `GET /player-levels/users/:userId` for lazy dialog load; list endpoint unchanged for management page.
 - Player levels level filter — resolved: client-side level filter on **Player levels page**, combinable with name filter (PRD stories 31–32).

@@ -7,12 +7,12 @@ https://github.com/Kiryushin-Andrey/volley-game-central/issues/8
 
 ## What to build
 
-Complete steward UX for **player info dialog** and **game details** participant taps.
+Complete **player info dialog** and **game details** participant-tap behavior for global administrators and Technical Committee members.
 
 **Dialog (all entry points):** sections depend on **viewer role** only — same rules everywhere:
 - **Global administrator:** full dialog (payments, moderation, level + audit); level **editable** only when opened from **player levels page** (`allowLevelEdit`), **read-only** elsewhere
 - **Technical Committee member** (not global admin): identity + **Player level** + **Level assignment record** only; same edit vs read-only rule
-- **Assigned game administrator** (not steward): no level fields; existing admin sections unchanged
+- **Assigned game administrator** (not TC or global admin): no level fields; existing admin sections unchanged
 
 When the dialog opens without list row data (e.g. from **game details**), lazily load **player level profile** via `GET /player-levels/users/:userId`. Do **not** embed level on game registration/participant JSON.
 
@@ -32,7 +32,7 @@ When the dialog opens without list row data (e.g. from **game details**), lazily
 
 ## Blocked by
 
-- #23 (TC role, `isTc` on session, steward routes)
+- #23 (TC role, `isTc` on session, player-levels admin routes)
 - #24 (`GET /player-levels/users/:userId` and **Level assignment record** in API)
 
 ## User stories (reference)
