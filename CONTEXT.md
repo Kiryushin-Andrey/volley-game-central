@@ -79,7 +79,7 @@ Modal showing a player's profile. For **Global administrator**s it may also incl
 - A **Global administrator** may perform every **Technical Committee member** action on player levels; a **Technical Committee member** who is not a global administrator may not perform global-admin-only actions
 - An **Assigned game administrator** without TC or global admin role cannot view or change **Player level**
 - **Technical Committee member**s who are not **Global administrator**s do not see payment or moderation sections in the **Player info dialog**
-- **Technical Committee member**s may open **Player info dialog** from **Game details** participant taps without being **Assigned game administrator**s
+- **Technical Committee member**s may tap participants on **Game details** to open **Player info dialog** without gaining other game-admin capabilities
 - Every **Player level** change updates the **Level assignment record** for that player
 - **Positions game level restrictions** control whether **Player level** affects registration for **Positions games**
 - **Grandfathered registration** protects existing spots; **Level-blocked re-registration** applies only after the player leaves voluntarily
@@ -115,4 +115,4 @@ Modal showing a player's profile. For **Global administrator**s it may also incl
 - Level edit surfaces — resolved: edit on **Player levels page** (list + dialog); **view-only** level and **Level assignment record** in **Player info dialog** on game pages and elsewhere.
 - TC membership management — resolved: `is_tc` set manually in the database; no grant/revoke UI or API in the app.
 - TC player info dialog scope — resolved: TC (non–global-admin) sees identity + level + **Level assignment record** only; no unpaid games, reminders, or block/unblock.
-- TC game details access — resolved: **Technical Committee member** (including TC-only) can open **Player info dialog** from **Game details** roster/waitlist; read-only level there; no other game-admin actions unless also assigned/global admin.
+- TC game details access — resolved: **Technical Committee member** (including TC-only) can tap roster/waitlist on **Game details** to open **Player info dialog** only (`canOpenPlayerInfo`); read-only level there; no remove player, guests, payments, or other **Assigned game administrator** controls unless they also hold that role or **Global administrator**.
