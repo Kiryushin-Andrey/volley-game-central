@@ -44,7 +44,10 @@ _Avoid_: Restricted admin (informal), game administrator when meaning global adm
 Admin landing page (toolbar “Players” → `/players`) with links to game administrators and player levels management. Shown only to **Global administrator**s.
 
 **Player levels page**:
-The list of all registered users with **Level pill**s, name filter, and row → **Player info dialog**. Toolbar “Players” for **Technical Committee member**s who are not global administrators opens this page directly (`/player-levels`), not the **Players hub**. The client loads the full admin user list once (~300 users) and keeps it in memory for name filtering on this page and for resolving **Player level** / **Level assignment record** when opening **Player info dialog** from **Game details** (no per-user fetch on each tap).
+The list of all registered users with **Level pill**s, name filter, and row → **Player info dialog**. Toolbar “Players” for **Technical Committee member**s who are not global administrators opens this page directly (`/player-levels`), not the **Players hub**. The client loads the full admin user list once (~300 users) with client-side name filtering.
+
+**Participant level fields** (game roster):
+Optional fields on each participant’s user object in a game’s registration list. Included only when the authenticated viewer is a **Global administrator** or **Technical Committee member**; omitted for all other viewers (including **Assigned game administrator**s who are not stewards). Carries **Player level** and **Level assignment record** data so the **Player info dialog** can show level context from a game roster tap without a separate lookup.
 
 **Intermediate registration window**:
 For positions games, an intermediate player may register (roster or waitlist) only starting 3 days before game start. Before that window, registration is rejected entirely — no early waitlist.
@@ -121,4 +124,4 @@ Modal showing a player's profile. Which sections appear depends only on the **vi
 - TC admin route access — resolved: TC-only users cannot navigate to **Players hub**, game administrators, or priority players pages; they use **Player levels page** and **Game details** participant dialog only.
 - Unassigned steward display — resolved: show “Unassigned” to stewards in dialog and on player levels page; no **Level assignment record** until first assignment.
 - Session exposes isTc — resolved: `/users/me` includes `isTc` for client routing and UI checks; `playerLevel` remains omitted for all users on that endpoint.
-- Player levels client cache — resolved: preload full admin list for **Global administrator** and **Technical Committee member**; use cache for dialog level/audit on game taps; refresh list after a level PATCH.
+- Participant level fields — resolved: embed level + setter on each game participant’s user payload for **Global administrator** / **Technical Committee member** viewers only; not a separate preload for game taps.
