@@ -48,7 +48,7 @@ The list of all registered users with **Level pill**s, name filter, and row → 
 
 
 **Player level profile**:
-Steward-facing view of one user’s **Player level** and **Level assignment record**, loaded from the player-levels admin API. On the **Player levels page**, profiles come from the full list; when the **Player info dialog** is opened elsewhere (e.g. **Game details**), the client fetches that user’s profile lazily on open.
+Steward-facing view of one user’s **Player level** and **Level assignment record**, loaded from the player-levels admin API. On the **Player levels page**, profiles come from the full list (`GET /player-levels/users`). When the **Player info dialog** is opened elsewhere (e.g. **Game details**), the client loads one profile lazily via `GET /player-levels/users/:userId` (TC or global admin only).
 
 **Intermediate registration window**:
 For positions games, an intermediate player may register (roster or waitlist) only starting 3 days before game start. Before that window, registration is rejected entirely — no early waitlist.
@@ -127,3 +127,4 @@ Modal showing a player's profile. Which sections appear depends only on the **vi
 - Session exposes isTc — resolved: `/users/me` includes `isTc` for client routing and UI checks; `playerLevel` remains omitted for all users on that endpoint.
 - Game roster level data — resolved: **do not** embed level on participant user objects.
 - Steward level fetch — resolved: lazy per-user fetch when **Player info dialog** opens (not on game payload, not full-list preload at sign-in).
+- Player level profile API — resolved: dedicated `GET /player-levels/users/:userId` for lazy dialog load; list endpoint unchanged for management page.
