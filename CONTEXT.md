@@ -68,7 +68,7 @@ A host who cannot self-register for a positions game also cannot register guests
 Who last set or changed a player's **Player level**, recorded as the setter's display name only in the UI (no date or time shown). Stored as references on the player; updated on every level change. Visible to **Global administrator**s and **Technical Committee member**s on the **Player levels page** (for assigned rows) and in the **Player info dialog** (read-only when the dialog is opened outside the player levels page). Unassigned players have no record until a level is assigned.
 
 **Player info dialog** (level context):
-Modal showing a player's profile, unpaid games, and (for stewards) **Player level** and **Level assignment record**. **Player level** is editable only when the dialog is opened from the **Player levels page**; on game and other admin surfaces it is read-only for **Global administrator**s and **Technical Committee member**s.
+Modal showing a player's profile. For **Global administrator**s it may also include unpaid games, payment reminders, and block/unblock moderation. For **Technical Committee member**s who are not global administrators, only identity fields plus **Player level** and **Level assignment record** — no unpaid games, payment reminders, or moderation. **Player level** is editable only when the dialog is opened from the **Player levels page**; on game and other admin surfaces it is read-only for stewards.
 
 ## Relationships
 
@@ -78,6 +78,7 @@ Modal showing a player's profile, unpaid games, and (for stewards) **Player leve
 - An **Unassigned player** has no **Player level** until a **Global administrator** or **Technical Committee member** assigns one
 - A **Global administrator** may perform every **Technical Committee member** action on player levels; a **Technical Committee member** who is not a global administrator may not perform global-admin-only actions
 - An **Assigned game administrator** without TC or global admin role cannot view or change **Player level**
+- **Technical Committee member**s who are not **Global administrator**s do not see payment or moderation sections in the **Player info dialog**
 - Every **Player level** change updates the **Level assignment record** for that player
 - **Positions game level restrictions** control whether **Player level** affects registration for **Positions games**
 - **Grandfathered registration** protects existing spots; **Level-blocked re-registration** applies only after the player leaves voluntarily
@@ -112,3 +113,4 @@ Modal showing a player's profile, unpaid games, and (for stewards) **Player leve
 - Level assignment audit — resolved: **Level assignment record**; display setter **display name only** (no timestamp); show on **Player levels page** and **Player info dialog** for TC/global admin; nothing for unassigned until first assignment.
 - Level edit surfaces — resolved: edit on **Player levels page** (list + dialog); **view-only** level and **Level assignment record** in **Player info dialog** on game pages and elsewhere.
 - TC membership management — resolved: `is_tc` set manually in the database; no grant/revoke UI or API in the app.
+- TC player info dialog scope — resolved: TC (non–global-admin) sees identity + level + **Level assignment record** only; no unpaid games, reminders, or block/unblock.
