@@ -248,3 +248,7 @@ RALPH_ISSUE_COMPLETE #44
 - `e2e/player-levels.spec.ts`, `docs/playwright-e2e-scenarios.md`
 
 RALPH_ISSUE_COMPLETE #45
+
+### Chain (TC tranche complete)
+- `./scripts/ralph-chain-next.sh --from-notes "issue #45"` → **RALPH_DONE** (`RALPH_ALL_COMPLETE` from 2026-05-23 final pass still in log; `ralph-plan.sh` → done).
+- All configured childIssues [#42, #43, #44, #45] now have `RALPH_ISSUE_COMPLETE` sigils. Epic #8 TC follow-on implementation complete on branch; prior final-pass sigils predate TC slices.
