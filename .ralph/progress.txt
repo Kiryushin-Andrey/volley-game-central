@@ -132,11 +132,36 @@ RALPH_ISSUE_COMPLETE #22
 RALPH_E2E_COMPLETE
 RALPH_ALL_COMPLETE
 
-## TC role follow-on (planned child slices under #8)
+## 2026-05-29 — TC role follow-on (epic #8 continued)
 
-PRD updated: `docs/prd/player-levels-and-game-format.md`. Issue bodies in `.scratch/tc-slices/`; publish via `docs/issues/tc-role-vertical-slices.md`.
+- PRD updated: `docs/prd/player-levels-and-game-format.md`
+- Child slices (dependency order): #42 → #43 / #44 (parallel) → #45
+- Prior epic (#20–#22) complete; `ralph.config.json` childIssues updated to [42, 43, 44, 45]
+- First worker: implement slice #42 only, then chain
 
-1. **#42** — TC role foundation (`is_tc`, `isAdmin || isTc` API, `/users/me` `isTc`, TC routing, E2E 005–006)
-2. **#43** — Level assignment audit + `GET /player-levels/users/:userId` (E2E 007) — blocked by #42
-3. **#44** — Player levels level filter (E2E 008) — blocked by #42; parallel with #43
-4. **#45** — TC game details dialog + role-based player info dialog (E2E 009–011) — blocked by #42, #43
+## 2026-05-29 — Issue #42 (TC role foundation)
+
+### Session orientation
+- Branch `cursor/player-levels-issue8-dbd5`; `ralph-plan.sh` → issue #42 after childIssues updated to [42, 43, 44, 45].
+- Focus: `is_tc` column, `isAdmin || isTc` on player-levels routes, TC routing, E2E 005–006.
+
+### E2E gate (before feature work)
+- Baseline on prior commit: not re-run separately; full suite after implementation.
+
+### Implemented (#42)
+- Migration `0033_add_is_tc_to_users.sql`: `is_tc` boolean on users (default false).
+- `adminOrTcAuthMiddleware` for `/player-levels` routes; global admin unchanged elsewhere.
+- Dev login accepts `isTc`; `/users/me` includes `isTc` via `toPublicAuthUser` (still strips `playerLevel`).
+- UI: TC-only toolbar **Players** → `/player-levels`; redirects from `/players`, `/game-administrators`, `/priority-players/*`.
+- E2E: `E2E-LEVELS-005`, `E2E-LEVELS-006`; dev fixtures support `isTc`.
+
+### E2E gate (before commit)
+- `npm run test:e2e`: **117 passed**, 0 failed.
+- `cd backend && npm run build` OK; `cd tg-mini-app && npm run build` OK; `cd backend && npm test` OK.
+
+### Files touched (main)
+- `backend/drizzle/0033_*`, `backend/src/middleware/adminOrTcAuth.ts`, `backend/src/db/schema.ts`, `backend/src/index.ts`, `backend/src/routes/auth.ts`, `backend/src/utils/dbQueryUtils.ts`
+- `tg-mini-app/src/utils/userRoles.ts`, `types`, `pages/PlayerLevels.tsx`, `PlayersHub.tsx`, `GameAdministrators.tsx`, `PriorityPlayers.tsx`, `GamesList.tsx`, auth components, `services/api.ts`
+- `e2e/player-levels.spec.ts`, `e2e/support/fixtures.ts`, `docs/playwright-e2e-scenarios.md`
+
+RALPH_ISSUE_COMPLETE #42

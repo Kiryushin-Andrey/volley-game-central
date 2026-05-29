@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuthenticatedUser } from '../hooks/useAuthenticatedUser';
 import { UserSearchInput } from '../components/UserSearchInput';
 import { BackButton } from '@twa-dev/sdk/react';
+import { isGlobalAdmin, isTcOnly } from '../utils/userRoles';
 import { isTelegramApp } from '../utils/telegram';
 import {
   GameAdministratorsViewModel,
@@ -41,8 +42,8 @@ const GameAdministrators: React.FC = () => {
 
   // Check admin access
   useEffect(() => {
-    if (user && !user.isAdmin) {
-      navigate('/');
+    if (user && !isGlobalAdmin(user)) {
+      navigate(isTcOnly(user) ? '/player-levels' : '/');
     }
   }, [user, navigate]);
 
@@ -115,7 +116,7 @@ const GameAdministrators: React.FC = () => {
   };
 
   // Don't render if not admin
-  if (user && !user.isAdmin) {
+  if (user && !isGlobalAdmin(user)) {
     return null;
   }
 

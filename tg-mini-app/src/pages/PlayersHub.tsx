@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BackButton } from '@twa-dev/sdk/react';
 import { useAuthenticatedUser } from '../hooks/useAuthenticatedUser';
+import { isGlobalAdmin, isTcOnly } from '../utils/userRoles';
 import { isTelegramApp } from '../utils/telegram';
 import './PlayersHub.scss';
 
@@ -11,12 +12,12 @@ const PlayersHub: React.FC = () => {
   const inTelegram = isTelegramApp();
 
   useEffect(() => {
-    if (user && !user.isAdmin) {
-      navigate('/');
+    if (user && !isGlobalAdmin(user)) {
+      navigate(isTcOnly(user) ? '/player-levels' : '/');
     }
   }, [user, navigate]);
 
-  if (user && !user.isAdmin) {
+  if (user && !isGlobalAdmin(user)) {
     return null;
   }
 

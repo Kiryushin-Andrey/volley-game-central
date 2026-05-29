@@ -161,7 +161,7 @@ class PhoneAuthViewModel {
     }
   }
 
-  async devLogin(displayName: string, isAdmin: boolean, onSuccess: () => void) {
+  async devLogin(displayName: string, isAdmin: boolean, isTc: boolean, onSuccess: () => void) {
     const name = displayName.trim();
     if (!name) {
       this.setState({ error: 'Please enter your name' });
@@ -173,7 +173,7 @@ class PhoneAuthViewModel {
     }
     try {
       this.setState({ isProcessing: true, error: null });
-      await authApi.devLogin(this.fullPhone, name, isAdmin);
+      await authApi.devLogin(this.fullPhone, name, isAdmin, isTc);
       onSuccess();
     } catch (e: any) {
       const message = e?.response?.data?.error || 'Dev login failed';
@@ -219,7 +219,7 @@ function PhoneAuth({ onClose, isDevMode }: PhoneAuthProps) {
           onPhoneChange={(v) => viewModel.setPhoneLocal(v)}
           onContinue={() => viewModel.startAuth()}
           isDevMode={isDevMode}
-          onDevLogin={(name, isAdmin) => viewModel.devLogin(name, isAdmin, finishAuth)}
+          onDevLogin={(name, isAdmin, isTc) => viewModel.devLogin(name, isAdmin, isTc, finishAuth)}
         />
       )}
 

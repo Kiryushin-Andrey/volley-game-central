@@ -301,7 +301,7 @@ router.post('/logout', async (_req, res) => {
 });
 
 // Dev mode login: simplified authentication for local development
-// Expects: { phoneNumber: string, displayName: string, isAdmin?: boolean }
+// Expects: { phoneNumber: string, displayName: string, isAdmin?: boolean, isTc?: boolean }
 // Creates or finds user by phone number and returns user data
 router.post('/dev-login', async (req, res) => {
   if (!isDevMode()) {
@@ -309,7 +309,12 @@ router.post('/dev-login', async (req, res) => {
   }
 
   try {
-    const { phoneNumber, displayName, isAdmin } = req.body as { phoneNumber?: string; displayName?: string; isAdmin?: boolean };
+    const { phoneNumber, displayName, isAdmin, isTc } = req.body as {
+      phoneNumber?: string;
+      displayName?: string;
+      isAdmin?: boolean;
+      isTc?: boolean;
+    };
     
     if (!phoneNumber || typeof phoneNumber !== 'string') {
       return res.status(400).json({ error: 'phoneNumber is required' });
@@ -321,7 +326,8 @@ router.post('/dev-login', async (req, res) => {
 
     const normalizedPhoneNumber = normalizePhone(phoneNumber);
     const adminStatus = isAdmin === true;
-    logDevMode(`Dev login attempt for phone: ${normalizedPhoneNumber}, name: ${displayName}, admin: ${adminStatus}`);
+    const tcStatus = isTc === true;
+    logDevMode(`Dev login attempt for phone: ${normalizedPhoneNumber}, name: ${displayName}, admin: ${adminStatus}, tc: ${tcStatus}`);
 
     // Find or create user
     const existingUsers = await db.select().from(users).where(eq(users.phoneNumber, normalizedPhoneNumber)).limit(1);
@@ -330,16 +336,16 @@ router.post('/dev-login', async (req, res) => {
     if (existingUsers.length > 0) {
       // User exists, update display name and admin status if different
       user = existingUsers[0];
-      if (user.displayName !== displayName || user.isAdmin !== adminStatus) {
+      if (user.displayName !== displayName || user.isAdmin !== adminStatus || user.isTc !== tcStatus) {
         const [updatedUser] = await db
           .update(users)
-          .set({ displayName, isAdmin: adminStatus })
+          .set({ displayName, isAdmin: adminStatus, isTc: tcStatus })
           .where(eq(users.id, user.id))
           .returning();
         user = updatedUser;
-        logDevMode(`Updated existing user ${user.id} with display name: ${displayName}, admin: ${adminStatus}`);
+        logDevMode(`Updated existing user ${user.id} with display name: ${displayName}, admin: ${adminStatus}, tc: ${tcStatus}`);
       } else {
-        logDevMode(`Found existing user ${user.id}: ${user.displayName}, admin: ${user.isAdmin}`);
+        logDevMode(`Found existing user ${user.id}: ${user.displayName}, admin: ${user.isAdmin}, tc: ${user.isTc}`);
       }
     } else {
       // Create new user
@@ -349,10 +355,11 @@ router.post('/dev-login', async (req, res) => {
           phoneNumber: normalizedPhoneNumber,
           displayName,
           isAdmin: adminStatus,
+          isTc: tcStatus,
         })
         .returning();
       user = newUser;
-      logDevMode(`Created new user ${user.id}: ${user.displayName}, admin: ${user.isAdmin}`);
+      logDevMode(`Created new user ${user.id}: ${user.displayName}, admin: ${user.isAdmin}, tc: ${user.isTc}`);
     }
 
     // Issue JWT cookie just like regular phone auth
@@ -378,6 +385,7 @@ router.post('/dev-login', async (req, res) => {
         phoneNumber: user.phoneNumber,
         displayName: user.displayName,
         isAdmin: user.isAdmin,
+        isTc: user.isTc,
       },
     });
   } catch (err) {

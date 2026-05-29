@@ -6,6 +6,7 @@ export type DevUser = {
   displayName: string;
   phoneLocal: string;
   isAdmin: boolean;
+  isTc: boolean;
 };
 
 export type GameFixture = {
@@ -76,11 +77,11 @@ export async function openDevLogin(page: Page) {
   await expect(page.getByText('Dev mode: No SMS verification required')).toBeVisible();
 }
 
-export async function devLogin(page: Page, testInfo: TestInfo, label: string, isAdmin = false): Promise<DevUser> {
+export async function devLogin(page: Page, testInfo: TestInfo, label: string, isAdmin = false, isTc = false): Promise<DevUser> {
   const displayName = uniqueName(testInfo, label);
-  const phoneLocal = uniquePhoneLocal(testInfo, isAdmin ? 8 : 1);
+  const phoneLocal = uniquePhoneLocal(testInfo, isAdmin ? 8 : isTc ? 7 : 1);
 
-  return devLoginAs(page, { id: 0, displayName, phoneLocal, isAdmin });
+  return devLoginAs(page, { id: 0, displayName, phoneLocal, isAdmin, isTc });
 }
 
 export async function devLoginAs(page: Page, user: DevUser): Promise<DevUser> {
@@ -90,6 +91,9 @@ export async function devLoginAs(page: Page, user: DevUser): Promise<DevUser> {
 
   if (user.isAdmin) {
     await page.getByLabel('Administrator').check();
+  }
+  if (user.isTc) {
+    await page.getByLabel('Technical Committee').check();
   }
 
   await page.getByRole('button', { name: 'Dev Login' }).click();
@@ -107,6 +111,7 @@ export async function devLoginAs(page: Page, user: DevUser): Promise<DevUser> {
     displayName: user.displayName,
     phoneLocal: user.phoneLocal,
     isAdmin: user.isAdmin,
+    isTc: user.isTc,
   };
 }
 
@@ -131,14 +136,21 @@ export async function assignPlayerLevelViaApi(
   expect(patch.ok()).toBeTruthy();
 }
 
-export async function createDevUserViaApi(request: APIRequestContext, testInfo: TestInfo, label: string, isAdmin = false): Promise<DevUser> {
+export async function createDevUserViaApi(
+  request: APIRequestContext,
+  testInfo: TestInfo,
+  label: string,
+  isAdmin = false,
+  isTc = false,
+): Promise<DevUser> {
   const displayName = uniqueName(testInfo, label);
-  const phoneLocal = uniquePhoneLocal(testInfo, isAdmin ? 9 : 2);
+  const phoneLocal = uniquePhoneLocal(testInfo, isAdmin ? 9 : isTc ? 6 : 2);
   const response = await request.post('/api/auth/dev-login', {
     data: {
       phoneNumber: `+31${phoneLocal}`,
       displayName,
       isAdmin,
+      isTc,
     },
   });
   expect(response.ok()).toBeTruthy();
@@ -148,6 +160,7 @@ export async function createDevUserViaApi(request: APIRequestContext, testInfo: 
     displayName,
     phoneLocal,
     isAdmin,
+    isTc,
   };
 }
 

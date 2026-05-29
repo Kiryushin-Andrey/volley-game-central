@@ -10,6 +10,7 @@ export const users = pgTable('users', {
   blockReason: text('block_reason'),
   blockedById: integer('blocked_by_id').references((): any => users.id, { onDelete: 'set null' }),
   isAdmin: boolean('is_admin').notNull().default(false),
+  isTc: boolean('is_tc').notNull().default(false),
   phoneNumber: varchar('phone_number', { length: 50 }),
   playerLevel: varchar('player_level', { length: 32 }),
   createdAt: timestamp('created_at').defaultNow(),

@@ -5,6 +5,7 @@ import { useGamesListViewModel } from './GamesListViewModel';
 import { GameWithStats, User } from '../types';
 import { isGameUpcoming } from '../utils/gameDateUtils';
 import { isPositionsGame } from '../utils/gameFormat';
+import { isTcOnly } from '../utils/userRoles';
 import { resolveLocationLink } from '../utils/locationUtils';
 import { HalloweenDecorations } from '../components/HalloweenDecorations';
 import { NewYearDecorations } from '../components/NewYearDecorations';
@@ -311,6 +312,19 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
                   </div>
                 </div>
               )}
+            {isTcOnly(user) && (
+              <div className="admin-controls">
+                <div className="admin-icon-buttons">
+                  <Link
+                    to="/player-levels"
+                    className="icon-button"
+                    title="Players"
+                  >
+                    <FaUsers />
+                  </Link>
+                </div>
+              </div>
+            )}
             </div>
           </div>
           {vm.loadingGames ? (

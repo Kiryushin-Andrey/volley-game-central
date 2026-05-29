@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BackButton } from '@twa-dev/sdk/react';
 import { useAuthenticatedUser } from '../hooks/useAuthenticatedUser';
+import { canManagePlayerLevels } from '../utils/userRoles';
 import { isTelegramApp } from '../utils/telegram';
 import PlayerInfoDialog from '../components/PlayerInfoDialog';
 import {
@@ -32,17 +33,17 @@ const PlayerLevels: React.FC = () => {
   const viewModel = viewModelRef.current;
 
   useEffect(() => {
-    if (user && !user.isAdmin) {
+    if (user && !canManagePlayerLevels(user)) {
       navigate('/');
     }
   }, [user, navigate]);
 
   useEffect(() => {
-    if (user?.isAdmin) {
+    if (canManagePlayerLevels(user)) {
       void viewModel.loadUsers();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.isAdmin]);
+  }, [user?.isAdmin, user?.isTc]);
 
   const filteredUsers = viewModel.filterUsers(state);
 
@@ -66,7 +67,7 @@ const PlayerLevels: React.FC = () => {
     return false;
   };
 
-  if (user && !user.isAdmin) {
+  if (user && !canManagePlayerLevels(user)) {
     return null;
   }
 

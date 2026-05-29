@@ -64,4 +64,28 @@ test.describe('player levels admin scenarios', () => {
     await switchToUser(page, assignedAdmin);
     await expect(page.getByTitle('Players')).toHaveCount(0);
   });
+
+  test('E2E-LEVELS-005 TC-only user opens player levels and assigns level via dialog', async ({ page, request }, testInfo) => {
+    const tcUser = await createDevUserViaApi(request, testInfo, 'Levels TC User', false, true);
+    const player = await createDevUserViaApi(request, testInfo, 'Levels TC Target');
+    await devLoginAs(page, tcUser);
+
+    await page.getByTitle('Players').click();
+    await expect(page.getByRole('heading', { name: 'Player levels' })).toBeVisible();
+    await page.getByPlaceholder('Filter by name...').fill(player.displayName);
+    await page.getByText(player.displayName, { exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Player details' })).toBeVisible();
+    await page.getByRole('button', { name: 'Advanced' }).click();
+    await page.getByLabel('Close').click();
+
+    await expect(page.getByText('Advanced')).toBeVisible();
+  });
+
+  test('E2E-LEVELS-006 TC-only user is redirected from Players hub', async ({ page, request }, testInfo) => {
+    const tcUser = await createDevUserViaApi(request, testInfo, 'Levels TC Hub', false, true);
+    await devLoginAs(page, tcUser);
+
+    await page.goto('/players');
+    await expect(page).toHaveURL('/player-levels');
+  });
 });

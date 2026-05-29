@@ -1,7 +1,7 @@
 {
   "version": 1,
   "parentIssue": 8,
-  "childIssues": [20, 21, 22],
+  "childIssues": [42, 43, 44, 45],
   "branch": "cursor/player-levels-issue8-dbd5",
   "base": "cursor/recursive-ralph-babb",
   "prd": "docs/prd/player-levels-and-game-format.md",
