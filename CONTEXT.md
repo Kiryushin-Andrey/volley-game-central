@@ -29,11 +29,11 @@ A read-only, color-coded label on the player-levels admin list, right-aligned on
 A registered player who has no player level set. Treated like a newcomer for positions-game access when restrictions are enabled.
 
 **Global administrator**:
-A user with system-wide admin privileges (`isAdmin`). Has all **Technical Committee member** capabilities for player levels (view in any **Player info dialog**; edit on **Player levels page** only), plus broader club administration (including granting or revoking TC membership).
+A user with system-wide admin privileges (`isAdmin`). Has all **Technical Committee member** capabilities for player levels (view in any **Player info dialog**; edit on **Player levels page** only), plus broader club administration. Does not manage TC membership in the app (that flag is set in the database).
 _Avoid_: Game administrator (day/positions assignment — different role)
 
 **Technical Committee member** (TC member):
-A user flagged for player-level stewardship (`is_tc`). May view **Player level** and **Level assignment record** in the **Player info dialog** wherever it is opened; may assign or change **Player level** only on the **Player levels page**. Does not receive global-admin powers unless also a **Global administrator**.
+A user flagged for player-level stewardship (`is_tc` on the user record). Membership is granted or revoked by editing the database directly (no in-app admin UI for this flag). May view **Player level** and **Level assignment record** in the **Player info dialog** wherever it is opened; may assign or change **Player level** only on the **Player levels page**. Does not receive global-admin powers unless also a **Global administrator**.
 _Avoid_: TC (use spelled-out term in glossary; “TC” is fine in UI labels if the club prefers)
 
 **Assigned game administrator**:
@@ -111,3 +111,4 @@ Modal showing a player's profile, unpaid games, and (for stewards) **Player leve
 - Legacy `withPositions` + `withPriorityPlayers` both true — resolved: none expected; if any exist, migrate to `recreational`.
 - Level assignment audit — resolved: **Level assignment record**; display setter **display name only** (no timestamp); show on **Player levels page** and **Player info dialog** for TC/global admin; nothing for unassigned until first assignment.
 - Level edit surfaces — resolved: edit on **Player levels page** (list + dialog); **view-only** level and **Level assignment record** in **Player info dialog** on game pages and elsewhere.
+- TC membership management — resolved: `is_tc` set manually in the database; no grant/revoke UI or API in the app.
