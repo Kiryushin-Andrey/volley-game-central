@@ -1,7 +1,7 @@
-# Player levels and game format refactor
+# Player levels, game format, and Technical Committee role
 
 **Implementation branch:** `cursor/player-levels-issue8-dbd5` (base: `cursor/recursive-ralph-babb`)  
-**Parent issue:** #8 · **Slices:** #20 (game format), #21 (player levels admin), #22 (positions restrictions)  
+**Parent issue:** #8  
 **Domain glossary:** `CONTEXT.md` (repo root)  
 **Full PRD file:** `docs/prd/player-levels-and-game-format.md`
 
@@ -9,13 +9,19 @@
 
 The club runs **positions games** (games with assigned positions) alongside **recreational games** and **priority players games** (early registration windows without positions). There is no structured way to restrict who can self-register for positions games by skill tier, while keeping that information invisible to regular players. Operators also need a phased rollout: assign levels first, turn enforcement on later.
 
+Player levels are today manageable only by **global administrators**. The **Technical Committee** needs to assign and review tiers without full club-admin access. **Assigned game administrators** must not see or change levels unless they are also TC members or global admins.
+
 Separately, game creation uses two independent booleans (`withPositions`, `withPriorityPlayers`) that are confusing and allow meaningless combinations. The domain model should express three mutually exclusive **game formats**.
 
 ## Solution
 
-Introduce **player levels** (`beginner`, `intermediate`, `advanced`, or unassigned) managed only by **global administrators**, with a dedicated admin UI. When **positions game level restrictions** are enabled via environment configuration (`POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED`, default off), self-serve registration for **positions games** respects those levels; recreational and priority players games are unaffected.
+Introduce **player levels** (`beginner`, `intermediate`, `advanced`, or unassigned) managed by **global administrators** and **Technical Committee members** (`is_tc` on the user record; set manually in the database). Record **who last set each player’s level** (setter display name only in the UI). Provide a **player levels page** with name and level filters, plus **player info dialog** behavior driven by the viewer’s role.
 
-Replace the two game booleans with a single **game format** enum: `recreational`, `positions`, `priority_players`. Reorganize the admin **Players hub** so the toolbar lands on a page linking to game administrators and player levels.
+**Global administrators** retain full admin capabilities and inherit all TC level capabilities. **Technical Committee members** who are not global admins: toolbar **Players** goes directly to the player levels page; no **Players hub**, game administrators, or priority players routes; on **game details** they may tap participants to open a scoped dialog (read-only level outside the player levels page) without other game-admin actions.
+
+Self-serve registration for **positions games** still uses server-computed `canSelfRegister` on game detail; `playerLevel` is not exposed on `/users/me` for any user.
+
+Replace the two game booleans with a single **game format** enum: `recreational`, `positions`, `priority_players`. **Global administrators** use a **Players hub** linking game administrators and player levels.
 
 ## User Stories
 
@@ -42,7 +48,7 @@ Replace the two game booleans with a single **game format** enum: `recreational`
 16. As a beginner who cannot self-register, I want to be unable to register guests for that positions game, so that guests cannot bypass my block.
 17. As a player who can self-register, I want guest registration to follow existing guest rules only, so that guest flow is unchanged.
 
-### Player levels — admin UI
+### Player levels — admin UI (global administrator)
 
 18. As a global administrator, I want the toolbar Players button to open a Players hub, so that I can choose between game administrators and player levels.
 19. As a global administrator, I want a link to game administrators from the hub, so that existing workflows still work.
@@ -53,138 +59,161 @@ Replace the two game booleans with a single **game format** enum: `recreational`
 24. As a global administrator, I want a read-only level pill on the right of each assigned row (light green / light yellow / light red), so that I can scan levels quickly.
 25. As a global administrator, I want no pill on unassigned rows, so that unassigned players are visually distinct.
 26. As a global administrator, I want to click a row to open the player info dialog, so that I can see the same details as on game pages.
-27. As a global administrator, I want to set or change a player's level in that dialog with immediate save, so that assignment is quick.
+27. As a global administrator, I want to set or change a player's level on the player levels page (dialog with immediate save), so that assignment is quick.
 28. As a global administrator, I want to switch between beginner, intermediate, and advanced only (no clear-to-unassigned), so that once labeled, players stay in the system.
 29. As a global administrator or technical committee member, I want a name filter above the list, so that I can find players quickly.
 30. As a global administrator or technical committee member, I want the full list to load in one request (~300 users) with client-side filtering, so that empty or broad search stays fast.
 31. As a global administrator or technical committee member, I want a level filter on the player levels page (All, Unassigned, Advanced, Intermediate, Beginner), so that I can focus on one tier at a time.
 32. As a global administrator or technical committee member, I want the level filter to apply together with the name filter, so that I can narrow to specific players within a tier.
-33. As a game administrator (non-global), I want no access to player levels or the Players hub, so that tiers remain global-admin-only (unless I am also a technical committee member or global administrator).
+33. As a global administrator or technical committee member, I want to see who last set each player's level (display name only) on the player levels list and in the player info dialog, so that we know who assigned the tier.
+34. As a global administrator, I want to see read-only player level and assignment record in the player info dialog when I open it outside the player levels page, so that I can check tiers in context without accidental edits.
+35. As a global administrator, I want the full player info dialog (unpaid games, payment reminders, block/unblock) when I am not acting as a TC-only viewer, so that existing admin workflows continue.
+
+### Technical Committee role
+
+36. As a technical committee member, I want my role stored as `is_tc` on my user record (set in the database by operators), so that the app can grant level stewardship without making me a global administrator.
+37. As a technical committee member who is not a global administrator, I want the toolbar Players button to open the player levels page directly, so that I am not shown the Players hub or game-administrator links I must not use.
+38. As a technical committee member, I want to list, filter, and assign player levels on the player levels page, so that I can do the committee’s tier work.
+39. As a technical committee member, I want the player info dialog to show only identity, player level, and who set the level (no unpaid games, payment reminders, or block/unblock), so that I am not exposed to unrelated admin tools.
+40. As a technical committee member, I want player level editable only when the dialog is opened from the player levels page, and read-only when opened from game details or other surfaces, so that bulk assignment stays on the management page.
+41. As a technical committee member, I want to tap a participant on game details to open the player info dialog (read-only level), without gaining remove-player, guest, or payment admin actions, so that I can check tiers at a game without running the game.
+42. As a technical committee member, I want to see “Unassigned” for players with no level, so that newcomers are clearly distinguished.
+43. As a technical committee member, I want no “Set by” line until a level has been assigned, so that the audit line is meaningful.
+
+### Assigned game administrator (restricted admin)
+
+44. As an assigned game administrator who is not a technical committee member or global administrator, I want no access to player levels, the Players hub, or level fields in the player info dialog, so that tiers stay with the committee and global admins.
+45. As an assigned game administrator, I want my existing game-admin dialog (payments, moderation where applicable) unchanged and without level fields, so that day-to-day game running is separate from tier management.
 
 ### Game format
 
-34. As a global administrator creating a game, I want one select with three options (recreational / positions / priority players), so that I cannot pick invalid combinations.
-35. As a global administrator, I want “recreational game” naming instead of “regular game,” so that language matches how we talk about sessions.
-36. As a global administrator, I want “priority players” games to mean priority registration windows without positions, so that Thursday-style priority lists apply to non-positions games.
-37. As a global administrator, I want “positions” games to be the only format with position play, so that level restrictions have a clear target.
-38. As a developer migrating data, I want legacy `withPositions=false, withPriorityPlayers=false` → `recreational`, `true/false` → `positions`, `false/true` → `priority_players`, and `true/true` → `recreational`, so that existing rows map cleanly.
+46. As a global administrator creating a game, I want one select with three options (recreational / positions / priority players), so that I cannot pick invalid combinations.
+47. As a global administrator, I want “recreational game” naming instead of “regular game,” so that language matches how we talk about sessions.
+48. As a global administrator, I want “priority players” games to mean priority registration windows without positions, so that Thursday-style priority lists apply to non-positions games.
+49. As a global administrator, I want “positions” games to be the only format with position play, so that level restrictions have a clear target.
+50. As a developer migrating data, I want legacy `withPositions=false, withPriorityPlayers=false` → `recreational`, `true/false` → `positions`, `false/true` → `priority_players`, and `true/true` → `recreational`, so that existing rows map cleanly.
 
 ### Game format — downstream behavior
 
-39. As a player on a priority players game, I want existing 10-day / 3-day priority registration rules unchanged, so that deti-plova-style games behave as today.
-40. As a player on a recreational game, I want no level-based registration gates, so that social games stay open.
-41. As a player on a positions game, I want standard registration-open timing for advanced/unassigned unless level rules tighten it, so that intermediates get the 3-day window under restrictions.
-42. As a global administrator, I want to add any player to any game via existing admin participant flows (past or readonly, no payment requests sent), without level checks overriding those gates, so that manual exceptions stay possible.
+51. As a player on a priority players game, I want existing 10-day / 3-day priority registration rules unchanged, so that deti-plova-style games behave as today.
+52. As a player on a recreational game, I want no level-based registration gates, so that social games stay open.
+53. As a player on a positions game, I want standard registration-open timing for advanced/unassigned unless level rules tighten it, so that intermediates get the 3-day window under restrictions.
+54. As a global administrator, I want to add any player to any game via existing admin participant flows (past or readonly, no payment requests sent), without level checks overriding those gates, so that manual exceptions stay possible.
 
 ### API and consistency
 
-43. As the registration API, I want to reject self-serve registration when level policy blocks it, so that clients cannot bypass hidden buttons.
-44. As the game detail API, I want the client to know whether the current user can self-register (and when registration opens), so that the join button can be hidden consistently.
-45. As a global administrator or technical committee member updating a player's level, I want the change persisted immediately via API, so that the list and dialog stay in sync.
+55. As the registration API, I want to reject self-serve registration when level policy blocks it, so that clients cannot bypass hidden buttons.
+56. As the game detail API, I want the client to know whether the current user can self-register (and when registration opens) without exposing player level on `/users/me`, so that join buttons are correct but tiers stay hidden.
+57. As a global administrator or technical committee member updating a player's level, I want the change persisted immediately via API with an updated assignment record, so that the list and dialog stay in sync.
+58. As a technical committee member opening a player from game details, I want to load that user's level profile via a dedicated admin GET by user id, so that levels are not embedded on public participant payloads.
+59. As the authenticated client, I want `/users/me` to include `isTc` (and `isAdmin`) but not my own `playerLevel`, so that routing and checks work without revealing tiers in session data.
 
 ## Implementation Decisions
 
+### Roles and authorization
+
+- **`is_tc`** boolean on `users`, default false; granted/revoked only via database (no in-app UI or API).
+- **Level steward** access: `isAdmin || isTc` for player-levels admin routes and for viewing level fields in the player info dialog.
+- **Global administrator** (`isAdmin`): all TC capabilities plus Players hub, payments, moderation, and other existing global-admin routes.
+- **Assigned game administrator**: unchanged game-admin powers; no level fields unless also steward.
+- Replace global-admin-only middleware on player-levels routes with steward middleware (`tcOrAdminAuth` or equivalent).
+
+### Schema: users (TC and audit)
+
+- Existing nullable `player_level`: `beginner` | `intermediate` | `advanced`.
+- Add **`is_tc`** boolean, not null, default false.
+- Add **`player_level_set_by_id`** (nullable FK to users) and **`player_level_set_at`** (timestamp); update on every successful level PATCH (including first assignment).
+
 ### Deep module: positions game registration eligibility
 
-Extract a **pure, testable module** (no DB/HTTP) that answers registration eligibility for self-serve flows:
+Pure, testable module (no DB/HTTP) for self-serve registration eligibility.
 
-**Inputs:** `gameFormat`, `playerLevel | null`, `restrictionsEnabled`, `gameDateTime`, `now`, `isGuestRegistration`, `hostCanSelfRegister` (for guests), `existingRegistration` (for grandfathering), `baseRegistrationOpensAt` (from existing priority/timing logic).
+**Inputs:** `gameFormat`, `playerLevel | null`, `restrictionsEnabled`, `gameDateTime`, `now`, `isGuestRegistration`, `hostCanSelfRegister`, `existingRegistration`, `baseRegistrationOpensAt`.
 
-**Outputs:** `canSelfRegister: boolean`, `registrationOpensAt: Date | null` (for intermediate / timing alignment), `blockReason: 'level' | 'timing' | null` (internal; not exposed to end users).
+**Outputs:** `canSelfRegister: boolean`, `registrationOpensAt: Date | null`, internal `blockReason` (not exposed to end users).
 
-**Rules encoded:**
-
-| Level / state | Positions game + restrictions on |
-|---------------|-----------------------------------|
-| `null`, `advanced` | Allow (subject to base timing) |
-| `intermediate` | Allow only when `now >= gameDateTime - 3 days` |
-| `beginner` | Never allow self-serve |
-| Already on roster/waitlist | Allow remaining on list; leaving triggers level-blocked re-registration |
-| Guest | Allow only if `hostCanSelfRegister` |
-
-Restrictions flag read once at process start from `POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED` (truthy: `true`, `1`; default false).
+Restrictions flag from `POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED` (default off). Game detail loads the current user’s level server-side and returns only `canSelfRegister` / `registrationOpensAt`.
 
 ### Deep module: game format
-
-Single enum on `games` replacing `withPositions` and `withPriorityPlayers`:
 
 ```ts
 type GameFormat = 'recreational' | 'positions' | 'priority_players';
 ```
 
-Helpers (testable):
-
-- `gameFormatFromLegacy(withPositions: boolean, withPriorityPlayers: boolean): GameFormat`
-- `isPositionsGame(format: GameFormat): boolean`
-- `usesPriorityPlayerWindows(format: GameFormat): boolean` → `format === 'priority_players'`
-
-Migration SQL: add column, backfill via mapping above, drop old columns. Journal via Drizzle.
-
-### Schema: users
-
-Add nullable `player_level` enum column: `beginner` | `intermediate` | `advanced`.
+Helpers: `gameFormatFromLegacy`, `isPositionsGame`, `usesPriorityPlayerWindows`. Migration backfills and drops legacy booleans.
 
 ### Backend modules to build or modify
 
-1. **Registration routes** — integrate eligibility module in self-serve register (and guest path); respect grandfathering via existing registration row check.
-2. **Game detail route** — return `canSelfRegister` (and keep `registrationOpensAt` as the effective date for the current user on positions games).
-3. **Player levels admin routes** (new, global-admin middleware): list all users with `playerLevel`; PATCH level (non-null enum only).
-4. **Games admin / games routes** — accept and persist `gameFormat`; update registration-open-days logic to branch on `gameFormat` instead of booleans.
-5. **Telegram / game services** — replace boolean checks with format helpers where announcements or filters reference positions or priority.
-6. **Constants / config** — parse `POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED`.
+1. **Registration routes** — eligibility module; grandfathering via existing registration row.
+2. **Game detail route** — `canSelfRegister` / `registrationOpensAt`; do not add `playerLevel` to registration user objects.
+3. **Player levels admin routes** — steward auth:
+   - `GET /player-levels/users` — full list with `playerLevel`, `playerLevelSetBy: { displayName } | null`
+   - `GET /player-levels/users/:userId` — single **player level profile** for lazy dialog load
+   - `PATCH /player-levels/users/:userId` — non-null enum only; set audit fields to current user
+4. **`/users/me` (auth user response)** — include `isTc`; strip `playerLevel` for all users.
+5. **Games / games admin** — `gameFormat`; registration-open-days by format.
+6. **Config** — `POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED`.
 
 ### Frontend modules to build or modify
 
-1. **Players hub page** — `/players`, links to game administrators and player levels.
-2. **Player levels page** — grouped list, level pills, name and level filters (client-side), admin user API.
-3. **Player info dialog** — level selector on player-levels page only; immediate PATCH on change.
-4. **Game form** — three-option select bound to `gameFormat`.
-5. **Game details view model** — hide join button using `canSelfRegister`; hide guest affordances when host cannot self-register.
-6. **Types / API client** — `gameFormat` on `Game`; remove deprecated booleans after migration.
-7. **Games list toolbar** — point Players icon to `/players`.
-
-**Note:** `game_administrators.withPositions` remains a separate concept (which day/slot assignment); it is not the same as **game format** on a game instance.
+1. **Routing / toolbar** — if `isTc && !isAdmin`, **Players** → `/player-levels`; block or redirect TC-only from `/players`, `/game-administrators`, `/priority-players`. Global admin unchanged.
+2. **Player levels page** — allow `isTc`; name + level filters (client-side); list shows level pills and “Set by {name}” where applicable; row opens dialog with **editable** level.
+3. **Player info dialog** — sections by **viewer role only** (same at every entry point):
+   - Global admin: full dialog including editable level only when `allowLevelEdit` (player levels page); read-only level + audit elsewhere
+   - TC (not global admin): identity + level + audit only; editable only with `allowLevelEdit`
+   - Assigned admin (not steward): no level section
+   - Lazy load profile via `GET /player-levels/users/:userId` when dialog opens without list row data
+4. **Game details** — `canOpenPlayerInfo = isGameAdmin || isTc` for roster/waitlist taps; TC does not receive other game-admin UI flags from `isGameAdmin`.
+5. **Game form, game details view model, types/API client** — as in game-format slice; add `isTc` to session user type.
 
 ### API contracts (summary)
 
-- **Game** resource includes `gameFormat: 'recreational' | 'positions' | 'priority_players'`.
-- **Game detail** includes `canSelfRegister: boolean` for the authenticated user.
-- **User (admin list)** includes `playerLevel: null | 'beginner' | 'intermediate' | 'advanced'`.
-- **PATCH player level** — global admin only; non-null enum only.
+- **Game:** `gameFormat`, `canSelfRegister`, `registrationOpensAt` for current user.
+- **Auth user (`/users/me`):** `isAdmin`, `isTc`; no `playerLevel`.
+- **Player levels list item / profile:** `playerLevel`, `playerLevelSetBy: { displayName } | null`, plus existing public identity fields used in admin UI.
+- **PATCH player level:** steward only; non-null enum; updates audit columns.
 
 ### UI specifics
 
-- Level pills: advanced light green, intermediate light yellow, beginner light red; no pill if unassigned.
-- Player levels filters: name search plus level control (All, Unassigned, Advanced, Intermediate, Beginner); both apply client-side on the loaded list; default All.
-- Players hub title: “Players”; links “Game administrators” and “Player levels”.
-- Do not expose level in any non-admin surface.
+- Level pills: advanced light green, intermediate light yellow, beginner light red; no pill if unassigned; stewards see “Unassigned” where applicable.
+- Player levels filters: name search + level (All / Unassigned / Advanced / Intermediate / Beginner); combined client-side; default All.
+- Assignment audit in UI: setter **display name only** (no timestamp).
+- Players hub: global administrators only.
+- Do not expose level on participant payloads, game list, or non-steward surfaces.
 
 ## Testing Decisions
 
-**What makes a good test here:** Assert external behavior of pure functions and HTTP status/body edges — not implementation details like internal middleware order.
+**Good tests:** External behavior of pure functions and HTTP status/body — not middleware order or React structure.
 
 **Modules to test (recommended):**
 
-1. **`positionsGameRegistrationEligibility`** (new unit tests) — matrix of level × format × restrictions × dates × grandfathering × guest/host.
-2. **`gameFormat` helpers** (new unit tests) — legacy boolean migration mapping including `true/true` → `recreational`.
-3. **Registration route integration** (optional) — a few HTTP cases for 403 vs 201 on positions game when restrictions on.
+1. **`positionsGameRegistrationEligibility`** — level × format × restrictions × dates × grandfathering × guest/host.
+2. **`gameFormat` helpers** — legacy boolean mapping.
+3. **Steward authorization** — player-levels routes return 403 for assigned-only admin, 200 for `isTc` / `isAdmin`.
+4. **PATCH player level** — updates `player_level`, `player_level_set_by_id`, `player_level_set_at`; response includes setter display name.
+5. **Registration route integration** (optional) — 403 vs 201 on positions game when restrictions on.
 
-**Prior art:** No automated backend test suite today; introduce a minimal test runner for the new pure modules first.
+**Prior art:** Domain unit tests under `backend/src/domain/`; E2E `e2e/player-levels.spec.ts` (extend for TC scenarios).
 
-**Not prioritized for automated tests in v1:** React page layout, pill colors, dialog immediate-save UX (manual QA).
+**Not prioritized for v1 automated tests:** Dialog layout, pill colors, filter control widget type (manual QA).
 
 ## Out of Scope
 
+- In-app UI or API to grant/revoke `is_tc` (database only).
 - Clearing a player level back to unassigned via admin UI.
 - Per-game or per-day level overrides.
-- Showing levels to non-admin users (including error messages that mention “beginner”).
-- Changing `game_administrators` assignment model to use `gameFormat` enum.
-- Admin UI for the restrictions env toggle (env only).
+- Showing levels to non-stewards (including error messages that name a tier).
+- Embedding `playerLevel` on game registration / participant JSON.
+- TC access to Players hub, game administrators, or priority players admin pages.
+- TC gaining game-admin actions (remove player, guests, Bunq) without a separate assignment or global admin role.
+- Admin UI for the restrictions env toggle.
 - Auto-removing players from games when level or restrictions change.
-- Level-based restrictions on guest skill (only host eligibility).
 - Pagination/server-side search for player levels list (~300 users; client filter only).
+- Showing assignment timestamp in the UI.
 
 ## Further Notes
 
-- Implemented on `cursor/player-levels-issue8-dbd5` (Ralph epic #8). Older exploratory branches (`cursor/player-levels-c8a4`, `cursor/player-levels-five-one-spec-ee6d`) are superseded — do not merge in parallel.
-
+- Domain terms and resolutions: `CONTEXT.md`.
+- Epic #8 slices #20–#22 cover game format, initial global-admin player levels, and enforcement; **TC role** is a follow-on on `cursor/player-levels-issue8-dbd5`.
+- Reference implementation patterns exist on branch `cursor/player-levels-epic8-ad37` (PR #37) for prior TC work; implement against current branch and this PRD.
+- Story numbering in this file is contiguous; child GitHub issues may use their own numbers.

@@ -101,7 +101,7 @@ Modal showing a player's profile. Which sections appear depends only on the **vi
 - How restrictions are toggled — resolved: globally on/off via `POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED` (unset or false = off); inactive by default at deploy.
 - Existing registrations when level changes — resolved: **Grandfathered registration**; no auto-remove.
 - Admin adding players — resolved: same rules as today (game must be past or readonly; no payment requests sent yet); player level does not relax those gates.
-- Where level is edited — resolved: assign/change in **Player info dialog** for stewards at any entry point; **Level pill** on each row is display-only.
+- Where level is edited — resolved: assign/change in **Player info dialog** on **Player levels page** only; read-only in dialog elsewhere; **Level pill** on each row is display-only.
 - Player-levels search — resolved: name filter above the list (client-side or debounced API); not search inside the dialog.
 - Who manages levels — resolved: **Global administrator** or **Technical Committee member** (`isAdmin` or `is_tc`); **Assigned game administrator** excluded unless they also hold one of those roles.
 - **Game format** vs level restrictions — resolved: only **Positions game** is level-gated; **Priority players game** is not a positions game and has no level restrictions.
