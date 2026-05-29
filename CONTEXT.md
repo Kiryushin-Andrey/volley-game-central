@@ -64,6 +64,9 @@ When restrictions block self-serve registration (e.g. beginner on a positions ga
 **Guest registration under level restrictions**:
 A host who cannot self-register for a positions game also cannot register guests for that game. When the host may register, guests follow the usual guest rules only.
 
+**Level assignment record**:
+Who last set or changed a player's **Player level**, recorded as the setter's display name only in the UI (no date or time shown). Stored as references on the player; updated on every level change. Visible to **Global administrator**s and **Technical Committee member**s on the **Player levels page** (for assigned rows) and in the **Player info dialog**. Unassigned players have no record until a level is assigned.
+
 ## Relationships
 
 - Only a **Positions game** is subject to **Positions game level restrictions**
@@ -72,6 +75,7 @@ A host who cannot self-register for a positions game also cannot register guests
 - An **Unassigned player** has no **Player level** until a **Global administrator** or **Technical Committee member** assigns one
 - A **Global administrator** may perform every **Technical Committee member** action on player levels; a **Technical Committee member** who is not a global administrator may not perform global-admin-only actions
 - An **Assigned game administrator** without TC or global admin role cannot view or change **Player level**
+- Every **Player level** change updates the **Level assignment record** for that player
 - **Positions game level restrictions** control whether **Player level** affects registration for **Positions games**
 - **Grandfathered registration** protects existing spots; **Level-blocked re-registration** applies only after the player leaves voluntarily
 - **Global administrator**s use **Players hub**; **Technical Committee member**s without global admin use **Player levels page** from the toolbar
@@ -102,3 +106,4 @@ A host who cannot self-register for a positions game also cannot register guests
 - Player level storage — resolved: nullable `beginner` | `intermediate` | `advanced` on the user.
 - Player-levels list loading — resolved: load all users once (~300), filter client-side; list order: unassigned → advanced → intermediate → beginner, alphabetical within each group.
 - Legacy `withPositions` + `withPriorityPlayers` both true — resolved: none expected; if any exist, migrate to `recreational`.
+- Level assignment audit — resolved: **Level assignment record**; display setter **display name only** (no timestamp); show on **Player levels page** and **Player info dialog** for TC/global admin; nothing for unassigned until first assignment.
