@@ -4,24 +4,17 @@ Parent: https://github.com/Kiryushin-Andrey/volley-game-central/issues/8
 PRD: `docs/prd/player-levels-and-game-format.md`  
 Issue bodies: `.scratch/tc-slices/`
 
-Create issues in order (23 → 26) so **Blocked by** can reference real numbers. Apply label **`ready-for-agent`** when publishing.
-
-```bash
-gh issue create --title "Slice: TC role foundation (TC/global admin access + routing)" --label "enhancement" --label "ready-for-agent" --body-file .scratch/tc-slices/23-tc-role-foundation.md
-gh issue create --title "Slice: Level assignment audit (Set by + GET profile)" --label "enhancement" --label "ready-for-agent" --body-file .scratch/tc-slices/24-level-assignment-audit.md
-gh issue create --title "Slice: Player levels page level filter" --label "enhancement" --label "ready-for-agent" --body-file .scratch/tc-slices/25-player-levels-filters.md
-gh issue create --title "Slice: TC game details dialog (read-only level)" --label "enhancement" --label "ready-for-agent" --body-file .scratch/tc-slices/26-tc-game-dialog.md
-```
-
-After creation, edit **Blocked by** in #24–#26 to point at the actual parent issue numbers.
+**Created** via Actions workflow [`create-tc-slice-issues.yml`](https://github.com/Kiryushin-Andrey/volley-game-central/blob/main/.github/workflows/create-tc-slice-issues.yml) (run [26649045796](https://github.com/Kiryushin-Andrey/volley-game-central/actions/runs/26649045796)).
 
 ## Slice overview
 
-| # | Title | Type | Blocked by | E2E |
-|---|--------|------|------------|-----|
-| 23 | TC role foundation | AFK | None | LEVELS-005, 006 |
-| 24 | Level assignment audit | AFK | #23 | LEVELS-007 |
-| 25 | Player levels level filter | AFK | #23 | LEVELS-008 |
-| 26 | TC game details dialog | AFK | #23, #24 | LEVELS-009–011 |
+| Issue | Title | Blocked by | E2E |
+|-------|--------|------------|-----|
+| [#42](https://github.com/Kiryushin-Andrey/volley-game-central/issues/42) | TC role foundation | None | LEVELS-005, 006 |
+| [#43](https://github.com/Kiryushin-Andrey/volley-game-central/issues/43) | Level assignment audit | #42 | LEVELS-007 |
+| [#44](https://github.com/Kiryushin-Andrey/volley-game-central/issues/44) | Player levels level filter | #42 | LEVELS-008 |
+| [#45](https://github.com/Kiryushin-Andrey/volley-game-central/issues/45) | TC game details dialog | #42, #43 | LEVELS-009–011 |
 
-#24 and #25 can run in parallel after #23. #26 needs #24 for `GET /player-levels/users/:userId`.
+#43 and #44 can run in parallel after #42. #45 needs #43 for `GET /player-levels/users/:userId`.
+
+Labels on each issue: `enhancement`, `ready-for-agent`.
