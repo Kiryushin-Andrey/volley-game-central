@@ -1,7 +1,7 @@
 {
-  "publishedAt": "2026-05-29T22:03:01Z",
-  "sourceCommit": "ef5b611bea9d050888220c1cbd211bc012d2f2d9",
-  "sourceBranch": "main",
+  "publishedAt": "2026-05-29T23:05:56Z",
+  "sourceCommit": "013d17960564554e8c45955b4f2d60579ce58125",
+  "sourceBranch": "cursor/player-levels-issue8-dbd5",
   "reportDir": "/opt/cursor/artifacts/playwright-report",
   "lastRun": {
     "status": "passed",
