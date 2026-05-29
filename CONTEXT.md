@@ -41,7 +41,10 @@ A user assigned to run games for specific weekdays and formats via `game_adminis
 _Avoid_: Restricted admin (informal), game administrator when meaning global admin
 
 **Players hub**:
-Admin landing page (toolbar “Players” → `/players`) with links to game administrators and player levels management.
+Admin landing page (toolbar “Players” → `/players`) with links to game administrators and player levels management. Shown only to **Global administrator**s.
+
+**Player levels page**:
+The list of all registered users with **Level pill**s, name filter, and row → **Player info dialog**. Toolbar “Players” for **Technical Committee member**s who are not global administrators opens this page directly (`/player-levels`), not the **Players hub**.
 
 **Intermediate registration window**:
 For positions games, an intermediate player may register (roster or waitlist) only starting 3 days before game start. Before that window, registration is rejected entirely — no early waitlist.
@@ -71,6 +74,7 @@ A host who cannot self-register for a positions game also cannot register guests
 - An **Assigned game administrator** without TC or global admin role cannot view or change **Player level**
 - **Positions game level restrictions** control whether **Player level** affects registration for **Positions games**
 - **Grandfathered registration** protects existing spots; **Level-blocked re-registration** applies only after the player leaves voluntarily
+- **Global administrator**s use **Players hub**; **Technical Committee member**s without global admin use **Player levels page** from the toolbar
 
 ## Example dialogue
 
@@ -92,6 +96,7 @@ A host who cannot self-register for a positions game also cannot register guests
 - Game storage shape — resolved: one three-value **Game format** field (`recreational` | `positions` | `priority_players`) replaces the two booleans in the data model and UI.
 - Level assignment UX — resolved: immediate save in dialog; no “clear to unassigned” action.
 - Players hub — resolved: title “Players” at `/players`; links **Game administrators** → `/game-administrators`, **Player levels** → `/player-levels`.
+- TC toolbar navigation — resolved: **Technical Committee member** without global admin: toolbar **Players** → **Player levels page** only; no **Players hub**.
 - Blocked registration UX — resolved: hide join button when level blocks registration; no level revealed in UI (Option A if an error is ever needed elsewhere).
 - Guests vs levels — resolved: **Guest registration under level restrictions** (Option A).
 - Player level storage — resolved: nullable `beginner` | `intermediate` | `advanced` on the user.
