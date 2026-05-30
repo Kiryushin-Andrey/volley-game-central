@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import {
   addParticipantViaUi,
+  assignmentDayOptionForDate,
   BUNQ_E2E_PASSWORD,
   cleanupE2eData,
   createDevUserViaApi,
@@ -19,11 +20,6 @@ import {
   switchToUser,
   waitForBackend,
 } from './support/fixtures';
-
-function assignmentDayOptionForDate(date: Date) {
-  const jsDay = date.getDay();
-  return String(jsDay === 0 ? 6 : jsDay - 1);
-}
 
 async function createAssignmentForDate(
   page: import('@playwright/test').Page,

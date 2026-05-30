@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import {
   assignPlayerLevelViaApi,
+  assignmentDayOptionForDate,
   cleanupE2eData,
   createDevUserViaApi,
   createGameViaUi,
@@ -8,6 +9,7 @@ import {
   devLogin,
   devLoginAs,
   e2eTitle,
+  nextWeekday,
   registerForGameViaUi,
   switchToUser,
   waitForBackend,
@@ -220,11 +222,12 @@ test.describe('player levels admin scenarios', () => {
     const globalAdmin = await createDevUserViaApi(request, testInfo, 'Levels Assign Dialog GA', true);
     const assignedAdmin = await createDevUserViaApi(request, testInfo, 'Levels Assign Dialog AA');
     const player = await createDevUserViaApi(request, testInfo, 'Levels Assign Dialog Player');
+    const gameDate = nextWeekday(0);
     await devLoginAs(page, globalAdmin);
     await page.goto('/players');
     await page.getByRole('link', { name: 'Game administrators' }).click();
     await page.getByRole('button', { name: 'Add Assignment' }).click();
-    await page.getByLabel('Day of Week').selectOption('6');
+    await page.getByLabel('Day of Week').selectOption(assignmentDayOptionForDate(gameDate));
     await page.getByPlaceholder('Search for a user...').fill(assignedAdmin.displayName);
     await page.getByText(assignedAdmin.displayName, { exact: true }).click();
     await page.getByRole('button', { name: 'Create' }).click();
@@ -232,7 +235,7 @@ test.describe('player levels admin scenarios', () => {
     await switchToUser(page, assignedAdmin);
     const game = await createGameViaUi(page, {
       title: e2eTitle(testInfo, 'Assign Dialog Game'),
-      dateTime: daysFromNow(2),
+      dateTime: gameDate,
     });
     await registerForGameViaUi(page, player, game.id);
     await switchToUser(page, assignedAdmin);

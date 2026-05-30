@@ -181,6 +181,12 @@ export function nextWeekday(jsDay: number, minDaysAhead = 1, hour = 18) {
   return date;
 }
 
+/** `<select>` value for game-administrator day (0 = Monday … 6 = Sunday). */
+export function assignmentDayOptionForDate(date: Date) {
+  const jsDay = date.getDay();
+  return String(jsDay === 0 ? 6 : jsDay - 1);
+}
+
 export function e2eTitle(testInfo: TestInfo, label: string) {
   return `E2E ${label} ${uniqueRunId(testInfo)}`;
 }
