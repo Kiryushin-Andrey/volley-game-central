@@ -13,7 +13,6 @@ import { March8Decorations } from '../components/March8Decorations';
 import LoadingSpinner from '../components/LoadingSpinner';
 import UnpaidGamesList from '../components/UnpaidGamesList';
 import CategoryMultiSelect from '../components/CategoryMultiSelect';
-import CategoryInfoBlock from '../components/CategoryInfoBlock';
 import './GamesList.scss';
 
 interface GamesListProps {
@@ -219,15 +218,6 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
                   availableCategories={vm.availableCategories}
                   onToggleCategory={(category) => vm.toggleCategory(category)}
                 />
-              </div>
-            )}
-            
-            {/* Category info blocks for non-admin users */}
-            {!user.isAdmin && vm.gameFilter === 'upcoming' && vm.selectedCategories.length > 0 && (
-              <div className="category-info-blocks">
-                {vm.selectedCategories.map(category => (
-                  <CategoryInfoBlock key={category} category={category} />
-                ))}
               </div>
             )}
             

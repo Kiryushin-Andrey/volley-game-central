@@ -60,7 +60,7 @@ Spec: `e2e/games-home.spec.ts`
 
 - [x] E2E-HOME-001: Participant A loads the games home and sees upcoming games or the `No games available` empty state.
 - [x] E2E-HOME-002: Participant A opens a game card and reaches the matching game details page.
-- [x] E2E-HOME-003: Participant A uses the category multi-select on upcoming games and sees the selected category info block.
+- [x] E2E-HOME-003: Participant A uses the category multi-select on upcoming games and sees matching game cards (no category info blocks on the games home).
 - [x] E2E-HOME-004: A registered participant sees the `You're in` badge for an active registration on the games home.
 - [x] E2E-HOME-005: A waitlisted participant sees the `Waitlist` badge for a waitlist registration on the games home.
 - [x] E2E-HOME-006: A game card with a location opens an external maps link without navigating away from the app route.
@@ -74,7 +74,6 @@ Spec: `e2e/games-home.spec.ts`
 - [x] E2E-HOME-014: Participant deselects all category options in the multi-select and sees `No games available` even when games exist for other categories.
 - [x] E2E-HOME-015: Participant A with an unpaid past game (after admin sent payment requests) sees `Your unpaid games` on the upcoming home view, opens the entry, and **Pay now** opens the Bunq payment link in a new browser tab (or window).
 - [x] E2E-HOME-016: Games home cards use a yellow left border for 5-1 games and a green left border for non-5-1 games.
-- [x] E2E-HOME-017: Category info blocks on the games home use yellow background for 5-1 and green for other selected categories.
 
 ## Player levels admin scenarios
 

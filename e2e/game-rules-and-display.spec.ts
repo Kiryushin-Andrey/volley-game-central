@@ -150,37 +150,6 @@ test.describe('game rules and display scenarios', () => {
     await expect(regularCard).toHaveCSS('border-left-color', 'rgb(76, 175, 80)');
   });
 
-  test('E2E-HOME-017 category info blocks use yellow for 5-1 and green for other categories', async ({
-    page,
-    request,
-  }, testInfo) => {
-    const admin = await createDevUserViaApi(request, testInfo, 'Category Colors Admin', true);
-    const participant = await createDevUserViaApi(request, testInfo, 'Category Colors Participant');
-    await devLoginAs(page, admin);
-    await createGameViaUi(page, {
-      title: e2eTitle(testInfo, 'Category Five One'),
-      dateTime: nextWeekday(4),
-      withPositions: true,
-    });
-    await createGameViaUi(page, {
-      title: e2eTitle(testInfo, 'Category Sunday'),
-      dateTime: nextWeekday(0),
-      withPositions: false,
-    });
-
-    await switchToUser(page, participant);
-    await page.locator('.category-multiselect-trigger').click();
-    await page.locator('label.category-multiselect-option').filter({ hasText: 'Thursday 5-1' }).click();
-
-    const fiveOneBlock = page.locator('.category-info-block').filter({ hasText: 'Thursday 5-1' });
-    await expect(fiveOneBlock).toHaveClass(/with-positions/);
-    await expect(fiveOneBlock).toHaveCSS('background-color', 'rgb(255, 248, 225)');
-
-    const sundayBlock = page.locator('.category-info-block').filter({ hasText: 'Sunday' });
-    await expect(sundayBlock).toHaveClass(/without-positions/);
-    await expect(sundayBlock).toHaveCSS('background-color', 'rgb(232, 245, 233)');
-  });
-
   test('E2E-GAME-013 game details category notice follows schedule category', async ({ page, request }, testInfo) => {
     const admin = await createDevUserViaApi(request, testInfo, 'Details Category Admin', true);
     const participant = await createDevUserViaApi(request, testInfo, 'Details Category Participant');

@@ -81,12 +81,13 @@ test.describe('games home scenarios', () => {
     await expect(page.getByText(title)).toBeVisible();
   });
 
-  test('E2E-HOME-003 category multi-select shows selected category information', async ({ page, request }, testInfo) => {
+  test('E2E-HOME-003 category multi-select filters upcoming games', async ({ page, request }, testInfo) => {
     const admin = await createDevUserViaApi(request, testInfo, 'Category Admin', true);
     const participant = await createDevUserViaApi(request, testInfo, 'Category Participant');
+    const title = e2eTitle(testInfo, 'Thursday Five One');
     await devLoginAs(page, admin);
     await createGameViaUi(page, {
-      title: e2eTitle(testInfo, 'Thursday Five One'),
+      title,
       dateTime: nextWeekday(4),
       withPositions: true,
     });
@@ -95,7 +96,8 @@ test.describe('games home scenarios', () => {
     await page.locator('.category-multiselect-trigger').click();
     await page.getByText('Thursday 5-1').click();
 
-    await expect(page.getByText('Thursday 5-1: Competitive games with assigned positions')).toBeVisible();
+    await expect(page.getByText(title)).toBeVisible();
+    await expect(page.locator('.category-info-block')).toHaveCount(0);
   });
 
   test('E2E-HOME-004 registered participant sees You are in badge', async ({ page, request }, testInfo) => {
