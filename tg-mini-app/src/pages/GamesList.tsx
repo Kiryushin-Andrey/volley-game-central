@@ -4,6 +4,8 @@ import { FaUsers, FaCog, FaPlus } from 'react-icons/fa';
 import { useGamesListViewModel } from './GamesListViewModel';
 import { GameWithStats, User } from '../types';
 import { isGameUpcoming } from '../utils/gameDateUtils';
+import { isPositionsGame } from '../utils/gameFormat';
+import { isTcOnly } from '../utils/userRoles';
 import { resolveLocationLink } from '../utils/locationUtils';
 import { HalloweenDecorations } from '../components/HalloweenDecorations';
 import { NewYearDecorations } from '../components/NewYearDecorations';
@@ -11,7 +13,6 @@ import { March8Decorations } from '../components/March8Decorations';
 import LoadingSpinner from '../components/LoadingSpinner';
 import UnpaidGamesList from '../components/UnpaidGamesList';
 import CategoryMultiSelect from '../components/CategoryMultiSelect';
-import CategoryInfoBlock from '../components/CategoryInfoBlock';
 import './GamesList.scss';
 
 interface GamesListProps {
@@ -31,7 +32,7 @@ const GameItem = memo(({ game, onClick, formatDate }: {
 
   return (
     <div
-      className={`game-card ${game.isUserRegistered ? 'registered' : ''} ${isHalloween ? 'halloween-theme' : ''} ${isNewYear ? 'newyear-theme' : ''} ${isMarch8 ? 'march8-theme' : ''} ${game.withPositions ? 'with-positions' : 'without-positions'}`}
+      className={`game-card ${game.isUserRegistered ? 'registered' : ''} ${isHalloween ? 'halloween-theme' : ''} ${isNewYear ? 'newyear-theme' : ''} ${isMarch8 ? 'march8-theme' : ''} ${isPositionsGame(game.gameFormat) ? 'with-positions' : 'without-positions'}`}
       onClick={() => onClick(game.id)}
     >
       {isHalloween && <HalloweenDecorations variant="card" />}
@@ -220,15 +221,6 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
               </div>
             )}
             
-            {/* Category info blocks for non-admin users */}
-            {!user.isAdmin && vm.gameFilter === 'upcoming' && vm.selectedCategories.length > 0 && (
-              <div className="category-info-blocks">
-                {vm.selectedCategories.map(category => (
-                  <CategoryInfoBlock key={category} category={category} />
-                ))}
-              </div>
-            )}
-            
             {/* Admin controls */}
               {(user.isAdmin || vm.hasAdminAssignments) && (
                 <div className="admin-controls">
@@ -259,9 +251,9 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
                     {user.isAdmin && (
                       <div className="admin-icon-buttons">
                         <Link
-                          to="/game-administrators"
+                          to="/players"
                           className="icon-button"
-                          title="Game Administrators"
+                          title="Players"
                         >
                           <FaUsers />
                         </Link>
@@ -310,6 +302,18 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
                   </div>
                 </div>
               )}
+            {isTcOnly(user) && (
+              <div className="tc-player-levels-nav">
+                <Link
+                  to="/player-levels"
+                  className="tc-player-levels-link"
+                  title="Manage player levels"
+                >
+                  <FaUsers aria-hidden />
+                  <span>Manage player levels</span>
+                </Link>
+              </div>
+            )}
             </div>
           </div>
           {vm.loadingGames ? (

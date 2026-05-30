@@ -1,0 +1,5 @@
+# Ralph progress (session log)
+# Append after each iteration. Use RALPH_ISSUE_COMPLETE #n only when that issue is fully done.
+# Chain the next session via scripts/ralph-chain-next.sh (see sessions.log for URLs).
+# Concise bullets; grammar optional.
+# Delete this file when the epic sprint is done.

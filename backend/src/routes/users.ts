@@ -4,6 +4,7 @@ import { users } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import { getUserUnpaidItems } from '../services/unpaidService';
 import { isDevMode } from '../utils/devMode';
+import { toPublicAuthUser } from '../utils/userResponse';
 
 const router = Router();
 
@@ -17,7 +18,7 @@ router.get('/me', async (req, res) => {
     }
     
     res.json({
-      user: req.user,
+      user: toPublicAuthUser(req.user),
       isDevMode: isDevMode(),
     });
   } catch (error) {
@@ -54,7 +55,7 @@ router.put('/me', async (req, res) => {
 
     // If no change, return current
     if (current.displayName === trimmed) {
-      return res.json(current);
+      return res.json(toPublicAuthUser(current));
     }
 
     // Build prevDisplayNames list
@@ -73,7 +74,7 @@ router.put('/me', async (req, res) => {
       .where(eq(users.id, req.user.id));
 
     const updatedRows = await db.select().from(users).where(eq(users.id, req.user.id));
-    return res.json(updatedRows[0]);
+    return res.json(toPublicAuthUser(updatedRows[0]));
   } catch (error) {
     console.error('Error updating current user profile:', error);
     return res.status(500).json({ error: 'Failed to update profile' });
@@ -91,7 +92,7 @@ router.get('/:telegramId', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.json(user[0]);
+    res.json(toPublicAuthUser(user[0]));
   } catch (error) {
     console.error('Error fetching user:', error);
     res.status(500).json({ error: 'Failed to fetch user' });
@@ -108,7 +109,7 @@ router.get('/id/:userId', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.json(user[0]);
+    res.json(toPublicAuthUser(user[0]));
   } catch (error) {
     console.error('Error fetching user:', error);
     res.status(500).json({ error: 'Failed to fetch user' });

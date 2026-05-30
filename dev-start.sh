@@ -16,6 +16,7 @@ echo ""
 
 # Set dev mode environment variable
 export DEV_MODE=true
+export POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED="${POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED:-true}"
 
 # Accept preview host as parameter
 if [ -n "$1" ]; then

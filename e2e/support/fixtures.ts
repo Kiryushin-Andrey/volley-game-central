@@ -6,6 +6,7 @@ export type DevUser = {
   displayName: string;
   phoneLocal: string;
   isAdmin: boolean;
+  isTc: boolean;
 };
 
 export type GameFixture = {
@@ -21,6 +22,8 @@ type UiGameInput = {
   unregisterDeadlineHours?: number;
   paymentAmount?: string;
   pricingMode?: 'per_participant' | 'total_cost';
+  gameFormat?: 'recreational' | 'positions' | 'priority_players';
+  /** @deprecated use gameFormat: 'positions' */
   withPositions?: boolean;
   readonly?: boolean;
   locationName?: string;
@@ -74,11 +77,11 @@ export async function openDevLogin(page: Page) {
   await expect(page.getByText('Dev mode: No SMS verification required')).toBeVisible();
 }
 
-export async function devLogin(page: Page, testInfo: TestInfo, label: string, isAdmin = false): Promise<DevUser> {
+export async function devLogin(page: Page, testInfo: TestInfo, label: string, isAdmin = false, isTc = false): Promise<DevUser> {
   const displayName = uniqueName(testInfo, label);
-  const phoneLocal = uniquePhoneLocal(testInfo, isAdmin ? 8 : 1);
+  const phoneLocal = uniquePhoneLocal(testInfo, isAdmin ? 8 : isTc ? 7 : 1);
 
-  return devLoginAs(page, { id: 0, displayName, phoneLocal, isAdmin });
+  return devLoginAs(page, { id: 0, displayName, phoneLocal, isAdmin, isTc });
 }
 
 export async function devLoginAs(page: Page, user: DevUser): Promise<DevUser> {
@@ -88,6 +91,9 @@ export async function devLoginAs(page: Page, user: DevUser): Promise<DevUser> {
 
   if (user.isAdmin) {
     await page.getByLabel('Administrator').check();
+  }
+  if (user.isTc) {
+    await page.getByLabel('Technical Committee').check();
   }
 
   await page.getByRole('button', { name: 'Dev Login' }).click();
@@ -105,17 +111,46 @@ export async function devLoginAs(page: Page, user: DevUser): Promise<DevUser> {
     displayName: user.displayName,
     phoneLocal: user.phoneLocal,
     isAdmin: user.isAdmin,
+    isTc: user.isTc,
   };
 }
 
-export async function createDevUserViaApi(request: APIRequestContext, testInfo: TestInfo, label: string, isAdmin = false): Promise<DevUser> {
+export async function assignPlayerLevelViaApi(
+  request: APIRequestContext,
+  testInfo: TestInfo,
+  userId: number,
+  playerLevel: 'beginner' | 'intermediate' | 'advanced',
+): Promise<void> {
+  const admin = await createDevUserViaApi(request, testInfo, 'Level Assign Admin', true);
+  const login = await request.post('/api/auth/dev-login', {
+    data: {
+      phoneNumber: `+31${admin.phoneLocal}`,
+      displayName: admin.displayName,
+      isAdmin: true,
+    },
+  });
+  expect(login.ok()).toBeTruthy();
+  const patch = await request.patch(`/api/player-levels/users/${userId}`, {
+    data: { playerLevel },
+  });
+  expect(patch.ok()).toBeTruthy();
+}
+
+export async function createDevUserViaApi(
+  request: APIRequestContext,
+  testInfo: TestInfo,
+  label: string,
+  isAdmin = false,
+  isTc = false,
+): Promise<DevUser> {
   const displayName = uniqueName(testInfo, label);
-  const phoneLocal = uniquePhoneLocal(testInfo, isAdmin ? 9 : 2);
+  const phoneLocal = uniquePhoneLocal(testInfo, isAdmin ? 9 : isTc ? 6 : 2);
   const response = await request.post('/api/auth/dev-login', {
     data: {
       phoneNumber: `+31${phoneLocal}`,
       displayName,
       isAdmin,
+      isTc,
     },
   });
   expect(response.ok()).toBeTruthy();
@@ -125,6 +160,7 @@ export async function createDevUserViaApi(request: APIRequestContext, testInfo: 
     displayName,
     phoneLocal,
     isAdmin,
+    isTc,
   };
 }
 
@@ -143,6 +179,12 @@ export function nextWeekday(jsDay: number, minDaysAhead = 1, hour = 18) {
   date.setDate(date.getDate() + delta);
   date.setHours(hour, 0, 0, 0);
   return date;
+}
+
+/** `<select>` value for game-administrator day (0 = Monday … 6 = Sunday). */
+export function assignmentDayOptionForDate(date: Date) {
+  const jsDay = date.getDay();
+  return String(jsDay === 0 ? 6 : jsDay - 1);
 }
 
 export function e2eTitle(testInfo: TestInfo, label: string) {
@@ -192,9 +234,9 @@ export async function createGameViaUi(page: Page, input: UiGameInput): Promise<G
   if (input.pricingMode === 'total_cost') {
     await setCheckbox(page, '#pricingMode');
   }
-  if (input.withPositions !== undefined) {
-    await setCheckbox(page, '#withPositions', input.withPositions);
-  }
+  const gameFormat =
+    input.gameFormat ?? (input.withPositions ? 'positions' : 'recreational');
+  await page.locator('#gameFormat').selectOption(gameFormat);
   if (input.readonly) {
     await setCheckbox(page, '#readonly');
   }
@@ -262,6 +304,17 @@ export async function markGameFullyPaidViaBunq(
 export async function countRegistrations(gameId: number) {
   const result = await pool.query(`select count(*)::int as count from game_registrations where game_id = $1`, [gameId]);
   return result.rows[0].count as number;
+}
+
+/** Set a React controlled <input> value and fire input/change so ViewModel state updates. */
+export async function setControlledInputValue(page: Page, selector: string, value: string) {
+  await page.locator(selector).evaluate((el, val) => {
+    const input = el as HTMLInputElement;
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+    setter?.call(input, val);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  }, value);
 }
 
 /** PUT /api/games/admin/:gameId — await immediately before clicking Save Changes on edit form. */
@@ -429,7 +482,7 @@ export async function moveGameToPastViaUi(page: Page, gameId: number, pastDate =
   if (page.url().includes('/edit')) {
     await page.goto(`/game/${gameId}`);
   }
-  await expect(page).toHaveURL(new RegExp(`/game/${gameId}$`));
+  await expect(page).toHaveURL(new RegExp(`/game/${gameId}(\\?refresh=\\d+)?$`));
 }
 
 export async function addParticipantViaUi(page: Page, displayName: string) {

@@ -3,6 +3,8 @@ export enum PricingMode {
   TOTAL_COST = 'total_cost'
 }
 
+export type PlayerLevel = 'beginner' | 'intermediate' | 'advanced';
+
 // Minimal user info used across UI for player dialogs and click handlers
 export interface UserPublicInfo {
   id: number;
@@ -14,12 +16,22 @@ export interface UserPublicInfo {
   phoneNumber?: string | null;
 }
 
+export interface LevelAssignmentRecord {
+  displayName: string;
+}
+
+export interface UserWithPlayerLevel extends UserPublicInfo {
+  playerLevel: PlayerLevel | null;
+  playerLevelSetBy: LevelAssignmentRecord | null;
+}
+
 export interface User {
   id: number;
   telegramId: string;
   displayName: string;
   telegramUsername?: string | null;
   isAdmin: boolean;
+  isTc: boolean;
   createdAt: Date | null;
   blockReason?: string | null;
 }
@@ -31,6 +43,8 @@ export interface CollectorUser {
   avatarUrl?: string | null;
 }
 
+export type GameFormat = 'recreational' | 'positions' | 'priority_players';
+
 export interface Game {
   id: number;
   dateTime: string;
@@ -39,8 +53,7 @@ export interface Game {
   paymentAmount: number;
   pricingMode: PricingMode;
   fullyPaid: boolean;
-  withPositions: boolean;
-  withPriorityPlayers: boolean;
+  gameFormat: GameFormat;
   readonly: boolean;
   locationName?: string | null;
   locationLink?: string | null;
@@ -53,6 +66,7 @@ export interface Game {
   isAssignedAdmin?: boolean;
   registrationOpenDays?: number;
   registrationOpensAt?: string;
+  canSelfRegister?: boolean;
   isPriorityPlayer?: boolean;
 }
 

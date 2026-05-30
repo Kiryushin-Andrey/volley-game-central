@@ -1,8 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './PlayerInfoDialog.scss';
-import type { UserPublicInfo } from '../types';
-import { userApi, type UnpaidRegistration } from '../services/api';
+import type { PlayerLevel, UserPublicInfo } from '../types';
+import { userApi, playerLevelsApi, type UnpaidRegistration } from '../services/api';
 import UnpaidGamesList from './UnpaidGamesList';
+import { PLAYER_LEVEL_LABELS } from '../utils/playerLevel';
+import type { PlayerInfoDialogViewer } from '../utils/userRoles';
+
+export type { PlayerInfoDialogViewer };
 
 // ViewModel encapsulating state and async loading logic for unpaid games
 class PlayerInfoDialogViewModel {
@@ -46,9 +50,27 @@ interface PlayerInfoDialogProps {
   isOpen: boolean;
   onClose: () => void;
   user: UserPublicInfo | null;
+  viewer?: PlayerInfoDialogViewer;
+  allowLevelEdit?: boolean;
+  loadLevelProfile?: boolean;
+  playerLevel?: PlayerLevel | null;
+  playerLevelSetBy?: { displayName: string } | null;
+  onPlayerLevelChange?: (level: PlayerLevel) => Promise<boolean>;
+  levelChangeBusy?: boolean;
 }
 
-const PlayerInfoDialog: React.FC<PlayerInfoDialogProps> = ({ isOpen, onClose, user }) => {
+const PlayerInfoDialog: React.FC<PlayerInfoDialogProps> = ({
+  isOpen,
+  onClose,
+  user,
+  viewer = 'globalAdmin',
+  allowLevelEdit,
+  loadLevelProfile,
+  playerLevel: playerLevelProp,
+  playerLevelSetBy: playerLevelSetByProp,
+  onPlayerLevelChange,
+  levelChangeBusy,
+}) => {
   const [unpaidGames, setUnpaidGames] = useState<UnpaidRegistration[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,8 +78,25 @@ const PlayerInfoDialog: React.FC<PlayerInfoDialogProps> = ({ isOpen, onClose, us
   const [reminderError, setReminderError] = useState<string | null>(null);
   const [blockReason, setBlockReason] = useState<string | null | undefined>(null);
   const [moderationBusy, setModerationBusy] = useState(false);
+  const [loadedLevel, setLoadedLevel] = useState<PlayerLevel | null | undefined>(undefined);
+  const [loadedSetBy, setLoadedSetBy] = useState<{ displayName: string } | null | undefined>(undefined);
+  const [levelProfileLoading, setLevelProfileLoading] = useState(false);
+  const [levelProfileError, setLevelProfileError] = useState<string | null>(null);
 
   const vm = useMemo(() => new PlayerInfoDialogViewModel(setUnpaidGames, setLoading, setError), []);
+
+  const showFinancialSections = viewer === 'globalAdmin' || viewer === 'assignedGameAdmin';
+  const showModeration = showFinancialSections;
+  const showLevelSection = viewer === 'globalAdmin' || viewer === 'tc';
+
+  const resolvedLevel =
+    playerLevelProp !== undefined ? playerLevelProp : loadedLevel !== undefined ? loadedLevel : null;
+  const resolvedSetBy =
+    playerLevelSetByProp !== undefined
+      ? playerLevelSetByProp
+      : loadedSetBy !== undefined
+        ? loadedSetBy
+        : null;
 
   useEffect(() => {
     const onEsc = (e: KeyboardEvent) => {
@@ -74,12 +113,54 @@ const PlayerInfoDialog: React.FC<PlayerInfoDialogProps> = ({ isOpen, onClose, us
 
   // Load unpaid games for the selected user when dialog opens or user changes
   useEffect(() => {
-    if (!isOpen || !user) return;
+    if (!isOpen || !user || !showFinancialSections) return;
     vm.reset();
     vm.load(user.id);
     setBlockReason(user.blockReason ?? null);
     return () => vm.cancel();
-  }, [isOpen, user?.id, vm]);
+  }, [isOpen, user?.id, vm, showFinancialSections]);
+
+  useEffect(() => {
+    if (!isOpen || !user) {
+      setLoadedLevel(undefined);
+      setLoadedSetBy(undefined);
+      setLevelProfileError(null);
+      setLevelProfileLoading(false);
+      return;
+    }
+    if (!showLevelSection) return;
+    if (!loadLevelProfile) return;
+    if (playerLevelProp !== undefined && playerLevelSetByProp !== undefined) return;
+
+    let cancelled = false;
+    setLevelProfileLoading(true);
+    setLevelProfileError(null);
+    void playerLevelsApi
+      .getUser(user.id)
+      .then((profile) => {
+        if (cancelled) return;
+        setLoadedLevel(profile.playerLevel);
+        setLoadedSetBy(profile.playerLevelSetBy);
+      })
+      .catch((e: any) => {
+        if (cancelled) return;
+        setLevelProfileError(e?.response?.data?.error || 'Failed to load player level');
+      })
+      .finally(() => {
+        if (!cancelled) setLevelProfileLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    isOpen,
+    user?.id,
+    showLevelSection,
+    loadLevelProfile,
+    playerLevelProp,
+    playerLevelSetByProp,
+  ]);
 
   if (!isOpen || !user) return null;
 
@@ -170,7 +251,7 @@ const PlayerInfoDialog: React.FC<PlayerInfoDialogProps> = ({ isOpen, onClose, us
             )}
           </div>
 
-          {(loading || error || (unpaidGames && unpaidGames.length > 0)) && (
+          {showFinancialSections && (loading || error || (unpaidGames && unpaidGames.length > 0)) && (
             <div className="unpaid-section" style={{ marginTop: 16 }}>
               <div className="row" style={{ justifyContent: 'flex-start' }}>
                 <span className="label">Unpaid games</span>
@@ -196,33 +277,91 @@ const PlayerInfoDialog: React.FC<PlayerInfoDialogProps> = ({ isOpen, onClose, us
             </div>
           )}
 
-          {/* Moderation section: Block / Unblock */}
-          <div className="moderation-section" style={{ marginTop: 20 }}>
-            {blockReason ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div className="hint">Blocked: {blockReason}</div>
-                <button
-                  className="primary-btn"
-                  onClick={handleUnblock}
-                  disabled={moderationBusy}
-                  style={{ alignSelf: 'flex-start' }}
-                >
-                  {moderationBusy ? 'Processing…' : 'Unblock'}
-                </button>
+          {showLevelSection && allowLevelEdit && onPlayerLevelChange && (
+            <div className="player-level-section" style={{ marginTop: 20 }}>
+              <div className="row" style={{ justifyContent: 'flex-start', marginBottom: 8 }}>
+                <span className="label">Player level</span>
               </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <button
-                  className="danger-btn"
-                  onClick={handleBlock}
-                  disabled={moderationBusy}
-                  style={{ alignSelf: 'flex-start' }}
-                >
-                  {moderationBusy ? 'Processing…' : 'Block'}
-                </button>
+              {!resolvedLevel && (
+                <div className="hint" style={{ marginBottom: 8 }}>
+                  Unassigned
+                </div>
+              )}
+              <div className="level-selector" role="group" aria-label="Player level">
+                {(['beginner', 'intermediate', 'advanced'] as PlayerLevel[]).map((level) => (
+                  <button
+                    key={level}
+                    type="button"
+                    className={`level-selector-btn${resolvedLevel === level ? ' active' : ''}`}
+                    disabled={levelChangeBusy}
+                    onClick={async () => {
+                      if (resolvedLevel === level || levelChangeBusy) return;
+                      await onPlayerLevelChange(level);
+                    }}
+                  >
+                    {PLAYER_LEVEL_LABELS[level]}
+                  </button>
+                ))}
               </div>
-            )}
-          </div>
+              {resolvedLevel && resolvedSetBy && (
+                <div className="player-level-set-by">
+                  Set by {resolvedSetBy.displayName}
+                </div>
+              )}
+            </div>
+          )}
+
+          {showLevelSection && !allowLevelEdit && (
+            <div className="player-level-section" style={{ marginTop: 20 }}>
+              <div className="row" style={{ justifyContent: 'flex-start', marginBottom: 8 }}>
+                <span className="label">Player level</span>
+              </div>
+              {levelProfileLoading && <div className="hint">Loading…</div>}
+              {!levelProfileLoading && levelProfileError && (
+                <div className="error">{levelProfileError}</div>
+              )}
+              {!levelProfileLoading && !levelProfileError && !resolvedLevel && (
+                <div className="hint">Unassigned</div>
+              )}
+              {!levelProfileLoading && !levelProfileError && resolvedLevel && (
+                <div className="level-readonly-value">{PLAYER_LEVEL_LABELS[resolvedLevel]}</div>
+              )}
+              {!levelProfileLoading && !levelProfileError && resolvedLevel && resolvedSetBy && (
+                <div className="player-level-set-by">
+                  Set by {resolvedSetBy.displayName}
+                </div>
+              )}
+            </div>
+          )}
+
+          {showModeration && (
+            <div className="moderation-section" style={{ marginTop: 20 }}>
+              {blockReason ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div className="hint">Blocked: {blockReason}</div>
+                  <button
+                    className="primary-btn"
+                    onClick={handleUnblock}
+                    disabled={moderationBusy}
+                    style={{ alignSelf: 'flex-start' }}
+                  >
+                    {moderationBusy ? 'Processing…' : 'Unblock'}
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <button
+                    className="danger-btn"
+                    onClick={handleBlock}
+                    disabled={moderationBusy}
+                    style={{ alignSelf: 'flex-start' }}
+                  >
+                    {moderationBusy ? 'Processing…' : 'Block'}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

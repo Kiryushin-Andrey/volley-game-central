@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { User, PricingMode } from "../types";
 import LoadingSpinner from "../components/LoadingSpinner";
 import PasswordDialog from "../components/PasswordDialog";
@@ -40,6 +40,7 @@ interface GameDetailsProps {
 const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
   const { gameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const inTelegram = isTelegramApp();
 
   // Split state into logical groups for better performance
@@ -91,7 +92,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
     if (gameId) {
       viewModel.loadGame(parseInt(gameId));
     }
-  }, [gameId, viewModel]);
+  }, [gameId, viewModel, location.pathname, location.search]);
 
   // Check Bunq integration status for admin users
   useEffect(() => {
@@ -132,6 +133,8 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
   const isPastGame = isGamePast(gameData.game.dateTime);
   const hasPaymentRequests = !!gameData.game.collectorUser;
   const isGameAdmin = user.isAdmin || (gameData.game.isAssignedAdmin ?? false);
+  const canOpenPlayerInfo = isGameAdmin || user.isTc;
+  const playerInfoViewer = user.isAdmin ? 'globalAdmin' : user.isTc ? 'tc' : 'assignedGameAdmin';
   const showAddParticipantButton =
     isGameAdmin && !hasPaymentRequests && (isPastGame || gameData.game.readonly);
 
@@ -367,7 +370,8 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
               onRemovePlayer={(userId, guestName) => viewModel.handleRemovePlayer(userId, guestName)}
               onTogglePaidStatus={(userId, currentPaidStatus) => viewModel.handleTogglePaidStatus(userId, currentPaidStatus)}
               canUnregister={viewModel.canUnregister()}
-              onShowUserInfo={isGameAdmin ? (user) => viewModel.handleShowPlayerInfo(user) : undefined}
+              canTapPlayerInfo={canOpenPlayerInfo}
+              onShowUserInfo={canOpenPlayerInfo ? (u) => viewModel.handleShowPlayerInfo(u) : undefined}
             />
           </div>
         ) : null}
@@ -378,8 +382,8 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
             <WaitlistList
               registrations={waitlistRegistrations}
               currentUserId={user.id}
-              isAdmin={isGameAdmin}
-              onShowUserInfo={isGameAdmin ? (user) => viewModel.handleShowPlayerInfo(user) : undefined}
+              canTapPlayerInfo={canOpenPlayerInfo}
+              onShowUserInfo={canOpenPlayerInfo ? (u) => viewModel.handleShowPlayerInfo(u) : undefined}
               onRemovePlayer={(userId, guestName) => viewModel.handleRemovePlayerFromWaitingList(userId, guestName)}
             />
           </div>
@@ -445,11 +449,13 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
         allowInviterSelection={isGameAdmin && (isPastGame || gameData.game.readonly) && !hasPaymentRequests}
       />
 
-      {/* Player Info Dialog (admin only) */}
+      {/* Player Info Dialog (game admin, global admin, or TC) */}
       <PlayerInfoDialog
         isOpen={dialogs.showPlayerInfo}
         onClose={() => viewModel.handleClosePlayerInfo()}
         user={dialogs.selectedUser}
+        viewer={playerInfoViewer}
+        loadLevelProfile={user.isAdmin || user.isTc}
       />
 
       {/* Bring Ball Dialog */}

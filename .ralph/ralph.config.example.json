@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "parentIssue": 0,
+  "childIssues": [0, 0],
+  "branch": "cursor/my-epic",
+  "base": "main",
+  "prd": "docs/prd/my-epic.md",
+  "context": "CONTEXT.md",
+  "e2e": "docs/playwright-e2e-scenarios.md",
+  "stateDir": ".ralph",
+  "promptsDir": ".ralph/prompts",
+  "worker": "remote-cursor",
+  "push": true,
+  "feedbackLoops": [
+    "Backend TypeScript: cd backend && npm run build",
+    "Frontend TypeScript: cd tg-mini-app && npm run build"
+  ],
+  "cloudModel": "default",
+  "cloudCreatePrOnFinal": false,
+  "ozEnvironmentId": "",
+  "ozConfigName": "ralph-recursive"
+}

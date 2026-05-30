@@ -1,0 +1,19 @@
+{
+  "name": "@volley-game-central/ralph",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "render": "tsx src/render-cli.ts",
+    "chain-next": "tsx src/chain-next.ts",
+    "bootstrap-publish": "tsx src/bootstrap-publish.ts",
+    "plan": "tsx src/plan-cli.ts"
+  },
+  "dependencies": {
+    "handlebars": "^4.7.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.52",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  }
+}

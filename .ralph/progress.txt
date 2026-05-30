@@ -1,0 +1,254 @@
+# Ralph progress (session log)
+# Append after each iteration. Use RALPH_ISSUE_COMPLETE #n only when that issue is fully done.
+# Chain the next session via scripts/ralph-chain-next.sh (see sessions.log for URLs).
+# Concise bullets; grammar optional.
+# Delete this file when the epic sprint is done.
+
+## 2026-05-23 — Bootstrap (epic #8)
+
+- Parent: https://github.com/Kiryushin-Andrey/volley-game-central/issues/8
+- Integration branch: `cursor/player-levels-issue8-dbd5` (base: `cursor/recursive-ralph-babb`)
+- Worker: `remote-cursor` (push: true)
+- PRD: `docs/prd/player-levels-and-game-format.md`
+- Child slices (dependency order, not numeric sort):
+  1. #20 — Game format enum (foundation; replaces withPositions/withPriorityPlayers)
+  2. #21 — Player levels admin (schema + global-admin UI; no enforcement yet)
+  3. #22 — Positions game level restrictions (needs #20 format + #21 levels; env-gated enforcement)
+- Do not use branch `cursor/player-levels-c8a4` or other existing player-levels branches — implement from scratch on this branch.
+- First worker: implement slice #20 only, then chain.
+
+## 2026-05-23 — Issue #20 (game format enum)
+
+### Session orientation
+- Branch `cursor/player-levels-issue8-dbd5` up to date; `ralph-plan.sh` → issue #20.
+- Prior progress: bootstrap only; no product code yet.
+
+### E2E gate (before feature work)
+- `npm run test:e2e`: **107 passed**, 0 failed (baseline green).
+
+### Implemented (#20)
+- Drizzle migration `0031_add_game_format_to_games.sql`: add `game_format`, backfill from `with_positions`/`with_priority_players`, drop legacy columns.
+- `backend/src/domain/gameFormat.ts` + unit tests (`npm test`, 9 cases): `gameFormatFromLegacy`, `isPositionsGame`, `usesPriorityPlayerWindows`, `adminAssignmentWithPositionsForGameFormat`.
+- Backend: schema, `games` / `gamesAdmin` routes, `gameService` defaults (`defaultGameFormat`), `telegramService` announcements (recreational only), assignment helpers use format → admin `with_positions` slot.
+- Frontend: `GameFormat` on `Game` type; create/edit **game format** `<select>` (Recreational / With positions / With priority players); list/details use `isPositionsGame` for 5-1 styling; `GameDetails` reloads on `location.key` after edit (fixes E2E-FORM-010 stale title).
+- E2E: `createGameViaUi` selects `#gameFormat`; E2E-FORM-004 uses positions option; checklist note for FORM-004.
+
+### E2E gate (before commit)
+- `npm run test:e2e`: **107 passed**, 0 failed.
+- Feedback loops: `cd backend && npm run build` OK; `cd tg-mini-app && npm run build` OK; `cd backend && npm test` OK.
+
+### Files touched (main)
+- `backend/drizzle/0031_*`, `backend/src/domain/gameFormat.*`, `backend/src/db/schema.ts`, `backend/src/routes/games.ts`, `gamesAdmin.ts`, `middleware/adminOrAssignedAdmin.ts`, `services/gameService.ts`, `telegramService.ts`
+- `tg-mini-app/src/types`, `utils/gameFormat.ts`, `GameForm*`, `GamesList.tsx`, `GameDetails.tsx`, `gameDateUtils.ts`, `GameDetailsViewModel.ts`, `api.ts`
+- `e2e/support/fixtures.ts`, `e2e/game-form.spec.ts`, `docs/playwright-e2e-scenarios.md`
+
+RALPH_ISSUE_COMPLETE #20
+
+## 2026-05-23 — Issue #21 (player levels admin)
+
+### Session orientation
+- Branch `cursor/player-levels-issue8-dbd5` up to date; `ralph-plan.sh` → issue #21; #20 complete in progress.
+- Focus: global-admin player levels (schema + API + UI); no registration enforcement (slice #22).
+
+### E2E gate (before feature work)
+- Initial run: backend down after ts-node-dev restart (Telegraf stop) — `Failed to load players` on new routes; restarted `npm run e2e:server`.
+- After restart: **111 passed**, 0 failed (includes 4 new `E2E-LEVELS-*` specs).
+
+### Implemented (#21)
+- Migration `0032_add_player_level_to_users.sql`: nullable `player_level` on `users`.
+- Domain `playerLevel.ts` + unit tests: parse, list sort (unassigned → advanced → intermediate → beginner, alpha within group).
+- API `GET/PATCH /player-levels/users` (global admin only via `adminAuthMiddleware`).
+- `toPublicAuthUser` strips `playerLevel` from `/users/me` and public user GETs.
+- UI: **Players** hub `/players`, **Player levels** `/player-levels` (filter, pills, row → dialog with level selector + immediate PATCH).
+- Toolbar **Players** icon → `/players` (was direct `/game-administrators`).
+- E2E: `e2e/player-levels.spec.ts`, checklist section; HOME-010/AUTH-004 toolbar title **Players**; games-home assignment helper via hub.
+- Fix: `GameDetails` reload on `location.pathname` after edit (stabilizes E2E-FORM-007/010 under full suite).
+
+### E2E gate (before commit)
+- `npm run test:e2e`: **111 passed**, 0 failed.
+- `cd backend && npm run build` OK; `cd tg-mini-app && npm run build` OK; `cd backend && npm test` OK (13 domain tests).
+
+### Files touched (main)
+- `backend/drizzle/0032_*`, `backend/src/domain/playerLevel.*`, `backend/src/routes/playerLevels.ts`, `backend/src/utils/userResponse.ts`, `backend/src/db/schema.ts`, `backend/src/index.ts`, `backend/src/routes/users.ts`
+- `tg-mini-app/src/pages/PlayersHub.*`, `PlayerLevels.*`, `utils/playerLevel.ts`, `viewmodels/PlayerLevelsViewModel.ts`, `components/PlayerInfoDialog.*`, `App.tsx`, `GamesList.tsx`, `GameDetails.tsx`, `EditGameSettings.tsx`, `types`, `services/api.ts`
+- `e2e/player-levels.spec.ts`, `e2e/games-home.spec.ts`, `e2e/auth-session.spec.ts`, `e2e/game-form.spec.ts`, `docs/playwright-e2e-scenarios.md`
+
+RALPH_ISSUE_COMPLETE #21
+
+## 2026-05-23 — Issue #22 (positions game level restrictions)
+
+### Session orientation
+- Branch `cursor/player-levels-issue8-dbd5` up to date; `ralph-plan.sh` → issue #22; #20–#21 complete.
+- Focus: env-gated enforcement for positions games only.
+
+### E2E gate (before feature work)
+- Initial full suite: **110 passed**, 1 failed (`E2E-FORM-010` stale title after edit — fixed via `?refresh=` reload on return from edit).
+
+### Implemented (#22)
+- `POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED` parsed at module load (`backend/src/config/positionsGameLevelRestrictions.ts`); default off when unset; Playwright dev server defaults `true` for restriction specs.
+- Pure module `positionsGameRegistrationEligibility` + 10 unit tests (level × format × dates × grandfather × guest).
+- `backend/src/utils/registrationEligibility.ts` — DB helpers + wiring to config flag.
+- `POST /games/:id/register` — eligibility before insert; generic 403 when level-blocked (no level in copy).
+- `GET /games/:id` — `canSelfRegister` + effective `registrationOpensAt` per user.
+- Frontend `GameDetailsViewModel` — join/guest/info text respect `canSelfRegister`; level-blocked shows generic unavailable message.
+- E2E: `e2e/positions-level-restrictions.spec.ts` (`E2E-POSLVL-001`–`004`); checklist section; edit-save reload via `?refresh=` timestamp (updated URL assertions in form/state specs).
+
+### E2E gate (before commit)
+- `npm run test:e2e`: **115 passed**, 0 failed.
+- `cd backend && npm run build` OK; `cd tg-mini-app && npm run build` OK; `cd backend && npm test` OK (23 domain tests).
+
+### Files touched (main)
+- `backend/src/config/positionsGameLevelRestrictions.ts`, `backend/src/domain/positionsGameRegistrationEligibility.*`, `backend/src/utils/registrationEligibility.ts`, `backend/src/routes/games.ts`
+- `tg-mini-app/src/types/index.ts`, `viewmodels/GameDetailsViewModel.ts`, `pages/GameDetails.tsx`, `pages/EditGameSettings.tsx`
+- `e2e/positions-level-restrictions.spec.ts`, `e2e/support/fixtures.ts`, `e2e/game-form.spec.ts`, `e2e/cross-user-state.spec.ts`, `docs/playwright-e2e-scenarios.md`, `scripts/playwright-dev-server.sh`
+
+RALPH_ISSUE_COMPLETE #22
+
+### Chain (final pass)
+- `./scripts/ralph-chain-next.sh --from-notes "issue #22"` → Cursor API 400: cannot verify branch on GitHub (all refs). `ralph-plan.sh` → **final** pass pending. Re-run chain when API/repo access works.
+
+## 2026-05-23 — Final pass (epic #8 closure + retry)
+
+### Session orientation
+- Branch `cursor/player-levels-issue8-dbd5`; `ralph-plan.sh` → **final**; #20–#22 complete.
+- PR #39 (draft): `cursor/player-levels-issue8-dbd5` → `cursor/recursive-ralph-babb`.
+
+### E2E gate
+- First final attempt: **115 passed** on prior commit; chain failed (Cursor API 400 branch verify).
+- Retry: **114 passed**, 1 failed (`E2E-FORM-010` — edit `loadGame` overwrote title after fast open).
+- Fix: `GameDetailsViewModel.loadGame` generation guard; `GameFormViewModel.syncFormFieldsFromDom` on submit; E2E `setControlledInputValue` + wait for `#title` before edit.
+- Final retry: **115 passed**, 0 failed.
+
+### Feedback loops
+- `cd backend && npm run build` OK; `cd tg-mini-app && npm run build` OK; `cd backend && npm test` OK (23 domain tests).
+
+### Epic closure
+- PRD: branch + slice refs; superseded `cursor/player-levels-c8a4` note.
+- PR #39 body lists Closes #20, #21, #22.
+
+### Chain
+- Prior `./scripts/ralph-chain-next.sh` → API 400; this pass pushes fix + sigils → `RALPH_DONE`.
+
+RALPH_E2E_COMPLETE
+RALPH_ALL_COMPLETE
+
+## 2026-05-29 — TC role follow-on (epic #8 continued)
+
+- PRD updated: `docs/prd/player-levels-and-game-format.md`
+- Child slices (dependency order): #42 → #43 / #44 (parallel) → #45
+- Prior epic (#20–#22) complete; `ralph.config.json` childIssues updated to [42, 43, 44, 45]
+- First worker: implement slice #42 only, then chain
+
+## 2026-05-29 — Issue #42 (TC role foundation)
+
+### Session orientation
+- Branch `cursor/player-levels-issue8-dbd5`; `ralph-plan.sh` → issue #42 after childIssues updated to [42, 43, 44, 45].
+- Focus: `is_tc` column, `isAdmin || isTc` on player-levels routes, TC routing, E2E 005–006.
+
+### E2E gate (before feature work)
+- Baseline on prior commit: not re-run separately; full suite after implementation.
+
+### Implemented (#42)
+- Migration `0033_add_is_tc_to_users.sql`: `is_tc` boolean on users (default false).
+- `adminOrTcAuthMiddleware` for `/player-levels` routes; global admin unchanged elsewhere.
+- Dev login accepts `isTc`; `/users/me` includes `isTc` via `toPublicAuthUser` (still strips `playerLevel`).
+- UI: TC-only toolbar **Players** → `/player-levels`; redirects from `/players`, `/game-administrators`, `/priority-players/*`.
+- E2E: `E2E-LEVELS-005`, `E2E-LEVELS-006`; dev fixtures support `isTc`.
+
+### E2E gate (before commit)
+- `npm run test:e2e`: **117 passed**, 0 failed.
+- `cd backend && npm run build` OK; `cd tg-mini-app && npm run build` OK; `cd backend && npm test` OK.
+
+### Files touched (main)
+- `backend/drizzle/0033_*`, `backend/src/middleware/adminOrTcAuth.ts`, `backend/src/db/schema.ts`, `backend/src/index.ts`, `backend/src/routes/auth.ts`, `backend/src/utils/dbQueryUtils.ts`
+- `tg-mini-app/src/utils/userRoles.ts`, `types`, `pages/PlayerLevels.tsx`, `PlayersHub.tsx`, `GameAdministrators.tsx`, `PriorityPlayers.tsx`, `GamesList.tsx`, auth components, `services/api.ts`
+- `e2e/player-levels.spec.ts`, `e2e/support/fixtures.ts`, `docs/playwright-e2e-scenarios.md`
+
+RALPH_ISSUE_COMPLETE #42
+
+## 2026-05-29 — Issue #43 (level assignment audit)
+
+### Session orientation
+- Branch `cursor/player-levels-issue8-dbd5` up to date; `ralph-plan.sh` → issue #43; #42 complete.
+- Focus: audit columns, PATCH setter tracking, GET profile, **Set by** UI, E2E-LEVELS-007.
+
+### E2E gate (before feature work)
+- `npm run test:e2e`: **117 passed**, 0 failed (baseline green).
+
+### Implemented (#43)
+- Migration `0034_add_player_level_audit_to_users.sql`: `player_level_set_by_id` (FK users), `player_level_set_at`.
+- Backend: list/PATCH/GET `/player-levels/users/:userId` return `playerLevelSetBy: { displayName } | null`; PATCH sets audit fields from authenticated global admin or TC.
+- `toPublicAuthUser` strips audit columns from `/users/me`.
+- Frontend: list row + dialog show **Set by {name}** when level assigned; **Unassigned** in dialog when no level; no Set by until first assignment.
+- E2E: `E2E-LEVELS-007`; checklist updated.
+
+### E2E gate (before commit)
+- `npm run test:e2e`: **118 passed**, 0 failed.
+- `cd backend && npm run build` OK; `cd tg-mini-app && npm run build` OK; `cd backend && npm test` OK (23 domain tests).
+
+### Files touched (main)
+- `backend/drizzle/0034_*`, `backend/drizzle/meta/_journal.json`, `backend/src/db/schema.ts`, `backend/src/routes/playerLevels.ts`, `backend/src/utils/userResponse.ts`
+- `tg-mini-app/src/types`, `services/api.ts`, `pages/PlayerLevels.*`, `components/PlayerInfoDialog.tsx`
+- `e2e/player-levels.spec.ts`, `docs/playwright-e2e-scenarios.md`
+
+RALPH_ISSUE_COMPLETE #43
+
+## 2026-05-29 — Issue #44 (player levels page level filter)
+
+### Session orientation
+- Branch `cursor/player-levels-issue8-dbd5` up to date; `ralph-plan.sh` → issue #44; #42–#43 complete.
+- Focus: client-side level multiselect (Unassigned / Advanced / Intermediate / Beginner; default all selected) on `/player-levels`; E2E-LEVELS-008.
+
+### E2E gate (before feature work)
+- `npm run test:e2e`: **118 passed**, 0 failed (baseline green).
+
+### Implemented (#44)
+- `PlayerLevelsViewModel`: `levelFilter` state (default `all`); `setLevelFilter`; `filterUsers` applies level then name filter client-side.
+- `PlayerLevels.tsx`: `PlayerLevelMultiSelect` (category-filter pattern) with `aria-label="Filter by level"` below name search; options from `PLAYER_LEVEL_FILTER_OPTIONS`.
+- `playerLevel.ts`: `PlayerLevelFilter` type + filter option labels.
+- E2E: `E2E-LEVELS-008` (Beginner / Unassigned / combined name+level); updated LEVELS-001 visibility check; LEVELS-002/005 pill assertions scoped to `.level-pill--*`.
+- Checklist: E2E-LEVELS-008 marked implemented.
+
+### E2E gate (before commit)
+- Initial post-impl run: **117 passed**, 2 failed (LEVELS-002/005 strict mode — level select option text matched pill locators).
+- Fix: use `.level-pill--intermediate` / `.level-pill--advanced` in LEVELS-002/005.
+- Final: `npm run test:e2e`: **119 passed**, 0 failed.
+- `cd backend && npm run build` OK; `cd tg-mini-app && npm run build` OK.
+
+### Files touched (main)
+- `tg-mini-app/src/utils/playerLevel.ts`, `viewmodels/PlayerLevelsViewModel.ts`, `pages/PlayerLevels.tsx`, `pages/PlayerLevels.scss`
+- `e2e/player-levels.spec.ts`, `docs/playwright-e2e-scenarios.md`
+
+RALPH_ISSUE_COMPLETE #44
+
+## 2026-05-29 — Issue #45 (TC game details dialog)
+
+### Session orientation
+- Branch `cursor/player-levels-issue8-dbd5` up to date; `ralph-plan.sh` → issue #45; #42–#44 complete.
+- Focus: role-based **Player info dialog** on game details; lazy `GET /player-levels/users/:userId`; E2E-LEVELS-009–011.
+
+### E2E gate (before feature work)
+- `npm run test:e2e`: **119 passed**, 0 failed (baseline green).
+
+### Implemented (#45)
+- `PlayerInfoDialog`: `viewer` (`globalAdmin` | `tc` | `assignedGameAdmin`); TC sees identity + read-only level only (no unpaid/moderation); global admin keeps full sections with read-only level off player levels page; assigned game admin unchanged (no level).
+- Lazy level profile via `playerLevelsApi.getUser` when `loadLevelProfile` (game details for global admin / TC).
+- `GameDetails`: `canOpenPlayerInfo = isGameAdmin || isTc`; roster/waitlist taps use `canTapPlayerInfo` separate from admin remove/paid controls.
+- `PlayersList` / `WaitlistList`: `canTapPlayerInfo` prop for clickable names without granting admin actions.
+- `userRoles.ts`: helpers `canOpenPlayerInfoOnGame`, `playerInfoDialogViewer`, etc.
+- E2E: `E2E-LEVELS-009`–`011` in `e2e/player-levels.spec.ts`; checklist updated.
+
+### E2E gate (before commit)
+- `npm run test:e2e`: **122 passed**, 0 failed.
+- `cd backend && npm run build` OK; `cd tg-mini-app && npm run build` OK.
+
+### Files touched (main)
+- `tg-mini-app/src/components/PlayerInfoDialog.tsx`, `game-details/PlayersList.tsx`, `WaitlistList.tsx`
+- `tg-mini-app/src/pages/GameDetails.tsx`, `PlayerLevels.tsx`, `utils/userRoles.ts`
+- `e2e/player-levels.spec.ts`, `docs/playwright-e2e-scenarios.md`
+
+RALPH_ISSUE_COMPLETE #45
+
+### Chain (TC tranche complete)
+- `./scripts/ralph-chain-next.sh --from-notes "issue #45"` → **RALPH_DONE** (`RALPH_ALL_COMPLETE` from 2026-05-23 final pass still in log; `ralph-plan.sh` → done).
+- All configured childIssues [#42, #43, #44, #45] now have `RALPH_ISSUE_COMPLETE` sigils. Epic #8 TC follow-on implementation complete on branch; prior final-pass sigils predate TC slices.

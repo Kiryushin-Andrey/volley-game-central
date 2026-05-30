@@ -10,7 +10,11 @@ export const users = pgTable('users', {
   blockReason: text('block_reason'),
   blockedById: integer('blocked_by_id').references((): any => users.id, { onDelete: 'set null' }),
   isAdmin: boolean('is_admin').notNull().default(false),
+  isTc: boolean('is_tc').notNull().default(false),
   phoneNumber: varchar('phone_number', { length: 50 }),
+  playerLevel: varchar('player_level', { length: 32 }),
+  playerLevelSetById: integer('player_level_set_by_id').references((): any => users.id, { onDelete: 'set null' }),
+  playerLevelSetAt: timestamp('player_level_set_at'),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -22,8 +26,7 @@ export const games = pgTable('games', {
   paymentAmount: integer('payment_amount').notNull(),
   pricingMode: varchar('pricing_mode', { length: 20 }).notNull().default('per_participant'), // 'per_participant' or 'total_cost'
   fullyPaid: boolean('fully_paid').notNull().default(false),
-  withPositions: boolean('with_positions').notNull().default(false),
-  withPriorityPlayers: boolean('with_priority_players').notNull().default(false),
+  gameFormat: varchar('game_format', { length: 32 }).notNull().default('recreational'),
   readonly: boolean('readonly').notNull().default(false),
   locationName: varchar('location_name', { length: 255 }),
   locationLink: varchar('location_link', { length: 1000 }),

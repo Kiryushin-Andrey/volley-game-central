@@ -3,7 +3,7 @@ import { FaInfoCircle } from 'react-icons/fa';
 import { renderFormattedText } from '../utils/textFormatting';
 import './CategoryInfoBlock.scss';
 
-type GameCategory = 'thursday-5-1' | 'thursday-deti-plova' | 'sunday' | 'other';
+type GameCategory = 'thursday-5-1' | 'sunday' | 'other';
 
 interface CategoryInfoBlockProps {
   category: string;
@@ -24,10 +24,6 @@ WhatsApp Group (less active, but English-speaking): https://chat.whatsapp.com/DE
   const categoryDescriptions: Record<GameCategory, string> = {
     'thursday-5-1': 
       'Thursday 5-1 games are advanced level games played with 5-1 positions. All participants are expected to have solid basic volleyball skills and be familiar in practice with the 5-1 scheme. The level of the games can be roughly estimated as 2-4 class of Nevobo competitions, although we have regular players both higher and lower than that, as well as players that do not take part in Nevobo competitions at all. In general, if you play in Nevobo competitions at any level for at least half a year, practicing positions there, you are welcome to join Thursday 5-1 games. If you aren\'t playing in Nevobo competitions but you\'d like to join 5-1 games, get in touch with the experienced members of this group, they will be glad to get to know you and evaluate your volleyball skills.' + 
-      registrationRules,
-    
-    'thursday-deti-plova': 
-      'The second hall on Thursdays is used 2 times per month. The first and third Thursday of the month. First and foremost, we use it for training (with a coach), and if there\'s time left, we play 1-2 games to practice the material we learned during training. Priority registration is given to the Deti Plova team (registration opens 10 days before the game). Open registration for everyone else for the remaining spots opens 3 days before the game.' + 
       registrationRules,
     
     'sunday': 
@@ -65,11 +61,6 @@ const CategoryInfoBlock = memo(({ category }: CategoryInfoBlockProps) => {
       header: 'Thursday 5-1',
       short: 'Competitive games with assigned positions (5-1 system)',
       withPositions: true
-    },
-    'thursday-deti-plova': {
-      header: 'Thursday Deti Plova',
-      short: 'Recreational games without assigned positions',
-      withPositions: false
     },
     'sunday': {
       header: 'Sunday',

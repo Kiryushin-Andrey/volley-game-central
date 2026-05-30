@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuthenticatedUser } from '../hooks/useAuthenticatedUser';
 import { UserSearchInput } from '../components/UserSearchInput';
 import { BackButton } from '@twa-dev/sdk/react';
+import { isTcOnly } from '../utils/userRoles';
 import { isTelegramApp } from '../utils/telegram';
 import {
   PriorityPlayersViewModel,
@@ -40,6 +41,12 @@ const PriorityPlayers: React.FC = () => {
     viewModelRef.current = new PriorityPlayersViewModel(updateState);
   }
   const viewModel = viewModelRef.current;
+
+  useEffect(() => {
+    if (user && isTcOnly(user)) {
+      navigate('/player-levels');
+    }
+  }, [user, navigate]);
 
   // Load data on mount
   useEffect(() => {
@@ -124,6 +131,10 @@ const PriorityPlayers: React.FC = () => {
 
   // Check if user can manage priority players for this assignment
   const canManage = viewModel.canManage(state, user?.id, user?.isAdmin);
+
+  if (user && isTcOnly(user)) {
+    return null;
+  }
 
   // Don't render if not authorized
   if (user && !user.isAdmin && !state.isLoading && currentAdmin) {

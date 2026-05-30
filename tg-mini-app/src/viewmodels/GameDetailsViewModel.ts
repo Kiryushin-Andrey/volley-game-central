@@ -62,6 +62,7 @@ export class GameDetailsViewModel {
   private readonly navigate: (url: string) => void;
   private readonly user: User;
   private readonly actionGuard: ActionGuard;
+  private loadGameGeneration = 0;
 
   constructor(args: {
     updateGameData: StateUpdater<GameDataState>;
@@ -125,7 +126,7 @@ export class GameDetailsViewModel {
 
   get gameCategory(): GameCategory | null {
     if (!this.game) return null;
-    return classifyGame(this.game.dateTime, this.game.withPositions);
+    return classifyGame(this.game.dateTime, this.game.gameFormat);
   }
 
   get isLoading(): boolean {
@@ -153,16 +154,25 @@ export class GameDetailsViewModel {
   }
 
   async loadGame(id: number): Promise<void> {
+    const generation = ++this.loadGameGeneration;
     try {
       this.setGameData({ isLoading: true });
       const fetchedGame = await gamesApi.getGame(id);
+      if (generation !== this.loadGameGeneration) {
+        return;
+      }
       this.setGameData({ game: fetchedGame, error: null });
     } catch (err) {
+      if (generation !== this.loadGameGeneration) {
+        return;
+      }
       this.setGameData({ error: 'Failed to load game details' });
       logDebug('Error loading game:');
       logDebug(err);
     } finally {
-      this.setGameData({ isLoading: false });
+      if (generation === this.loadGameGeneration) {
+        this.setGameData({ isLoading: false });
+      }
     }
   }
 
@@ -495,7 +505,7 @@ export class GameDetailsViewModel {
     this.confirmAndUnregister(this.state.gameData.game, guestName);
   }
 
-  handleRemovePlayerFromWaitingList(userId: number, guestName?: string): void {
+  handleRemovePlayerFromWaitingList(_userId: number, guestName?: string): void {
     if (!this.state.gameData.game || this.state.action.isActionLoading) return;
 
     this.confirmAndUnregister(this.state.gameData.game, guestName);
@@ -693,17 +703,37 @@ export class GameDetailsViewModel {
       }
     } else {
       // If user is not registered, check if they can join
-      if (!canJoinGame(this.state.gameData.game.dateTime, this.state.gameData.game.registrationOpensAt)) {
-        const gameDateTime = new Date(this.state.gameData.game.dateTime);
-        const registrationOpenDays = this.state.gameData.game.registrationOpenDays || DAYS_BEFORE_GAME_TO_JOIN;
-        const daysBeforeGame = new Date(gameDateTime.getTime());
-        daysBeforeGame.setDate(daysBeforeGame.getDate() - registrationOpenDays);
-        
-        let message = `Registration opens ${daysBeforeGame.toLocaleDateString()} (${registrationOpenDays} days before the game).`;
+      if (!this.userMaySelfRegister()) {
+        const game = this.state.gameData.game;
+        const timingAllowsJoin = canJoinGame(game.dateTime, game.registrationOpensAt);
+        if (game.canSelfRegister === false && timingAllowsJoin) {
+          return 'You cannot register for this game at the moment.';
+        }
+
+        const gameDateTime = new Date(game.dateTime);
+        let opensAt: Date;
+        let daysBefore: number;
+
+        if (game.registrationOpensAt) {
+          opensAt = new Date(game.registrationOpensAt);
+          const opensDay = new Date(opensAt.getFullYear(), opensAt.getMonth(), opensAt.getDate());
+          const gameDay = new Date(
+            gameDateTime.getFullYear(),
+            gameDateTime.getMonth(),
+            gameDateTime.getDate(),
+          );
+          daysBefore = Math.round((gameDay.getTime() - opensDay.getTime()) / (24 * 60 * 60 * 1000));
+        } else {
+          daysBefore = game.registrationOpenDays || DAYS_BEFORE_GAME_TO_JOIN;
+          opensAt = new Date(gameDateTime.getTime());
+          opensAt.setDate(opensAt.getDate() - daysBefore);
+        }
+
+        let message = `You can register for this game starting from ${opensAt.toLocaleDateString()} (${daysBefore} days before the game).`;
         
         // Add disclaimer for non-priority users about priority players
         if (
-          this.state.gameData.game.withPriorityPlayers &&
+          this.state.gameData.game.gameFormat === 'priority_players' &&
           !this.state.gameData.game.isPriorityPlayer &&
           isGameUpcoming(this.state.gameData.game.dateTime)
         ) {
@@ -729,8 +759,22 @@ export class GameDetailsViewModel {
       return this.user.isAdmin || (game.isAssignedAdmin ?? false);
     }
     
+    if (!this.userMaySelfRegister()) {
+      return false;
+    }
+
     // Only show for upcoming games with open guest registration (3 days before)
     return canRegisterGuest(game.dateTime);
+  }
+
+  /** Backend-driven eligibility; falls back to registrationOpensAt timing when omitted. */
+  userMaySelfRegister(): boolean {
+    const game = this.state.gameData.game;
+    if (!game) return false;
+    if (game.canSelfRegister === false) {
+      return false;
+    }
+    return canJoinGame(game.dateTime, game.registrationOpensAt);
   }
 
   getMainButtonProps(): { show: boolean; text?: string; onClick?: () => void } {
@@ -768,7 +812,7 @@ export class GameDetailsViewModel {
       }
     } else {
       // Check if user can join the game (starting X days before)
-      if (canJoinGame(this.state.gameData.game.dateTime, this.state.gameData.game.registrationOpensAt)) {
+      if (this.userMaySelfRegister()) {
         return {
           show: true,
           text: "Join Game",

@@ -39,7 +39,7 @@ const EditGameSettings: React.FC = () => {
     e.preventDefault();
     await viewModel.handleSubmit(() => {
       if (gameId) {
-        navigate(`/game/${gameId}`);
+        navigate(`/game/${gameId}?refresh=${Date.now()}`, { replace: true });
       } else {
         navigate('/');
       }

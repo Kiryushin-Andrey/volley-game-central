@@ -29,7 +29,7 @@ test.describe('registration windows, guests, and blocked users', () => {
     await page.goto(`/game/${game.id}`);
 
     await expect(page.getByRole('button', { name: 'Join Game' })).toHaveCount(0);
-    await expect(page.getByText(/Registration opens/)).toBeVisible();
+    await expect(page.getByText(/You can register for this game starting from/)).toBeVisible();
     await expect(page.getByText(/10 days before the game/)).toBeVisible();
   });
 

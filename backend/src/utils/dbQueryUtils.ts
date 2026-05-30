@@ -14,6 +14,7 @@ export function getUserSelectFields() {
     telegramUsername: users.telegramUsername,
     avatarUrl: users.avatarUrl,
     isAdmin: users.isAdmin,
+    isTc: users.isTc,
     createdAt: users.createdAt,
     blockReason: users.blockReason,
     phoneNumber: users.phoneNumber,

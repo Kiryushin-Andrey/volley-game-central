@@ -60,21 +60,51 @@ Spec: `e2e/games-home.spec.ts`
 
 - [x] E2E-HOME-001: Participant A loads the games home and sees upcoming games or the `No games available` empty state.
 - [x] E2E-HOME-002: Participant A opens a game card and reaches the matching game details page.
-- [x] E2E-HOME-003: Participant A uses the category multi-select on upcoming games and sees the selected category info block.
+- [x] E2E-HOME-003: Participant A uses the category multi-select on upcoming games and sees matching game cards (no category info blocks on the games home).
 - [x] E2E-HOME-004: A registered participant sees the `You're in` badge for an active registration on the games home.
 - [x] E2E-HOME-005: A waitlisted participant sees the `Waitlist` badge for a waitlist registration on the games home.
 - [x] E2E-HOME-006: A game card with a location opens an external maps link without navigating away from the app route.
 - [x] E2E-HOME-007: Global Admin switches between `Upcoming` and `Past` filters.
 - [x] E2E-HOME-008: Global Admin toggles `Show all scheduled games` for upcoming games and sees games outside the default registration window.
 - [x] E2E-HOME-009: Global Admin switches to past games and toggles `Show fully paid games`.
-- [x] E2E-HOME-010: Global Admin sees `Game Administrators` and `Create New Game` controls for non-integration admin access.
+- [x] E2E-HOME-010: Global Admin sees `Players` and `Create New Game` controls for non-integration admin access.
 - [x] E2E-HOME-011: Assigned Admin sees `Create New Game` access without global-only administration links.
 - [x] E2E-HOME-012: Home error state shows `Error` and `Retry` when the games API fails, then recovers after retry.
 - [x] E2E-HOME-013: With default category filter (Sunday), participant sees `No games available` when the only upcoming game is a Thursday 5-1 game.
 - [x] E2E-HOME-014: Participant deselects all category options in the multi-select and sees `No games available` even when games exist for other categories.
 - [x] E2E-HOME-015: Participant A with an unpaid past game (after admin sent payment requests) sees `Your unpaid games` on the upcoming home view, opens the entry, and **Pay now** opens the Bunq payment link in a new browser tab (or window).
 - [x] E2E-HOME-016: Games home cards use a yellow left border for 5-1 games and a green left border for non-5-1 games.
-- [x] E2E-HOME-017: Category info blocks on the games home use yellow background for 5-1 and green for other selected categories.
+
+## Player levels admin scenarios
+
+Spec: `e2e/player-levels.spec.ts`
+
+Global administrators manage internal skill tiers via the **Players** hub (`/players`); non-admins must not reach these routes.
+
+- [x] E2E-LEVELS-001: Global Admin opens **Players** from the games home toolbar, sees the hub, and navigates to **Player levels** (name search + level **multiselect** visible).
+- [x] E2E-LEVELS-002: Global Admin filters the list, opens a player row, assigns **Intermediate** in the player details dialog, and sees the level pill on the list.
+- [x] E2E-LEVELS-003: Participant is redirected to games home when visiting `/players` or `/player-levels`.
+- [x] E2E-LEVELS-004: Assigned Admin (non-global) does not see the **Players** toolbar icon.
+- [x] E2E-LEVELS-005: TC-only user opens **Player levels** from toolbar and assigns a level via dialog.
+- [x] E2E-LEVELS-006: TC-only user is redirected from `/players` (Players hub).
+- [x] E2E-LEVELS-007: Global Admin or TC assigns level; **Set by** shows assigner display name on list and/or dialog.
+- [x] E2E-LEVELS-008: Global Admin or TC uses the level **multiselect** (same control pattern as the games home category filter) to select one or more tiers (e.g. **Beginner** only, then **Unassigned** only, then all tiers + name substring); list updates client-side and combines level OR-filter with name AND-filter.
+- [x] E2E-LEVELS-009: TC-only taps participant on game details; read-only level; no payment/moderation UI.
+- [x] E2E-LEVELS-010: Global Admin on game details sees read-only level outside player levels page.
+- [x] E2E-LEVELS-011: Assigned Admin (not TC or global admin) opens participant dialog; no level fields.
+
+## Positions game level restrictions scenarios
+
+Spec: `e2e/positions-level-restrictions.spec.ts`
+
+Requires `POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED=true` (default in `scripts/playwright-dev-server.sh`). Only **positions** format games enforce level rules; recreational and priority players games are unchanged.
+
+When registration is blocked by timing, game details show `You can register for this game starting from {date} ({N} days before the game).` The date and `{N}` come from the backend's per-user `registrationOpensAt`, which reflects the viewer's player level on positions games (e.g. intermediate → 3 days before start, not the default 10-day window).
+
+- [x] E2E-POSLVL-001: Beginner on a positions game within the normal registration window sees no **Join Game** button and a generic unavailable message (no level wording).
+- [x] E2E-POSLVL-002: Advanced player on a positions game within the registration window sees **Join Game**.
+- [x] E2E-POSLVL-003: Intermediate player more than three days before a positions game sees no **Join Game** and `You can register for this game starting from … (3 days before the game)` — date and day count from level-aware `registrationOpensAt`, not 10 days.
+- [x] E2E-POSLVL-004: Beginner on a recreational game within the registration window can still join.
 
 ## Game details participant scenarios
 
@@ -98,7 +128,7 @@ Spec: `e2e/game-details-participant.spec.ts`
 
 Spec: `e2e/registration-windows-guests-blocked.spec.ts`
 
-- [x] E2E-WIN-001: Participant sees `Registration opens` (10 days before the game) and cannot join when the game is outside the registration window.
+- [x] E2E-WIN-001: Participant sees `You can register for this game starting from …` (10 days before the game) and cannot join when the game is outside the registration window.
 - [x] E2E-WIN-002: Participant can join when registration is open but **Add guest** is hidden before the guest registration window.
 
 ## Blocked user scenarios
@@ -121,7 +151,7 @@ Spec: `e2e/game-form.spec.ts`
 - [x] E2E-FORM-001: Global Admin opens `Create New Game` from the games home.
 - [x] E2E-FORM-002: Global Admin creates a standard game with date/time, maximum players, unregister deadline, per-participant cost, location name, optional location link, and optional title.
 - [x] E2E-FORM-003: Global Admin creates a game with total-cost pricing and sees the per-participant preview update as maximum players changes.
-- [x] E2E-FORM-004: Global Admin creates a game with `Playing 5-1` enabled and verifies it appears in the appropriate games list/category behavior.
+- [x] E2E-FORM-004: Global Admin creates a positions-format game via the game format select (`With positions`) and verifies the selection persists on edit.
 - [x] E2E-FORM-005: Global Admin creates a readonly game and verifies regular participants cannot self-register.
 - [x] E2E-FORM-006: Global Admin cancels game creation and returns without creating a game.
 - [x] E2E-FORM-007: Global Admin opens `Edit Game Settings` from game details, updates title/location/capacity/deadline/toggles, saves, and sees the updated details.
