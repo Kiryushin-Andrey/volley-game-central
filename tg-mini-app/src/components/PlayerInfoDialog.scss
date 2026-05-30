@@ -141,3 +141,9 @@
   padding: 10px 14px;
   font-weight: 600;
 }
+
+.player-info-dialog .player-level-set-by {
+  font-size: 0.75rem;
+  color: var(--tg-theme-hint-color, #666);
+  margin-top: 8px;
+}

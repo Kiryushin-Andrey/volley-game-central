@@ -304,7 +304,7 @@ const PlayerInfoDialog: React.FC<PlayerInfoDialogProps> = ({
                 ))}
               </div>
               {resolvedLevel && resolvedSetBy && (
-                <div className="hint" style={{ marginTop: 8 }}>
+                <div className="player-level-set-by">
                   Set by {resolvedSetBy.displayName}
                 </div>
               )}
@@ -327,7 +327,7 @@ const PlayerInfoDialog: React.FC<PlayerInfoDialogProps> = ({
                 <div className="level-readonly-value">{PLAYER_LEVEL_LABELS[resolvedLevel]}</div>
               )}
               {!levelProfileLoading && !levelProfileError && resolvedLevel && resolvedSetBy && (
-                <div className="hint" style={{ marginTop: 8 }}>
+                <div className="player-level-set-by">
                   Set by {resolvedSetBy.displayName}
                 </div>
               )}
