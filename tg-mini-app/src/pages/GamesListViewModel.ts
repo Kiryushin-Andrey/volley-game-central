@@ -4,7 +4,16 @@ import { gamesApi, bunqApi, userApi, gameAdministratorsApi } from '../services/a
 import type { UnpaidRegistration } from '../services/api';
 import { GameWithStats, User } from '../types';
 import { logDebug } from '../debug';
-import { GameCategory } from '../utils/gameDateUtils';
+import { GameCategory, GAME_CATEGORIES } from '../utils/gameDateUtils';
+
+function normalizeStoredCategories(raw: unknown): GameCategory[] | null {
+  if (!Array.isArray(raw)) return null;
+  const normalized = raw
+    .map((c) => (c === 'thursday-deti-plova' ? 'other' : c))
+    .filter((c): c is GameCategory => GAME_CATEGORIES.includes(c as GameCategory));
+  if (normalized.length === 0) return null;
+  return [...new Set(normalized)];
+}
 
 export type GameFilter = 'upcoming' | 'past';
 
@@ -19,7 +28,7 @@ export class GamesListViewModel {
   gameFilter: GameFilter = 'upcoming';
   showAll = false;
   selectedCategories: GameCategory[] = [];
-  availableCategories: GameCategory[] = ['thursday-5-1', 'thursday-deti-plova', 'sunday', 'other'];
+  availableCategories: GameCategory[] = [...GAME_CATEGORIES];
   hasBunqIntegration = false;
   unpaidItems: UnpaidRegistration[] = [];
   loadingUnpaid = false;
@@ -43,14 +52,18 @@ export class GamesListViewModel {
       const saved = localStorage.getItem('selectedCategories');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.every(c => ['thursday-5-1', 'thursday-deti-plova', 'sunday', 'other'].includes(c))) {
-          this.selectedCategories = parsed as GameCategory[];
+        const normalized = normalizeStoredCategories(parsed);
+        if (normalized) {
+          this.selectedCategories = normalized;
         }
       } else {
         // Migrate from old single category storage
         const oldCategory = localStorage.getItem('gameCategory');
-        if (oldCategory && ['thursday-5-1', 'thursday-deti-plova', 'sunday', 'other'].includes(oldCategory)) {
-          this.selectedCategories = [oldCategory as GameCategory];
+        const normalized = normalizeStoredCategories(
+          oldCategory ? [oldCategory] : null,
+        );
+        if (normalized) {
+          this.selectedCategories = normalized;
           // Save in new format and remove old key
           localStorage.setItem('selectedCategories', JSON.stringify(this.selectedCategories));
           localStorage.removeItem('gameCategory');

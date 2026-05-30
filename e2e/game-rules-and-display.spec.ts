@@ -116,7 +116,7 @@ test.describe('game rules and display scenarios', () => {
     const participant = await createDevUserViaApi(request, testInfo, 'Card Colors Participant');
     await devLoginAs(page, admin);
     const fiveOneTitle = e2eTitle(testInfo, 'Card Five One');
-    const regularTitle = e2eTitle(testInfo, 'Card Deti Plova');
+    const regularTitle = e2eTitle(testInfo, 'Card Thursday Other');
     const thursday = nextWeekday(4);
     await createGameViaUi(page, {
       title: fiveOneTitle,
@@ -134,7 +134,7 @@ test.describe('game rules and display scenarios', () => {
     await page.locator('.category-multiselect-trigger').click();
     await page.locator('label.category-multiselect-option').filter({ hasText: 'Thursday 5-1' }).click();
     await page.locator('.category-multiselect-trigger').click();
-    await page.locator('label.category-multiselect-option').filter({ hasText: 'Thursday Deti Plova' }).click();
+    await page.locator('label.category-multiselect-option').filter({ hasText: 'Other' }).click();
     await expect(page.getByText(fiveOneTitle)).toBeVisible();
     await expect(page.getByText(regularTitle)).toBeVisible();
 

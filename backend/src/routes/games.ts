@@ -85,7 +85,7 @@ async function getRegistrationOpenDays(
 }
 
 // Helper function to classify a game into a category
-type GameCategory = 'thursday-5-1' | 'thursday-deti-plova' | 'sunday' | 'other';
+type GameCategory = 'thursday-5-1' | 'sunday' | 'other';
 
 function classifyGame(game: { dateTime: Date | string; gameFormat: GameFormat | string }): GameCategory {
   const format = asGameFormat(String(game.gameFormat));
@@ -96,7 +96,7 @@ function classifyGame(game: { dateTime: Date | string; gameFormat: GameFormat | 
   
   // Thursday = 3, Sunday = 6
   if (dayOfWeek === 3) { // Thursday
-    return isPositionsGame(format) ? 'thursday-5-1' : 'thursday-deti-plova';
+    return isPositionsGame(format) ? 'thursday-5-1' : 'other';
   } else if (dayOfWeek === 6) { // Sunday
     return 'sunday';
   } else {
@@ -685,7 +685,7 @@ router.get('/', async (req, res) => {
 
     // Apply category filter if specified (only for upcoming games)
     if (categories && categories.length > 0 && !showPast) {
-      const validCategories: GameCategory[] = ['thursday-5-1', 'thursday-deti-plova', 'sunday', 'other'];
+      const validCategories: GameCategory[] = ['thursday-5-1', 'sunday', 'other'];
       const validSelectedCategories = categories.filter(cat => validCategories.includes(cat));
       
       if (validSelectedCategories.length > 0) {
