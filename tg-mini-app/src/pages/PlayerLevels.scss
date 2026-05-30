@@ -22,8 +22,7 @@
   gap: 10px;
   margin-bottom: 16px;
 
-  input,
-  select {
+  input[type='search'] {
     width: 100%;
     box-sizing: border-box;
     padding: 10px 12px;
@@ -32,6 +31,10 @@
     background: var(--tg-theme-bg-color, #fff);
     color: var(--tg-theme-text-color, #111);
     font-size: 1rem;
+  }
+
+  .player-levels-filter-container {
+    width: 100%;
   }
 }
 

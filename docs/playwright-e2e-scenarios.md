@@ -82,14 +82,14 @@ Spec: `e2e/player-levels.spec.ts`
 
 Global administrators manage internal skill tiers via the **Players** hub (`/players`); non-admins must not reach these routes.
 
-- [x] E2E-LEVELS-001: Global Admin opens **Players** from the games home toolbar, sees the hub, and navigates to **Player levels**.
+- [x] E2E-LEVELS-001: Global Admin opens **Players** from the games home toolbar, sees the hub, and navigates to **Player levels** (name search + level **multiselect** visible).
 - [x] E2E-LEVELS-002: Global Admin filters the list, opens a player row, assigns **Intermediate** in the player details dialog, and sees the level pill on the list.
 - [x] E2E-LEVELS-003: Participant is redirected to games home when visiting `/players` or `/player-levels`.
 - [x] E2E-LEVELS-004: Assigned Admin (non-global) does not see the **Players** toolbar icon.
 - [x] E2E-LEVELS-005: TC-only user opens **Player levels** from toolbar and assigns a level via dialog.
 - [x] E2E-LEVELS-006: TC-only user is redirected from `/players` (Players hub).
 - [x] E2E-LEVELS-007: Global Admin or TC assigns level; **Set by** shows assigner display name on list and/or dialog.
-- [x] E2E-LEVELS-008: Global Admin or TC uses level filter (e.g. **Beginner**) combined with name filter.
+- [x] E2E-LEVELS-008: Global Admin or TC uses the level **multiselect** (same control pattern as the games home category filter) to select one or more tiers (e.g. **Beginner** only, then **Unassigned** only, then all tiers + name substring); list updates client-side and combines level OR-filter with name AND-filter.
 - [x] E2E-LEVELS-009: TC-only taps participant on game details; read-only level; no payment/moderation UI.
 - [x] E2E-LEVELS-010: Global Admin on game details sees read-only level outside player levels page.
 - [x] E2E-LEVELS-011: Assigned Admin (not TC or global admin) opens participant dialog; no level fields.

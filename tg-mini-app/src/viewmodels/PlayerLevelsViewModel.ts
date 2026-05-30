@@ -1,11 +1,16 @@
 import { playerLevelsApi } from '../services/api';
 import type { PlayerLevel, UserWithPlayerLevel } from '../types';
-import type { PlayerLevelFilter } from '../utils/playerLevel';
+import {
+  ALL_PLAYER_LEVEL_FILTER_OPTIONS,
+  comparePlayersForLevelsList,
+  isShowingAllPlayerLevels,
+  type PlayerLevelFilterOption,
+} from '../utils/playerLevel';
 
 export interface PlayerLevelsState {
   users: import('../types').UserWithPlayerLevel[];
   filterQuery: string;
-  levelFilter: PlayerLevelFilter;
+  selectedLevelFilters: PlayerLevelFilterOption[];
   isLoading: boolean;
   error: string | null;
   savingUserId: number | null;
@@ -20,7 +25,7 @@ export class PlayerLevelsViewModel {
     return {
       users: [],
       filterQuery: '',
-      levelFilter: 'all',
+      selectedLevelFilters: [...ALL_PLAYER_LEVEL_FILTER_OPTIONS],
       isLoading: true,
       error: null,
       savingUserId: null,
@@ -44,17 +49,32 @@ export class PlayerLevelsViewModel {
     this.updateState({ filterQuery });
   }
 
-  setLevelFilter(levelFilter: PlayerLevelFilter): void {
-    this.updateState({ levelFilter });
+  toggleLevelFilter(
+    currentSelected: PlayerLevelFilterOption[],
+    level: PlayerLevelFilterOption,
+  ): void {
+    const index = currentSelected.indexOf(level);
+    const selectedLevelFilters =
+      index === -1
+        ? [...currentSelected, level]
+        : currentSelected.filter((l) => l !== level);
+    this.updateState({ selectedLevelFilters });
   }
 
   filterUsers(state: PlayerLevelsState): import('../types').UserWithPlayerLevel[] {
     let users = state.users;
 
-    if (state.levelFilter === 'unassigned') {
-      users = users.filter((u) => !u.playerLevel);
-    } else if (state.levelFilter !== 'all') {
-      users = users.filter((u) => u.playerLevel === state.levelFilter);
+    if (state.selectedLevelFilters.length === 0) {
+      return [];
+    }
+
+    if (!isShowingAllPlayerLevels(state.selectedLevelFilters)) {
+      users = users.filter((u) => {
+        if (!u.playerLevel) {
+          return state.selectedLevelFilters.includes('unassigned');
+        }
+        return state.selectedLevelFilters.includes(u.playerLevel);
+      });
     }
 
     const q = state.filterQuery.trim().toLowerCase();
@@ -67,12 +87,18 @@ export class PlayerLevelsViewModel {
     });
   }
 
-  async updatePlayerLevel(userId: number, playerLevel: PlayerLevel): Promise<UserWithPlayerLevel | null> {
+  async updatePlayerLevel(
+    userId: number,
+    playerLevel: PlayerLevel,
+    currentUsers: UserWithPlayerLevel[],
+  ): Promise<UserWithPlayerLevel | null> {
     this.updateState({ savingUserId: userId, error: null });
     try {
       const updated = await playerLevelsApi.updateUserLevel(userId, playerLevel);
-      await this.loadUsers();
-      this.updateState({ savingUserId: null });
+      const users = currentUsers
+        .map((u) => (u.id === userId ? updated : u))
+        .sort(comparePlayersForLevelsList);
+      this.updateState({ users, savingUserId: null });
       return updated;
     } catch (e: unknown) {
       const message =

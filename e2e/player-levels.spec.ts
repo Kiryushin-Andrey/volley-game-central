@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import {
   assignPlayerLevelViaApi,
   cleanupE2eData,
@@ -12,6 +12,22 @@ import {
   switchToUser,
   waitForBackend,
 } from './support/fixtures';
+
+const LEVEL_FILTER_LABELS = ['Unassigned', 'Advanced', 'Intermediate', 'Beginner'] as const;
+
+async function setPlayerLevelFilters(page: Page, activeLabels: readonly string[]) {
+  const filter = page.getByLabel('Filter by level');
+  await filter.locator('.category-multiselect-trigger').click();
+  for (const label of LEVEL_FILTER_LABELS) {
+    const option = filter.locator('label.category-multiselect-option').filter({ hasText: label });
+    const shouldBeChecked = activeLabels.includes(label);
+    const isChecked = await option.locator('input[type="checkbox"]').isChecked();
+    if (isChecked !== shouldBeChecked) {
+      await option.click();
+    }
+  }
+  await filter.locator('.category-multiselect-trigger').click();
+}
 
 test.describe('player levels admin scenarios', () => {
   test.beforeEach(async ({ request }) => {
@@ -114,7 +130,7 @@ test.describe('player levels admin scenarios', () => {
     ).toBeVisible();
   });
 
-  test('E2E-LEVELS-008 global admin uses level filter combined with name filter', async ({ page, request }, testInfo) => {
+  test('E2E-LEVELS-008 global admin uses level multiselect combined with name filter', async ({ page, request }, testInfo) => {
     const admin = await createDevUserViaApi(request, testInfo, 'Levels Filter Admin', true);
     const beginner = await createDevUserViaApi(request, testInfo, 'Levels Filter Beginner');
     const advanced = await createDevUserViaApi(request, testInfo, 'Levels Filter Advanced');
@@ -124,21 +140,21 @@ test.describe('player levels admin scenarios', () => {
     await devLoginAs(page, admin);
 
     await page.goto('/player-levels');
-    await page.getByLabel('Filter by level').selectOption('beginner');
+    await setPlayerLevelFilters(page, ['Beginner']);
     await expect(page.getByText(beginner.displayName, { exact: true })).toBeVisible();
     await expect(page.getByText(advanced.displayName, { exact: true })).toHaveCount(0);
     await expect(page.getByText(unassigned.displayName, { exact: true })).toHaveCount(0);
 
-    await page.getByLabel('Filter by level').selectOption('unassigned');
+    await setPlayerLevelFilters(page, ['Unassigned']);
     await expect(page.getByText(unassigned.displayName, { exact: true })).toBeVisible();
     await expect(page.getByText(beginner.displayName, { exact: true })).toHaveCount(0);
 
-    await page.getByLabel('Filter by level').selectOption('all');
+    await setPlayerLevelFilters(page, LEVEL_FILTER_LABELS);
     await page.getByPlaceholder('Filter by name...').fill('Advanced');
     await expect(page.getByText(advanced.displayName, { exact: true })).toBeVisible();
     await expect(page.getByText(beginner.displayName, { exact: true })).toHaveCount(0);
 
-    await page.getByLabel('Filter by level').selectOption('beginner');
+    await setPlayerLevelFilters(page, ['Beginner']);
     await expect(page.getByText(advanced.displayName, { exact: true })).toHaveCount(0);
     await expect(page.getByText(beginner.displayName, { exact: true })).toHaveCount(0);
   });

@@ -63,8 +63,8 @@ Replace the two game booleans with a single **game format** enum: `recreational`
 28. As a global administrator, I want to switch between beginner, intermediate, and advanced only (no clear-to-unassigned), so that once labeled, players stay in the system.
 29. As a global administrator or technical committee member, I want a name filter above the list, so that I can find players quickly.
 30. As a global administrator or technical committee member, I want the full list to load in one request (~300 users) with client-side filtering, so that empty or broad search stays fast.
-31. As a global administrator or technical committee member, I want a level filter on the player levels page (All, Unassigned, Advanced, Intermediate, Beginner), so that I can focus on one tier at a time.
-32. As a global administrator or technical committee member, I want the level filter to apply together with the name filter, so that I can narrow to specific players within a tier.
+31. As a global administrator or technical committee member, I want a **level multiselect** on the player levels page (same interaction pattern as the games home **category filter**), with options **Unassigned**, **Advanced**, **Intermediate**, and **Beginner**, so that I can include one or more tiers at once (default: all options selected = show everyone).
+32. As a global administrator or technical committee member, I want the level multiselect to combine with the name filter (name substring **and** level OR-match), and deselecting every level option to show no rows, so that I can narrow the list predictably.
 33. As a global administrator or technical committee member, I want to see who last set each player's level (display name only) on the player levels list and in the player info dialog, so that we know who assigned the tier.
 34. As a global administrator, I want to see read-only player level and assignment record in the player info dialog when I open it outside the player levels page, so that I can check tiers in context without accidental edits.
 35. As a global administrator, I want the full player info dialog (unpaid games, payment reminders, block/unblock) when I am not acting as a TC-only viewer, so that existing admin workflows continue.
@@ -157,7 +157,7 @@ Helpers: `gameFormatFromLegacy`, `isPositionsGame`, `usesPriorityPlayerWindows`.
 ### Frontend modules to build or modify
 
 1. **Routing / toolbar** — if `isTc && !isAdmin`, **Players** → `/player-levels`; block or redirect TC-only from `/players`, `/game-administrators`, `/priority-players`. Global admin unchanged.
-2. **Player levels page** — allow `isTc`; name + level filters (client-side); list shows level pills and “Set by {name}” where applicable; row opens dialog with **editable** level.
+2. **Player levels page** — allow `isTc`; name search + **level multiselect** (`PlayerLevelMultiSelect`, styled like `CategoryMultiSelect` on games home); client-side filters; list shows level pills and “Set by {name}” where applicable; row opens dialog with **editable** level.
 3. **Player info dialog** — sections by **viewer role only** (same at every entry point):
    - Global admin: full dialog including editable level only when `allowLevelEdit` (player levels page); read-only level + audit elsewhere
    - TC (not global admin): identity + level + audit only; editable only with `allowLevelEdit`
@@ -176,7 +176,7 @@ Helpers: `gameFormatFromLegacy`, `isPositionsGame`, `usesPriorityPlayerWindows`.
 ### UI specifics
 
 - Level pills: advanced light green, intermediate light yellow, beginner light red; no pill if unassigned; global administrators and TCs see “Unassigned” where applicable.
-- Player levels filters: name search + level (All / Unassigned / Advanced / Intermediate / Beginner); combined client-side; default All.
+- Player levels filters: name search + **level multiselect** (Unassigned / Advanced / Intermediate / Beginner); all options selected by default (no level restriction); subset selected = OR within tiers; none selected = empty list; name filter applied after level filter (AND).
 - Assignment audit in UI: setter **display name only** (no timestamp).
 - Players hub: global administrators only.
 - Do not expose level on participant payloads, game list, or to regular players and assigned-only admins.

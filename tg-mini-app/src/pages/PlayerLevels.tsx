@@ -10,11 +10,8 @@ import {
   PlayerLevelsState,
 } from '../viewmodels/PlayerLevelsViewModel';
 import type { PlayerLevel, UserWithPlayerLevel } from '../types';
-import {
-  playerLevelPillClass,
-  PLAYER_LEVEL_FILTER_OPTIONS,
-  PLAYER_LEVEL_LABELS,
-} from '../utils/playerLevel';
+import { playerLevelPillClass, PLAYER_LEVEL_LABELS } from '../utils/playerLevel';
+import PlayerLevelMultiSelect from '../components/PlayerLevelMultiSelect';
 import './PlayerLevels.scss';
 
 const PlayerLevels: React.FC = () => {
@@ -63,7 +60,7 @@ const PlayerLevels: React.FC = () => {
 
   const handleLevelChange = async (level: PlayerLevel) => {
     if (!dialogUser) return false;
-    const updated = await viewModel.updatePlayerLevel(dialogUser.id, level);
+    const updated = await viewModel.updatePlayerLevel(dialogUser.id, level, state.users);
     if (updated) {
       setDialogUser(updated);
       return true;
@@ -104,17 +101,14 @@ const PlayerLevels: React.FC = () => {
           onChange={(e) => viewModel.setFilterQuery(e.target.value)}
           aria-label="Filter players by name"
         />
-        <select
-          value={state.levelFilter}
-          onChange={(e) => viewModel.setLevelFilter(e.target.value as typeof state.levelFilter)}
-          aria-label="Filter by level"
-        >
-          {PLAYER_LEVEL_FILTER_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+        <div className="player-levels-filter-container">
+          <PlayerLevelMultiSelect
+            selectedLevels={state.selectedLevelFilters}
+            onToggleLevel={(level) =>
+              viewModel.toggleLevelFilter(state.selectedLevelFilters, level)
+            }
+          />
+        </div>
       </div>
 
       <div className="players-list player-levels-list">

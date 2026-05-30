@@ -197,14 +197,14 @@ RALPH_ISSUE_COMPLETE #43
 
 ### Session orientation
 - Branch `cursor/player-levels-issue8-dbd5` up to date; `ralph-plan.sh` → issue #44; #42–#43 complete.
-- Focus: client-side level filter (All / Unassigned / Advanced / Intermediate / Beginner) on `/player-levels`; E2E-LEVELS-008.
+- Focus: client-side level multiselect (Unassigned / Advanced / Intermediate / Beginner; default all selected) on `/player-levels`; E2E-LEVELS-008.
 
 ### E2E gate (before feature work)
 - `npm run test:e2e`: **118 passed**, 0 failed (baseline green).
 
 ### Implemented (#44)
 - `PlayerLevelsViewModel`: `levelFilter` state (default `all`); `setLevelFilter`; `filterUsers` applies level then name filter client-side.
-- `PlayerLevels.tsx`: level `<select>` with `aria-label="Filter by level"` below name search; options from `PLAYER_LEVEL_FILTER_OPTIONS`.
+- `PlayerLevels.tsx`: `PlayerLevelMultiSelect` (category-filter pattern) with `aria-label="Filter by level"` below name search; options from `PLAYER_LEVEL_FILTER_OPTIONS`.
 - `playerLevel.ts`: `PlayerLevelFilter` type + filter option labels.
 - E2E: `E2E-LEVELS-008` (Beginner / Unassigned / combined name+level); updated LEVELS-001 visibility check; LEVELS-002/005 pill assertions scoped to `.level-pill--*`.
 - Checklist: E2E-LEVELS-008 marked implemented.
