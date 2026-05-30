@@ -94,6 +94,41 @@
     .toggle-container {
       margin-bottom: 8px; // page-specific spacing
     }
+
+    .tc-player-levels-nav {
+      display: flex;
+      justify-content: flex-end;
+      width: 100%;
+    }
+
+    .tc-player-levels-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--tg-theme-hint-color, #e1e8ed);
+      background-color: var(--tg-theme-secondary-bg-color, #f1f3f4);
+      color: var(--tg-theme-text-color);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 1.2;
+      transition: background-color 0.2s ease, opacity 0.2s ease;
+
+      svg {
+        flex-shrink: 0;
+        color: currentColor;
+      }
+
+      &:hover {
+        background-color: var(--tg-theme-hint-color, #e1e8ed);
+      }
+
+      &:active {
+        opacity: 0.7;
+      }
+    }
   }
 
   .admin-controls {

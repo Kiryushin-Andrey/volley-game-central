@@ -313,16 +313,15 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
                 </div>
               )}
             {isTcOnly(user) && (
-              <div className="admin-controls">
-                <div className="admin-icon-buttons">
-                  <Link
-                    to="/player-levels"
-                    className="icon-button"
-                    title="Players"
-                  >
-                    <FaUsers />
-                  </Link>
-                </div>
+              <div className="tc-player-levels-nav">
+                <Link
+                  to="/player-levels"
+                  className="tc-player-levels-link"
+                  title="Manage player levels"
+                >
+                  <FaUsers aria-hidden />
+                  <span>Manage player levels</span>
+                </Link>
               </div>
             )}
             </div>

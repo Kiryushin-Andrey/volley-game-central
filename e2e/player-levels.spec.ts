@@ -92,7 +92,7 @@ test.describe('player levels admin scenarios', () => {
     const player = await createDevUserViaApi(request, testInfo, 'Levels TC Target');
     await devLoginAs(page, tcUser);
 
-    await page.getByTitle('Players').click();
+    await page.getByRole('link', { name: 'Manage player levels' }).click();
     await expect(page.getByRole('heading', { name: 'Player levels' })).toBeVisible();
     await page.getByPlaceholder('Filter by name...').fill(player.displayName);
     await page.getByText(player.displayName, { exact: true }).click();
