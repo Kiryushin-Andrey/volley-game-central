@@ -1,34 +1,15 @@
-/** Completion lines agents emit in logs and must record in progress.txt. */
+const ISSUE_COMPLETE = /^RALPH_ISSUE_COMPLETE #(\d+)$/m;
+const SLICE_COMPLETE = /^RALPH_SLICE_COMPLETE #(\d+)$/m;
 
-export function promiseIssueComplete(issueNumber: number): string {
-  return `RALPH_ISSUE_COMPLETE #${issueNumber}`;
-}
-
-/** @deprecated Accept legacy sigil from older passes. */
-export function promiseSliceComplete(issueNumber: number): string {
-  return `RALPH_SLICE_COMPLETE #${issueNumber}`;
-}
-
-export function promiseVariants(promise: string): string[] {
-  const variants = [promise];
-  if (promise === "RALPH_ALL_COMPLETE") {
-    variants.push("COMPLETE");
-  }
-  return variants;
-}
-
-/** True if `text` contains `promise` as its own line or in a <promise> tag. */
-export function textHasPromise(text: string, promise: string): boolean {
-  for (const variant of promiseVariants(promise)) {
-    const escaped = variant.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const linePat = new RegExp(`^\\s*${escaped}\\s*$`, "m");
-    if (linePat.test(text)) return true;
-    if (text.includes(`<promise>${variant}</promise>`)) return true;
-  }
-  return false;
-}
-
+/** True if progress text records the given child issue as complete. */
 export function textHasIssueComplete(text: string, issueNumber: number): boolean {
-  if (textHasPromise(text, promiseIssueComplete(issueNumber))) return true;
-  return textHasPromise(text, promiseSliceComplete(issueNumber));
+  const n = String(issueNumber);
+  for (const re of [ISSUE_COMPLETE, SLICE_COMPLETE]) {
+    for (const match of text.matchAll(re)) {
+      if (match[1] === n) return true;
+    }
+  }
+  const tag = `<promise>RALPH_ISSUE_COMPLETE #${n}</promise>`;
+  const legacyTag = `<promise>RALPH_SLICE_COMPLETE #${n}</promise>`;
+  return text.includes(tag) || text.includes(legacyTag);
 }

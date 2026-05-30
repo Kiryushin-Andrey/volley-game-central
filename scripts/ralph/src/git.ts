@@ -1,6 +1,4 @@
 import { execSync, spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
-import { join } from "node:path";
 
 export function gitRoot(): string {
   return execSync("git rev-parse --show-toplevel", { encoding: "utf-8" }).trim();
@@ -79,13 +77,4 @@ export function commitPaths(
   if (commit.status !== 0) return false;
   maybePush(root, branch, push);
   return true;
-}
-
-export function requireRepoFiles(root: string, paths: string[]): void {
-  for (const rel of paths) {
-    if (!existsSync(join(root, rel))) {
-      console.error(`missing: ${rel}`);
-      process.exit(1);
-    }
-  }
 }

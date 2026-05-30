@@ -1,13 +1,12 @@
 import { readFileSync } from "node:fs";
-import { textHasIssueComplete, textHasPromise } from "./sigil.js";
+import { textHasIssueComplete } from "./sigil.js";
 
 export interface ProgressResume {
   completedIssues: Set<number>;
-  finalComplete: boolean;
 }
 
 export function emptyResume(): ProgressResume {
-  return { completedIssues: new Set(), finalComplete: false };
+  return { completedIssues: new Set() };
 }
 
 /** Parse completion sigils from progress.txt only (no git commit lookup). */
@@ -18,10 +17,6 @@ export function loadProgressResume(progressContent: string, childIssues: number[
     if (textHasIssueComplete(progressContent, n)) {
       resume.completedIssues.add(n);
     }
-  }
-
-  if (textHasPromise(progressContent, "RALPH_ALL_COMPLETE")) {
-    resume.finalComplete = true;
   }
 
   return resume;

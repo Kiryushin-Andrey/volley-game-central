@@ -12,30 +12,19 @@ import { commitPaths, gitRoot, syncSprintBranch } from "./git.js";
 import { planNext, type RalphPhase } from "./plan.js";
 import { progressPath } from "./paths.js";
 import { PromptLoader } from "./prompts.js";
-import { buildPromptContext, resolveRepoUrl } from "./render-context.js";
+import { buildPromptContext } from "./render-context.js";
 import { appendSessionLine, formatSessionStdout } from "./sessions-log.js";
 import { isRemoteWorker } from "./workers/types.js";
 
 function phaseNotes(phase: RalphPhase): string {
   if (phase.type === "issue") return `issue #${phase.issueNumber}`;
-  if (phase.type === "final") return "final pass";
   return "epic complete";
-}
-
-function phaseRole(phase: RalphPhase): "iteration" | "final" {
-  return phase.type === "final" ? "final" : "iteration";
-}
-
-function templateName(phase: RalphPhase): string {
-  if (phase.type === "final") return "final-pass-prompt";
-  return "iteration-prompt";
 }
 
 function startRemoteCursor(
   root: string,
   cfg: ReturnType<typeof loadConfig>,
   prompt: string,
-  autoPr: boolean,
 ): string {
   const branch = cfg.branch;
   const args = [
@@ -44,9 +33,9 @@ function startRemoteCursor(
     branch,
     "--model",
     cfg.cloudModel ?? "default",
+    "--",
+    prompt,
   ];
-  if (autoPr) args.push("--auto-pr");
-  args.push("--", prompt);
   const r = spawnSync("bash", args, {
     cwd: root,
     encoding: "utf-8",
@@ -71,13 +60,11 @@ function startRemoteOz(
   cfg: ReturnType<typeof loadConfig>,
   prompt: string,
   title: string,
-  autoPr: boolean,
 ): string {
   const args = [join(root, "scripts/start-oz-cloud-session.sh"), "--title", title];
   if (cfg.ozEnvironmentId) args.push("--environment-id", cfg.ozEnvironmentId);
   if (cfg.ozModelId) args.push("--model-id", cfg.ozModelId);
   if (cfg.ozConfigName) args.push("--config-name", cfg.ozConfigName);
-  if (autoPr) args.push("--auto-pr");
   args.push("--", prompt);
   const r = spawnSync("bash", args, {
     cwd: root,
@@ -102,9 +89,9 @@ function startLocal(
   root: string,
   cfg: ReturnType<typeof loadConfig>,
   promptPath: string,
-  phase: RalphPhase,
+  issueNumber: number,
 ): string {
-  const slug = phase.type === "issue" ? `issue-${phase.issueNumber}` : "final";
+  const slug = `issue-${issueNumber}`;
   const sessionName = `ralph-${slug}-${Date.now()}`;
   const prompt = readFileSync(promptPath, "utf-8").trim();
   let cmd: string;
@@ -158,7 +145,7 @@ function ensureStateFiles(root: string, cfg: ReturnType<typeof loadConfig>): voi
       sessions,
       existsSync(tpl)
         ? readFileSync(tpl, "utf-8")
-        : "# started_at\trole\tworker\tsession_ref\tnotes\n",
+        : "# session_ref\tnotes\n",
       "utf-8",
     );
   }
@@ -194,21 +181,20 @@ async function main(): Promise<void> {
 
   const phase = planNext(cfg);
   if (phase.type === "done") {
-    console.log("RALPH_DONE — no next session (RALPH_ALL_COMPLETE in progress.txt)");
+    console.log("RALPH_DONE — no next session (all child issues complete in progress.txt)");
     return;
   }
 
   const prompts = new PromptLoader(cfg.promptsDir);
   const promptText = prompts.render(
-    templateName(phase),
+    "iteration-prompt",
     buildPromptContext(cfg, root, phase, { bootstrap: false }),
   );
   const promptPath = join(root, cfg.stateDir, ".next-prompt.md");
   writeFileSync(promptPath, promptText, "utf-8");
 
   const notes = phaseNotes(phase);
-  const role = values.bootstrap ? "bootstrap" : phaseRole(phase);
-  const autoPr = phase.type === "final" && (cfg.cloudCreatePrOnFinal ?? false);
+  const role = values.bootstrap ? "bootstrap" : "iteration";
 
   let sessionRef: string;
   if (isRemoteWorker(cfg.worker)) {
@@ -217,21 +203,19 @@ async function main(): Promise<void> {
         console.error("CURSOR_API_KEY required for remote-cursor");
         process.exit(1);
       }
-      sessionRef = startRemoteCursor(root, cfg, promptText, autoPr);
+      sessionRef = startRemoteCursor(root, cfg, promptText);
     } else {
       if (!process.env.WARP_API_KEY || !process.env.OZ_ENVIRONMENT_ID) {
         console.error("WARP_API_KEY and OZ_ENVIRONMENT_ID required for remote-oz");
         process.exit(1);
       }
-      sessionRef = startRemoteOz(root, cfg, promptText, `ralph ${notes}`, autoPr);
+      sessionRef = startRemoteOz(root, cfg, promptText, `ralph ${notes}`);
     }
   } else {
-    sessionRef = startLocal(root, cfg, promptPath, phase);
+    sessionRef = startLocal(root, cfg, promptPath, phase.issueNumber);
   }
 
   appendSessionLine(cfg, {
-    role,
-    worker: cfg.worker,
     sessionRef,
     notes: values["from-notes"] ? `${notes}; after ${values["from-notes"]}` : notes,
   });

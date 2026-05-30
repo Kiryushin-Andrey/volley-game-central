@@ -89,9 +89,4 @@ export class PromptLoader {
     }
   }
 
-  /** Clear compiled cache (e.g. after editing templates in a long-lived process). */
-  clearCache(): void {
-    this.compiled.clear();
-    this.partialsRegistered = false;
-  }
 }

@@ -17,13 +17,13 @@ Ralph pattern: [getting started](https://www.aihero.dev/getting-started-with-ral
 | Situation | Role | Deliverable in **this** chat |
 |-----------|------|------------------------------|
 | Epic not set up yet: no `ralph.config.json` on the integration branch, or user asks to **start** / **bootstrap** Ralph | **Bootstrap** | Config, progress seed, `ralph-chain-next.sh --bootstrap`, then **stop** |
-| `ralph.config.json` exists; `ralph-plan.sh` reports `issue` or `final` | **Worker** | One slice (or final pass), progress sigils, `ralph-chain-next.sh`, then **stop** |
+| `ralph.config.json` exists; `ralph-plan.sh` reports `issue` | **Worker** | One slice, progress sigils, `ralph-chain-next.sh`, then **stop** |
 | User says **implement** the epic **with Ralph** | **Bootstrap** (unless you are already the chained worker — config + plan exist) | Chain the first worker; do **not** ship product code here |
 
 ## Mandatory first actions (every session)
 
 1. If **`.ralph/ralph.config.json`** exists: `git pull origin <branch>` (branch from config).
-2. Run **`./scripts/ralph-plan.sh`** — read phase (`bootstrap` | `issue` | `final` | `done`).
+2. Run **`./scripts/ralph-plan.sh`** — read phase (`bootstrap` | `issue` | `done`).
 3. If **no** `.ralph/ralph.config.json` on the integration branch → **bootstrap only**; do not open `backend/`, `tg-mini-app/`, or `e2e/` for feature work.
 
 **Stop rule:** If you are bootstrap and your next edit is under application source (not `.ralph/`, epic `prd` path, or Ralph scripts), **stop** — run `ralph-chain-next.sh --bootstrap` instead.
@@ -48,8 +48,7 @@ When this skill applies, it **overrides** generic “complete the full issue/PR 
 | Session type | “Done” means |
 |--------------|--------------|
 | Bootstrap | `RALPH_CHAINED` + pushed `.ralph/*` — **not** merged feature code |
-| Worker | One `childIssues` slice complete + `RALPH_ISSUE_COMPLETE #n` + chain — **not** remaining slices |
-| Final | Epic polish + `RALPH_DONE` |
+| Worker | One `childIssues` slice complete + `RALPH_ISSUE_COMPLETE #n` + chain — **not** remaining slices (last slice: epic closure in same session, then `RALPH_DONE` when chaining) |
 
 Do **not** batch multiple child issues in one session to “finish faster,” even when `CURSOR_API_KEY` is set or chaining is available.
 
@@ -71,12 +70,12 @@ Write handoff into **`progress.txt`** (and push) before chaining. Do not assume 
 **No imperative loop script.** Each worker session:
 
 1. Reads config + progress + git (see worker checklist below).
-2. Works the **first incomplete** child issue, or **final pass** when all issues are complete in `progress.txt`.
+2. Works the **first incomplete** child issue from `progress.txt`.
 3. Appends to **`progress.txt`** (`RALPH_ISSUE_COMPLETE #n` when that issue is fully done).
 4. Runs **`./scripts/ralph-chain-next.sh`** — same **`worker`** from config unless the user explicitly chose another.
 5. **Stops** after chaining; the **new** session continues.
 
-Prompts: **`.ralph/prompts/`** (`bootstrap-prompt.md`, `iteration-prompt.md`, `final-pass-prompt.md`, `partials/`).
+Prompts: **`.ralph/prompts/`** (`bootstrap-prompt.md`, `iteration-prompt.md`, `partials/`).
 
 ## User phrases (generic)
 
@@ -219,11 +218,11 @@ You are a **new** session. Do not rely on orchestrator chat, prior URLs in the h
 2. Read **`.ralph/ralph.config.json`** — `childIssues`, `worker`, `prd`, `branch`.
 3. Read **`.ralph/progress.txt`** (latest sections first) — open work, `RALPH_*` sigils.
 4. Read **`.ralph/sessions.log`** — optional context on prior sessions.
-5. Run **`./scripts/ralph-plan.sh`** — confirms `issue` / `final` / `done`.
+5. Run **`./scripts/ralph-plan.sh`** — confirms `issue` / `done`.
 6. If `issue`: load that child issue from the tracker (per rendered prompt / plan).
 7. State in one sentence what this session will focus on, from files only.
 
-Then follow the injected prompt (`iteration-prompt.md` or `final-pass-prompt.md`), especially **session-orientation** and **workflow** partials.
+Then follow the injected prompt (`iteration-prompt.md`), especially **session-orientation** and **workflow** partials.
 
 ### End of session (mandatory)
 

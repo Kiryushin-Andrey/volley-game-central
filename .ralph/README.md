@@ -12,8 +12,8 @@ Skill: **ralph** (`.cursor/skills/ralph`, `.claude/skills/ralph`, `.agents/skill
 |------|---------|
 | `ralph.config.json` | Epic config: ordered `childIssues`, `branch`, `prd`, `worker`, `push`, … |
 | `progress.txt` | Append-only narrative + `RALPH_*` sigils (resume source of truth) |
-| `sessions.log` | Append-only registry of every chained session (URL or `tmux:name`); seed from `sessions.template.txt` |
-| `prompts/` | Handlebars templates for bootstrap / iteration / final |
+| `sessions.log` | Append-only registry: tab-separated `session_ref` + `notes` per line; seed from `sessions.template.txt` |
+| `prompts/` | Handlebars templates for bootstrap / iteration |
 
 There is **no** `ralph-state.json`. Resume by `git pull` on the sprint branch and reading `progress.txt` + `sessions.log`.
 
@@ -27,11 +27,11 @@ cd scripts/ralph && npm install   # once per clone
 |--------|------|
 | `scripts/ralph-chain-next.sh` | Plan next phase, render prompt, **start** next session, append `sessions.log`, commit, exit |
 | `scripts/ralph-render-prompt.sh` | Render a prompt to stdout or `.ralph/.next-prompt.md` |
-| `scripts/ralph-plan.sh` | JSON: next phase (`issue` / `final` / `done`) from progress |
+| `scripts/ralph-plan.sh` | JSON: next phase (`issue` / `done`) from progress |
 | `scripts/start-cursor-cloud-session.sh` | Used by chain-next for `remote-cursor` |
 | `scripts/start-oz-cloud-session.sh` | Used by chain-next for `remote-oz` |
 
-Implementation: `scripts/ralph/src/` (prompt rendering + chaining only).
+Implementation: `scripts/ralph/src/` — prompt rendering, plan, chain-next, bootstrap-publish (no imperative loop runner; `ralph-loop.ts` / `loop.ts` / `agents/*` were removed in the recursive refactor).
 
 ## Bootstrap (once per epic)
 
@@ -58,7 +58,7 @@ See **`bootstrap-prompt.md`**.
 
 ## Each iteration
 
-Prompt: `iteration-prompt.md` (issue # from plan) or `final-pass-prompt.md`.
+Prompt: `iteration-prompt.md` (issue # from plan). The **last** child issue includes epic-closure steps in the same prompt.
 
 At end of session (after push + progress update):
 
@@ -67,7 +67,7 @@ At end of session (after push + progress update):
 ```
 
 - **`RALPH_CHAINED <url|tmux:…>`** — next session started; **stop** current session.
-- **`RALPH_DONE`** — `RALPH_ALL_COMPLETE` in progress; epic finished.
+- **`RALPH_DONE`** — all child issues have `RALPH_ISSUE_COMPLETE` in progress; epic finished.
 
 ## Worker (`ralph.config.json` → `worker`)
 
@@ -84,7 +84,7 @@ Use `"push": true` for `remote-*` so each fresh VM sees the branch.
 ## Resume after interruption
 
 1. Ensure `ralph.config.json` and `progress.txt` on the branch are current.
-2. Run **`./scripts/ralph-chain-next.sh`** (no `--bootstrap`) — starts the next incomplete issue or final pass.
+2. Run **`./scripts/ralph-chain-next.sh`** (no `--bootstrap`) — starts the next incomplete issue, or prints `RALPH_DONE` when all slices are complete.
 3. Inspect **`sessions.log`** for all session URLs/refs.
 
 ## Cleanup

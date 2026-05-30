@@ -1,8 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { DEFAULT_E2E_SCENARIOS } from "./constants.js";
-import { parseWorkerKind } from "./workers/registry.js";
-import type { WorkerKind } from "./workers/types.js";
+import { parseWorkerKind, type WorkerKind } from "./workers/types.js";
 
 export interface RalphConfigFile {
   version: 1;
@@ -21,7 +20,6 @@ export interface RalphConfigFile {
   push: boolean;
   feedbackLoops: string[];
   cloudModel?: string;
-  cloudCreatePrOnFinal?: boolean;
   ozEnvironmentId?: string;
   ozModelId?: string;
   ozConfigName?: string;
@@ -93,7 +91,6 @@ function normalizeConfig(raw: Partial<RalphConfigFile>, stateDir: string): Ralph
       "Frontend TypeScript: cd tg-mini-app && npm run build",
     ],
     cloudModel: raw.cloudModel ?? "default",
-    cloudCreatePrOnFinal: raw.cloudCreatePrOnFinal ?? false,
     ozEnvironmentId: raw.ozEnvironmentId,
     ozModelId: raw.ozModelId,
     ozConfigName: raw.ozConfigName ?? "ralph-recursive",

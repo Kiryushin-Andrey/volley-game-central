@@ -1,3 +1,3 @@
 # Ralph sessions registry (append-only; commit after each chain)
-# started_at	role	worker	session_ref	notes
+# session_ref	notes
 # Cloud: full https:// URL. Local: tmux:session-name
