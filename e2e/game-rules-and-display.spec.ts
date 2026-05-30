@@ -181,22 +181,40 @@ test.describe('game rules and display scenarios', () => {
     await expect(sundayBlock).toHaveCSS('background-color', 'rgb(232, 245, 233)');
   });
 
-  test('E2E-GAME-013 game details shows 5-1 category notice with yellow styling', async ({ page, request }, testInfo) => {
-    const admin = await createDevUserViaApi(request, testInfo, 'Details 5-1 Admin', true);
-    const participant = await createDevUserViaApi(request, testInfo, 'Details 5-1 Participant');
+  test('E2E-GAME-013 game details category notice follows schedule category', async ({ page, request }, testInfo) => {
+    const admin = await createDevUserViaApi(request, testInfo, 'Details Category Admin', true);
+    const participant = await createDevUserViaApi(request, testInfo, 'Details Category Participant');
     await devLoginAs(page, admin);
-    const game = await createGameViaUi(page, {
-      title: e2eTitle(testInfo, 'Details Five One'),
+    const positionsGame = await createGameViaUi(page, {
+      title: e2eTitle(testInfo, 'Details Positions'),
       dateTime: nextWeekday(4),
+      withPositions: true,
+    });
+    const sunday = nextWeekday(0);
+    const sundayGame = await createGameViaUi(page, {
+      title: e2eTitle(testInfo, 'Details Sunday Rec'),
+      dateTime: sunday,
+      withPositions: false,
+    });
+    const sundayPositionsGame = await createGameViaUi(page, {
+      title: e2eTitle(testInfo, 'Details Sunday Positions'),
+      dateTime: sunday,
       withPositions: true,
     });
 
     await switchToUser(page, participant);
-    await page.goto(`/game/${game.id}`);
+    await page.goto(`/game/${positionsGame.id}`);
+    const thursdayPositionsBlock = page.locator('.category-info-block');
+    await expect(thursdayPositionsBlock).toContainText('Thursday 5-1');
+    await expect(thursdayPositionsBlock).toHaveClass(/with-positions/);
 
+    await page.goto(`/game/${sundayPositionsGame.id}`);
+    await expect(page.locator('.category-info-block')).toHaveCount(0);
+
+    await page.goto(`/game/${sundayGame.id}`);
     const categoryBlock = page.locator('.category-info-block');
-    await expect(categoryBlock).toContainText('Thursday 5-1');
-    await expect(categoryBlock).toHaveClass(/with-positions/);
-    await expect(categoryBlock).toHaveCSS('background-color', 'rgb(255, 248, 225)');
+    await expect(categoryBlock).toContainText('Sunday');
+    await expect(categoryBlock).toHaveClass(/without-positions/);
+    await expect(categoryBlock).toHaveCSS('background-color', 'rgb(232, 245, 233)');
   });
 });

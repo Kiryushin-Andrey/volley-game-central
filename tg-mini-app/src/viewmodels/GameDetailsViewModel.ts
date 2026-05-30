@@ -707,15 +707,29 @@ export class GameDetailsViewModel {
         const game = this.state.gameData.game;
         const timingAllowsJoin = canJoinGame(game.dateTime, game.registrationOpensAt);
         if (game.canSelfRegister === false && timingAllowsJoin) {
-          return 'Registration is not available for this game at this time.';
+          return 'You cannot register for this game at the moment.';
         }
 
         const gameDateTime = new Date(game.dateTime);
-        const registrationOpenDays = game.registrationOpenDays || DAYS_BEFORE_GAME_TO_JOIN;
-        const daysBeforeGame = new Date(gameDateTime.getTime());
-        daysBeforeGame.setDate(daysBeforeGame.getDate() - registrationOpenDays);
-        
-        let message = `Registration opens ${daysBeforeGame.toLocaleDateString()} (${registrationOpenDays} days before the game).`;
+        let opensAt: Date;
+        let daysBefore: number;
+
+        if (game.registrationOpensAt) {
+          opensAt = new Date(game.registrationOpensAt);
+          const opensDay = new Date(opensAt.getFullYear(), opensAt.getMonth(), opensAt.getDate());
+          const gameDay = new Date(
+            gameDateTime.getFullYear(),
+            gameDateTime.getMonth(),
+            gameDateTime.getDate(),
+          );
+          daysBefore = Math.round((gameDay.getTime() - opensDay.getTime()) / (24 * 60 * 60 * 1000));
+        } else {
+          daysBefore = game.registrationOpenDays || DAYS_BEFORE_GAME_TO_JOIN;
+          opensAt = new Date(gameDateTime.getTime());
+          opensAt.setDate(opensAt.getDate() - daysBefore);
+        }
+
+        let message = `You can register for this game starting from ${opensAt.toLocaleDateString()} (${daysBefore} days before the game).`;
         
         // Add disclaimer for non-priority users about priority players
         if (

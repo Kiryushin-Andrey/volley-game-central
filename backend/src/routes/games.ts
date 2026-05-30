@@ -98,7 +98,7 @@ function classifyGame(game: { dateTime: Date | string; gameFormat: GameFormat | 
   if (dayOfWeek === 3) { // Thursday
     return isPositionsGame(format) ? 'thursday-5-1' : 'other';
   } else if (dayOfWeek === 6) { // Sunday
-    return 'sunday';
+    return format === 'recreational' ? 'sunday' : 'other';
   } else {
     return 'other';
   }
@@ -202,7 +202,7 @@ router.post('/:gameId/register', async (req, res) => {
     if (!eligibility.canSelfRegister) {
       if (eligibility.blockReason === 'level') {
         return res.status(403).json({
-          error: 'Registration is not available for this game at this time.',
+          error: 'You cannot register for this game at the moment.',
           registrationOpensAt: eligibility.registrationOpensAt,
         });
       }

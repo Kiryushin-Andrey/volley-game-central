@@ -33,7 +33,7 @@ test.describe('positions game level restrictions', () => {
     await page.goto(`/game/${game.id}`);
 
     await expect(page.getByRole('button', { name: 'Join Game' })).toHaveCount(0);
-    await expect(page.getByText(/Registration is not available for this game/i)).toBeVisible();
+    await expect(page.getByText(/You cannot register for this game at the moment/i)).toBeVisible();
   });
 
   test('E2E-POSLVL-002 advanced can join positions game within base window', async ({ page, request }, testInfo) => {
@@ -68,7 +68,8 @@ test.describe('positions game level restrictions', () => {
     await switchToUser(page, intermediate);
     await page.goto(`/game/${game.id}`);
     await expect(page.getByRole('button', { name: 'Join Game' })).toHaveCount(0);
-    await expect(page.getByText(/Registration opens/i)).toBeVisible();
+    await expect(page.getByText(/You can register for this game starting from/i)).toBeVisible();
+    await expect(page.getByText(/3 days before the game/)).toBeVisible();
   });
 
   test('E2E-POSLVL-004 recreational game unaffected for beginner', async ({ page, request }, testInfo) => {

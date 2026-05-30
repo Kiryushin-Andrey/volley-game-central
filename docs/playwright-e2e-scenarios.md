@@ -100,9 +100,11 @@ Spec: `e2e/positions-level-restrictions.spec.ts`
 
 Requires `POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED=true` (default in `scripts/playwright-dev-server.sh`). Only **positions** format games enforce level rules; recreational and priority players games are unchanged.
 
+When registration is blocked by timing, game details show `You can register for this game starting from {date} ({N} days before the game).` The date and `{N}` come from the backend's per-user `registrationOpensAt`, which reflects the viewer's player level on positions games (e.g. intermediate → 3 days before start, not the default 10-day window).
+
 - [x] E2E-POSLVL-001: Beginner on a positions game within the normal registration window sees no **Join Game** button and a generic unavailable message (no level wording).
 - [x] E2E-POSLVL-002: Advanced player on a positions game within the registration window sees **Join Game**.
-- [x] E2E-POSLVL-003: Intermediate player more than three days before a positions game sees no **Join Game** and registration-opens info text.
+- [x] E2E-POSLVL-003: Intermediate player more than three days before a positions game sees no **Join Game** and `You can register for this game starting from … (3 days before the game)` — date and day count from level-aware `registrationOpensAt`, not 10 days.
 - [x] E2E-POSLVL-004: Beginner on a recreational game within the registration window can still join.
 
 ## Game details participant scenarios
@@ -127,7 +129,7 @@ Spec: `e2e/game-details-participant.spec.ts`
 
 Spec: `e2e/registration-windows-guests-blocked.spec.ts`
 
-- [x] E2E-WIN-001: Participant sees `Registration opens` (10 days before the game) and cannot join when the game is outside the registration window.
+- [x] E2E-WIN-001: Participant sees `You can register for this game starting from …` (10 days before the game) and cannot join when the game is outside the registration window.
 - [x] E2E-WIN-002: Participant can join when registration is open but **Add guest** is hidden before the guest registration window.
 
 ## Blocked user scenarios
