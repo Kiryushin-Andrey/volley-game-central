@@ -20,7 +20,7 @@ The product is delivered primarily as a **Telegram Mini App** (embedded in Teleg
 | Problem | How the product addresses it |
 |--------|------------------------------|
 | Scattered sign-up (chats, spreadsheets) | Central schedule with live capacity and waitlist |
-| Fair access to popular slots | Registration windows, priority players, optional skill gating for positions games |
+| Fair access to popular slots | Registration windows, optional skill gating for positions games |
 | Collecting hall fees | Per-game pricing, payment requests after games, pay links, reminders |
 | Organizer workload | Game administrators per weekday/format, admin tools on game pages |
 | Skill-appropriate competitive play | Internal player levels (invisible to regular players) for positions games when enabled |
@@ -52,7 +52,6 @@ The product is delivered primarily as a **Telegram Mini App** (embedded in Teleg
 | **Global administrator** | Full club operations: all games, payments config, player moderation, game administrator assignments, player levels |
 | **Assigned game administrator** | Runs games for specific weekday + format assignments (e.g. Thursday positions); can create/edit/manage those games |
 | **Technical Committee member (TC)** | Manages internal **player levels** only; no payment moderation or game-administrator management unless also global admin |
-| **Priority player** | Participant on a list tied to a game-administrator assignment; gets earlier registration on **priority players** format games |
 
 ### 2.2 Role capabilities summary
 
@@ -101,7 +100,6 @@ TC membership and global admin flags are **granted outside the app** (database);
 | `/players` | Players hub | Global admin only |
 | `/game-administrators` | Game administrators | Global admin |
 | `/player-levels` | Player levels | Global admin, TC |
-| `/priority-players/:assignmentId` | Priority players for one assignment | Global admin, or owner of assignment |
 | `/bunq-settings` | Bunq integration (club default) | Global admin |
 | `/bunq-settings/user/:userId` | Bunq integration (per game admin) | Global admin |
 | `/check-payments` | Global payment check | Reachable by URL (password gate); not linked in main nav |
@@ -139,7 +137,7 @@ A scheduled volleyball session with:
 - Maximum players (capacity for active roster)  
 - Unregister deadline (hours before start; default 5)  
 - Cost (see pricing)  
-- **Game format** (exactly one): recreational, positions, or priority players  
+- **Game format** (exactly one): recreational or positions  
 - **Readonly** flag — when on, participants cannot self-register or leave; organizers manage roster manually  
 - Optional **seasonal tag** for visual theming only: Halloween, New Year, March 8  
 - **Category** (derived for UX, not a separate field): Thursday 5-1, Sunday, Other — based on weekday + format  
@@ -150,9 +148,8 @@ A scheduled volleyball session with:
 |--------|--------------------------------|---------|
 | Recreational | Recreational game | Open style; no assigned positions; standard registration window |
 | Positions | With positions | 5-1 style assigned positions; may use skill gating when enabled |
-| Priority players | With priority players | Early registration for listed priority players; not a positions game |
 
-Help text on the form: *Recreational: open registration for everyone. With positions: 5-1 assigned positions. With priority players: early registration windows without positions.*
+Help text on the form: *Recreational: open registration for everyone. With positions: 5-1 assigned positions.*
 
 ### 4.3 Registration states
 
@@ -168,9 +165,7 @@ Badges: **You're in** (active), **Waitlist**.
 
 | Rule | Days before game | Notes |
 |------|------------------|-------|
-| Standard self-registration opens | 10 | Recreational and positions (non-priority) |
-| Priority player self-registration | 10 | On priority players format games |
-| Regular player on priority format | 3 | After priority window |
+| Standard self-registration opens | 10 | Recreational and positions games |
 | Guest registration opens | 3 | Host must also be allowed to register |
 | Unregister deadline | 5 hours before start (configurable per game 0–48h) | Waitlisted users may always leave |
 
@@ -193,20 +188,16 @@ Server may return a precise `registrationOpensAt` datetime (e.g. level-based 3-d
 
 Restrictions apply only to **positions** format and only when globally enabled (off by default at deploy).
 
-### 4.6 Priority player
-
-A user linked to a **game administrator assignment** (weekday + optional “5-1 positions” flag). On games that match that assignment’s day/type, they may register earlier (10 days) on **priority players** format games. Others see an extra info line that priority players can register ahead.
-
-### 4.7 Game administrator assignment
+### 4.6 Game administrator assignment
 
 Links a user to:
 
 - Day of week (Monday–Sunday)  
 - Whether the assignment is for **5-1 positions** games on that day  
 
-From this assignment, organizers manage **priority players** and optional **per-user Bunq settings**.
+From this assignment, organizers may configure optional **per-user Bunq settings** (payment collection for games they run).
 
-### 4.8 Pricing
+### 4.7 Pricing
 
 | Mode | Organizer enters | Participant sees |
 |------|------------------|------------------|
@@ -215,7 +206,7 @@ From this assignment, organizers manage **priority players** and optional **per-
 
 Payment amount of zero hides price line.
 
-### 4.9 Payments lifecycle
+### 4.8 Payments lifecycle
 
 1. Game takes place (or becomes past / readonly).  
 2. Game admin sends **payment requests** (requires Bunq enabled + password).  
@@ -224,7 +215,7 @@ Payment amount of zero hides price line.
 5. Admin can **check payments** (per game or global) with Bunq password; marks paid/unpaid on roster after requests sent.  
 6. Admin can send **payment reminder** from player info dialog.
 
-### 4.10 Blocked user
+### 4.9 Blocked user
 
 Global admin blocks with a **reason** string. Blocked user cannot register or add guests; reason shown in player info and in registration-blocked dialogs.
 
@@ -343,7 +334,7 @@ Each card shows:
   - Upcoming in window: registered / max  
   - Upcoming outside window: total registered / max  
   - Past: paid count / total registered  
-- Left border color: **yellow** = positions game; **green** = recreational or priority players  
+- Left border color: **yellow** = positions game; **green** = recreational  
 - Seasonal decorations on card when tagged  
 
 **Interaction:** Tap card → game details.
@@ -391,7 +382,7 @@ Each card shows:
 - Active players list: avatar, name, **You**, guest “Invited by …”, volleyball icon if bringing ball  
 - **Waiting List** section (upcoming only)  
 - Empty: **No players registered yet** / **Be the first to join this game!**  
-- Info text footer (registration timing, leave deadline, priority disclaimer)  
+- Info text footer (registration timing, leave deadline)  
 - Processing overlay: **Processing…**
 
 #### Primary action
@@ -437,7 +428,7 @@ Each card shows:
 | Location name | **Location name:** | Required |
 | Maps URL | **Location link (Maps URL):** | Optional |
 | Title | **Game Title (optional):** | Max 255 chars |
-| Format | **Game format:** | Dropdown: Recreational / With positions / With priority players |
+| Format | **Game format:** | Dropdown: Recreational / With positions |
 | Readonly | **Readonly (close registration)** | Toggle + help |
 
 **Actions:** **Cancel** (back), **Create Game** / **Creating…**
@@ -486,7 +477,7 @@ Metadata can be edited even on past games after payment requests; roster rules d
 |---------|---------|
 | Empty | **No administrator assignments yet.** / **Create one to get started.** |
 | Row | Avatar + name (→ player info), weekday badge, optional **5-1** badge |
-| Icons | Priority players list; Bunq settings for that user |
+| Icons | Bunq settings for that user |
 | Delete | Confirm deletion |
 | **Add Assignment** | Opens form |
 
@@ -522,23 +513,7 @@ Metadata can be edited even on past games after payment requests; roster rules d
 
 ---
 
-### 5.10 Priority players (`/priority-players/:assignmentId`)
-
-**Purpose:** Maintain early-access list for one game admin assignment.
-
-| Element | Content |
-|---------|---------|
-| Title | **Priority Players** |
-| Header | Assignment owner, day, 5-1 badge |
-| List | Priority users; tap → player info |
-| Empty | **No priority players yet.** |
-| Manage | **Add Priority Player** + user search; delete with confirm |
-
-**Access:** Global admin or the assigned user on that row. TC-only redirected away.
-
----
-
-### 5.11 Bunq settings (`/bunq-settings` and `/bunq-settings/user/:id`)
+### 5.10 Bunq settings (`/bunq-settings` and `/bunq-settings/user/:id`)
 
 **Purpose:** Connect Dutch Bunq bank API for payment requests.
 
@@ -554,7 +529,7 @@ Metadata can be edited even on past games after payment requests; roster rules d
 
 ---
 
-### 5.12 Check payments (`/check-payments`)
+### 5.11 Check payments (`/check-payments`)
 
 **Purpose:** Bulk reconcile all unpaid games.
 
@@ -562,7 +537,7 @@ On open: password dialog **Enter Bunq API Password** with explanation. Success s
 
 ---
 
-### 5.13 Browser header (authenticated web only)
+### 5.12 Browser header (authenticated web only)
 
 | Element | Behavior |
 |---------|----------|
@@ -629,7 +604,7 @@ Used for: install webhook, send payment requests, check payments (game or global
 
 ### 6.7 Confirmation popups (native-style)
 
-Used for: leave game, unregister guest, remove player, mark paid/unpaid, delete game, disable Bunq, delete assignments, priority player delete.
+Used for: leave game, unregister guest, remove player, mark paid/unpaid, delete game, disable Bunq, delete assignments.
 
 Typical pattern: title, message, **Cancel** + destructive confirm.
 
@@ -681,26 +656,20 @@ Fallback in browser without dialog provider: `window.confirm` / `alert`.
 3. Guest appears with inviter attribution.  
 4. Host may unregister guest via trash + confirm.
 
-### 7.5 Priority players format
-
-1. Priority player registers at 10 days before.  
-2. Regular participant before day 3: info text + no join button; message mentions priority players.  
-3. Regular participant from day 3: can join.
-
-### 7.6 Positions game with level restrictions enabled
+### 7.5 Positions game with level restrictions enabled
 
 1. Beginner: no join button; generic “cannot register” if timing would allow but level blocks.  
 2. Intermediate >3 days out: info text with open date (*3 days before*).  
 3. Advanced / unassigned: join when standard window open.  
 4. Intermediate already on roster before restriction: keeps spot.
 
-### 7.7 Readonly game
+### 7.6 Readonly game
 
 1. Admin enables readonly on create or edit.  
 2. Participants see banner; no join/leave.  
 3. Admin adds/removes players and guests (guests need inviter on past/readonly before payments).
 
-### 7.8 Past game administration
+### 7.7 Past game administration
 
 1. Game datetime passes.  
 2. Admin adds missing participant before payment requests.  
@@ -709,13 +678,13 @@ Fallback in browser without dialog provider: `window.confirm` / `alert`.
 5. **Check payments** syncs from Bunq.  
 6. Admin edits title/location still allowed.
 
-### 7.9 Blocked user
+### 7.8 Blocked user
 
 1. Admin opens player info → **Block** → enters reason.  
 2. User attempts join → popup with reason.  
 3. Admin **Unblock** restores access.
 
-### 7.10 Assigned game administrator
+### 7.9 Assigned game administrator
 
 1. Global admin creates assignment: Thursday + 5-1 + user.  
 2. Assigned admin sees **Create game** but not Players/Bunq.  
@@ -723,14 +692,14 @@ Fallback in browser without dialog provider: `window.confirm` / `alert`.
 4. Attempting Wednesday game → forbidden.  
 5. Can manage that game’s roster and payments like global admin for that game only.
 
-### 7.11 Technical Committee workflow
+### 7.10 Technical Committee workflow
 
 1. TC logs in (TC flag set externally).  
 2. **Manage player levels** on home → filters list → assigns **Intermediate** on player levels page.  
 3. Opens game details → taps player → sees level read-only.  
 4. Cannot open `/players` or game administrators (redirect).
 
-### 7.12 Bunq setup (global admin)
+### 7.11 Bunq setup (global admin)
 
 1. **Bunq Settings** → enable with API credentials.  
 2. Select monetary account.  
@@ -738,17 +707,17 @@ Fallback in browser without dialog provider: `window.confirm` / `alert`.
 4. After a past game, send payment requests from game details.  
 5. Participant pays via link; admin checks payments.
 
-### 7.13 Deep link to game
+### 7.12 Deep link to game
 
 1. User opens bot with `start=game_123`.  
 2. After auth, app navigates to `/game/123`.
 
-### 7.14 Unpaid games gate on home
+### 7.13 Unpaid games gate on home
 
 1. User has unpaid items and opens app on upcoming view.  
 2. Sees unpaid block first; main list hidden until **Show upcoming games**.
 
-### 7.15 Seasonal game
+### 7.14 Seasonal game
 
 1. Game has tag Halloween / New Year / March 8.  
 2. Card and details show themed visuals + short festive note.  
@@ -765,7 +734,7 @@ Must pass all:
 - Authenticated, not blocked  
 - Telegram users: in required Telegram group  
 - Game exists, not readonly (for self-serve)  
-- Inside registration window (format-, priority-, level-aware)  
+- Inside registration window (format- and level-aware)  
 - Not already registered (for join)  
 - Capacity or waitlist available  
 - For guests: host eligible, guest window open, guest name valid  
@@ -853,7 +822,7 @@ Product should implement these user-visible strings consistently:
 - Home: **Your unpaid games**, **Pay now**, **Show upcoming games**, **Upcoming**, **Past**, **No games available**, **You're in**, **Waitlist**  
 - Game: **Join Game**, **Leave Game**, **Add guest**, **Register guest**, **Waiting List**, **You're in**, readonly banner, **€{amount} per participant**  
 - Admin: **Create New Game**, **Edit Game Settings**, **Add Participant**, **Send payment requests…**, **Check payment status…**  
-- Players: **Players**, **Game administrators**, **Player levels**, **Priority Players**  
+- Players: **Players**, **Game administrators**, **Player levels**  
 - Bunq: **Bunq Settings**, **Enable Bunq Integration**, **Install Webhook**  
 
 Category modal contains long-form English community rules (see Category Information dialog).
@@ -909,12 +878,10 @@ Category modal contains long-form English community rules (see Category Informat
 | `/players` | ✗ | ✗ | ✗ | ✓ |
 | `/game-administrators` | ✗ | ✗ | ✗ | ✓ |
 | `/player-levels` | ✗ | ✗ | ✓ | ✓ |
-| `/priority-players/:id` | ✗ | ✓** | ✗ | ✓ |
-| `/bunq-settings` | ✗*** | ✗*** | ✗*** | ✓*** |
+| `/bunq-settings` | ✗** | ✗** | ✗** | ✓** |
 
 \*Only for games matching their assignment (create/edit enforced server-side).  
-\**Only if they own that assignment.  
-\***No hard client guard; intended for global admin use.
+\**No hard client guard; intended for global admin use.
 
 ---
 
@@ -924,9 +891,8 @@ Category modal contains long-form English community rules (see Category Informat
 |------|--------|
 | Casual Sunday-style session | Recreational |
 | Thursday 5-1 competitive with positions | Positions |
-| Early access list without positions play | Priority players |
 
-Only one format per game. Positions games on Thursday with `positions` format show as category **Thursday 5-1**. Sunday recreational shows as **Sunday**.
+Only one format per game (recreational or positions). Positions games on Thursday with `positions` format show as category **Thursday 5-1**. Sunday recreational shows as **Sunday**.
 
 ---
 
@@ -938,4 +904,4 @@ Only one format per game. Positions games on Thursday with `positions` format sh
 
 ---
 
-*This PRD describes the product as implemented in the Haarlem Volley Bot / Volley Game Central codebase. When rebuilding, treat server-enforced rules as source of truth; UI should mirror eligibility without exposing internal player levels to participants.*
+*This PRD describes the target product for a rebuild of Haarlem Volley Bot / Volley Game Central. When building, treat server-enforced rules as source of truth; UI should mirror eligibility without exposing internal player levels to participants.*
