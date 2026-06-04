@@ -88,4 +88,3 @@ test-results/
 .ralph/STEERING.md
 .ralph/.next-prompt.md
 __pycache__/
-scripts/ralph/node_modules/
