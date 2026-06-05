@@ -9,9 +9,9 @@ When the task says to **implement an epic with Ralph** (or to use the **ralph** 
 
 | Situation | What “done” means in **this** session |
 |-----------|--------------------------------------|
-| No `.ralph/ralph.config.json` on the integration branch | **Bootstrap only:** write Ralph config + progress, publish, `ralph-chain-next.sh --bootstrap`, then **stop**. Success = `RALPH_CHAINED`, not shipped feature code. |
-| Config exists; `ralph-plan.sh` reports an issue or final | **One slice** (or final pass), update `progress.txt`, chain, then **stop**. |
+| No task folder under `.ralph/tasks/` for this feature | **Bootstrap only:** derive slug, create `.ralph/tasks/<slug>/`, write Ralph config + progress + `.current-task`, publish, `ralph-chain-next.sh --bootstrap`, then **stop**. Success = `RALPH_CHAINED`, not shipped feature code. |
+| `.ralph/.current-task` exists and `.ralph/tasks/<slug>/ralph.config.json` exists; `ralph-plan.sh` reports an issue or final | **One slice** (or final pass), update `progress.txt` under `tasks/<slug>/`, chain, then **stop**. |
 
 This overrides generic “complete the full issue/PR in one session” guidance. Do **not** implement all child slices in the bootstrap session, even if the issue body is large or the parent issue asks for a full implementation.
 
-**First actions:** run `./scripts/ralph-plan.sh`. If config is missing, you are bootstrap — do not edit `backend/src/`, `tg-mini-app/src/`, or feature tests until a worker session is chained.
+**First actions:** read `.ralph/.current-task` for the active slug, then run `./scripts/ralph-plan.sh`. If no task folder exists, you are bootstrap — do not edit `backend/src/`, `tg-mini-app/src/`, or feature tests until a worker session is chained.
