@@ -13,6 +13,10 @@ Edit these markdown files to change what agents see. Templates use **[Handlebars
 
 Legacy names removed: `loop-iteration-prompt.md`, `orchestrator-prompt.md` (replaced by recursive flow).
 
+## Template variables and paths
+
+Template variables like `{{config_file}}`, `{{progress_file}}`, `{{sessions_file}}` resolve to paths under `.ralph/tasks/<slug>/`. For example, `{{config_file}}` resolves to `.ralph/tasks/my-epic/ralph.config.json`.
+
 ## Render locally
 
 ```bash
@@ -20,7 +24,7 @@ Legacy names removed: `loop-iteration-prompt.md`, `orchestrator-prompt.md` (repl
 ./scripts/ralph-plan.sh
 ```
 
-Context is built in `scripts/ralph/src/render-context.ts` from `ralph.config.json` + `progress.txt`.
+Context is built in `scripts/ralph/src/render-context.ts` from `ralph.config.json` + `progress.txt` under `.ralph/tasks/<slug>/`.
 
 ## Chain partial
 

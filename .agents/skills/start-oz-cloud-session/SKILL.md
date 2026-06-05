@@ -25,7 +25,7 @@ Optional: `jq`, `curl` for the helper script.
 export WARP_API_KEY=...
 export OZ_ENVIRONMENT_ID=...
 
-./scripts/start-oz-cloud-session.sh \
+./.ralph/scripts/start-oz-cloud-session.sh \
   --title "Short run title" \
   "Your task prompt here"
 ```
@@ -52,7 +52,7 @@ Optional: paste the URL in chat only if a **human** in the same thread asked for
 ## Helper script options
 
 ```bash
-./scripts/start-oz-cloud-session.sh --help
+./.ralph/scripts/start-oz-cloud-session.sh --help
 ```
 
 | Flag | Effect |

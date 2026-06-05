@@ -27,7 +27,7 @@ From the repo root, after pushing the branch the agent should use:
 export CURSOR_API_KEY=...
 git push -u origin "$(git branch --show-current)"
 
-./scripts/start-cursor-cloud-session.sh \
+./.ralph/scripts/start-cursor-cloud-session.sh \
   --branch "$(git branch --show-current)" \
   "Your task prompt here"
 ```
@@ -54,7 +54,7 @@ Optional: if a **human** is in the same interactive chat and asked for a link, y
 ## Helper script options
 
 ```bash
-./scripts/start-cursor-cloud-session.sh --help
+./.ralph/scripts/start-cursor-cloud-session.sh --help
 ```
 
 | Flag | Effect |
