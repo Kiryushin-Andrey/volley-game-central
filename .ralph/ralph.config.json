@@ -7,7 +7,6 @@
   "prd": "docs/prd/player-levels-and-game-format.md",
   "context": "CONTEXT.md",
   "e2e": "docs/playwright-e2e-scenarios.md",
-  "stateDir": ".ralph",
   "promptsDir": ".ralph/prompts",
   "worker": "remote-cursor",
   "push": true,
