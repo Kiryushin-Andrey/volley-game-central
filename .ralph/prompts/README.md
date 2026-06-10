@@ -1,6 +1,6 @@
 # Ralph prompt templates
 
-Edit these markdown files to change what agents see. Templates use **[Handlebars](https://handlebarsjs.com/)** (`scripts/ralph`).
+Edit these markdown files to change what agents see. Templates use **[Handlebars](https://handlebarsjs.com/)** (`.ralph/scripts/ralph`).
 
 ## Files
 
@@ -20,11 +20,11 @@ Template variables like `{{config_file}}`, `{{progress_file}}`, `{{sessions_file
 ## Render locally
 
 ```bash
-./scripts/ralph-render-prompt.sh --phase issue --issue-number 20
-./scripts/ralph-plan.sh
+./.ralph/scripts/ralph-render-prompt.sh --phase issue --issue-number 20
+./.ralph/scripts/ralph-plan.sh
 ```
 
-Context is built in `scripts/ralph/src/render-context.ts` from `ralph.config.json` + `progress.txt` under `.ralph/tasks/<slug>/`.
+Context is built in `.ralph/scripts/ralph/src/render-context.ts` from `ralph.config.json` + `progress.txt` under `.ralph/tasks/<slug>/`.
 
 ## Chain partial
 

@@ -88,4 +88,4 @@ From a **local** Cursor CLI session, prefix a message with `&` to push work to t
 
 ## Related
 
-- Recursive Ralph: `scripts/ralph-chain-next.sh` with `"worker": "remote-cursor"` in `.ralph/ralph.config.json` (see `.ralph/README.md`, ralph skill)
+- Recursive Ralph: `.ralph/scripts/ralph-chain-next.sh` with `"worker": "remote-cursor"` in `.ralph/ralph.config.json` (see `.ralph/README.md`, ralph skill)

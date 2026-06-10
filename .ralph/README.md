@@ -1,6 +1,6 @@
 # Ralph recursive loop
 
-Each **iteration is one agent session** with **no memory** of prior chats. When it finishes, it updates **`progress.txt`**, runs **`scripts/ralph-chain-next.sh`** to start the **next** session (same `worker` from config unless the human changed it), appends the new session to **`sessions.log`**, commits, and **stops**. The next agent reads only **config**, **progress.txt**, **sessions.log**, and **git** — not your conversation.
+Each **iteration is one agent session** with **no memory** of prior chats. When it finishes, it updates **`progress.txt`**, runs **`.ralph/scripts/ralph-chain-next.sh`** to start the **next** session (same `worker` from config unless the human changed it), appends the new session to **`sessions.log`**, commits, and **stops**. The next agent reads only **config**, **progress.txt**, **sessions.log**, and **git** — not your conversation.
 
 Pattern: [Getting started with Ralph](https://www.aihero.dev/getting-started-with-ralph) · [11 tips](https://www.aihero.dev/tips-for-ai-coding-with-ralph-wiggum)
 
@@ -55,18 +55,18 @@ The slug is used as the folder name under `tasks/` and is read from `.current-ta
 ## Scripts
 
 ```bash
-cd scripts/ralph && npm install   # once per clone
+cd .ralph/scripts/ralph && npm install   # once per clone
 ```
 
 | Script | Role |
 |--------|------|
-| `scripts/ralph-chain-next.sh` | Plan next phase, render prompt, **start** next session, append `sessions.log`, commit, exit |
-| `scripts/ralph-render-prompt.sh` | Render a prompt to stdout or `.ralph/.next-prompt.md` |
-| `scripts/ralph-plan.sh` | JSON: next phase (`issue` / `final` / `done`) from progress |
+| `.ralph/scripts/ralph-chain-next.sh` | Plan next phase, render prompt, **start** next session, append `sessions.log`, commit, exit |
+| `.ralph/scripts/ralph-render-prompt.sh` | Render a prompt to stdout or `.ralph/.next-prompt.md` |
+| `.ralph/scripts/ralph-plan.sh` | JSON: next phase (`issue` / `final` / `done`) from progress |
 | `.ralph/scripts/start-cursor-cloud-session.sh` | Used by chain-next for `remote-cursor` |
 | `.ralph/scripts/start-oz-cloud-session.sh` | Used by chain-next for `remote-oz` |
 
-Implementation: `scripts/ralph/src/` (prompt rendering + chaining only).
+Implementation: `.ralph/scripts/ralph/src/` (prompt rendering + chaining only).
 
 Ralph scripts should resolve the active task exclusively from `.ralph/.current-task`. If `.current-task` is missing, empty, or points to a non-existing `tasks/<slug>/` folder, they should error and stop.
 
@@ -79,7 +79,7 @@ Ralph scripts should resolve the active task exclusively from `.ralph/.current-t
 5. **Publish** (before any worker):
 
    ```bash
-   ./scripts/ralph-bootstrap-publish.sh
+   ./.ralph/scripts/ralph-bootstrap-publish.sh
    ```
 
    - **Cloud** (`remote-*`): push branch + **draft PR** via `gh`
@@ -88,7 +88,7 @@ Ralph scripts should resolve the active task exclusively from `.ralph/.current-t
 6. Start first worker:
 
    ```bash
-   ./scripts/ralph-chain-next.sh --bootstrap
+   ./.ralph/scripts/ralph-chain-next.sh --bootstrap
    ```
 
 7. Orchestrator **stops**; first iteration runs in the new session.
@@ -104,7 +104,7 @@ Worker reads `.ralph/.current-task` to find the active slug, then reads config f
 At end of session (after push + progress update):
 
 ```bash
-./scripts/ralph-chain-next.sh --from-notes "issue #N pass"
+./.ralph/scripts/ralph-chain-next.sh --from-notes "issue #N pass"
 ```
 
 - **`RALPH_CHAINED <url|tmux:…>`** — next session started; **stop** current session.
@@ -126,7 +126,7 @@ Use `"push": true` for `remote-*` so each fresh VM sees the branch.
 
 1. Read **`.ralph/.current-task`** for the active slug (or check `tasks/` for existing folders).
 2. Ensure `ralph.config.json` and `progress.txt` under `.ralph/tasks/<slug>/` on the branch are current.
-3. Run **`./scripts/ralph-chain-next.sh`** (no `--bootstrap`) — starts the next incomplete issue or final pass.
+3. Run **`./.ralph/scripts/ralph-chain-next.sh`** (no `--bootstrap`) — starts the next incomplete issue or final pass.
 4. Inspect **`.ralph/tasks/<slug>/sessions.log`** for all session URLs/refs.
 If step 1 does not resolve to an existing `tasks/<slug>/` folder, scripts should fail fast and you should fix `.ralph/.current-task` before retrying.
 

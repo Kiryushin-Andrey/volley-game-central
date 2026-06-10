@@ -84,4 +84,4 @@ Docs: [Oz API and SDK](https://docs.warp.dev/reference/api-and-sdk/), [cloud age
 
 ## Related
 
-- Recursive Ralph: `scripts/ralph-chain-next.sh` with `"worker": "remote-oz"` in `.ralph/ralph.config.json` (see `.ralph/README.md`, ralph skill)
+- Recursive Ralph: `.ralph/scripts/ralph-chain-next.sh` with `"worker": "remote-oz"` in `.ralph/ralph.config.json` (see `.ralph/README.md`, ralph skill)

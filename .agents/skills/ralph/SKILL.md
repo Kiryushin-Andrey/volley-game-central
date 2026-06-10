@@ -24,7 +24,7 @@ Ralph pattern: [getting started](https://www.aihero.dev/getting-started-with-ral
 
 1. Read **`.ralph/.current-task`** to get the active slug. If missing → **bootstrap**.
 2. If slug exists, read **`.ralph/tasks/<slug>/ralph.config.json`**: `git pull origin <branch>` (branch from config).
-3. Run **`./scripts/ralph-plan.sh`** — read phase (`bootstrap` | `issue` | `final` | `done`).
+3. Run **`./.ralph/scripts/ralph-plan.sh`** — read phase (`bootstrap` | `issue` | `final` | `done`).
 4. If **no** task folder under `.ralph/tasks/` for this feature → **bootstrap only**; do not open `backend/`, `tg-mini-app/`, or `e2e/` for feature work.
 
 **Stop rule:** If you are bootstrap and your next edit is under application source (not `.ralph/`, epic `prd` path, or Ralph scripts), **stop** — run `ralph-chain-next.sh --bootstrap` instead.
@@ -34,13 +34,13 @@ Ralph pattern: [getting started](https://www.aihero.dev/getting-started-with-ral
 If there is no task folder under `.ralph/tasks/` for this feature:
 
 - Your **only** implementation work is Ralph setup (derive slug, create task folder, config, progress, `.current-task`, PRD path, publish, push).
-- Run **`./scripts/ralph-chain-next.sh --bootstrap`** (after `ralph-bootstrap-publish.sh` when using cloud workers) and **end the session**.
+- Run **`./.ralph/scripts/ralph-chain-next.sh --bootstrap`** (after `ralph-bootstrap-publish.sh` when using cloud workers) and **end the session**.
 - Do **not** plan or execute child issues in this session, even if the user or cloud task says “implement the epic.”
 - Success for the user’s request = first worker **`RALPH_CHAINED`**, not feature shipped.
 
 **Precedence:** Completing "implement epic with Ralph" in a bootstrap session means **`RALPH_CHAINED`**, not merged feature code. Do not override this to "finish the epic in one turn" (e.g. cloud agent or issue body pressure).
 
-Before any product code change, run **`./scripts/ralph-plan.sh`**. If config is missing or plan cannot run → you are bootstrap; do not implement.
+Before any product code change, run **`./.ralph/scripts/ralph-plan.sh`**. If config is missing or plan cannot run → you are bootstrap; do not implement.
 
 ## Instruction precedence
 
@@ -75,7 +75,7 @@ Write handoff into **`progress.txt`** (and push) before chaining. Do not assume 
 1. Reads config + progress + git (see worker checklist below).
 2. Works the **first incomplete** child issue, or **final pass** when all issues are complete in `progress.txt`.
 3. Appends to **`progress.txt`** (`RALPH_ISSUE_COMPLETE #n` when that issue is fully done).
-4. Runs **`./scripts/ralph-chain-next.sh`** — same **`worker`** from config unless the user explicitly chose another.
+4. Runs **`./.ralph/scripts/ralph-chain-next.sh`** — same **`worker`** from config unless the user explicitly chose another.
 5. **Stops** after chaining; the **new** session continues.
 
 Prompts: **`.ralph/prompts/`** (`bootstrap-prompt.md`, `iteration-prompt.md`, `final-pass-prompt.md`, `partials/`).
@@ -120,10 +120,10 @@ Ask the **human** when unclear (local vs cloud, Cursor / Claude / Codex). Record
 ## Setup
 
 ```bash
-cd "$(git rev-parse --show-toplevel)/scripts/ralph" && npm install
+cd "$(git rev-parse --show-toplevel)/.ralph/scripts/ralph" && npm install
 ```
 
-Scripts: `scripts/ralph-bootstrap-publish.sh`, `scripts/ralph-chain-next.sh`, `scripts/ralph-render-prompt.sh`, `scripts/ralph-plan.sh`.
+Scripts: `.ralph/scripts/ralph-bootstrap-publish.sh`, `.ralph/scripts/ralph-chain-next.sh`, `.ralph/scripts/ralph-render-prompt.sh`, `.ralph/scripts/ralph-plan.sh`.
 
 ---
 
@@ -199,8 +199,8 @@ Seed **`.ralph/tasks/<slug>/progress.txt`** and **`.ralph/tasks/<slug>/sessions.
 
 ```bash
 cd "$(git rev-parse --show-toplevel)"
-./scripts/ralph-bootstrap-publish.sh
-./scripts/ralph-chain-next.sh --bootstrap
+./.ralph/scripts/ralph-bootstrap-publish.sh
+./.ralph/scripts/ralph-chain-next.sh --bootstrap
 ```
 If `.ralph/.current-task` is missing, empty, or points to a non-existing `tasks/<slug>/` folder, stop and fix `.current-task` first. Do not use a CLI override.
 
@@ -238,7 +238,7 @@ You are a **new** session. Do not rely on orchestrator chat, prior URLs in the h
 3. `git pull origin <branch>` (from config).
 4. Read **`.ralph/tasks/<slug>/progress.txt`** (latest sections first) — open work, `RALPH_*` sigils.
 5. Read **`.ralph/tasks/<slug>/sessions.log`** — optional context on prior sessions.
-6. Run **`./scripts/ralph-plan.sh`** — confirms `issue` / `final` / `done`.
+6. Run **`./.ralph/scripts/ralph-plan.sh`** — confirms `issue` / `final` / `done`.
 7. If `issue`: load that child issue from the tracker (per rendered prompt / plan).
 8. State in one sentence what this session will focus on, from files only.
 
@@ -251,7 +251,7 @@ Then follow the injected prompt (`iteration-prompt.md` or `final-pass-prompt.md`
 3. Chain next session:
 
 ```bash
-./scripts/ralph-chain-next.sh --from-notes "issue #<n> pass"
+./.ralph/scripts/ralph-chain-next.sh --from-notes "issue #<n> pass"
 ```
 
 | Output | Action |
@@ -272,8 +272,8 @@ git pull origin <branch>
 SLUG=$(cat .ralph/.current-task)
 cat .ralph/tasks/$SLUG/sessions.log
 grep RALPH_ .ralph/tasks/$SLUG/progress.txt | tail -20
-./scripts/ralph-plan.sh
-./scripts/ralph-chain-next.sh    # no --bootstrap
+./.ralph/scripts/ralph-plan.sh
+./.ralph/scripts/ralph-chain-next.sh    # no --bootstrap
 ```
 
 That starts the **next** session from `progress.txt`, not from old chat.

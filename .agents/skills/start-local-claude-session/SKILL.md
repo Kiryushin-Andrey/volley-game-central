@@ -72,5 +72,5 @@ claude -p "Your prompt" --permission-mode acceptEdits
 
 ## Related
 
-- Recursive Ralph: `ralph.config.json` with `"worker": "local-claude"` + `scripts/ralph-chain-next.sh` (see `.ralph/README.md`)
+- Recursive Ralph: `ralph.config.json` with `"worker": "local-claude"` + `.ralph/scripts/ralph-chain-next.sh` (see `.ralph/README.md`)
 - Repo skills path: `.claude/skills/`

@@ -14,4 +14,4 @@ When the task says to **implement an epic with Ralph** (or to use the **ralph** 
 
 This overrides generic “complete the full issue/PR in one session” guidance. Do **not** implement all child slices in the bootstrap session, even if the issue body is large or the parent issue asks for a full implementation.
 
-**First actions:** read `.ralph/.current-task` for the active slug, then run `./scripts/ralph-plan.sh`. If no task folder exists, you are bootstrap — do not edit `backend/src/`, `tg-mini-app/src/`, or feature tests until a worker session is chained.
+**First actions:** read `.ralph/.current-task` for the active slug, then run `./.ralph/scripts/ralph-plan.sh`. If no task folder exists, you are bootstrap — do not edit `backend/src/`, `tg-mini-app/src/`, or feature tests until a worker session is chained.

@@ -78,4 +78,4 @@ codex exec --sandbox workspace-write --ask-for-approval never "Your prompt"
 ## Related
 
 - Skills path for Codex in this repo: `.agents/skills/`
-- Recursive Ralph: `ralph.config.json` with `"worker": "local-codex"` + `scripts/ralph-chain-next.sh` (see `.ralph/README.md`)
+- Recursive Ralph: `ralph.config.json` with `"worker": "local-codex"` + `.ralph/scripts/ralph-chain-next.sh` (see `.ralph/README.md`)

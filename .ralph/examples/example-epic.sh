@@ -7,10 +7,10 @@
 #   mkdir -p .ralph/tasks/<slug>
 #   echo '<slug>' > .ralph/.current-task
 #   # write config, progress, sessions under .ralph/tasks/<slug>/
-#   ./scripts/ralph-chain-next.sh --bootstrap
+#   ./.ralph/scripts/ralph-chain-next.sh --bootstrap
 #
 # Resume / manual next session:
-#   ./scripts/ralph-chain-next.sh
+#   ./.ralph/scripts/ralph-chain-next.sh
 
 set -euo pipefail
 
@@ -29,5 +29,5 @@ Lives at .ralph/tasks/<slug>/ralph.config.json
   "push": true
 }
 
-Then: ./scripts/ralph-chain-next.sh --bootstrap
+Then: ./.ralph/scripts/ralph-chain-next.sh --bootstrap
 EOF

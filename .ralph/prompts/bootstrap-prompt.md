@@ -43,7 +43,7 @@ Do **not** run `ralph-chain-next.sh` until after step 5.
 From repo root:
 
 ```bash
-./scripts/ralph-bootstrap-publish.sh
+./.ralph/scripts/ralph-bootstrap-publish.sh
 ```
 
 This script:
@@ -62,7 +62,7 @@ Requires **`gh`** and push access for cloud bootstrap.
 Only after step 5 succeeded:
 
 ```bash
-./scripts/ralph-chain-next.sh --bootstrap
+./.ralph/scripts/ralph-chain-next.sh --bootstrap
 ```
 If `.ralph/.current-task` is missing, empty, or points to a non-existing `tasks/<slug>/` folder, stop and fix `.current-task` first.
 

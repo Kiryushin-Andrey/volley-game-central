@@ -75,4 +75,4 @@ agent -p --force -- "Implement issue #42"
 ## Related
 
 - Cloud: `start-cursor-cloud-session`
-- Recursive Ralph: `ralph.config.json` with `"worker": "local-cursor"` + `scripts/ralph-chain-next.sh` (see `.ralph/README.md`)
+- Recursive Ralph: `ralph.config.json` with `"worker": "local-cursor"` + `.ralph/scripts/ralph-chain-next.sh` (see `.ralph/README.md`)

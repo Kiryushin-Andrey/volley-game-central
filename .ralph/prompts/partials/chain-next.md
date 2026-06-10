@@ -4,7 +4,7 @@ After **commit and push** of code and **{{progress_file}}**:
 
 ```bash
 cd "$(git rev-parse --show-toplevel)"
-./scripts/ralph-chain-next.sh --from-notes "{{#if has_issue}}issue #{{issue_number}}{{else}}iteration{{/if}}"
+./.ralph/scripts/ralph-chain-next.sh --from-notes "{{#if has_issue}}issue #{{issue_number}}{{else}}iteration{{/if}}"
 ```
 
 1. If output includes **`RALPH_CHAINED <session-ref>`** — the script has started the **next** session and appended it to **{{sessions_file}}** (committed). **Stop this session immediately.**
