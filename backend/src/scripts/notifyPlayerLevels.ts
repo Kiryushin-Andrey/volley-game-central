@@ -10,8 +10,9 @@
  *   npx tsx src/scripts/notifyPlayerLevels.ts --send              # send to everyone
  *   npx tsx src/scripts/notifyPlayerLevels.ts --user 123 --send   # send to a single player
  *
- * --user accepts an internal users.id (numeric) or a telegram_id (string). When provided,
- * the 6-month recency filter is bypassed so it can be used to test/re-send to one person.
+ * --user accepts an internal users.id (numeric) or a Telegram username (e.g. @handle or
+ * handle). When provided, the 6-month recency filter is bypassed so it can be used to
+ * test/re-send to one person.
  *
  * IMPORTANT: this script deliberately does NOT import ./services/telegramService — that
  * module launches a Telegram long-polling consumer on import, which would conflict (HTTP 409)
@@ -20,7 +21,7 @@
  */
 import 'dotenv/config';
 import { Telegraf } from 'telegraf';
-import { and, eq, gte, isNotNull, isNull, sql } from 'drizzle-orm';
+import { and, eq, gte, isNotNull, isNull } from 'drizzle-orm';
 import { db } from '../db';
 import { users, gameRegistrations } from '../db/schema';
 import { parsePlayerLevel, type PlayerLevel } from '../domain/playerLevel';
@@ -38,12 +39,18 @@ const SEND_DELAY_MS = 150;
 interface Recipient {
   id: number;
   telegramId: string;
+  telegramUsername: string | null;
   playerLevel: PlayerLevel;
   displayName: string;
 }
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Human-readable handle for logs. */
+function formatHandle(username: string | null): string {
+  return username ? `@${username}` : '(no username)';
 }
 
 interface CliArgs {
@@ -88,13 +95,20 @@ function buildMessage(level: PlayerLevel): string {
 function toRecipient(row: {
   id: number;
   telegramId: string | null;
+  telegramUsername: string | null;
   playerLevel: string | null;
   displayName: string;
 }): Recipient | { skip: string } {
   if (!row.telegramId) return { skip: 'no telegram_id' };
   const level = parsePlayerLevel(row.playerLevel);
   if (!level) return { skip: 'no player level assigned' };
-  return { id: row.id, telegramId: row.telegramId, playerLevel: level, displayName: row.displayName };
+  return {
+    id: row.id,
+    telegramId: row.telegramId,
+    telegramUsername: row.telegramUsername,
+    playerLevel: level,
+    displayName: row.displayName,
+  };
 }
 
 async function loadAudience(): Promise<Recipient[]> {
@@ -105,6 +119,7 @@ async function loadAudience(): Promise<Recipient[]> {
     .selectDistinct({
       id: users.id,
       telegramId: users.telegramId,
+      telegramUsername: users.telegramUsername,
       playerLevel: users.playerLevel,
       displayName: users.displayName,
     })
@@ -124,19 +139,21 @@ async function loadAudience(): Promise<Recipient[]> {
 
 async function loadSingleUser(userArg: string): Promise<Recipient> {
   const isNumericId = /^\d+$/.test(userArg);
+  const username = userArg.replace(/^@/, '');
   const rows = await db
     .select({
       id: users.id,
       telegramId: users.telegramId,
+      telegramUsername: users.telegramUsername,
       playerLevel: users.playerLevel,
       displayName: users.displayName,
     })
     .from(users)
-    .where(isNumericId ? eq(users.id, Number(userArg)) : eq(users.telegramId, userArg))
+    .where(isNumericId ? eq(users.id, Number(userArg)) : eq(users.telegramUsername, username))
     .limit(1);
 
   if (rows.length === 0) {
-    throw new Error(`No user found matching ${isNumericId ? `id ${userArg}` : `telegram_id ${userArg}`}`);
+    throw new Error(`No user found matching ${isNumericId ? `id ${userArg}` : `telegram username @${username}`}`);
   }
   const result = toRecipient(rows[0]);
   if ('skip' in result) {
@@ -165,7 +182,7 @@ async function main(): Promise<void> {
   console.log(`Mode: ${send ? 'SEND' : 'DRY RUN'}${user ? ` (single user: ${user})` : ''}`);
   console.log(`Recipients: ${recipients.length}`);
   for (const r of recipients) {
-    console.log(`  - ${r.displayName} (id=${r.id}, telegramId=${r.telegramId}, level=${r.playerLevel})`);
+    console.log(`  - ${r.displayName} (id=${r.id}, username=${formatHandle(r.telegramUsername)}, level=${r.playerLevel})`);
   }
 
   if (recipients.length === 0) {
@@ -186,30 +203,31 @@ async function main(): Promise<void> {
 
   for (const r of recipients) {
     const message = buildMessage(r.playerLevel);
+    const handle = formatHandle(r.telegramUsername);
     try {
       await bot.telegram.sendMessage(r.telegramId, message, { parse_mode: 'HTML' });
       sent++;
-      console.log(`Sent to ${r.displayName} (${r.telegramId})`);
+      console.log(`Sent to ${r.displayName} (${handle})`);
     } catch (err: any) {
       const retryAfterMs = getRetryAfterMs(err);
       if (retryAfterMs) {
-        console.warn(`Rate limited on ${r.telegramId}; waiting ${retryAfterMs}ms and retrying once`);
+        console.warn(`Rate limited on ${handle}; waiting ${retryAfterMs}ms and retrying once`);
         await sleep(retryAfterMs);
         try {
           await bot.telegram.sendMessage(r.telegramId, message, { parse_mode: 'HTML' });
           sent++;
-          console.log(`Sent to ${r.displayName} (${r.telegramId}) after retry`);
+          console.log(`Sent to ${r.displayName} (${handle}) after retry`);
           await sleep(SEND_DELAY_MS);
           continue;
         } catch (retryErr: any) {
           failures.push({ recipient: r, error: retryErr?.message ?? String(retryErr) });
-          console.error(`Failed to send to ${r.displayName} (${r.telegramId}) after retry:`, retryErr?.message ?? retryErr);
+          console.error(`Failed to send to ${r.displayName} (${handle}) after retry:`, retryErr?.message ?? retryErr);
           await sleep(SEND_DELAY_MS);
           continue;
         }
       }
       failures.push({ recipient: r, error: err?.message ?? String(err) });
-      console.error(`Failed to send to ${r.displayName} (${r.telegramId}):`, err?.message ?? err);
+      console.error(`Failed to send to ${r.displayName} (${handle}):`, err?.message ?? err);
     }
     await sleep(SEND_DELAY_MS);
   }
@@ -218,7 +236,7 @@ async function main(): Promise<void> {
   console.log(`Sent:   ${sent}`);
   console.log(`Failed: ${failures.length}`);
   for (const f of failures) {
-    console.log(`  - ${f.recipient.displayName} (${f.recipient.telegramId}): ${f.error}`);
+    console.log(`  - ${f.recipient.displayName} (${formatHandle(f.recipient.telegramUsername)}): ${f.error}`);
   }
 
   process.exit(failures.length > 0 ? 1 : 0);

@@ -17,7 +17,7 @@
 #   ./notify-player-levels.sh --user <id> --send     # send to a single player (test first!)
 #   ./notify-player-levels.sh --send                 # real broadcast to everyone
 #
-# --user accepts an internal users.id (numeric) or a Telegram id (string).
+# --user accepts an internal users.id (numeric) or a Telegram username (@handle or handle).
 # All arguments are forwarded verbatim to the Node script.
 
 set -euo pipefail
