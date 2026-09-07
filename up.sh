@@ -36,11 +36,27 @@ fi
 echo -e "${YELLOW}Pulling the latest Docker images...${NC}"
 docker compose -f $COMPOSE_FILE --env-file $ENV_FILE pull
 
-# Check if environment variables are properly set in the .env file
+# Check if environment variables are properly set in the .env file.
+# The list of variables is derived from $COMPOSE_FILE itself so this check can
+# never go stale when a variable is renamed: `${VAR:?...}` marks a required
+# variable, while `${VAR}` and `${VAR:-default}` are optional.
 echo -e "${YELLOW}Checking environment variables in $ENV_FILE...${NC}"
-if ! grep -q "TELEGRAM_BOT_TOKEN=" "$ENV_FILE" || ! grep -q "TELEGRAM_GROUP_ID=" "$ENV_FILE" || ! grep -q "MINI_APP_URL=" "$ENV_FILE"; then
-  echo -e "${RED}Warning: One or more required environment variables are missing in $ENV_FILE.${NC}"
-  echo -e "${YELLOW}Please make sure TELEGRAM_BOT_TOKEN, TELEGRAM_GROUP_ID, and MINI_APP_URL are set.${NC}"
+REQUIRED_VARS=$(grep -oE '\$\{[A-Za-z_][A-Za-z0-9_]*:\?' "$COMPOSE_FILE" | sed -e 's/^\${//' -e 's/:?$//' | sort -u)
+
+MISSING_VARS=""
+for var in $REQUIRED_VARS; do
+  # Last assignment wins, matching how Docker Compose reads the env file.
+  value=$(sed -n "s/^[[:space:]]*${var}=//p" "$ENV_FILE" | tail -n 1)
+  if [ -z "$value" ] && [ -z "${!var}" ]; then
+    MISSING_VARS="$MISSING_VARS $var"
+  fi
+done
+
+if [ -n "$MISSING_VARS" ]; then
+  echo -e "${RED}Warning: required environment variables are missing or empty in $ENV_FILE:${NC}"
+  for var in $MISSING_VARS; do
+    echo -e "${YELLOW}  - $var${NC}"
+  done
   read -p "Do you want to continue anyway? (y/n): " -n 1 -r
   echo
   if [[ ! $REPLY =~ ^[Yy]$ ]]; then

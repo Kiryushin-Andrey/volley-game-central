@@ -10,11 +10,13 @@ import { isDevMode, logDevMode } from '../utils/devMode';
 // Get mini app URL from environment
 const MINI_APP_URL = process.env.MINI_APP_URL || 'http://localhost:3001';
 
-// Get Telegram group chat ID from environment
+// The one community group — used for membership gating, announcements, and late sign-out notifications
 const TELEGRAM_GROUP_ID = process.env.TELEGRAM_GROUP_ID || '';
 
-// Get Telegram group topic ID from environment (optional)
-const TELEGRAM_TOPIC_ID = process.env.TELEGRAM_TOPIC_ID ? parseInt(process.env.TELEGRAM_TOPIC_ID) : undefined;
+// Topic (thread) within the group where recreational game-opening announcements are posted
+const TELEGRAM_ANNOUNCEMENTS_TOPIC_ID = process.env.TELEGRAM_ANNOUNCEMENTS_TOPIC_ID
+  ? parseInt(process.env.TELEGRAM_ANNOUNCEMENTS_TOPIC_ID)
+  : undefined;
 
 // Initialize Telegram bot
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN || '');
@@ -152,7 +154,7 @@ export async function sendGroupAnnouncement(
   }
 
   try {
-    const messageThreadId = topicId || TELEGRAM_TOPIC_ID;
+    const messageThreadId = topicId ?? TELEGRAM_ANNOUNCEMENTS_TOPIC_ID;
     const logSuffix = messageThreadId ? ` (topic: ${messageThreadId})` : '';
     console.log(`Sending announcement to group ${TELEGRAM_GROUP_ID}${logSuffix}`);
 
@@ -175,9 +177,61 @@ export async function sendGroupAnnouncement(
     });
     console.log(`Announcement sent to group ${TELEGRAM_GROUP_ID}`);
   } catch (error) {
-    const logSuffix = (topicId || TELEGRAM_TOPIC_ID) ? ` (topic: ${topicId || TELEGRAM_TOPIC_ID})` : '';
+    const logSuffix = (topicId ?? TELEGRAM_ANNOUNCEMENTS_TOPIC_ID) ? ` (topic: ${topicId ?? TELEGRAM_ANNOUNCEMENTS_TOPIC_ID})` : '';
     console.error(`Failed to send announcement to group ${TELEGRAM_GROUP_ID}${logSuffix}:`, error);
     // Don't throw the error as this is a non-critical operation
+  }
+}
+
+// How many hours before the game a sign-out is considered "late"
+export const LATE_SIGNOUT_THRESHOLD_HOURS = 48;
+
+/**
+ * Send a late sign-out notification to the topic configured via
+ * TELEGRAM_LATE_SIGNOUT_TOPIC_ID within TELEGRAM_GROUP_ID.
+ * Called only when a roster spot opens up with no one on the waitlist.
+ * Silently skips if either env var is unset.
+ *
+ * @param gameDate Date/time of the game
+ * @param gameId Game ID for the deep link button
+ */
+export async function sendLateSignoutGroupNotification(
+  gameDate: Date,
+  gameId: number
+): Promise<void> {
+  const topicId = process.env.TELEGRAM_LATE_SIGNOUT_TOPIC_ID;
+
+  if (!TELEGRAM_GROUP_ID || !topicId) {
+    return;
+  }
+
+  if (isDevMode()) {
+    logDevMode(`[SUPPRESSED] Late sign-out notification to topic ${topicId} for game ${gameId}`);
+    return;
+  }
+
+  try {
+    const formattedDate = formatGameDate(gameDate);
+    const message =
+      `🏐 A spot just opened up for the volleyball game on <b>${formattedDate}</b>!\n\n` +
+      `Join now before it's taken 👇`;
+
+    const botInfo = await bot.telegram.getMe();
+    const botUrl = buildBotUrl(botInfo.username, gameId);
+
+    await bot.telegram.sendMessage(TELEGRAM_GROUP_ID, message, {
+      parse_mode: 'HTML',
+      message_thread_id: parseInt(topicId, 10),
+      reply_markup: {
+        inline_keyboard: [[
+          { text: '🏐 Join Game', url: botUrl }
+        ]]
+      }
+    });
+    console.log(`Late sign-out notification sent to topic ${topicId} in group ${TELEGRAM_GROUP_ID} for game ${gameId}`);
+  } catch (error) {
+    console.error(`Failed to send late sign-out notification to topic ${topicId}:`, error);
+    // Non-critical – don't re-throw
   }
 }
 

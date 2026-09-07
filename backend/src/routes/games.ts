@@ -5,7 +5,7 @@ import { gte, desc, inArray, eq, and, sql, lt, lte, asc, isNull, or } from 'driz
 import type { InferSelectModel } from 'drizzle-orm';
 import { REGISTRATION_OPEN_DAYS, GUEST_REGISTRATION_OPEN_DAYS, REGULAR_PLAYER_REGISTRATION_OPEN_DAYS } from '../constants';
 import { notifyUser } from '../services/notificationService';
-import { checkTelegramGroupMembership } from '../services/telegramService';
+import { checkTelegramGroupMembership, sendLateSignoutGroupNotification, LATE_SIGNOUT_THRESHOLD_HOURS } from '../services/telegramService';
 import { getNotificationSubjectWithVerb } from '../utils/notificationUtils';
 import { formatGameDate } from '../utils/dateUtils';
 import { isUserAssignedToGameById } from '../middleware/adminOrAssignedAdmin';
@@ -436,9 +436,9 @@ router.delete('/:gameId/register', async (req, res) => {
       );
     }
 
-    // Check if someone from the waitlist is being promoted
+    // For roster sign-outs: check the updated roster for waitlist promotions and
+    // (if no one was promoted) send a late sign-out notification to the group chat.
     if (!isWaitlist) {
-      // Get all registrations again to find who's being promoted
       const updatedRegistrations = await db
         .select({
           userId: gameRegistrations.userId,
@@ -449,31 +449,43 @@ router.delete('/:gameId/register', async (req, res) => {
         .where(eq(gameRegistrations.gameId, parseInt(gameId)))
         .orderBy(gameRegistrations.createdAt);
 
-      // If there are more registrations than maxPlayers, someone is being promoted
-      if (updatedRegistrations.length >= game[0].maxPlayers) {
-        // The user at position maxPlayers - 1 is now the last non-waitlisted player
+      const waitlistIsEmpty = updatedRegistrations.length < game[0].maxPlayers;
+
+      // Promote the first waitlisted player if one exists
+      if (!waitlistIsEmpty) {
         const promotedRegistration = updatedRegistrations[game[0].maxPlayers - 1];
         const promotedUserId = promotedRegistration.userId;
         const promotedGuestName = promotedRegistration.guestName;
 
-        // Get the promoted user's details to send notification
         const promotedUser = await db
           .select()
           .from(users)
           .where(eq(users.id, promotedUserId));
 
         if (promotedUser.length > 0) {
-          // Format date for the notification
           const gameDate = new Date(game[0].dateTime);
           const formattedDate = formatGameDate(gameDate);
 
-          // Send notification to the promoted user
           const subject = getNotificationSubjectWithVerb(promotedGuestName, 'have');
           await notifyUser(
             promotedUser[0],
             `🎉 Good news! ${subject} been moved from the waiting list to the participants list for the volleyball game on ${formattedDate}. See you there! 🏐`,
             game[0].id
           );
+        }
+      }
+
+      // Notify the group chat when a spot opened up and nobody is waiting to fill it.
+      // Only for positions games — those have fixed assignments so a late drop is impactful.
+      if (waitlistIsEmpty && isPositionsGame(game[0].gameFormat as GameFormat)) {
+        const gameDateTime = new Date(game[0].dateTime);
+        const now = new Date();
+        const hoursUntilGame = (gameDateTime.getTime() - now.getTime()) / 3_600_000;
+        if (hoursUntilGame >= 0 && hoursUntilGame < LATE_SIGNOUT_THRESHOLD_HOURS) {
+          sendLateSignoutGroupNotification(
+            gameDateTime,
+            game[0].id
+          ).catch((err) => console.error('Late sign-out notification failed:', err));
         }
       }
     }
