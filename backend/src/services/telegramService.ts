@@ -313,10 +313,10 @@ export async function checkAndSendGameReminders(): Promise<void> {
     const now = new Date();
     
     const reminderWindowStart = new Date(now);
-    reminderWindowStart.setHours(reminderWindowStart.getHours() + 23);
+    reminderWindowStart.setHours(reminderWindowStart.getHours() + 31);
     
     const reminderWindowEnd = new Date(now);
-    reminderWindowEnd.setHours(reminderWindowEnd.getHours() + 24);
+    reminderWindowEnd.setHours(reminderWindowEnd.getHours() + 32);
     
     // Find games starting in the reminder window
     const upcomingGames = await db
