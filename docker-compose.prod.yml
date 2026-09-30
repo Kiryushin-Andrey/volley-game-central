@@ -23,7 +23,8 @@ services:
       TWILIO_MESSAGING_SERVICE_SID: ${TWILIO_MESSAGING_SERVICE_SID:?TWILIO_MESSAGING_SERVICE_SID is required}
       TWILIO_API_KEY_SID: ${TWILIO_API_KEY_SID:-}
       TWILIO_API_KEY_SECRET: ${TWILIO_API_KEY_SECRET:-}
-      
+      # Position game level restrictions
+      POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED: ${POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED:-}
       # Auth / Security
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       # Application settings
