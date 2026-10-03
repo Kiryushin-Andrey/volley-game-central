@@ -3,7 +3,6 @@ import { db } from '../db';
 import { games, gameRegistrations, users, gameAdministrators, priorityPlayers } from '../db/schema';
 import { gte, desc, inArray, eq, and, sql, lt, lte, asc, isNull, or } from 'drizzle-orm';
 import type { InferSelectModel } from 'drizzle-orm';
-import { REGISTRATION_OPEN_DAYS, GUEST_REGISTRATION_OPEN_DAYS, REGULAR_PLAYER_REGISTRATION_OPEN_DAYS } from '../constants';
 import { notifyUser } from '../services/notificationService';
 import { checkTelegramGroupMembership, sendLateSignoutGroupNotification, LATE_SIGNOUT_THRESHOLD_HOURS } from '../services/telegramService';
 import { getNotificationSubjectWithVerb } from '../utils/notificationUtils';
@@ -17,6 +16,17 @@ import {
   usesPriorityPlayerWindows,
   type GameFormat,
 } from '../domain/gameFormat';
+import {
+  GAME_CATEGORIES,
+  GUEST_REGISTRATION_OPEN_DAYS,
+  REGISTRATION_OPEN_DAYS,
+  classifyGame,
+  guestRegistrationOpensAt,
+  isGuestRegistrationOpen,
+  registrationOpenDaysFor,
+  registrationOpensAt,
+  type GameCategory,
+} from '../domain/gamePolicy';
 import {
   computeSelfRegistrationEligibility,
   getPlayerLevelForUser,
@@ -65,43 +75,28 @@ async function isUserPriorityPlayerForGame(
   return priorityPlayerCheck.length > 0;
 }
 
-// Helper function to get registration open days for a user and game
 async function getRegistrationOpenDays(
   userId: number,
   game: { dateTime: Date | string; gameFormat: GameFormat | string },
   isGuest: boolean
 ): Promise<number> {
-  const format = asGameFormat(String(game.gameFormat));
   if (isGuest) {
-    return GUEST_REGISTRATION_OPEN_DAYS;
+    return registrationOpenDaysFor({
+      isGuest: true,
+      gameFormat: game.gameFormat,
+      isPriorityPlayer: false,
+    });
   }
 
-  if (usesPriorityPlayerWindows(format)) {
-    const isPriority = await isUserPriorityPlayerForGame(userId, game);
-    return isPriority ? REGISTRATION_OPEN_DAYS : REGULAR_PLAYER_REGISTRATION_OPEN_DAYS;
-  }
+  const isPriorityPlayer = usesPriorityPlayerWindows(asGameFormat(String(game.gameFormat)))
+    ? await isUserPriorityPlayerForGame(userId, game)
+    : false;
 
-  return REGISTRATION_OPEN_DAYS;
-}
-
-// Helper function to classify a game into a category
-type GameCategory = 'thursday-5-1' | 'sunday' | 'other';
-
-function classifyGame(game: { dateTime: Date | string; gameFormat: GameFormat | string }): GameCategory {
-  const format = asGameFormat(String(game.gameFormat));
-  const gameDate = new Date(game.dateTime);
-  let dayOfWeek = gameDate.getDay();
-  // Convert JavaScript day (0=Sunday, 1=Monday, ..., 6=Saturday) to Monday=0 format
-  dayOfWeek = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  
-  // Thursday = 3, Sunday = 6
-  if (dayOfWeek === 3) { // Thursday
-    return isPositionsGame(format) ? 'thursday-5-1' : 'other';
-  } else if (dayOfWeek === 6) { // Sunday
-    return format === 'recreational' ? 'sunday' : 'other';
-  } else {
-    return 'other';
-  }
+  return registrationOpenDaysFor({
+    isGuest: false,
+    gameFormat: game.gameFormat,
+    isPriorityPlayer,
+  });
 }
 
 // Register user for a game
@@ -161,10 +156,7 @@ router.post('/:gameId/register', async (req, res) => {
     const isGuestRegistration = !!guestName;
     
     const registrationOpenDays = await getRegistrationOpenDays(userId, game[0], isGuestRegistration);
-    const baseRegistrationOpensAt = new Date(gameDateTime);
-    baseRegistrationOpensAt.setDate(
-      baseRegistrationOpensAt.getDate() - registrationOpenDays,
-    );
+    const baseRegistrationOpensAt = registrationOpensAt(gameDateTime, registrationOpenDays);
 
     const playerLevel = await getPlayerLevelForUser(userId);
     const hasExistingSelfRegistration = await userHasSelfRegistrationOnGame(
@@ -175,8 +167,7 @@ router.post('/:gameId/register', async (req, res) => {
     let hostCanSelfRegister = true;
     if (isGuestRegistration) {
       const hostSelfDays = await getRegistrationOpenDays(userId, game[0], false);
-      const hostBaseOpensAt = new Date(gameDateTime);
-      hostBaseOpensAt.setDate(hostBaseOpensAt.getDate() - hostSelfDays);
+      const hostBaseOpensAt = registrationOpensAt(gameDateTime, hostSelfDays);
       const hostEligibility = computeSelfRegistrationEligibility({
         game: game[0],
         playerLevel,
@@ -562,10 +553,7 @@ router.get('/:gameId', async (req, res) => {
     // Check if user is a priority player for this game (for frontend display)
     const isPriorityPlayer = await isUserPriorityPlayerForGame(req.user.id, game[0]);
     const registrationOpenDays = await getRegistrationOpenDays(req.user.id, game[0], false);
-    const baseRegistrationOpensAt = new Date(game[0].dateTime);
-    baseRegistrationOpensAt.setDate(
-      baseRegistrationOpensAt.getDate() - registrationOpenDays,
-    );
+    const baseRegistrationOpensAt = registrationOpensAt(game[0].dateTime, registrationOpenDays);
     const now = new Date();
     const playerLevel = await getPlayerLevelForUser(req.user.id);
     const hasExistingSelfRegistration = await userHasSelfRegistrationOnGame(
@@ -581,6 +569,9 @@ router.get('/:gameId', async (req, res) => {
       hasExistingSelfRegistration,
       baseRegistrationOpensAt,
     });
+    const guestOpensAt = guestRegistrationOpensAt(game[0].dateTime);
+    const canRegisterGuest =
+      eligibility.canSelfRegister && isGuestRegistrationOpen(game[0].dateTime, now);
 
     // Ensure legacy field not leaked; respond with new fields
     const { locationAddress: _deprecated, ...restGame } = game[0] as any;
@@ -589,9 +580,13 @@ router.get('/:gameId', async (req, res) => {
       registrations: registrationsWithWaitlistStatus,
       collectorUser,
       isAssignedAdmin,
+      category: classifyGame(game[0]),
       registrationOpenDays,
       registrationOpensAt: eligibility.registrationOpensAt.toISOString(),
       canSelfRegister: eligibility.canSelfRegister,
+      guestRegistrationOpensAt: guestOpensAt.toISOString(),
+      guestRegistrationOpenDays: GUEST_REGISTRATION_OPEN_DAYS,
+      canRegisterGuest,
       isPriorityPlayer,
     });
   } catch (error) {
@@ -697,9 +692,10 @@ router.get('/', async (req, res) => {
 
     // Apply category filter if specified (only for upcoming games)
     if (categories && categories.length > 0 && !showPast) {
-      const validCategories: GameCategory[] = ['thursday-5-1', 'sunday', 'other'];
-      const validSelectedCategories = categories.filter(cat => validCategories.includes(cat));
-      
+      const validSelectedCategories = categories.filter((cat) =>
+        GAME_CATEGORIES.includes(cat),
+      );
+
       if (validSelectedCategories.length > 0) {
         filteredGames = filteredGames.filter((game) => {
           const gameCategory = classifyGame(game);
@@ -770,6 +766,9 @@ router.get('/', async (req, res) => {
           // Do not include registrations array for performance
           registrations: [],
           totalRegisteredCount: totalCount,
+          category: classifyGame(game),
+          guestRegistrationOpensAt: guestRegistrationOpensAt(game.dateTime).toISOString(),
+          guestRegistrationOpenDays: GUEST_REGISTRATION_OPEN_DAYS,
         };
 
         // Add specific counts based on game timing

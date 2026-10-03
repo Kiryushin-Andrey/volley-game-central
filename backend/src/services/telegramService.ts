@@ -3,7 +3,10 @@ import { formatLocationSection } from '../utils/telegramMessageUtils';
 import { db } from '../db';
 import { games, gameRegistrations, users } from '../db/schema';
 import { gt, lte, and, eq, count } from 'drizzle-orm';
-import { REGISTRATION_OPEN_DAYS } from '../constants';
+import {
+  REGISTRATION_OPEN_DAYS,
+  isBaseRegistrationOpen,
+} from '../domain/gamePolicy';
 import { formatGameDate, formatGameDateShort } from '../utils/dateUtils';
 import { isDevMode, logDevMode } from '../utils/devMode';
 
@@ -442,13 +445,10 @@ async function debugPostAllOpenRegistrations(): Promise<void> {
       .groupBy(games.id)
       .orderBy(games.dateTime);
     
-    // Filter games that are open for registration (less than X days away)
-    const openRegistrationGames = upcomingGames.filter(game => {
-      const gameDate = new Date(game.dateTime);
-      const registrationOpensAt = new Date(gameDate);
-      registrationOpensAt.setDate(registrationOpensAt.getDate() - REGISTRATION_OPEN_DAYS);
-      return now >= registrationOpensAt;
-    });
+    // Filter games that are open for registration (base policy window)
+    const openRegistrationGames = upcomingGames.filter((game) =>
+      isBaseRegistrationOpen(game.dateTime, now),
+    );
     
     console.log(`[DEBUG] Found ${openRegistrationGames.length} games with open registration`);
     
