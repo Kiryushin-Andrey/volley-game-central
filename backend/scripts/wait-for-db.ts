@@ -1,7 +1,7 @@
 import { Pool } from 'pg';
 import 'dotenv/config';
 
-const maxRetries = 20;
+const maxRetries = 60;
 const retryInterval = 1000; // 1 second
 
 const pool = new Pool({
