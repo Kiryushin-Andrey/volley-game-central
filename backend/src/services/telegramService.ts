@@ -499,6 +499,3 @@ export function launchBot(): void {
   process.once('SIGINT', () => bot.stop('SIGINT'));
   process.once('SIGTERM', () => bot.stop('SIGTERM'));
 }
-
-// Initialize the bot when this module is imported
-launchBot();
