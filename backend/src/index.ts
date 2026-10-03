@@ -13,7 +13,7 @@ import priorityPlayersRoutes from './routes/priorityPlayers';
 import playerLevelsRoutes from './routes/playerLevels';
 import authRoutes from './routes/auth';
 import webhookRoutes from './routes/webhooks';
-import './services/telegramService'; // Import to ensure the bot is initialized
+import { launchBot } from './services/telegramService';
 import cookieParser from 'cookie-parser';
 import { authMiddleware } from './middleware/auth';
 import { adminAuthMiddleware } from './middleware/adminAuth';
@@ -78,7 +78,8 @@ app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
 
-// Bot commands are now configured in telegramService.ts
+// Start Telegram bot explicitly (not on telegramService import)
+launchBot();
 
 // Handle shutdown - bot shutdown is handled in telegramService.ts
 process.on('SIGTERM', () => {
