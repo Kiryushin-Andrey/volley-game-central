@@ -7,7 +7,6 @@ import { sendGroupAnnouncement } from '../services/telegramService';
 import { notifyUser } from '../services/notificationService';
 import { gameService } from '../services/gameService';
 import { bunqService } from '../services/bunqService';
-import { REGISTRATION_OPEN_DAYS } from '../constants';
 import { formatLocationSection } from '../utils/telegramMessageUtils';
 import { getNotificationSubjectWithVerb } from '../utils/notificationUtils';
 import { formatGameDate } from '../utils/dateUtils';
@@ -20,6 +19,10 @@ import {
   usesPriorityPlayerWindows,
   type GameFormat,
 } from '../domain/gameFormat';
+import {
+  baseRegistrationOpensAt,
+  isBaseRegistrationOpen,
+} from '../domain/gamePolicy';
 
 const router = Router();
 
@@ -110,10 +113,7 @@ router.post('/', async (req, res) => {
       const created = newGame[0];
       const gameDate = new Date(created.dateTime);
       const now = new Date();
-      const registrationOpensAt = new Date(gameDate);
-      registrationOpensAt.setDate(registrationOpensAt.getDate() - REGISTRATION_OPEN_DAYS);
-
-      const isRegistrationOpen = now >= registrationOpensAt;
+      const isRegistrationOpen = isBaseRegistrationOpen(gameDate, now);
       const isPositions = isPositionsGame(created.gameFormat as GameFormat);
       const isFutureGame = gameDate > now;
       const isReadonly = !!created.readonly;
@@ -406,8 +406,8 @@ router.post('/:gameId/participants', async (req, res) => {
       return res.status(400).json({ error: guestName ? 'This guest is already registered for this game' : 'User already registered for this game' });
     }
 
-    const registrationOpenDate = new Date(gameDateTime);
-    registrationOpenDate.setDate(registrationOpenDate.getDate() - REGISTRATION_OPEN_DAYS);
+    // Synthetic createdAt at base window open so admin-added players sort ahead of late joiners
+    const registrationOpenDate = baseRegistrationOpensAt(gameDateTime);
 
     const registration = await db
       .insert(gameRegistrations)

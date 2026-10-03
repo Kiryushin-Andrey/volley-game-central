@@ -167,7 +167,8 @@ export const gamesApi = {
     locationName?: string | null;
     locationLink?: string | null;
     title?: string | null;
-  }): Promise<Game> {
+  }): Promise<{ id: number }> {
+    // Admin create returns the raw DB row (no detail policy fields).
     return api.post('/games/admin', gameData).then(res => res.data);
   },
 
@@ -220,7 +221,8 @@ export const gamesApi = {
     locationName?: string | null;
     locationLink?: string | null;
     title?: string | null;
-  }): Promise<Game> {
+  }): Promise<{ id: number }> {
+    // Admin update returns the raw DB row (no detail policy fields).
     return api.put(`/games/admin/${gameId}`, gameData).then(res => res.data);
   },
 

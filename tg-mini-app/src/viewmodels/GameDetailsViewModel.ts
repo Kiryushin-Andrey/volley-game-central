@@ -5,7 +5,7 @@ import { Game, User } from '../types';
 import type { UserPublicInfo } from '../types';
 import { ActionGuard } from '../utils/actionGuard';
 import { getUserRegistration } from '../utils/registrationsUtils';
-import { isGamePast, isGameUpcoming, canJoinGame, canLeaveGame, canRegisterGuest, DAYS_BEFORE_GAME_TO_JOIN, DAYS_BEFORE_GAME_TO_REGISTER_GUEST, classifyGame, GameCategory } from '../utils/gameDateUtils';
+import { isGamePast, isGameUpcoming, canJoinGame, canLeaveGame, GameCategory } from '../utils/gameDateUtils';
 
 export interface GameDataState {
   game: Game | null;
@@ -126,7 +126,7 @@ export class GameDetailsViewModel {
 
   get gameCategory(): GameCategory | null {
     if (!this.game) return null;
-    return classifyGame(this.game.dateTime, this.game.gameFormat);
+    return this.game.category;
   }
 
   get isLoading(): boolean {
@@ -495,7 +495,7 @@ export class GameDetailsViewModel {
   handleRemovePlayer(userId: number, guestName?: string): void {
     if (!this.state.gameData.game || this.state.action.isActionLoading) return;
 
-    const isGameAdmin = this.user.isAdmin || (this.state.gameData.game.isAssignedAdmin ?? false);
+    const isGameAdmin = this.user.isAdmin || this.state.gameData.game.isAssignedAdmin;
     const canUnregister = this.canUnregister();
     if (isGameAdmin && (userId != this.user.id || !canUnregister)) {
       this.removePlayer(this.state.gameData.game, userId, guestName);
@@ -579,19 +579,17 @@ export class GameDetailsViewModel {
       return;
     }
     
-    // Check if guest registration is allowed (3 days before game)
+    // Check if guest registration is allowed (detail API fields)
     const game = this.state.gameData.game;
-    const isGameAdmin = this.user.isAdmin || (game.isAssignedAdmin ?? false);
+    const isGameAdmin = this.user.isAdmin || game.isAssignedAdmin;
     const isReadonly = game.readonly;
-    
-    // Admins can add guests to readonly games, but regular users need to check timing
-    if (!isReadonly && !isGameAdmin && !canRegisterGuest(game.dateTime)) {
-      const gameDateTime = new Date(game.dateTime);
-      const daysBeforeGame = new Date(gameDateTime.getTime());
-      daysBeforeGame.setDate(daysBeforeGame.getDate() - DAYS_BEFORE_GAME_TO_REGISTER_GUEST);
+
+    // Admins can add guests to readonly games, but regular users need the guest window
+    if (!isReadonly && !isGameAdmin && !game.canRegisterGuest) {
+      const opensAt = new Date(game.guestRegistrationOpensAt);
       showPopup({
         title: "Guest registration not available",
-        message: `Guest registration opens ${daysBeforeGame.toLocaleDateString()} (${DAYS_BEFORE_GAME_TO_REGISTER_GUEST} days before the game).`,
+        message: `Guest registration opens ${opensAt.toLocaleDateString()} (${game.guestRegistrationOpenDays} days before the game).`,
         buttons: [{ type: 'ok' }]
       });
       return;
@@ -621,7 +619,7 @@ export class GameDetailsViewModel {
       // If admin is adding a guest for a past game or readonly game with inviter selected, use admin endpoint
       const isPastGame = isGamePast(this.state.gameData.game.dateTime);
       const hasPaymentRequests = this.state.gameData.game.collectorUser !== null && this.state.gameData.game.collectorUser !== undefined;
-      const isGameAdmin = this.user.isAdmin || (this.state.gameData.game.isAssignedAdmin ?? false);
+      const isGameAdmin = this.user.isAdmin || this.state.gameData.game.isAssignedAdmin;
       const isReadonly = this.state.gameData.game.readonly;
       if (isGameAdmin && (isPastGame || isReadonly) && !hasPaymentRequests && inviterUserId) {
         await gamesApi.addParticipant(this.state.gameData.game.id, inviterUserId, guestName);
@@ -705,41 +703,34 @@ export class GameDetailsViewModel {
       // If user is not registered, check if they can join
       if (!this.userMaySelfRegister()) {
         const game = this.state.gameData.game;
-        const timingAllowsJoin = canJoinGame(game.dateTime, game.registrationOpensAt);
-        if (game.canSelfRegister === false && timingAllowsJoin) {
+        const timingAllowsJoin = canJoinGame(game.registrationOpensAt);
+        if (!game.canSelfRegister && timingAllowsJoin) {
           return 'You cannot register for this game at the moment.';
         }
 
         const gameDateTime = new Date(game.dateTime);
-        let opensAt: Date;
-        let daysBefore: number;
-
-        if (game.registrationOpensAt) {
-          opensAt = new Date(game.registrationOpensAt);
-          const opensDay = new Date(opensAt.getFullYear(), opensAt.getMonth(), opensAt.getDate());
-          const gameDay = new Date(
-            gameDateTime.getFullYear(),
-            gameDateTime.getMonth(),
-            gameDateTime.getDate(),
-          );
-          daysBefore = Math.round((gameDay.getTime() - opensDay.getTime()) / (24 * 60 * 60 * 1000));
-        } else {
-          daysBefore = game.registrationOpenDays || DAYS_BEFORE_GAME_TO_JOIN;
-          opensAt = new Date(gameDateTime.getTime());
-          opensAt.setDate(opensAt.getDate() - daysBefore);
-        }
+        const opensAt = new Date(game.registrationOpensAt);
+        const opensDay = new Date(opensAt.getFullYear(), opensAt.getMonth(), opensAt.getDate());
+        const gameDay = new Date(
+          gameDateTime.getFullYear(),
+          gameDateTime.getMonth(),
+          gameDateTime.getDate(),
+        );
+        const daysBefore = Math.round(
+          (gameDay.getTime() - opensDay.getTime()) / (24 * 60 * 60 * 1000),
+        );
 
         let message = `You can register for this game starting from ${opensAt.toLocaleDateString()} (${daysBefore} days before the game).`;
-        
+
         // Add disclaimer for non-priority users about priority players
         if (
-          this.state.gameData.game.gameFormat === 'priority_players' &&
-          !this.state.gameData.game.isPriorityPlayer &&
-          isGameUpcoming(this.state.gameData.game.dateTime)
+          game.gameFormat === 'priority_players' &&
+          !game.isPriorityPlayer &&
+          isGameUpcoming(game.dateTime)
         ) {
           message += ' This game has priority players who can register ahead of others.';
         }
-        
+
         return message;
       }
     }
@@ -756,25 +747,21 @@ export class GameDetailsViewModel {
     
     // For readonly games, only admins can add guests
     if (game.readonly) {
-      return this.user.isAdmin || (game.isAssignedAdmin ?? false);
+      return this.user.isAdmin || game.isAssignedAdmin;
     }
-    
+
     if (!this.userMaySelfRegister()) {
       return false;
     }
 
-    // Only show for upcoming games with open guest registration (3 days before)
-    return canRegisterGuest(game.dateTime);
+    return game.canRegisterGuest;
   }
 
-  /** Backend-driven eligibility; falls back to registrationOpensAt timing when omitted. */
+  /** Backend-driven eligibility from detail payload. */
   userMaySelfRegister(): boolean {
     const game = this.state.gameData.game;
     if (!game) return false;
-    if (game.canSelfRegister === false) {
-      return false;
-    }
-    return canJoinGame(game.dateTime, game.registrationOpensAt);
+    return game.canSelfRegister;
   }
 
   getMainButtonProps(): { show: boolean; text?: string; onClick?: () => void } {

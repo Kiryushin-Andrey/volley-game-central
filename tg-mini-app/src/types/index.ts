@@ -45,7 +45,13 @@ export interface CollectorUser {
 
 export type GameFormat = 'recreational' | 'positions' | 'priority_players';
 
-export interface Game {
+export type GameCategory = 'thursday-5-1' | 'sunday' | 'other';
+
+/**
+ * Fields shared by GET /games (list) and GET /games/:id (detail).
+ * List does not need detail-only eligibility / roster / collector fields.
+ */
+export interface GameSummary {
   id: number;
   dateTime: string;
   maxPlayers: number;
@@ -61,13 +67,9 @@ export interface Game {
   title?: string | null;
   createdAt: Date | null;
   createdById: number;
-  collectorUser?: CollectorUser | null;
-  registrations: GameRegistration[];
-  isAssignedAdmin?: boolean;
-  registrationOpenDays?: number;
-  registrationOpensAt?: string;
-  canSelfRegister?: boolean;
-  isPriorityPlayer?: boolean;
+  category: GameCategory;
+  guestRegistrationOpensAt: string;
+  guestRegistrationOpenDays: number;
 }
 
 export interface GameRegistration {
@@ -82,15 +84,26 @@ export interface GameRegistration {
   user?: UserPublicInfo;
 }
 
-export interface GameWithStats extends Game {
-  // Fields from optimized API
+/** List row from GET /games — summary plus counts / self-registration status. */
+export interface GameWithStats extends GameSummary {
   totalRegisteredCount: number;
   paidCount?: number;         // For past games
   registeredCount?: number;   // For upcoming games within X days
-  
-  // User registration status (for upcoming games within X days)
   isUserRegistered: boolean;
   userRegistration?: GameRegistration;
+}
+
+/** Detail payload from GET /games/:id — summary plus roster and self-serve gates. */
+export interface Game extends GameSummary {
+  /** Always present; `null` when no payment collector is set. */
+  collectorUser: CollectorUser | null;
+  registrations: GameRegistration[];
+  isAssignedAdmin: boolean;
+  registrationOpenDays: number;
+  registrationOpensAt: string;
+  canSelfRegister: boolean;
+  canRegisterGuest: boolean;
+  isPriorityPlayer: boolean;
 }
 
 // Telegram WebApp types

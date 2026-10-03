@@ -50,6 +50,16 @@ The list of all registered users with **Level pill**s, name filter, **level mult
 **Player level profile**:
 Admin view of one user’s **Player level** (global administrator or Technical Committee member) and **Level assignment record**, loaded from the player-levels admin API. On the **Player levels page**, profiles come from the full list (`GET /player-levels/users`). When the **Player info dialog** is opened elsewhere (e.g. **Game details**), the client loads one profile lazily via `GET /player-levels/users/:userId` (TC or global admin only).
 
+**Base registration window**:
+The default earliest self-serve registration open time: 10 days before game start (`REGISTRATION_OPEN_DAYS`). Used for recreational games, for priority players on a **Priority players game**, and for group-announcement / “registration is open” scans. Shorter windows (guest, regular-on-priority, intermediate) are layered on top of this, not replacements for a separate policy module.
+_Avoid_: Base policy (informal code comment shorthand for this window)
+
+**Guest registration window**:
+Guests may be registered starting 3 days before game start (`GUEST_REGISTRATION_OPEN_DAYS`), and only when the host may self-register. Distinct from the **Base registration window**.
+
+**Regular-player registration window**:
+On a **Priority players game**, players who are not on the priority list may self-register starting 3 days before game start (`REGULAR_PLAYER_REGISTRATION_OPEN_DAYS`). Priority players use the **Base registration window** instead.
+
 **Intermediate registration window**:
 For positions games, an intermediate player may register (roster or waitlist) only starting 3 days before game start. Before that window, registration is rejected entirely — no early waitlist.
 
