@@ -43,9 +43,26 @@ install_docker_if_missing() {
   run_as_root env DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io docker-compose-v2
 }
 
+ensure_npm_ci() {
+  local dir="$1"
+  if [ ! -d "${dir}/node_modules" ]; then
+    echo "Installing npm dependencies in ${dir}..."
+    (cd "$dir" && npm ci)
+  fi
+}
+
 install_playwright_browser() {
+  if [ "${PLAYWRIGHT_SKIP_BROWSER_INSTALL:-}" = "1" ]; then
+    echo "Skipping Playwright browser install (already installed)."
+    return
+  fi
+
   echo "Ensuring Playwright Chromium is installed..."
-  npx playwright install chromium
+  if [ "${CI:-}" = "true" ]; then
+    npx playwright install --with-deps chromium
+  else
+    npx playwright install chromium
+  fi
 }
 
 docker_info_reachable() {
@@ -90,6 +107,26 @@ start_dockerd_directly() {
     --iptables=false \
     --ip6tables=false \
     >"$PLAYWRIGHT_DOCKER_LOG" 2>&1 &
+}
+
+wait_for_postgres() {
+  local attempt
+  echo "Waiting for Postgres to accept connections..."
+  for attempt in $(seq 1 60); do
+    if [ "$PLAYWRIGHT_USE_HOST_NETWORK_POSTGRES" = "true" ]; then
+      if docker_cli exec volley-playwright-postgres pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" >/dev/null 2>&1; then
+        echo "Postgres is ready."
+        return
+      fi
+    elif docker_cli compose exec -T postgres pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" >/dev/null 2>&1; then
+      echo "Postgres is ready."
+      return
+    fi
+    sleep 1
+  done
+
+  echo "Postgres did not become ready within 60 seconds." >&2
+  exit 1
 }
 
 start_postgres() {
@@ -143,12 +180,16 @@ ensure_docker_daemon() {
   fi
 }
 
+ensure_npm_ci .
+ensure_npm_ci backend
+ensure_npm_ci tg-mini-app
+ensure_npm_ci bunq-mock
 install_playwright_browser
 install_docker_if_missing
 ensure_docker_daemon
 
 start_postgres
+wait_for_postgres
 
 npm run backend:build
-(cd bunq-mock && npm install)
 npx concurrently "cd backend && npm run dev" "npm run tg-mini-app:dev" "npm run bunq-mock:dev"

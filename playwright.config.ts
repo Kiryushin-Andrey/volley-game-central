@@ -4,10 +4,15 @@ import { defineConfig, devices } from '@playwright/test';
 
 const cursorArtifactsRoot = process.env.CURSOR_ARTIFACTS_DIR ?? '/opt/cursor/artifacts';
 
-/** Publish screenshots/traces/HTML report to Cursor Cloud artifacts (visible in the agent UI). */
+/**
+ * Publish screenshots and the HTML report to Cursor Cloud artifacts when that
+ * directory exists. GitHub Actions sets CI, but /opt/cursor/artifacts is not
+ * writable there, so CI alone must not select this path. Opt in with
+ * CURSOR_ARTIFACTS=1 or CURSOR_ARTIFACTS_DIR.
+ */
 const publishToCursorArtifacts =
   process.env.CURSOR_ARTIFACTS === '1' ||
-  Boolean(process.env.CI) ||
+  Boolean(process.env.CURSOR_ARTIFACTS_DIR) ||
   existsSync(cursorArtifactsRoot);
 
 const e2eOutputDir = publishToCursorArtifacts
@@ -39,7 +44,7 @@ export default defineConfig({
     command: 'npm run e2e:server',
     url: 'http://127.0.0.1:3001',
     reuseExistingServer: !process.env.CI,
-    timeout: 180_000,
+    timeout: 360_000,
   },
   projects: [
     {
