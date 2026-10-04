@@ -7,7 +7,7 @@
     "dev": "vite --host",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "tsx --test src/**/*.test.ts"
   },
   "keywords": [
     "telegram",
@@ -33,6 +33,7 @@
     "@types/react-dom": "^18.0.10",
     "@vitejs/plugin-react-swc": "^3.0.0",
     "sass": "^1.58.0",
+    "tsx": "^4.20.5",
     "typescript": "5.8.3",
     "vite": "^4.1.0"
   }

@@ -1,64 +1,91 @@
-import axios from 'axios';
+import axios, { type AxiosRequestConfig } from 'axios';
 import { Game, User, GameWithStats, PricingMode, UserPublicInfo, UserWithPlayerLevel, PlayerLevel } from '../types';
 import { logDebug } from '../debug';
 
-// Use /api prefix for proxy, fallback to environment variable for production
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+/** Minimal HTTP port so tests can supply a fake without axios / Telegram. */
+export interface HttpTransport {
+  get<T = any>(url: string, config?: AxiosRequestConfig): Promise<{ data: T; status?: number }>;
+  post<T = any>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<{ data: T; status?: number }>;
+  put<T = any>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<{ data: T; status?: number }>;
+  patch<T = any>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<{ data: T; status?: number }>;
+  delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<{ data: T; status?: number }>;
+}
 
-logDebug(`API_BASE_URL: ${API_BASE_URL}`); // Debug log
+export type CreateAxiosTransportOptions = {
+  baseURL?: string;
+  /** Defaults to reading `window.Telegram.WebApp.initData` when available. */
+  getTelegramInitData?: () => string | undefined;
+};
 
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  withCredentials: true, // Send cookies with requests
-});
+/**
+ * Axios adapter: base URL, Telegram auth header, debug interceptors.
+ * Pass `getTelegramInitData` (or a full custom `HttpTransport`) to avoid `window.Telegram` in tests.
+ */
+export function createAxiosTransport(options: CreateAxiosTransportOptions = {}): HttpTransport {
+  const baseURL = options.baseURL ?? (import.meta.env?.VITE_API_BASE_URL || '/api');
+  const getTelegramInitData =
+    options.getTelegramInitData ??
+    (() => {
+      if (typeof window === 'undefined') return undefined;
+      return window.Telegram?.WebApp?.initData;
+    });
 
-// Add Telegram WebApp init data to requests
-api.interceptors.request.use((config) => {
-  logDebug(`Making API request to: ${(config.baseURL || '') + (config.url || '')}`); // Debug log
+  logDebug(`API_BASE_URL: ${baseURL}`);
 
-  // Get Telegram WebApp init data
-  const telegramInitData = window.Telegram?.WebApp?.initData;
-  
-  if (telegramInitData) {
-    logDebug('Adding Telegram WebApp initData to request headers');
-    config.headers.Authorization = `TelegramWebApp ${telegramInitData}`;
-  } else {
-    logDebug('No Telegram WebApp initData available');
-  }
-  
-  return config;
-});
+  const client = axios.create({
+    baseURL,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    withCredentials: true,
+  });
 
-// Add response interceptor for debugging
-api.interceptors.response.use(
-  (response) => {
-    logDebug(`API response success: ${response.status} ${JSON.stringify(response.data)}`); // Debug log
-    return response;
-  },
-  (error) => {
-    logDebug(`API response error: ${error.response?.status} ${JSON.stringify(error.response?.data)} ${error.message}`); // Debug log
-    console.error('API response error:', error.response?.status, error.response?.data, error.message); // Debug log
-    return Promise.reject(error);
-  }
-);
+  client.interceptors.request.use((config) => {
+    logDebug(`Making API request to: ${(config.baseURL || '') + (config.url || '')}`);
 
+    const telegramInitData = getTelegramInitData();
+
+    if (telegramInitData) {
+      logDebug('Adding Telegram WebApp initData to request headers');
+      config.headers.Authorization = `TelegramWebApp ${telegramInitData}`;
+    } else {
+      logDebug('No Telegram WebApp initData available');
+    }
+
+    return config;
+  });
+
+  client.interceptors.response.use(
+    (response) => {
+      logDebug(`API response success: ${response.status} ${JSON.stringify(response.data)}`);
+      return response;
+    },
+    (error) => {
+      logDebug(`API response error: ${error.response?.status} ${JSON.stringify(error.response?.data)} ${error.message}`);
+      console.error('API response error:', error.response?.status, error.response?.data, error.message);
+      return Promise.reject(error);
+    }
+  );
+
+  return client;
+}
+
+/** Build domain API objects against any HttpTransport (real axios or test fake). */
+export function createApiClients(http: HttpTransport) {
 /** Public endpoint: server build timestamp for reload-on-deploy detection */
-export const getBuildInfo = async (): Promise<{ buildTimestamp: string }> => {
-  const response = await api.get<{ buildTimestamp: string }>('/build-info');
+const getBuildInfo = async (): Promise<{ buildTimestamp: string }> => {
+  const response = await http.get<{ buildTimestamp: string }>('/build-info');
   return response.data;
 };
 
 // User-related API endpoints
-export const userApi = {
+const userApi = {
   /**
    * Get current authenticated user details
    * Authentication happens automatically via request interceptor above
    */
   getCurrentUser: async (): Promise<{ user: User | null; isDevMode: boolean }> => {
-    const response = await api.get('/users/me');
+    const response = await http.get('/users/me');
     return response.data;
   },
   
@@ -66,7 +93,7 @@ export const userApi = {
    * Update user profile
    */
   updateProfile: async (userData: Partial<User>): Promise<User> => {
-    const response = await api.put('/users/me', userData);
+    const response = await http.put('/users/me', userData);
     return response.data;
   },
   
@@ -74,7 +101,7 @@ export const userApi = {
    * Admin: Get unpaid games for a specific user by ID
    */
   getUserUnpaidGames: async (userId: number): Promise<UnpaidRegistration[]> => {
-    const response = await api.get(`/users/admin/id/${userId}/unpaid-games`);
+    const response = await http.get(`/users/admin/id/${userId}/unpaid-games`);
     return response.data;
   },
 
@@ -83,7 +110,7 @@ export const userApi = {
    * Reuses backend endpoint GET /users/me/unpaid-games
    */
   getMyUnpaidGames: async (): Promise<UnpaidRegistration[]> => {
-    const response = await api.get('/users/me/unpaid-games');
+    const response = await http.get('/users/me/unpaid-games');
     return response.data;
   },
 
@@ -91,7 +118,7 @@ export const userApi = {
    * Admin: Block a user by ID with a reason
    */
   blockUser: async (userId: number, reason: string): Promise<{ success: boolean; message: string; user: User }> => {
-    const response = await api.post(`/users/admin/id/${userId}/block`, { reason });
+    const response = await http.post(`/users/admin/id/${userId}/block`, { reason });
     return response.data;
   },
 
@@ -99,7 +126,7 @@ export const userApi = {
    * Admin: Unblock a user by ID
    */
   unblockUser: async (userId: number): Promise<{ success: boolean; message: string; user: User }> => {
-    const response = await api.delete(`/users/admin/id/${userId}/block`);
+    const response = await http.delete(`/users/admin/id/${userId}/block`);
     return response.data;
   },
 
@@ -107,7 +134,7 @@ export const userApi = {
    * Admin: Send a payment reminder to a user with unpaid requests
    */
   sendPaymentReminder: async (userId: number): Promise<{ success: boolean; message: string }> => {
-    const response = await api.post(`/users/admin/id/${userId}/payment-reminder`);
+    const response = await http.post(`/users/admin/id/${userId}/payment-reminder`);
     return response.data;
   },
 
@@ -115,12 +142,12 @@ export const userApi = {
    * Admin: Get user information by ID
    */
   getUserById: async (userId: number): Promise<User> => {
-    const response = await api.get(`/users/admin/id/${userId}`);
+    const response = await http.get(`/users/admin/id/${userId}`);
     return response.data;
   },
 };
 
-export const gamesApi = {
+const gamesApi = {
   getDefaultGameSettings: async (): Promise<{ 
     date: Date; 
     locationName?: string | null; 
@@ -129,7 +156,7 @@ export const gamesApi = {
     pricingMode?: PricingMode | null;
     gameFormat?: import('../types').GameFormat | null;
   }> => {
-    const response = await api.get('/games/admin/defaults');
+    const response = await http.get('/games/admin/defaults');
     return {
       date: new Date(response.data.defaultDateTime),
       locationName: response.data.defaultLocationName ?? null,
@@ -148,11 +175,11 @@ export const gamesApi = {
     if (categories && categories.length > 0) {
       params.categories = categories;
     }
-    return api.get<GameWithStats[]>('/games', { params }).then(res => res.data);
+    return http.get<GameWithStats[]>('/games', { params }).then(res => res.data);
   },
 
   getGame: async (gameId: number): Promise<Game> => {
-    const response = await api.get(`/games/${gameId}`);
+    const response = await http.get(`/games/${gameId}`);
     return response.data;
   },
 
@@ -169,7 +196,7 @@ export const gamesApi = {
     title?: string | null;
   }): Promise<{ id: number }> {
     // Admin create returns the raw DB row (no detail policy fields).
-    return api.post('/games/admin', gameData).then(res => res.data);
+    return http.post('/games/admin', gameData).then(res => res.data);
   },
 
   registerForGame: async (gameId: number, guestName?: string, bringingTheBall?: boolean): Promise<void> => {
@@ -180,34 +207,34 @@ export const gamesApi = {
     if (bringingTheBall !== undefined) {
       payload.bringingTheBall = bringingTheBall;
     }
-    await api.post(`/games/${gameId}/register`, payload);
+    await http.post(`/games/${gameId}/register`, payload);
   },
 
   /**
    * Register a guest for a game
    */
   registerGuestForGame: async (gameId: number, guestName: string): Promise<void> => {
-    await api.post(`/games/${gameId}/register`, { guestName });
+    await http.post(`/games/${gameId}/register`, { guestName });
   },
 
   /**
    * Get the last used guest name for a user (excluding current game)
    */
   getLastGuestName: async (gameId: number): Promise<{ lastGuestName: string | null }> => {
-    const response = await api.get(`/games/${gameId}/last-guest-name`);
+    const response = await http.get(`/games/${gameId}/last-guest-name`);
     return response.data;
   },
 
   unregisterFromGame: async (gameId: number, guestName?: string): Promise<void> => {
     if (guestName && guestName.trim()) {
-      await api.delete(`/games/${gameId}/register`, { data: { guestName } });
+      await http.delete(`/games/${gameId}/register`, { data: { guestName } });
     } else {
-      await api.delete(`/games/${gameId}/register`);
+      await http.delete(`/games/${gameId}/register`);
     }
   },
 
   deleteGame: async (gameId: number): Promise<void> => {
-    await api.delete(`/games/admin/${gameId}`);
+    await http.delete(`/games/admin/${gameId}`);
   },
 
   updateGame(gameId: number, gameData: {
@@ -223,14 +250,14 @@ export const gamesApi = {
     title?: string | null;
   }): Promise<{ id: number }> {
     // Admin update returns the raw DB row (no detail policy fields).
-    return api.put(`/games/admin/${gameId}`, gameData).then(res => res.data);
+    return http.put(`/games/admin/${gameId}`, gameData).then(res => res.data);
   },
 
   /**
    * Create payment requests for all unpaid players in a game
    */
   createPaymentRequests: async (gameId: number, password: string): Promise<{ message: string; requestsCreated: number; errors: string[] }> => {
-    const response = await api.post(`/games/admin/${gameId}/payment-requests`, { password });
+    const response = await http.post(`/games/admin/${gameId}/payment-requests`, { password });
     return response.data;
   },
 
@@ -241,7 +268,7 @@ export const gamesApi = {
    * @param paid Whether the player has paid (true) or not (false)
    */
   updatePlayerPaidStatus(gameId: number, userId: number, paid: boolean = true): Promise<{ message: string }> {
-    return api
+    return http
       .put(`/games/admin/${gameId}/players/${userId}/paid`, { paid })
       .then((res) => res.data);
   },
@@ -258,7 +285,7 @@ export const gamesApi = {
     const payload = guestName && guestName.trim()
       ? { userId, guestName }
       : { userId };
-    const response = await api.post(`/games/admin/${gameId}/participants`, payload);
+    const response = await http.post(`/games/admin/${gameId}/participants`, payload);
     return response.data;
   },
 
@@ -271,7 +298,7 @@ export const gamesApi = {
     const config = guestName && guestName.trim()
       ? { data: { guestName } }
       : undefined;
-    const response = await api.delete(`/games/admin/${gameId}/participants/${userId}`, config);
+    const response = await http.delete(`/games/admin/${gameId}/participants/${userId}`, config);
     return response.data;
   },
 
@@ -283,7 +310,7 @@ export const gamesApi = {
     
     logData(`Searching users with query: "${query}"`);
     try {
-      const response = await api.get('/users/admin/search', { 
+      const response = await http.get('/users/admin/search', { 
         params: { q: query },
         paramsSerializer: (params: Record<string, string>) => {
           const serialized = new URLSearchParams(params).toString();
@@ -319,37 +346,37 @@ export const gamesApi = {
    * @param gameId Optional specific game ID to check (if not provided, checks all unpaid games)
    */
   checkPayments(password: string, gameId?: number): Promise<{ message: string; updatedGames: number; updatedPlayers: number }> {
-    return api
+    return http
       .post('/games/admin/check-payments', { password, gameId })
       .then((res) => res.data);
   },
 };
 
 // Player levels (global admin or TC)
-export const playerLevelsApi = {
+const playerLevelsApi = {
   listUsers: async (): Promise<UserWithPlayerLevel[]> => {
-    const response = await api.get('/player-levels/users');
+    const response = await http.get('/player-levels/users');
     return response.data;
   },
 
   getUser: async (userId: number): Promise<UserWithPlayerLevel> => {
-    const response = await api.get(`/player-levels/users/${userId}`);
+    const response = await http.get(`/player-levels/users/${userId}`);
     return response.data;
   },
 
   updateUserLevel: async (userId: number, playerLevel: PlayerLevel): Promise<UserWithPlayerLevel> => {
-    const response = await api.patch(`/player-levels/users/${userId}`, { playerLevel });
+    const response = await http.patch(`/player-levels/users/${userId}`, { playerLevel });
     return response.data;
   },
 };
 
 // Game administrators API endpoints
-export const gameAdministratorsApi = {
+const gameAdministratorsApi = {
   /**
    * Get all game administrator assignments
    */
   getAll: async (): Promise<GameAdministrator[]> => {
-    const response = await api.get('/game-administrators');
+    const response = await http.get('/game-administrators');
     return response.data;
   },
 
@@ -357,7 +384,7 @@ export const gameAdministratorsApi = {
    * Create a new game administrator assignment
    */
   create: async (data: { dayOfWeek: number; withPositions: boolean; userId: number }): Promise<GameAdministrator> => {
-    const response = await api.post('/game-administrators', data);
+    const response = await http.post('/game-administrators', data);
     return response.data;
   },
 
@@ -365,7 +392,7 @@ export const gameAdministratorsApi = {
    * Get current user's administrator assignments
    */
   getMyAssignments: async (): Promise<GameAdministrator[]> => {
-    const response = await api.get('/game-administrators/me');
+    const response = await http.get('/game-administrators/me');
     return response.data;
   },
 
@@ -373,18 +400,18 @@ export const gameAdministratorsApi = {
    * Delete a game administrator assignment
    */
   delete: async (id: number): Promise<void> => {
-    await api.delete(`/game-administrators/${id}`);
+    await http.delete(`/game-administrators/${id}`);
   },
 };
 
 // Priority players API endpoints
-export const priorityPlayersApi = {
+const priorityPlayersApi = {
   /**
    * Get all priority players (optionally filtered by gameAdministratorId)
    */
   getAll: async (gameAdministratorId?: number): Promise<PriorityPlayer[]> => {
     const params = gameAdministratorId ? { gameAdministratorId } : {};
-    const response = await api.get('/priority-players', { params });
+    const response = await http.get('/priority-players', { params });
     return response.data;
   },
 
@@ -392,7 +419,7 @@ export const priorityPlayersApi = {
    * Create a new priority player assignment
    */
   create: async (data: { gameAdministratorId: number; userId: number }): Promise<PriorityPlayer> => {
-    const response = await api.post('/priority-players', data);
+    const response = await http.post('/priority-players', data);
     return response.data;
   },
 
@@ -400,12 +427,12 @@ export const priorityPlayersApi = {
    * Delete a priority player assignment
    */
   delete: async (id: number): Promise<void> => {
-    await api.delete(`/priority-players/${id}`);
+    await http.delete(`/priority-players/${id}`);
   },
 };
 
 // Bunq-related API endpoints
-export const bunqApi = {
+const bunqApi = {
   /**
    * Check if Bunq integration is enabled for the current user or assigned user
    * @param assignedUserId Optional user ID to check (admin only)
@@ -414,7 +441,7 @@ export const bunqApi = {
     const url = assignedUserId 
       ? `/users/admin/id/${assignedUserId}/bunq/status`
       : '/users/me/bunq/status';
-    const response = await api.get(url);
+    const response = await http.get(url);
     return response.data;
   },
 
@@ -429,7 +456,7 @@ export const bunqApi = {
     const url = assignedUserId 
       ? `/users/admin/id/${assignedUserId}/bunq/enable`
       : '/users/me/bunq/enable';
-    const response = await api.post(url, { apiKey, password, apiKeyName });
+    const response = await http.post(url, { apiKey, password, apiKeyName });
     return response.data;
   },
 
@@ -441,7 +468,7 @@ export const bunqApi = {
     const url = assignedUserId 
       ? `/users/admin/id/${assignedUserId}/bunq/disable`
       : '/users/me/bunq/disable';
-    const response = await api.delete(url);
+    const response = await http.delete(url);
     return response.data;
   },
 
@@ -454,7 +481,7 @@ export const bunqApi = {
     const url = assignedUserId 
       ? `/users/admin/id/${assignedUserId}/bunq/monetary-accounts`
       : '/users/me/bunq/monetary-accounts';
-    const response = await api.post(url, { password });
+    const response = await http.post(url, { password });
     return response.data;
   },
 
@@ -467,7 +494,7 @@ export const bunqApi = {
     const url = assignedUserId 
       ? `/users/admin/id/${assignedUserId}/bunq/monetary-account`
       : '/users/me/bunq/monetary-account';
-    const response = await api.put(url, { monetaryAccountId });
+    const response = await http.put(url, { monetaryAccountId });
     return response.data;
   },
 
@@ -480,18 +507,18 @@ export const bunqApi = {
     const url = assignedUserId 
       ? `/users/admin/id/${assignedUserId}/bunq/webhook/install`
       : '/users/me/bunq/webhook/install';
-    const response = await api.post(url, { password });
+    const response = await http.post(url, { password });
     return response.data;
   },
 };
 
 // Phone authentication API endpoints
-export const authApi = {
+const authApi = {
   /**
    * Start phone authentication by sending an SMS code
    */
   startPhoneAuth: async (phoneNumber: string): Promise<{ success: boolean; sessionId: string }> => {
-    const response = await api.post('/auth/start', { phoneNumber });
+    const response = await http.post('/auth/start', { phoneNumber });
     return response.data;
   },
 
@@ -502,7 +529,7 @@ export const authApi = {
     sessionId: string,
     code: string
   ): Promise<{ success: boolean; userExists?: boolean; creatingNewUser?: boolean }> => {
-    const response = await api.post('/auth/verify', { sessionId, code });
+    const response = await http.post('/auth/verify', { sessionId, code });
     return response.data;
   },
 
@@ -513,7 +540,7 @@ export const authApi = {
     sessionId: string,
     displayName: string
   ): Promise<{ success: boolean; userCreated: boolean; userId: number }> => {
-    const response = await api.post('/auth/create-user', { sessionId, displayName });
+    const response = await http.post('/auth/create-user', { sessionId, displayName });
     return response.data;
   },
 
@@ -524,7 +551,7 @@ export const authApi = {
     sessionId: string,
     displayName: string
   ): Promise<{ available: boolean }> => {
-    const response = await api.post('/auth/check-display-name', { sessionId, displayName });
+    const response = await http.post('/auth/check-display-name', { sessionId, displayName });
     return response.data;
   },
 
@@ -538,7 +565,7 @@ export const authApi = {
     isAdmin?: boolean,
     isTc?: boolean
   ): Promise<{ success: boolean; user: User }> => {
-    const response = await api.post('/auth/dev-login', { phoneNumber, displayName, isAdmin, isTc }, {
+    const response = await http.post('/auth/dev-login', { phoneNumber, displayName, isAdmin, isTc }, {
       withCredentials: true,
     });
     return response.data;
@@ -548,12 +575,38 @@ export const authApi = {
    * Logout current browser session (clears JWT cookie)
    */
   logout: async (): Promise<{ success: boolean }> => {
-    const response = await api.post('/auth/logout');
+    const response = await http.post('/auth/logout');
     return response.data;
   },
 };
 
-export default api;
+
+  return {
+    getBuildInfo,
+    userApi,
+    gamesApi,
+    playerLevelsApi,
+    gameAdministratorsApi,
+    priorityPlayersApi,
+    bunqApi,
+    authApi,
+  };
+}
+
+const defaultTransport = createAxiosTransport();
+const defaultClients = createApiClients(defaultTransport);
+
+export const getBuildInfo = defaultClients.getBuildInfo;
+export const userApi = defaultClients.userApi;
+export const gamesApi = defaultClients.gamesApi;
+export const playerLevelsApi = defaultClients.playerLevelsApi;
+export const gameAdministratorsApi = defaultClients.gameAdministratorsApi;
+export const priorityPlayersApi = defaultClients.priorityPlayersApi;
+export const bunqApi = defaultClients.bunqApi;
+export const authApi = defaultClients.authApi;
+
+/** Underlying default axios transport (same shape as HttpTransport). */
+export default defaultTransport;
 
 // Types
 export interface UnpaidRegistration {
