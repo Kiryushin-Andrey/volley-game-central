@@ -3,7 +3,8 @@ import { db } from '../db';
 import { bunqCredentials, users } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import { bunqCredentialsService } from '../services/bunqCredentialsService';
-import { createInstallation, registerDevice, createSession, fetchMonetaryAccounts, installWebhookFilters } from '../services/bunqService';
+import { createInstallation, registerDevice, createSession, installWebhookFilters } from '../services/bunq/bunqSessionService';
+import { fetchMonetaryAccounts } from '../services/bunq/bunqAccountsService';
 
 const router = Router({ mergeParams: true });
 

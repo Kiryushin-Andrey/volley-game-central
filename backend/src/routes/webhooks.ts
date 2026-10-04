@@ -2,7 +2,7 @@ import { Router, Request } from 'express';
 import { db } from '../db';
 import { paymentRequests, gameRegistrations } from '../db/schema';
 import { and, eq } from 'drizzle-orm';
-import { bunqService } from '../services/bunqService';
+import { bunqPaymentRequestService } from '../services/bunq/bunqPaymentRequestService';
 
 const router = Router();
 
@@ -232,7 +232,7 @@ router.post('/bunq', async (req: Request<{}, any, BunqWebhookRequestBody>, res) 
       .limit(1)
       .then(rows => rows[0]);
 
-    await bunqService.updatePaidStatus(registration.gameId, registration.userId, true);
+    await bunqPaymentRequestService.updatePaidStatus(registration.gameId, registration.userId, true);
 
     console.log(`[Bunq Webhook] Payment request accepted: ${inquiryId}, gameId=${registration.gameId}, userId=${registration.userId}`);
   } catch (e) {
