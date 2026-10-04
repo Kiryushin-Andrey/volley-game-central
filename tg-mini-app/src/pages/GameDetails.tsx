@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { User, PricingMode } from "../types";
 import LoadingSpinner from "../components/LoadingSpinner";
@@ -24,7 +24,7 @@ import {
   getWaitlistRegistrations,
   getUserRegistration,
 } from "../utils/registrationsUtils";
-import { GameDetailsViewModel, GameDataState, ActionState, BunqState, PaymentRequestState, DialogState } from "../viewmodels/GameDetailsViewModel";
+import { GameDetailsViewModel } from "../viewmodels/GameDetailsViewModel";
 import { uiPrompts } from "../utils/uiPrompts";
 import { PlayersList } from "../components/game-details/PlayersList";
 import { WaitlistList } from "../components/game-details/WaitlistList";
@@ -44,57 +44,34 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
   const location = useLocation();
   const inTelegram = isTelegramApp();
 
-  // Split state into logical groups for better performance
-  const [gameData, setGameData] = useState<GameDataState>({
-    game: null,
-    isLoading: true,
-    error: null,
-  });
-  const [action, setAction] = useState<ActionState>({
-    isActionLoading: false,
-    isPaidUpdating: null,
-  });
-  const [bunq, setBunq] = useState<BunqState>({
-    hasBunqIntegration: false,
-    isCheckingBunq: true,
-  });
-  const [paymentRequest, setPaymentRequest] = useState<PaymentRequestState>({
-    isSendingPaymentRequests: false,
-    showPasswordDialog: false,
-    passwordError: '',
-    passwordDialogAction: 'payment_requests',
-    isCheckingPayments: false,
-  });
-  const [dialogs, setDialogs] = useState<DialogState>({
-    showUserSearch: false,
-    showGuestDialog: false,
-    guestError: '',
-    isGuestRegistering: false,
-    defaultGuestName: '',
-    showPlayerInfo: false,
-    selectedUser: null,
-    showBringBallDialog: false,
-  });
-
-  // ViewModel setup - owns the state internally
-  const viewModel = useMemo(() => {
-    return new GameDetailsViewModel({
-      updateGameData: (updates) => setGameData(prev => ({ ...prev, ...updates })),
-      updateAction: (updates) => setAction(prev => ({ ...prev, ...updates })),
-      updateBunq: (updates) => setBunq(prev => ({ ...prev, ...updates })),
-      updatePaymentRequest: (updates) => setPaymentRequest(prev => ({ ...prev, ...updates })),
-      updateDialogs: (updates) => setDialogs(prev => ({ ...prev, ...updates })),
+  // One subscribe surface (same pattern as GamesListViewModel) — VM owns all UI state
+  const viewModelRef = useRef<GameDetailsViewModel | null>(null);
+  if (!viewModelRef.current) {
+    viewModelRef.current = new GameDetailsViewModel({
       navigate,
       user,
       prompts: uiPrompts,
     });
-  }, [navigate, user]);
+  }
+  const viewModel = viewModelRef.current;
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    const unsub = viewModel.subscribe(() => setTick((t) => t + 1));
+    return unsub;
+  }, [viewModel]);
 
   useEffect(() => {
     if (gameId) {
       viewModel.loadGame(parseInt(gameId));
     }
   }, [gameId, viewModel, location.pathname, location.search]);
+
+  const gameData = viewModel.gameData;
+  const action = viewModel.action;
+  const bunq = viewModel.bunq;
+  const paymentRequest = viewModel.paymentRequest;
+  const dialogs = viewModel.dialogs;
 
   // Check Bunq integration status for admin users
   useEffect(() => {

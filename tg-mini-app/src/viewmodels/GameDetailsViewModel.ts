@@ -1,4 +1,4 @@
-import { gamesApi, bunqApi } from '../services/api';
+import { gamesApi as defaultGamesApi, bunqApi as defaultBunqApi } from '../services/api';
 import type { UiPrompts } from '../utils/uiPrompts';
 import { logDebug } from '../debug';
 import { Game, User } from '../types';
@@ -50,79 +50,95 @@ export interface GameDetailsState {
   dialogs: DialogState;
 }
 
-type StateUpdater<T> = (updates: Partial<T>) => void;
+type GamesApi = typeof defaultGamesApi;
+type BunqApi = typeof defaultBunqApi;
 
 export class GameDetailsViewModel {
   private state: GameDetailsState;
-  private updateGameData: StateUpdater<GameDataState>;
-  private updateAction: StateUpdater<ActionState>;
-  private updateBunq: StateUpdater<BunqState>;
-  private updatePaymentRequest: StateUpdater<PaymentRequestState>;
-  private updateDialogs: StateUpdater<DialogState>;
+  private listeners: Array<() => void> = [];
   private readonly navigate: (url: string) => void;
   private readonly user: User;
   private readonly prompts: UiPrompts;
+  private readonly gamesApi: GamesApi;
+  private readonly bunqApi: BunqApi;
   private readonly actionGuard: ActionGuard;
   private loadGameGeneration = 0;
 
   constructor(args: {
-    updateGameData: StateUpdater<GameDataState>;
-    updateAction: StateUpdater<ActionState>;
-    updateBunq: StateUpdater<BunqState>;
-    updatePaymentRequest: StateUpdater<PaymentRequestState>;
-    updateDialogs: StateUpdater<DialogState>;
     navigate: (url: string) => void;
     user: User;
     prompts: UiPrompts;
+    gamesApi?: GamesApi;
+    bunqApi?: BunqApi;
   }) {
-    this.updateGameData = args.updateGameData;
-    this.updateAction = args.updateAction;
-    this.updateBunq = args.updateBunq;
-    this.updatePaymentRequest = args.updatePaymentRequest;
-    this.updateDialogs = args.updateDialogs;
     this.navigate = args.navigate;
     this.user = args.user;
     this.prompts = args.prompts;
+    this.gamesApi = args.gamesApi ?? defaultGamesApi;
+    this.bunqApi = args.bunqApi ?? defaultBunqApi;
     this.actionGuard = new ActionGuard(1000);
-    
-    // Initialize internal state
     this.state = GameDetailsViewModel.getInitialState();
-    
-    // Sync initial state to React
-    this.updateGameData(this.state.gameData);
-    this.updateAction(this.state.action);
-    this.updateBunq(this.state.bunq);
-    this.updatePaymentRequest(this.state.paymentRequest);
-    this.updateDialogs(this.state.dialogs);
+  }
+
+  /** Same shape as GamesListViewModel.subscribe — one listener surface for all UI state. */
+  subscribe(listener: () => void) {
+    this.listeners.push(listener);
+    return () => {
+      this.listeners = this.listeners.filter((l) => l !== listener);
+    };
+  }
+
+  private emitChange() {
+    for (const l of this.listeners) l();
   }
 
   // Internal state update methods
   private setGameData(updates: Partial<GameDataState>): void {
     this.state.gameData = { ...this.state.gameData, ...updates };
-    this.updateGameData(this.state.gameData);
+    this.emitChange();
   }
 
   private setAction(updates: Partial<ActionState>): void {
     this.state.action = { ...this.state.action, ...updates };
-    this.updateAction(this.state.action);
+    this.emitChange();
   }
 
   private setBunq(updates: Partial<BunqState>): void {
     this.state.bunq = { ...this.state.bunq, ...updates };
-    this.updateBunq(this.state.bunq);
+    this.emitChange();
   }
 
   private setPaymentRequest(updates: Partial<PaymentRequestState>): void {
     this.state.paymentRequest = { ...this.state.paymentRequest, ...updates };
-    this.updatePaymentRequest(this.state.paymentRequest);
+    this.emitChange();
   }
 
   private setDialogs(updates: Partial<DialogState>): void {
     this.state.dialogs = { ...this.state.dialogs, ...updates };
-    this.updateDialogs(this.state.dialogs);
+    this.emitChange();
   }
 
-  // Getters for current state
+  // Getters for current state (page reads these after subscribe ticks)
+  get gameData(): GameDataState {
+    return this.state.gameData;
+  }
+
+  get action(): ActionState {
+    return this.state.action;
+  }
+
+  get bunq(): BunqState {
+    return this.state.bunq;
+  }
+
+  get paymentRequest(): PaymentRequestState {
+    return this.state.paymentRequest;
+  }
+
+  get dialogs(): DialogState {
+    return this.state.dialogs;
+  }
+
   get game(): Game | null {
     return this.state.gameData.game;
   }
@@ -160,7 +176,7 @@ export class GameDetailsViewModel {
     const generation = ++this.loadGameGeneration;
     try {
       this.setGameData({ isLoading: true });
-      const fetchedGame = await gamesApi.getGame(id);
+      const fetchedGame = await this.gamesApi.getGame(id);
       if (generation !== this.loadGameGeneration) {
         return;
       }
@@ -183,7 +199,7 @@ export class GameDetailsViewModel {
     const doCheck = async () => {
       if (isAdmin) {
         try {
-          const status = await bunqApi.getStatus();
+          const status = await this.bunqApi.getStatus();
           this.setBunq({ hasBunqIntegration: status.enabled });
         } catch (error) {
           logDebug('Error checking Bunq integration status: ' + error);
@@ -198,7 +214,7 @@ export class GameDetailsViewModel {
   private async addParticipant(game: Game, userId: number): Promise<void> {
     try {
       this.setAction({ isActionLoading: true });
-      await gamesApi.addParticipant(game.id, userId);
+      await this.gamesApi.addParticipant(game.id, userId);
       await this.loadGame(game.id);
       this.setDialogs({ showUserSearch: false });
     } catch (err: any) {
@@ -213,7 +229,7 @@ export class GameDetailsViewModel {
   private async register(game: Game, bringingTheBall: boolean): Promise<void> {
     try {
       this.setAction({ isActionLoading: true });
-      await gamesApi.registerForGame(game.id, undefined, bringingTheBall);
+      await this.gamesApi.registerForGame(game.id, undefined, bringingTheBall);
       await this.loadGame(game.id);
     } catch (err: any) {
       logDebug('Error registering for game:');
@@ -286,9 +302,9 @@ export class GameDetailsViewModel {
     try {
       this.setAction({ isActionLoading: true });
       if (guestName) {
-        await gamesApi.unregisterFromGame(game.id, guestName);
+        await this.gamesApi.unregisterFromGame(game.id, guestName);
       } else {
-        await gamesApi.unregisterFromGame(game.id);
+        await this.gamesApi.unregisterFromGame(game.id);
       }
       await this.loadGame(game.id);
     } catch (err: any) {
@@ -331,7 +347,7 @@ export class GameDetailsViewModel {
       if (!confirmed) return;
       try {
         this.setAction({ isActionLoading: true });
-        await gamesApi.removeParticipant(game.id, userId, guestName);
+        await this.gamesApi.removeParticipant(game.id, userId, guestName);
         // Reload game to ensure only the targeted registration is removed
         await this.loadGame(game.id);
         this.prompts.showPopup({ title: 'Success', message: `${displayName} has been removed from the game`, buttons: [{ type: 'ok' }] });
@@ -354,7 +370,7 @@ export class GameDetailsViewModel {
       if (!confirmed) return;
       try {
         this.setAction({ isPaidUpdating: userId });
-        await gamesApi.updatePlayerPaidStatus(game.id, userId, newPaidStatus);
+        await this.gamesApi.updatePlayerPaidStatus(game.id, userId, newPaidStatus);
         // Update game in state
         const updatedGame: Game = {
           ...game,
@@ -378,7 +394,7 @@ export class GameDetailsViewModel {
   private async submitPassword(gameId: number, password: string): Promise<void> {
     try {
       this.setPaymentRequest({ isSendingPaymentRequests: true, passwordError: '' });
-      const result = await gamesApi.createPaymentRequests(gameId, password);
+      const result = await this.gamesApi.createPaymentRequests(gameId, password);
       this.setPaymentRequest({ showPasswordDialog: false });
       this.prompts.showPopup({
         title: 'Payment requests sent',
@@ -409,7 +425,7 @@ export class GameDetailsViewModel {
       if (!confirmed) return;
       try {
         this.setAction({ isActionLoading: true });
-        await gamesApi.deleteGame(gameId);
+        await this.gamesApi.deleteGame(gameId);
         this.navigate('/');
       } catch (error) {
         logDebug('Error deleting game:');
@@ -538,7 +554,7 @@ export class GameDetailsViewModel {
       try {
         this.setIsCheckingPayments(true);
         this.setPasswordError('');
-        const result = await gamesApi.checkPayments(password, this.state.gameData.game.id);
+        const result = await this.gamesApi.checkPayments(password, this.state.gameData.game.id);
         this.setShowPasswordDialog(false);
         this.prompts.showPopup({
           title: 'Payment check completed',
@@ -600,7 +616,7 @@ export class GameDetailsViewModel {
     
     try {
       // Fetch the last used guest name as default
-      const { lastGuestName } = await gamesApi.getLastGuestName(this.state.gameData.game.id);
+      const { lastGuestName } = await this.gamesApi.getLastGuestName(this.state.gameData.game.id);
       this.setDefaultGuestName(lastGuestName || "");
       this.setShowGuestDialog(true);
       this.setGuestError("");
@@ -625,9 +641,9 @@ export class GameDetailsViewModel {
       const isGameAdmin = this.user.isAdmin || this.state.gameData.game.isAssignedAdmin;
       const isReadonly = this.state.gameData.game.readonly;
       if (isGameAdmin && (isPastGame || isReadonly) && !hasPaymentRequests && inviterUserId) {
-        await gamesApi.addParticipant(this.state.gameData.game.id, inviterUserId, guestName);
+        await this.gamesApi.addParticipant(this.state.gameData.game.id, inviterUserId, guestName);
       } else {
-        await gamesApi.registerGuestForGame(this.state.gameData.game.id, guestName);
+        await this.gamesApi.registerGuestForGame(this.state.gameData.game.id, guestName);
       }
       await this.loadGame(this.state.gameData.game.id);      
       this.setShowGuestDialog(false);
