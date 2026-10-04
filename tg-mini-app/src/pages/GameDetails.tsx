@@ -236,7 +236,10 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
       
       {viewModel.gameCategory && !gameData.game.readonly && (
         <div className="category-info-block-wrapper">
-          <CategoryInfoBlock category={viewModel.gameCategory} />
+          <CategoryInfoBlock
+            category={viewModel.gameCategory}
+            unregisterDeadlineHours={gameData.game.unregisterDeadlineHours}
+          />
         </div>
       )}
 
