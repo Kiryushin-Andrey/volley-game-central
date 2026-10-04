@@ -80,45 +80,62 @@ export class GameDetailsViewModel {
     this.state = GameDetailsViewModel.getInitialState();
   }
 
-  /** Same shape as GamesListViewModel.subscribe — one listener surface for all UI state. */
-  subscribe(listener: () => void) {
+  /** Stable refs for React.useSyncExternalStore (same pattern as PhoneAuth). */
+  subscribe = (listener: () => void) => {
     this.listeners.push(listener);
     return () => {
       this.listeners = this.listeners.filter((l) => l !== listener);
     };
-  }
+  };
+
+  getSnapshot = () => this.state;
 
   private emitChange() {
     for (const l of this.listeners) l();
   }
 
-  // Internal state update methods
+  // Internal state update methods — replace top-level state so getSnapshot identity changes
   private setGameData(updates: Partial<GameDataState>): void {
-    this.state.gameData = { ...this.state.gameData, ...updates };
+    this.state = {
+      ...this.state,
+      gameData: { ...this.state.gameData, ...updates },
+    };
     this.emitChange();
   }
 
   private setAction(updates: Partial<ActionState>): void {
-    this.state.action = { ...this.state.action, ...updates };
+    this.state = {
+      ...this.state,
+      action: { ...this.state.action, ...updates },
+    };
     this.emitChange();
   }
 
   private setBunq(updates: Partial<BunqState>): void {
-    this.state.bunq = { ...this.state.bunq, ...updates };
+    this.state = {
+      ...this.state,
+      bunq: { ...this.state.bunq, ...updates },
+    };
     this.emitChange();
   }
 
   private setPaymentRequest(updates: Partial<PaymentRequestState>): void {
-    this.state.paymentRequest = { ...this.state.paymentRequest, ...updates };
+    this.state = {
+      ...this.state,
+      paymentRequest: { ...this.state.paymentRequest, ...updates },
+    };
     this.emitChange();
   }
 
   private setDialogs(updates: Partial<DialogState>): void {
-    this.state.dialogs = { ...this.state.dialogs, ...updates };
+    this.state = {
+      ...this.state,
+      dialogs: { ...this.state.dialogs, ...updates },
+    };
     this.emitChange();
   }
 
-  // Getters for current state (page reads these after subscribe ticks)
+  // Convenience getters (also available via getSnapshot())
   get gameData(): GameDataState {
     return this.state.gameData;
   }
