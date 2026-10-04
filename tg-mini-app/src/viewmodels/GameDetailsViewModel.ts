@@ -1,5 +1,5 @@
 import { gamesApi, bunqApi } from '../services/api';
-import { showPopup, showConfirm } from '../utils/uiPrompts';
+import type { UiPrompts } from '../utils/uiPrompts';
 import { logDebug } from '../debug';
 import { Game, User } from '../types';
 import type { UserPublicInfo } from '../types';
@@ -61,6 +61,7 @@ export class GameDetailsViewModel {
   private updateDialogs: StateUpdater<DialogState>;
   private readonly navigate: (url: string) => void;
   private readonly user: User;
+  private readonly prompts: UiPrompts;
   private readonly actionGuard: ActionGuard;
   private loadGameGeneration = 0;
 
@@ -72,6 +73,7 @@ export class GameDetailsViewModel {
     updateDialogs: StateUpdater<DialogState>;
     navigate: (url: string) => void;
     user: User;
+    prompts: UiPrompts;
   }) {
     this.updateGameData = args.updateGameData;
     this.updateAction = args.updateAction;
@@ -80,6 +82,7 @@ export class GameDetailsViewModel {
     this.updateDialogs = args.updateDialogs;
     this.navigate = args.navigate;
     this.user = args.user;
+    this.prompts = args.prompts;
     this.actionGuard = new ActionGuard(1000);
     
     // Initialize internal state
@@ -218,7 +221,7 @@ export class GameDetailsViewModel {
       if (err.response?.status === 403) {
         const errData = err.response?.data;
         if (typeof errData !== 'object' || errData === null) {
-          showPopup({ title: 'Cannot register', message: 'You cannot register for this game. Please try again or contact the organizers.', buttons: [{ type: 'ok' }] });
+          this.prompts.showPopup({ title: 'Cannot register', message: 'You cannot register for this game. Please try again or contact the organizers.', buttons: [{ type: 'ok' }] });
         } else if (errData?.registrationOpensAt) {
           const openDate = new Date(errData.registrationOpensAt);
           alert(`Registration is only possible starting ${openDate.toLocaleDateString()} (X days before the game).`);
@@ -227,7 +230,7 @@ export class GameDetailsViewModel {
           const link = import.meta.env.VITE_TELEGRAM_GROUP_INVITE_LINK;
 
           if (link) {
-            showPopup({
+            this.prompts.showPopup({
               title: 'Join the group',
               message,
               buttons: [
@@ -242,12 +245,12 @@ export class GameDetailsViewModel {
               }
             });
           } else {
-            showPopup({ title: 'Join the group', message, buttons: [{ type: 'ok' }] });
+            this.prompts.showPopup({ title: 'Join the group', message, buttons: [{ type: 'ok' }] });
           }
         } else if (errData?.error) {
-          showPopup({ title: 'Cannot register', message: errData.error, buttons: [{ type: 'ok' }] });
+          this.prompts.showPopup({ title: 'Cannot register', message: errData.error, buttons: [{ type: 'ok' }] });
         } else {
-          showPopup({ title: 'Cannot register', message: 'You cannot register for this game. Please try again or contact the organizers.', buttons: [{ type: 'ok' }] });
+          this.prompts.showPopup({ title: 'Cannot register', message: 'You cannot register for this game. Please try again or contact the organizers.', buttons: [{ type: 'ok' }] });
         }
       } else {
         alert('Failed to register for game. Please try again.');
@@ -265,7 +268,7 @@ export class GameDetailsViewModel {
       : 'Are you sure you want to leave this game?';
     const actionId = isGuest ? 'unregister' : 'leave';
     const actionText = isGuest ? 'Unregister Guest' : 'Leave Game';
-    showPopup({
+    this.prompts.showPopup({
       title,
       message,
       buttons: [
@@ -297,20 +300,20 @@ export class GameDetailsViewModel {
           const gameTime = new Date(game.dateTime);
           const deadlineHours = game.unregisterDeadlineHours || 5;
           const deadline = new Date(gameTime.getTime() - deadlineHours * 60 * 60 * 1000);
-          showPopup({
+          this.prompts.showPopup({
             title: guestName ? 'Cannot Unregister Guest' : 'Cannot Leave Game',
             message: `You can only unregister up to ${deadline.toLocaleTimeString()} (${deadlineHours} hours before the game starts).`,
             buttons: [{ type: 'ok' }]
           });
         } else {
-          showPopup({
+          this.prompts.showPopup({
             title: 'Error',
             message: typeof err === 'string' ? err : err.message || (guestName ? 'Failed to unregister guest' : 'Failed to leave the game'),
             buttons: [{ type: 'ok' }]
           });
         }
       } else {
-        showPopup({
+        this.prompts.showPopup({
           title: 'Error',
           message: typeof err === 'string' ? err : err.message || (guestName ? 'Failed to unregister guest' : 'Failed to leave the game'),
           buttons: [{ type: 'ok' }]
@@ -324,18 +327,18 @@ export class GameDetailsViewModel {
   private removePlayer(game: Game, userId: number, guestName?: string): void {
     const player = game.registrations.find(reg => reg.userId === userId && (!guestName ? !reg.guestName : reg.guestName === guestName));
     const displayName = guestName || player?.user?.displayName || player?.user?.telegramUsername || `Player ${userId}`;
-    showConfirm(`Remove ${displayName} from this game?`, async (confirmed) => {
+    this.prompts.showConfirm(`Remove ${displayName} from this game?`, async (confirmed) => {
       if (!confirmed) return;
       try {
         this.setAction({ isActionLoading: true });
         await gamesApi.removeParticipant(game.id, userId, guestName);
         // Reload game to ensure only the targeted registration is removed
         await this.loadGame(game.id);
-        showPopup({ title: 'Success', message: `${displayName} has been removed from the game`, buttons: [{ type: 'ok' }] });
+        this.prompts.showPopup({ title: 'Success', message: `${displayName} has been removed from the game`, buttons: [{ type: 'ok' }] });
       } catch (err) {
         logDebug('Error removing player:');
         logDebug(err);
-        showPopup({ title: 'Error', message: 'Failed to remove player from the game', buttons: [{ type: 'ok' }] });
+        this.prompts.showPopup({ title: 'Error', message: 'Failed to remove player from the game', buttons: [{ type: 'ok' }] });
       } finally {
         this.setAction({ isActionLoading: false });
       }
@@ -347,7 +350,7 @@ export class GameDetailsViewModel {
     const name = game.registrations.find(reg => reg.userId === userId)?.user?.displayName
       || game.registrations.find(reg => reg.userId === userId)?.user?.telegramUsername
       || `Player ${userId}`;
-    showConfirm(`${newPaidStatus ? 'Mark' : 'Unmark'} ${name} as ${newPaidStatus ? 'paid' : 'unpaid'}?`, async (confirmed) => {
+    this.prompts.showConfirm(`${newPaidStatus ? 'Mark' : 'Unmark'} ${name} as ${newPaidStatus ? 'paid' : 'unpaid'}?`, async (confirmed) => {
       if (!confirmed) return;
       try {
         this.setAction({ isPaidUpdating: userId });
@@ -361,7 +364,7 @@ export class GameDetailsViewModel {
       } catch (err) {
         logDebug('Error updating paid status:');
         logDebug(err);
-        showPopup({ title: 'Error', message: 'Failed to update payment status', buttons: [{ type: 'ok' }] });
+        this.prompts.showPopup({ title: 'Error', message: 'Failed to update payment status', buttons: [{ type: 'ok' }] });
       } finally {
         this.setAction({ isPaidUpdating: null });
       }
@@ -377,7 +380,7 @@ export class GameDetailsViewModel {
       this.setPaymentRequest({ isSendingPaymentRequests: true, passwordError: '' });
       const result = await gamesApi.createPaymentRequests(gameId, password);
       this.setPaymentRequest({ showPasswordDialog: false });
-      showPopup({
+      this.prompts.showPopup({
         title: 'Payment requests sent',
         message: `${result.requestsCreated} payment requests sent successfully.${result.errors.length > 0 ? ` ${result.errors.length} errors occurred.` : ''}`,
         buttons: [{ type: 'ok' }]
@@ -394,7 +397,7 @@ export class GameDetailsViewModel {
         this.setPaymentRequest({ passwordError: errorMessage });
       } else {
         this.setPaymentRequest({ showPasswordDialog: false });
-        showPopup({ title: 'Error', message: errorMessage, buttons: [{ type: 'ok' }] });
+        this.prompts.showPopup({ title: 'Error', message: errorMessage, buttons: [{ type: 'ok' }] });
       }
     } finally {
       this.setPaymentRequest({ isSendingPaymentRequests: false });
@@ -402,7 +405,7 @@ export class GameDetailsViewModel {
   }
 
   private async deleteGame(gameId: number): Promise<void> {
-    showConfirm('Are you sure you want to delete this game? This action cannot be undone.', async (confirmed) => {
+    this.prompts.showConfirm('Are you sure you want to delete this game? This action cannot be undone.', async (confirmed) => {
       if (!confirmed) return;
       try {
         this.setAction({ isActionLoading: true });
@@ -411,7 +414,7 @@ export class GameDetailsViewModel {
       } catch (error) {
         logDebug('Error deleting game:');
         logDebug(error);
-        showPopup({ title: 'Error', message: 'Failed to delete the game. Please try again.', buttons: [{ type: 'ok' }] });
+        this.prompts.showPopup({ title: 'Error', message: 'Failed to delete the game. Please try again.', buttons: [{ type: 'ok' }] });
         this.setAction({ isActionLoading: false });
       }
     });
@@ -471,7 +474,7 @@ export class GameDetailsViewModel {
     if (!this.state.gameData.game || this.state.action.isActionLoading) return;
     // Prevent blocked users from registering
     if (this.user.blockReason) {
-      showPopup({
+      this.prompts.showPopup({
         title: "Registration blocked",
         message: `You cannot register because: ${this.user.blockReason}`,
         buttons: [{ type: 'ok' }]
@@ -537,7 +540,7 @@ export class GameDetailsViewModel {
         this.setPasswordError('');
         const result = await gamesApi.checkPayments(password, this.state.gameData.game.id);
         this.setShowPasswordDialog(false);
-        showPopup({
+        this.prompts.showPopup({
           title: 'Payment check completed',
           message: result.message || 'Payment check completed successfully',
           buttons: [{ type: 'ok' }]
@@ -548,7 +551,7 @@ export class GameDetailsViewModel {
           this.setPasswordError(error.response?.data?.message);
         } else {
           this.setShowPasswordDialog(false);
-          showPopup({
+          this.prompts.showPopup({
             title: 'Error',
             message: error instanceof Error ? error.message : 'Unknown error',
             buttons: [{ type: 'ok' }]
@@ -571,7 +574,7 @@ export class GameDetailsViewModel {
     if (!this.state.gameData.game || this.state.action.isActionLoading) return;
     // Prevent blocked users from adding guests
     if (this.user.blockReason) {
-      showPopup({
+      this.prompts.showPopup({
         title: "Guest registration blocked",
         message: `You cannot add guests because: ${this.user.blockReason}`,
         buttons: [{ type: 'ok' }]
@@ -587,7 +590,7 @@ export class GameDetailsViewModel {
     // Admins can add guests to readonly games, but regular users need the guest window
     if (!isReadonly && !isGameAdmin && !game.canRegisterGuest) {
       const opensAt = new Date(game.guestRegistrationOpensAt);
-      showPopup({
+      this.prompts.showPopup({
         title: "Guest registration not available",
         message: `Guest registration opens ${opensAt.toLocaleDateString()} (${game.guestRegistrationOpenDays} days before the game).`,
         buttons: [{ type: 'ok' }]
