@@ -3,7 +3,7 @@ import { Game, User, GameWithStats, PricingMode, UserPublicInfo, UserWithPlayerL
 import { logDebug } from '../debug';
 
 // Use /api prefix for proxy, fallback to environment variable for production
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL || '/api';
 
 logDebug(`API_BASE_URL: ${API_BASE_URL}`); // Debug log
 
