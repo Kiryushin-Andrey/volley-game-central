@@ -1,5 +1,12 @@
 /**
- * Creates a safe email local-part from a user-visible name.
+ * Sanitize a display name / Telegram username into an email local-part.
+ *
+ * Needed because Bunq request-inquiry requires a `counterparty_alias` of type
+ * EMAIL (see payment-request create). We build `{local}@volleyfun.nl` from the
+ * player's telegram username or display name; those strings are not valid email
+ * local-parts as-is (spaces, Cyrillic, diacritics, length).
+ *
+ * Behavior:
  * - Lowercases and trims
  * - Removes diacritics (NFKD) for Latin-based scripts
  * - Replaces spaces with underscore
