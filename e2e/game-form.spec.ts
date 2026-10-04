@@ -17,9 +17,15 @@ import {
   waitForBackend,
 } from './support/fixtures';
 
-async function fillRequiredGameFields(page: import('@playwright/test').Page, title: string) {
+async function fillRequiredGameFields(
+  page: import('@playwright/test').Page,
+  title: string,
+  options?: { unregisterDeadlineHours?: number },
+) {
   await page.locator('#maxPlayers').fill('12');
-  await page.locator('#unregisterDeadlineHours').fill('5');
+  if (options?.unregisterDeadlineHours !== undefined) {
+    await page.locator('#unregisterDeadlineHours').fill(String(options.unregisterDeadlineHours));
+  }
   await page.locator('#paymentAmount').fill('7.50');
   await page.locator('#locationName').fill('E2E Form Hall');
   await page.locator('#locationLink').fill('https://maps.example/e2e-form-hall');
@@ -51,7 +57,8 @@ test.describe('game creation and editing scenarios', () => {
 
     await devLogin(page, testInfo, 'Standard Create Admin', true);
     await page.goto('/games/new');
-    await fillRequiredGameFields(page, title);
+    await expect(page.locator('#unregisterDeadlineHours')).toHaveValue('5');
+    await fillRequiredGameFields(page, title, { unregisterDeadlineHours: 5 });
     const createResponsePromise = waitForAdminGameCreateResponse(page);
     await page.getByRole('button', { name: 'Create Game' }).click();
     const createResponse = await createResponsePromise;
@@ -80,17 +87,21 @@ test.describe('game creation and editing scenarios', () => {
 
     await devLogin(page, testInfo, 'Five One Admin', true);
     await page.goto('/games/new');
-    await fillRequiredGameFields(page, title);
     await page.locator('#gameFormat').selectOption('positions');
+    await expect(page.locator('#unregisterDeadlineHours')).toHaveValue('24');
+    await fillRequiredGameFields(page, title);
     const createResponsePromise = waitForAdminGameCreateResponse(page);
     await page.getByRole('button', { name: 'Create Game' }).click();
     const createResponse = await createResponsePromise;
     expect(createResponse.ok()).toBeTruthy();
-    const { id } = (await createResponse.json()) as { id: number };
+    const body = (await createResponse.json()) as { id: number; unregisterDeadlineHours: number };
+    expect(body.unregisterDeadlineHours).toBe(24);
+    const { id } = body;
 
     await expect(page).toHaveURL('/');
     await page.goto(`/game/${id}/edit`);
     await expect(page.locator('#gameFormat')).toHaveValue('positions');
+    await expect(page.locator('#unregisterDeadlineHours')).toHaveValue('24');
   });
 
   test('E2E-FORM-005 global admin creates a readonly game that participants cannot self-register for', async ({ page, request }, testInfo) => {

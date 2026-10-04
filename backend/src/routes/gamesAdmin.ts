@@ -14,6 +14,7 @@ import { isUserAssignedToGameById, isUserAssignedToGame } from '../middleware/ad
 import { getUserSelectFields } from '../utils/dbQueryUtils';
 import {
   adminAssignmentWithPositionsForGameFormat,
+  defaultUnregisterDeadlineHours,
   isPositionsGame,
   parseGameFormat,
   usesPriorityPlayerWindows,
@@ -58,7 +59,7 @@ router.post('/', async (req, res) => {
     const {
       dateTime,
       maxPlayers,
-      unregisterDeadlineHours = 5,
+      unregisterDeadlineHours: unregisterDeadlineHoursInput,
       paymentAmount,
       pricingMode = PricingMode.PER_PARTICIPANT,
       gameFormat: gameFormatInput,
@@ -73,6 +74,10 @@ router.post('/', async (req, res) => {
     }
 
     const gameFormat = parseGameFormat(gameFormatInput) ?? 'recreational';
+    const unregisterDeadlineHours =
+      unregisterDeadlineHoursInput !== undefined && unregisterDeadlineHoursInput !== null
+        ? Number(unregisterDeadlineHoursInput)
+        : defaultUnregisterDeadlineHours(gameFormat);
 
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });

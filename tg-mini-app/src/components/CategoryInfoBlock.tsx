@@ -9,9 +9,10 @@ interface CategoryInfoBlockProps {
 }
 
 const getCategoryDescription = (cat: GameCategory): string => {
+  const freezeHours = cat === 'thursday-5-1' ? 24 : 5;
   const registrationRules = `
 
-The participant list is frozen 5 hours before the game. Until that time, you can deregister without penalties. After that, deregistration is no longer possible.
+The participant list is frozen ${freezeHours} hours before the game. Until that time, you can deregister without penalties. After that, deregistration is no longer possible.
 
 If you cannot come - let the people from the waitlist now, either in DM or in the group chat. You'll still get the payment request, but you can forward it to your replacement. Or simply give away your slot.
 After the game, the bot will send tickets to all participants from the main list, which need to be paid within 24 hours. If you silently skip games or don't pay for attendance - after a couple of warnings, a ban will follow.

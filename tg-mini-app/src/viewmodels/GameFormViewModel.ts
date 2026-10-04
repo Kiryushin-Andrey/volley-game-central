@@ -3,7 +3,7 @@ import { gamesApi } from '../services/api';
 import { GameFormat, PricingMode } from '../types';
 import { eurosToCents, centsToEuroString } from '../utils/currencyUtils';
 import { logDebug } from '../debug';
-import { parseGameFormat } from '../utils/gameFormat';
+import { defaultUnregisterDeadlineHours, parseGameFormat } from '../utils/gameFormat';
 
 export interface GameFormState {
   selectedDate: Date | null;
@@ -70,6 +70,7 @@ export class GameFormViewModel {
       }
       if (defaults.gameFormat) {
         updates.gameFormat = defaults.gameFormat;
+        updates.unregisterDeadlineHours = defaultUnregisterDeadlineHours(defaults.gameFormat);
       }
 
       this.updateState(updates);
@@ -102,7 +103,8 @@ export class GameFormViewModel {
       this.updateState({
         selectedDate: new Date(game.dateTime),
         maxPlayers: game.maxPlayers,
-        unregisterDeadlineHours: game.unregisterDeadlineHours || 5,
+        unregisterDeadlineHours:
+          game.unregisterDeadlineHours || defaultUnregisterDeadlineHours(game.gameFormat),
         paymentAmount: game.paymentAmount || 0,
         paymentAmountDisplay: centsToEuroString(game.paymentAmount || 0),
         pricingMode: game.pricingMode || PricingMode.PER_PARTICIPANT,
@@ -174,7 +176,10 @@ export class GameFormViewModel {
   handleGameFormatChange(value: string): void {
     const format = parseGameFormat(value);
     if (format) {
-      this.updateState({ gameFormat: format });
+      this.updateState({
+        gameFormat: format,
+        unregisterDeadlineHours: defaultUnregisterDeadlineHours(format),
+      });
     }
   }
 
@@ -235,6 +240,12 @@ export class GameFormViewModel {
       this.handleMaxPlayersChange(parseInt(maxPlayersEl.value, 10));
     }
 
+    // Format before deadline so a custom #unregisterDeadlineHours value wins over the format default.
+    const gameFormatEl = document.getElementById('gameFormat') as HTMLSelectElement | null;
+    if (gameFormatEl?.value) {
+      this.handleGameFormatChange(gameFormatEl.value);
+    }
+
     const unregisterEl = document.getElementById('unregisterDeadlineHours') as HTMLInputElement | null;
     if (unregisterEl?.value) {
       this.handleUnregisterDeadlineHoursChange(parseInt(unregisterEl.value, 10));
@@ -245,11 +256,6 @@ export class GameFormViewModel {
       this.handlePaymentAmountChange({
         target: paymentEl,
       } as React.ChangeEvent<HTMLInputElement>);
-    }
-
-    const gameFormatEl = document.getElementById('gameFormat') as HTMLSelectElement | null;
-    if (gameFormatEl?.value) {
-      this.handleGameFormatChange(gameFormatEl.value);
     }
   }
 
@@ -348,7 +354,7 @@ export class GameFormViewModel {
     return {
       selectedDate: null,
       maxPlayers: 14,
-      unregisterDeadlineHours: 5,
+      unregisterDeadlineHours: defaultUnregisterDeadlineHours('recreational'),
       paymentAmount: 500, // Stored in cents
       paymentAmountDisplay: centsToEuroString(500), // Display value in euros
       pricingMode: PricingMode.PER_PARTICIPANT,
