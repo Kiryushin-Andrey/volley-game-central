@@ -250,26 +250,6 @@ export class GamesListViewModel {
   handleGameClick = (gameId: number) => {
     this.deps.navigate(`/game/${gameId}`);
   };
-
-  formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const isToday = date.toDateString() === today.toDateString();
-    const isTomorrow = date.toDateString() === tomorrow.toDateString();
-
-    const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-    if (isToday) return `Today, ${timeString}`;
-    if (isTomorrow) return `Tomorrow, ${timeString}`;
-
-    const day = date.getDate();
-    const month = date.toLocaleString('en-US', { month: 'long' });
-    const weekday = date.toLocaleString('en-US', { weekday: 'long' });
-    return `${day} ${month}, ${weekday}, ${timeString}`;
-  };
 }
 
 export function useGamesListViewModel(user: User) {

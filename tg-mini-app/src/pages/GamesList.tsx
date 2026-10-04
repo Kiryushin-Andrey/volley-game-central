@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { FaUsers, FaCog, FaPlus } from 'react-icons/fa';
 import { useGamesListViewModel } from './GamesListViewModel';
 import { GameWithStats, User } from '../types';
-import { isGameUpcoming } from '../utils/gameDateUtils';
+import { formatDate, isGameUpcoming } from '../utils/gameDateUtils';
 import { isPositionsGame } from '../utils/gameFormat';
 import { isTcOnly } from '../utils/userRoles';
 import { resolveLocationLink } from '../utils/locationUtils';
@@ -324,7 +324,7 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
           ) : (
             <GameItemsList
               games={vm.games}
-              formatDate={vm.formatDate}
+              formatDate={formatDate}
               handleGameClick={vm.handleGameClick}
             />
           )}
