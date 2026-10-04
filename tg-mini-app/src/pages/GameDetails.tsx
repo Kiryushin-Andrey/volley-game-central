@@ -25,6 +25,7 @@ import {
   getUserRegistration,
 } from "../utils/registrationsUtils";
 import { GameDetailsViewModel, GameDataState, ActionState, BunqState, PaymentRequestState, DialogState } from "../viewmodels/GameDetailsViewModel";
+import { uiPrompts } from "../utils/uiPrompts";
 import { PlayersList } from "../components/game-details/PlayersList";
 import { WaitlistList } from "../components/game-details/WaitlistList";
 import { InfoText } from "../components/game-details/InfoText";
@@ -85,6 +86,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
       updateDialogs: (updates) => setDialogs(prev => ({ ...prev, ...updates })),
       navigate,
       user,
+      prompts: uiPrompts,
     });
   }, [navigate, user]);
 
