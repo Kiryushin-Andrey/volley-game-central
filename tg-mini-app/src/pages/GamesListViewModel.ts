@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { gamesApi, bunqApi, userApi, gameAdministratorsApi } from '../services/api';
 import type { UnpaidRegistration } from '../services/api';
@@ -21,6 +21,8 @@ export type GameFilter = 'upcoming' | 'past';
 export class GamesListViewModel {
   private listeners: Array<() => void> = [];
   private isLoadingRef = { current: false } as { current: boolean };
+  /** Bumped on every emit so useSyncExternalStore sees a new snapshot identity. */
+  private revision = 0;
 
   // state
   games: GameWithStats[] = [];
@@ -72,14 +74,18 @@ export class GamesListViewModel {
     } catch {}
   }
 
-  subscribe(listener: () => void) {
+  /** Stable refs for React.useSyncExternalStore (same pattern as PhoneAuth). */
+  subscribe = (listener: () => void) => {
     this.listeners.push(listener);
     return () => {
       this.listeners = this.listeners.filter((l) => l !== listener);
     };
-  }
+  };
+
+  getSnapshot = () => this.revision;
 
   private emitChange() {
+    this.revision += 1;
     for (const l of this.listeners) l();
   }
 
@@ -265,13 +271,11 @@ export function useGamesListViewModel(user: User) {
       logDebug,
     });
   }
-  const [, setTick] = useState(0);
+  const vm = vmRef.current;
+  // Subscribe for re-renders; page still reads fields/methods from the VM instance
+  useSyncExternalStore(vm.subscribe, vm.getSnapshot, vm.getSnapshot);
   useEffect(() => {
-    const unsub = vmRef.current!.subscribe(() => setTick((t) => t + 1));
-    vmRef.current!.init();
-    return () => {
-      unsub();
-    };
-  }, []);
-  return vmRef.current!;
+    vm.init();
+  }, [vm]);
+  return vm;
 }

@@ -80,15 +80,18 @@ test('GameDetailsViewModel loads via fake API and notifies a single subscribe li
     ticks += 1;
   });
 
-  assert.equal(vm.gameData.isLoading, true);
+  const before = vm.getSnapshot();
+  assert.equal(before.gameData.isLoading, true);
   assert.equal(vm.game, null);
 
   await vm.loadGame(42);
 
+  const after = vm.getSnapshot();
   assert.equal(getGameCalls, 1);
-  assert.equal(vm.gameData.isLoading, false);
-  assert.equal(vm.gameData.error, null);
-  assert.equal(vm.game?.id, 42);
+  assert.notEqual(before, after, 'getSnapshot identity must change for useSyncExternalStore');
+  assert.equal(after.gameData.isLoading, false);
+  assert.equal(after.gameData.error, null);
+  assert.equal(after.gameData.game?.id, 42);
   assert.ok(ticks >= 1, 'subscribe listener should fire on state changes');
   assert.equal(vm.userMaySelfRegister(), true);
   assert.equal(vm.shouldShowAddGuestButton(), true);

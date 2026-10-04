@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useSyncExternalStore } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { User, PricingMode } from "../types";
 import LoadingSpinner from "../components/LoadingSpinner";
@@ -44,34 +44,29 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
   const location = useLocation();
   const inTelegram = isTelegramApp();
 
-  // One subscribe surface (same pattern as GamesListViewModel) — VM owns all UI state
-  const viewModelRef = useRef<GameDetailsViewModel | null>(null);
-  if (!viewModelRef.current) {
-    viewModelRef.current = new GameDetailsViewModel({
-      navigate,
-      user,
-      prompts: uiPrompts,
-    });
-  }
-  const viewModel = viewModelRef.current;
-  const [, setTick] = useState(0);
+  // VM owns UI state; React.useSyncExternalStore is the idiomatic subscribe bridge
+  const viewModel = useMemo(
+    () =>
+      new GameDetailsViewModel({
+        navigate,
+        user,
+        prompts: uiPrompts,
+      }),
+    [navigate, user],
+  );
 
-  useEffect(() => {
-    const unsub = viewModel.subscribe(() => setTick((t) => t + 1));
-    return unsub;
-  }, [viewModel]);
+  const { gameData, action, bunq, paymentRequest, dialogs } =
+    useSyncExternalStore(
+      viewModel.subscribe,
+      viewModel.getSnapshot,
+      viewModel.getSnapshot,
+    );
 
   useEffect(() => {
     if (gameId) {
       viewModel.loadGame(parseInt(gameId));
     }
   }, [gameId, viewModel, location.pathname, location.search]);
-
-  const gameData = viewModel.gameData;
-  const action = viewModel.action;
-  const bunq = viewModel.bunq;
-  const paymentRequest = viewModel.paymentRequest;
-  const dialogs = viewModel.dialogs;
 
   // Check Bunq integration status for admin users
   useEffect(() => {
