@@ -70,26 +70,3 @@ export function getCategoryDisplayName(category: GameCategory): string {
   return names[category];
 }
 
-/**
- * Classify a game into a category based on its date and whether it uses positions
- * @param dateTime - The game's date and time
- * @param gameFormat - Game format (Sunday recreational → sunday; positions Thursday → thursday-5-1)
- * @returns The game category
- */
-export function classifyGame(dateTime: string, gameFormat: import('../types').GameFormat): GameCategory {
-  const gameDate = new Date(dateTime);
-  let dayOfWeek = gameDate.getDay();
-  // Convert JavaScript day (0=Sunday, 1=Monday, ..., 6=Saturday) to Monday=0 format
-  dayOfWeek = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  
-  // Thursday = 3, Sunday = 6
-  if (dayOfWeek === 3) { // Thursday
-    return gameFormat === 'positions' ? 'thursday-5-1' : 'other';
-  } else if (dayOfWeek === 6) { // Sunday
-    return gameFormat === 'recreational' ? 'sunday' : 'other';
-  } else {
-    return 'other';
-  }
-}
-
-

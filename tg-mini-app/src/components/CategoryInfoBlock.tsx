@@ -1,12 +1,11 @@
 import { memo, useState, useEffect } from 'react';
 import { FaInfoCircle } from 'react-icons/fa';
 import { renderFormattedText } from '../utils/textFormatting';
+import { GameCategory, getCategoryDisplayName } from '../utils/gameDateUtils';
 import './CategoryInfoBlock.scss';
 
-type GameCategory = 'thursday-5-1' | 'sunday' | 'other';
-
 interface CategoryInfoBlockProps {
-  category: string;
+  category: GameCategory;
 }
 
 const getCategoryDescription = (cat: GameCategory): string => {
@@ -56,14 +55,12 @@ const CategoryInfoBlock = memo(({ category }: CategoryInfoBlockProps) => {
     };
   }, [showDialog]);
   
-  const categoryInfo: Record<string, { header: string; short: string; withPositions: boolean }> = {
+  const categoryInfo: Partial<Record<GameCategory, { short: string; withPositions: boolean }>> = {
     'thursday-5-1': {
-      header: 'Thursday 5-1',
       short: 'Competitive games with assigned positions (5-1 system)',
       withPositions: true
     },
     'sunday': {
-      header: 'Sunday',
       short: 'Recreational games without assigned positions',
       withPositions: false
     }
@@ -71,14 +68,15 @@ const CategoryInfoBlock = memo(({ category }: CategoryInfoBlockProps) => {
   
   const info = categoryInfo[category];
   if (!info) return null;
-  
-  const fullDescription = getCategoryDescription(category as GameCategory);
+
+  const header = getCategoryDisplayName(category);
+  const fullDescription = getCategoryDescription(category);
   const blockClassName = `category-info-block ${info.withPositions ? 'with-positions' : 'without-positions'}`;
   
   return (
     <>
       <div className={blockClassName}>
-        <span className="category-info-text">{info.header}: {info.short}</span>
+        <span className="category-info-text">{header}: {info.short}</span>
         <FaInfoCircle 
           className="category-info-icon" 
           onClick={() => setShowDialog(true)}
@@ -88,7 +86,7 @@ const CategoryInfoBlock = memo(({ category }: CategoryInfoBlockProps) => {
         <div className="category-info-dialog-overlay" onClick={() => setShowDialog(false)}>
           <div className="category-info-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="category-info-dialog-header">
-              <h3>{info.header}</h3>
+              <h3>{header}</h3>
               <button className="close-button" onClick={() => setShowDialog(false)}>×</button>
             </div>
             <div className="category-info-dialog-content">
