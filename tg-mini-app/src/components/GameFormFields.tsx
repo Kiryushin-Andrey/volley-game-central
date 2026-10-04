@@ -76,7 +76,7 @@ export const GameFormFields: React.FC<GameFormFieldsProps> = ({
         />
         <div className="field-description">
           Players can unregister up until this many hours before the game starts.
-          Defaults to 24 for positions games and 5 for recreational / priority-players games when you change the format.
+          Changing the game format updates this to the server default for that format.
         </div>
       </div>
 

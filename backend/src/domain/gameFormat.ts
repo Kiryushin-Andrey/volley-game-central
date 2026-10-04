@@ -19,19 +19,6 @@ export function isPositionsGame(format: GameFormat): boolean {
   return format === 'positions';
 }
 
-/** Default leave/unregister freeze window for recreational and priority-players games. */
-export const DEFAULT_UNREGISTER_DEADLINE_HOURS_RECREATIONAL = 5;
-
-/** Default leave/unregister freeze window for positions games. */
-export const DEFAULT_UNREGISTER_DEADLINE_HOURS_POSITIONS = 24;
-
-/** Suggested unregisterDeadlineHours when creating a game of the given format. */
-export function defaultUnregisterDeadlineHours(format: GameFormat): number {
-  return isPositionsGame(format)
-    ? DEFAULT_UNREGISTER_DEADLINE_HOURS_POSITIONS
-    : DEFAULT_UNREGISTER_DEADLINE_HOURS_RECREATIONAL;
-}
-
 export function usesPriorityPlayerWindows(format: GameFormat): boolean {
   return format === 'priority_players';
 }

@@ -1,5 +1,6 @@
 import {
   asGameFormat,
+  GAME_FORMATS,
   isPositionsGame,
   usesPriorityPlayerWindows,
   type GameFormat,
@@ -16,6 +17,26 @@ export const REGISTRATION_OPEN_DAYS = 10;
 export const GUEST_REGISTRATION_OPEN_DAYS = 3;
 /** Days before game start when non-priority players may register on priority-window games. */
 export const REGULAR_PLAYER_REGISTRATION_OPEN_DAYS = 3;
+
+/** Default leave/unregister freeze window for recreational and priority-players games. */
+export const DEFAULT_UNREGISTER_DEADLINE_HOURS_RECREATIONAL = 5;
+
+/** Default leave/unregister freeze window for positions games. */
+export const DEFAULT_UNREGISTER_DEADLINE_HOURS_POSITIONS = 24;
+
+/** Suggested unregisterDeadlineHours when creating a game of the given format. */
+export function defaultUnregisterDeadlineHours(format: GameFormat): number {
+  return isPositionsGame(format)
+    ? DEFAULT_UNREGISTER_DEADLINE_HOURS_POSITIONS
+    : DEFAULT_UNREGISTER_DEADLINE_HOURS_RECREATIONAL;
+}
+
+/** Full map for admin create/edit forms (backend SSOT; expose via /games/admin/defaults). */
+export function unregisterDeadlineHoursByFormat(): Record<GameFormat, number> {
+  return Object.fromEntries(
+    GAME_FORMATS.map((format) => [format, defaultUnregisterDeadlineHours(format)]),
+  ) as Record<GameFormat, number>;
+}
 
 export type GameCategory = 'thursday-5-1' | 'sunday' | 'other';
 
