@@ -225,7 +225,6 @@ export async function createGameViaUi(page: Page, input: UiGameInput): Promise<G
   await dateInput.fill(formatGameDateTimeForInput(dateTime));
   await dateInput.press('Enter');
   await page.locator('#maxPlayers').fill(String(input.maxPlayers ?? 14));
-  await page.locator('#unregisterDeadlineHours').fill(String(input.unregisterDeadlineHours ?? 5));
   await page.locator('#paymentAmount').fill(input.paymentAmount ?? '5.00');
   await page.locator('#locationName').fill(input.locationName ?? 'E2E Sports Hall');
   await page.locator('#locationLink').fill(input.locationLink ?? 'https://maps.example/e2e');
@@ -237,6 +236,10 @@ export async function createGameViaUi(page: Page, input: UiGameInput): Promise<G
   const gameFormat =
     input.gameFormat ?? (input.withPositions ? 'positions' : 'recreational');
   await page.locator('#gameFormat').selectOption(gameFormat);
+  const defaultDeadlineHours = gameFormat === 'positions' ? 24 : 5;
+  await page.locator('#unregisterDeadlineHours').fill(
+    String(input.unregisterDeadlineHours ?? defaultDeadlineHours),
+  );
   if (input.readonly) {
     await setCheckbox(page, '#readonly');
   }

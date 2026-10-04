@@ -2,6 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   adminAssignmentWithPositionsForGameFormat,
+  defaultUnregisterDeadlineHours,
   gameFormatFromLegacy,
   isPositionsGame,
   parseGameFormat,
@@ -43,6 +44,12 @@ describe('format helpers', () => {
     assert.equal(adminAssignmentWithPositionsForGameFormat('positions'), true);
     assert.equal(adminAssignmentWithPositionsForGameFormat('recreational'), false);
     assert.equal(adminAssignmentWithPositionsForGameFormat('priority_players'), false);
+  });
+
+  it('defaultUnregisterDeadlineHours is 24 for positions and 5 otherwise', () => {
+    assert.equal(defaultUnregisterDeadlineHours('positions'), 24);
+    assert.equal(defaultUnregisterDeadlineHours('recreational'), 5);
+    assert.equal(defaultUnregisterDeadlineHours('priority_players'), 5);
   });
 });
 
