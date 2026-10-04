@@ -6,13 +6,14 @@ import './CategoryInfoBlock.scss';
 
 interface CategoryInfoBlockProps {
   category: GameCategory;
+  /** From the game row (backend policy default at create, or admin override). */
+  unregisterDeadlineHours: number;
 }
 
-const getCategoryDescription = (cat: GameCategory): string => {
-  const freezeHours = cat === 'thursday-5-1' ? 24 : 5;
+const getCategoryDescription = (cat: GameCategory, unregisterDeadlineHours: number): string => {
   const registrationRules = `
 
-The participant list is frozen ${freezeHours} hours before the game. Until that time, you can deregister without penalties. After that, deregistration is no longer possible.
+The participant list is frozen ${unregisterDeadlineHours} hours before the game. Until that time, you can deregister without penalties. After that, deregistration is no longer possible.
 
 If you cannot come - let the people from the waitlist now, either in DM or in the group chat. You'll still get the payment request, but you can forward it to your replacement. Or simply give away your slot.
 After the game, the bot will send tickets to all participants from the main list, which need to be paid within 24 hours. If you silently skip games or don't pay for attendance - after a couple of warnings, a ban will follow.
@@ -38,7 +39,7 @@ WhatsApp Group (less active, but English-speaking): https://chat.whatsapp.com/DE
   return categoryDescriptions[cat];
 };
 
-const CategoryInfoBlock = memo(({ category }: CategoryInfoBlockProps) => {
+const CategoryInfoBlock = memo(({ category, unregisterDeadlineHours }: CategoryInfoBlockProps) => {
   const [showDialog, setShowDialog] = useState(false);
   
   useEffect(() => {
@@ -71,7 +72,7 @@ const CategoryInfoBlock = memo(({ category }: CategoryInfoBlockProps) => {
   if (!info) return null;
 
   const header = getCategoryDisplayName(category);
-  const fullDescription = getCategoryDescription(category);
+  const fullDescription = getCategoryDescription(category, unregisterDeadlineHours);
   const blockClassName = `category-info-block ${info.withPositions ? 'with-positions' : 'without-positions'}`;
   
   return (
