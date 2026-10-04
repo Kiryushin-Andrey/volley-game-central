@@ -28,6 +28,14 @@ import {
   type GameCategory,
 } from '../domain/gamePolicy';
 import {
+  findRegistrationIndex,
+  getUserById,
+  isWaitlistAtIndex,
+  mapRegistrationsWithWaitlist,
+  placeRegistration,
+  removeRegistration,
+} from '../services/registrationService';
+import {
   computeSelfRegistrationEligibility,
   getPlayerLevelForUser,
   userHasSelfRegistrationOnGame,
@@ -103,34 +111,30 @@ async function getRegistrationOpenDays(
 router.post('/:gameId/register', async (req, res) => {
   try {
     const { gameId } = req.params;
-    const { guestName, bringingTheBall } = req.body; // Optional guest name and bringingTheBall from request body
+    const { guestName, bringingTheBall } = req.body;
 
-    // Get user ID from authenticated user
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
     const userId = req.user.id;
 
-    // Prevent blocked users from registering (self or guest)
     if (req.user.blockReason) {
       return res.status(403).json({
         error: `You are blocked from registering for games: ${req.user.blockReason}`,
       });
     }
 
-    // Enforce Telegram group: Telegram users must be in the volleyball group
     if (req.user.telegramId) {
       const inGroup = await checkTelegramGroupMembership(req.user.telegramId);
       if (!inGroup) {
         return res.status(403).json({
           error: 'To register for games you must join our Telegram group.',
-          code: 'TELEGRAM_GROUP_REQUIRED'
+          code: 'TELEGRAM_GROUP_REQUIRED',
         });
       }
     }
 
-    // Check if game exists and has space
     const game = await db
       .select()
       .from(games)
@@ -139,170 +143,49 @@ router.post('/:gameId/register', async (req, res) => {
       return res.status(404).json({ error: 'Game not found' });
     }
 
-    // Check if game is readonly - all users (including admins) must use admin interface
-    if (game[0].readonly) {
-      return res.status(403).json({
-        error: 'This game is readonly. Registration is closed. Please contact the game organizers if you have any questions.',
-      });
-    }
-
-    // Enforce timing restriction: can only join starting X days before the game
-    // Guest registration has a different restriction (3 days instead of 10)
-    // For games with priority players enabled:
-    //   - Priority players can register 10 days before
-    //   - Regular players can register 3 days before
-    const gameDateTime = new Date(game[0].dateTime);
-    const now = new Date();
-    const isGuestRegistration = !!guestName;
-    
-    const registrationOpenDays = await getRegistrationOpenDays(userId, game[0], isGuestRegistration);
-    const baseRegistrationOpensAt = registrationOpensAt(gameDateTime, registrationOpenDays);
-
-    const playerLevel = await getPlayerLevelForUser(userId);
-    const hasExistingSelfRegistration = await userHasSelfRegistrationOnGame(
-      userId,
-      parseInt(gameId),
-    );
-
-    let hostCanSelfRegister = true;
-    if (isGuestRegistration) {
-      const hostSelfDays = await getRegistrationOpenDays(userId, game[0], false);
-      const hostBaseOpensAt = registrationOpensAt(gameDateTime, hostSelfDays);
-      const hostEligibility = computeSelfRegistrationEligibility({
-        game: game[0],
-        playerLevel,
-        now,
-        isGuestRegistration: false,
-        hostCanSelfRegister: true,
-        hasExistingSelfRegistration,
-        baseRegistrationOpensAt: hostBaseOpensAt,
-      });
-      hostCanSelfRegister = hostEligibility.canSelfRegister;
-    }
-
-    const eligibility = computeSelfRegistrationEligibility({
+    const isPriorityPlayer = await isUserPriorityPlayerForGame(userId, game[0]);
+    const result = await placeRegistration({
       game: game[0],
-      playerLevel,
-      now,
-      isGuestRegistration,
-      hostCanSelfRegister,
-      hasExistingSelfRegistration,
-      baseRegistrationOpensAt,
+      userId,
+      guestName: guestName || null,
+      bringingTheBall: bringingTheBall || false,
+      isPriorityPlayer,
     });
 
-    if (!eligibility.canSelfRegister) {
-      if (eligibility.blockReason === 'level') {
-        return res.status(403).json({
-          error: 'You cannot register for this game at the moment.',
-          registrationOpensAt: eligibility.registrationOpensAt,
-        });
-      }
-
-      const errorMessage = isGuestRegistration
-        ? `Guest registration is only possible starting ${GUEST_REGISTRATION_OPEN_DAYS} days before the game`
-        : usesPriorityPlayerWindows(asGameFormat(game[0].gameFormat))
-        ? `Registration is only possible starting ${registrationOpenDays} days before the game`
-        : `Registration is only possible starting ${REGISTRATION_OPEN_DAYS} days before the game`;
-
-      return res.status(403).json({
-        error: errorMessage,
-        gameDateTime: gameDateTime,
-        registrationOpensAt: eligibility.registrationOpensAt,
+    if (!result.ok) {
+      return res.status(result.status).json({
+        error: result.error,
+        ...(result.registrationOpensAt
+          ? { registrationOpensAt: result.registrationOpensAt }
+          : {}),
+        ...(result.gameDateTime ? { gameDateTime: result.gameDateTime } : {}),
       });
     }
 
-    // Count current registrations
-    const registrations = await db
-      .select()
-      .from(gameRegistrations)
-      .where(eq(gameRegistrations.gameId, parseInt(gameId)))
-      .orderBy(gameRegistrations.createdAt);
-
-    // First maxPlayers registrations are active, the rest are waitlist
-    // No need to store isWaitlist - it's computed based on registration order
-
-    // Check if user is already registered
-    // Allow both a self-registration (guestName IS NULL) and guest registrations (guestName NOT NULL)
-    // Block duplicate self-registration, or duplicate guest registration with the same guestName
-    const isSelfRegistration = !guestName;
-    const existingRegistration = await db
-      .select()
-      .from(gameRegistrations)
-      .where(
-        and(
-          eq(gameRegistrations.gameId, parseInt(gameId)),
-          eq(gameRegistrations.userId, userId),
-          isSelfRegistration
-            ? isNull(gameRegistrations.guestName)
-            : eq(gameRegistrations.guestName, guestName),
-        ),
-      );
-
-    if (existingRegistration.length > 0) {
-      return res.status(400).json({
-        error: isSelfRegistration
-          ? 'User already registered for this game'
-          : 'This guest is already registered for this game',
-      });
-    }
-
-    // Insert new registration - isWaitlist is now computed, not stored
-    const registration = await db
-      .insert(gameRegistrations)
-      .values({
-        gameId: parseInt(gameId),
-        userId,
-        guestName: guestName || null,
-        bringingTheBall: bringingTheBall || false
-      })
-      .returning();
-
-    // Get all registrations to determine if the user is on the waitlist
-    const allRegistrations = await db
-      .select()
-      .from(gameRegistrations)
-      .where(eq(gameRegistrations.gameId, parseInt(gameId)))
-      .orderBy(gameRegistrations.createdAt);
-
-    // Find position in registrations list for the newly inserted row
-    const position = allRegistrations.findIndex((reg) => reg.id === registration[0].id);
-    const isWaitlist = position >= game[0].maxPlayers;
-
-    // Get user details to send notification
-    const userDetails = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, userId));
-
-    if (userDetails.length > 0) {
-      // Format date for the notification
-      const gameDate = new Date(game[0].dateTime);
-      const formattedDate = formatGameDate(gameDate);
-
-      // Get the guest name from the registration for notifications
-      const guestName = registration[0].guestName;
-
-      // Send different notifications based on waitlist status
-      if (isWaitlist) {
-        const subject = getNotificationSubjectWithVerb(guestName, 'have');
+    const userDetails = await getUserById(userId);
+    if (userDetails) {
+      const formattedDate = formatGameDate(new Date(game[0].dateTime));
+      const regGuestName = result.registration.guestName;
+      if (result.isWaitlist) {
+        const subject = getNotificationSubjectWithVerb(regGuestName, 'have');
         await notifyUser(
-          userDetails[0],
-          `⏳ ${subject} been added to the waiting list for the volleyball game on ${formattedDate}. We'll notify you if a spot becomes available! Position on waitlist: ${position - game[0].maxPlayers + 1}`,
+          userDetails,
+          `⏳ ${subject} been added to the waiting list for the volleyball game on ${formattedDate}. We'll notify you if a spot becomes available! Position on waitlist: ${result.position - game[0].maxPlayers + 1}`,
           game[0].id,
-          false
+          false,
         );
       } else {
-        const subject = getNotificationSubjectWithVerb(guestName, 'are');
+        const subject = getNotificationSubjectWithVerb(regGuestName, 'are');
         await notifyUser(
-          userDetails[0],
+          userDetails,
           `✅ ${subject} registered for the volleyball game on ${formattedDate}. See you there! 🏐`,
           game[0].id,
-          false
+          false,
         );
       }
     }
 
-    res.status(201).json(registration[0]);
+    res.status(201).json(result.registration);
   } catch (error) {
     console.error('Error registering for game:', error);
     res.status(500).json({ error: 'Failed to register for game' });
@@ -315,14 +198,12 @@ router.delete('/:gameId/register', async (req, res) => {
     const { gameId } = req.params;
     const { guestName } = req.body as { guestName?: string };
 
-    // Get user ID from authenticated user
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
     const userId = req.user.id;
 
-    // Check if game exists
     const game = await db
       .select()
       .from(games)
@@ -331,158 +212,62 @@ router.delete('/:gameId/register', async (req, res) => {
       return res.status(404).json({ error: 'Game not found' });
     }
 
-    // Check if game is readonly - all users (including admins) must use admin interface
-    if (game[0].readonly) {
-      return res.status(403).json({
-        error: 'This game is readonly. Deregistration is closed. Please contact the game organizers if you have any questions.',
+    const result = await removeRegistration({
+      game: game[0],
+      userId,
+      guestName,
+    });
+
+    if (!result.ok) {
+      return res.status(result.status).json({
+        error: result.error,
+        ...(result.gameDateTime ? { gameDateTime: result.gameDateTime } : {}),
+        ...(result.deadline ? { deadline: result.deadline } : {}),
       });
     }
 
-    // Get all registrations for this game to determine which are waitlisted
-    const allRegistrations = await db
-      .select()
-      .from(gameRegistrations)
-      .where(eq(gameRegistrations.gameId, parseInt(gameId)))
-      .orderBy(gameRegistrations.createdAt);
+    const formattedDate = formatGameDate(new Date(game[0].dateTime));
+    const userDetails = await getUserById(userId);
 
-    // Find target registration index: self if no guestName, otherwise specific guest
-    const targetIndex = allRegistrations.findIndex(
-      (reg) =>
-        reg.userId === userId && (guestName
-          ? reg.guestName === guestName
-          : reg.guestName === null || reg.guestName === undefined),
-    );
-    if (targetIndex === -1) {
-      return res.status(404).json({ error: 'Registration not found' });
-    }
-
-    // Determine if the target registration is on the waitlist based on order
-    const isWaitlist = targetIndex >= game[0].maxPlayers;
-
-    // If not on waitlist, enforce timing restriction: can only leave up to unregisterDeadlineHours before the game
-    if (!isWaitlist) {
-      const gameDateTime = new Date(game[0].dateTime);
-      const now = new Date();
-      const deadlineHours = game[0].unregisterDeadlineHours || 5; // Default to 5 hours if not set
-      const deadlineBeforeGame = new Date(gameDateTime);
-      deadlineBeforeGame.setHours(
-        deadlineBeforeGame.getHours() - deadlineHours,
+    if (userDetails && result.registrationDetails) {
+      const subject = getNotificationSubjectWithVerb(
+        result.registrationDetails.guestName,
+        'have',
       );
-
-      if (now > deadlineBeforeGame) {
-        return res.status(403).json({
-          error: `You can only unregister up to ${deadlineHours} hours before the game starts`,
-          gameDateTime: gameDateTime,
-          deadline: deadlineBeforeGame,
-        });
-      }
-    }
-    // Note: If user is on waitlist, they can leave at any time (no timing restriction)
-
-    // Get user details and registration details (including guest name) before deleting
-    const userDetails = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, userId));
-
-    const registrationDetails = await db
-      .select()
-      .from(gameRegistrations)
-      .where(
-        and(
-          eq(gameRegistrations.gameId, parseInt(gameId)),
-          eq(gameRegistrations.userId, userId),
-          guestName
-            ? eq(gameRegistrations.guestName, guestName)
-            : isNull(gameRegistrations.guestName),
-        ),
-      );
-
-    // Format date for the notification
-    const gameDate = new Date(game[0].dateTime);
-    const formattedDate = formatGameDate(gameDate);
-
-    // Delete the registration
-    await db
-      .delete(gameRegistrations)
-      .where(
-        and(
-          eq(gameRegistrations.gameId, parseInt(gameId)),
-          eq(gameRegistrations.userId, userId),
-          guestName
-            ? eq(gameRegistrations.guestName, guestName)
-            : isNull(gameRegistrations.guestName),
-        ),
-      );
-
-    // Send notification to the user who left
-    if (userDetails.length > 0 && registrationDetails.length > 0) {
-      const guestName = registrationDetails[0].guestName;
-      const subject = getNotificationSubjectWithVerb(guestName, 'have');
       await notifyUser(
-        userDetails[0],
+        userDetails,
         `❌ ${subject} been unregistered from the volleyball game on ${formattedDate}. Hope to see you at another game soon! 🏐`,
         game[0].id,
-        false
+        false,
       );
     }
 
-    // For roster sign-outs: check the updated roster for waitlist promotions and
-    // (if no one was promoted) send a late sign-out notification to the group chat.
-    if (!isWaitlist) {
-      const updatedRegistrations = await db
-        .select({
-          userId: gameRegistrations.userId,
-          guestName: gameRegistrations.guestName,
-          createdAt: gameRegistrations.createdAt,
-        })
-        .from(gameRegistrations)
-        .where(eq(gameRegistrations.gameId, parseInt(gameId)))
-        .orderBy(gameRegistrations.createdAt);
-
-      const waitlistIsEmpty = updatedRegistrations.length < game[0].maxPlayers;
-
-      // Promote the first waitlisted player if one exists
-      if (!waitlistIsEmpty) {
-        const promotedRegistration = updatedRegistrations[game[0].maxPlayers - 1];
-        const promotedUserId = promotedRegistration.userId;
-        const promotedGuestName = promotedRegistration.guestName;
-
-        const promotedUser = await db
-          .select()
-          .from(users)
-          .where(eq(users.id, promotedUserId));
-
-        if (promotedUser.length > 0) {
-          const gameDate = new Date(game[0].dateTime);
-          const formattedDate = formatGameDate(gameDate);
-
-          const subject = getNotificationSubjectWithVerb(promotedGuestName, 'have');
+    if (result.removedWasOnRoster) {
+      if (result.promoted) {
+        const promotedUser = await getUserById(result.promoted.userId);
+        if (promotedUser) {
+          const subject = getNotificationSubjectWithVerb(
+            result.promoted.guestName,
+            'have',
+          );
           await notifyUser(
-            promotedUser[0],
+            promotedUser,
             `🎉 Good news! ${subject} been moved from the waiting list to the participants list for the volleyball game on ${formattedDate}. See you there! 🏐`,
-            game[0].id
+            game[0].id,
+          );
+        }
+      } else if (isPositionsGame(asGameFormat(String(game[0].gameFormat)))) {
+        const gameDateTime = new Date(game[0].dateTime);
+        const now = new Date();
+        const hoursUntilGame =
+          (gameDateTime.getTime() - now.getTime()) / 3_600_000;
+        if (hoursUntilGame >= 0 && hoursUntilGame < LATE_SIGNOUT_THRESHOLD_HOURS) {
+          sendLateSignoutGroupNotification(gameDateTime, game[0].id).catch(
+            (err) => console.error('Late sign-out notification failed:', err),
           );
         }
       }
-
-      // Notify the group chat when a spot opened up and nobody is waiting to fill it.
-      // Only for positions games — those have fixed assignments so a late drop is impactful.
-      if (waitlistIsEmpty && isPositionsGame(game[0].gameFormat as GameFormat)) {
-        const gameDateTime = new Date(game[0].dateTime);
-        const now = new Date();
-        const hoursUntilGame = (gameDateTime.getTime() - now.getTime()) / 3_600_000;
-        if (hoursUntilGame >= 0 && hoursUntilGame < LATE_SIGNOUT_THRESHOLD_HOURS) {
-          sendLateSignoutGroupNotification(
-            gameDateTime,
-            game[0].id
-          ).catch((err) => console.error('Late sign-out notification failed:', err));
-        }
-      }
     }
-
-    // The waitlist status will be automatically computed based on registration order
-    // when the game is loaded next time
 
     res.json({ message: 'Successfully unregistered from game' });
   } catch (error) {
@@ -542,11 +327,10 @@ router.get('/:gameId', async (req, res) => {
       .where(eq(gameRegistrations.gameId, parseInt(gameId)))
       .orderBy(gameRegistrations.createdAt); // Order by registration time
 
-    // Add isWaitlist field dynamically based on registration order
-    const registrationsWithWaitlistStatus = registrations.map((reg, index) => ({
-      ...reg,
-      isWaitlist: index >= game[0].maxPlayers,
-    }));
+    const registrationsWithWaitlistStatus = mapRegistrationsWithWaitlist(
+      registrations,
+      game[0].maxPlayers,
+    );
 
     let isAssignedAdmin = await isUserAssignedToGameById(req.user.id, parseInt(gameId));
 
@@ -811,11 +595,11 @@ router.get('/', async (req, res) => {
                 .where(eq(gameRegistrations.gameId, game.id))
                 .orderBy(gameRegistrations.createdAt);
 
-              // Find position for the self-registration only (exclude guests)
-              const position = allRegistrations.findIndex(
-                (reg) => reg.userId === userId && (reg.guestName === null || reg.guestName === undefined),
-              );
-              const isWaitlist = position >= game.maxPlayers;
+              const position = findRegistrationIndex(allRegistrations, {
+                userId,
+                guestName: null,
+              });
+              const isWaitlist = isWaitlistAtIndex(position, game.maxPlayers);
 
               userRegistration = {
                 ...selfRegistration,

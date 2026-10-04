@@ -23,6 +23,7 @@ import {
   baseRegistrationOpensAt,
   isBaseRegistrationOpen,
 } from '../domain/gamePolicy';
+import { capacityPromotions } from '../services/registrationService';
 
 const router = Router();
 
@@ -214,9 +215,13 @@ router.put('/:gameId', async (req, res) => {
       .where(eq(gameRegistrations.gameId, gameId))
       .orderBy(gameRegistrations.createdAt);
 
-    // Send notifications to promoted users
+    // Send notifications to promoted users (same waitlist ordering as register/unregister)
     if (capacityIncreased && allRegistrations.length > originalMaxPlayers) {
-      const promotedUsers = allRegistrations.slice(originalMaxPlayers, maxPlayers);
+      const promotedUsers = capacityPromotions(
+        allRegistrations,
+        originalMaxPlayers,
+        maxPlayers,
+      );
 
       const gameDate = new Date(newDateTime);
       const formattedDate = formatGameDate(gameDate);
