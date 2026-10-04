@@ -6,7 +6,7 @@ import { PricingMode } from '../types/PricingMode';
 import { sendGroupAnnouncement } from '../services/telegramService';
 import { notifyUser } from '../services/notificationService';
 import { gameService } from '../services/gameService';
-import { bunqService } from '../services/bunqService';
+import { bunqPaymentRequestService } from '../services/bunq/bunqPaymentRequestService';
 import { formatLocationSection } from '../utils/telegramMessageUtils';
 import { getNotificationSubjectWithVerb } from '../utils/notificationUtils';
 import { formatGameDate } from '../utils/dateUtils';
@@ -310,7 +310,7 @@ router.post('/:gameId/payment-requests', async (req, res) => {
       return res.status(403).json({ error: 'You are not authorized to manage this game' });
     }
 
-    const result = await bunqService.createPaymentRequests(gameId, req.user!.id, password);
+    const result = await bunqPaymentRequestService.createPaymentRequests(gameId, req.user!.id, password);
 
     if (result.success) {
       // Update the game to track who collected payments
@@ -527,7 +527,7 @@ router.put('/:gameId/players/:userId/paid', async (req, res) => {
 
     const { paid = true } = req.body as { paid?: boolean };
 
-    const success = await bunqService.updatePaidStatus(gameId, userId, paid);
+    const success = await bunqPaymentRequestService.updatePaidStatus(gameId, userId, paid);
 
     if (success) {
       const statusMessage = paid ? 'paid' : 'unpaid';
@@ -616,7 +616,7 @@ router.post('/check-payments', async (req, res) => {
     for (const registration of unpaidRegistrations) {
       if (!registration.paymentRequest) continue;
 
-      const isPaid = await bunqService.checkPaymentRequestStatus(
+      const isPaid = await bunqPaymentRequestService.checkPaymentRequestStatus(
         registration.paymentRequest.paymentRequestId,
         registration.paymentRequest.monetaryAccountId,
         req.user.id,
