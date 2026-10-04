@@ -14,7 +14,6 @@ import { isUserAssignedToGameById, isUserAssignedToGame } from '../middleware/ad
 import { getUserSelectFields } from '../utils/dbQueryUtils';
 import {
   adminAssignmentWithPositionsForGameFormat,
-  defaultUnregisterDeadlineHours,
   isPositionsGame,
   parseGameFormat,
   usesPriorityPlayerWindows,
@@ -22,7 +21,9 @@ import {
 } from '../domain/gameFormat';
 import {
   baseRegistrationOpensAt,
+  defaultUnregisterDeadlineHours,
   isBaseRegistrationOpen,
+  unregisterDeadlineHoursByFormat,
 } from '../domain/gamePolicy';
 import { capacityPromotions } from '../services/registrationService';
 
@@ -46,6 +47,7 @@ router.get('/defaults', async (req, res) => {
       defaultPaymentAmount,
       defaultPricingMode,
       defaultGameFormat,
+      unregisterDeadlineHoursByFormat: unregisterDeadlineHoursByFormat(),
     });
   } catch (error) {
     console.error('Error calculating default date time:', error);

@@ -128,6 +128,7 @@ export const gamesApi = {
     paymentAmount?: number | null; // cents
     pricingMode?: PricingMode | null;
     gameFormat?: import('../types').GameFormat | null;
+    unregisterDeadlineHoursByFormat?: Record<import('../types').GameFormat, number> | null;
   }> => {
     const response = await api.get('/games/admin/defaults');
     return {
@@ -137,6 +138,7 @@ export const gamesApi = {
       paymentAmount: response.data.defaultPaymentAmount ?? null,
       pricingMode: (response.data.defaultPricingMode as PricingMode | undefined) ?? null,
       gameFormat: response.data.defaultGameFormat ?? null,
+      unregisterDeadlineHoursByFormat: response.data.unregisterDeadlineHoursByFormat ?? null,
     };
   },
 

@@ -3,7 +3,7 @@ import { gamesApi } from '../services/api';
 import { GameFormat, PricingMode } from '../types';
 import { eurosToCents, centsToEuroString } from '../utils/currencyUtils';
 import { logDebug } from '../debug';
-import { defaultUnregisterDeadlineHours, parseGameFormat } from '../utils/gameFormat';
+import { parseGameFormat } from '../utils/gameFormat';
 
 export interface GameFormState {
   selectedDate: Date | null;
@@ -29,6 +29,8 @@ export class GameFormViewModel {
   private readonly syncReactState: GameFormStateUpdater;
   private formState: GameFormState;
   private gameId: number | null;
+  /** From GET /games/admin/defaults — backend gamePolicy SSOT. */
+  private unregisterDeadlineHoursByFormat: Record<GameFormat, number> | null = null;
 
   constructor(syncReactState: GameFormStateUpdater, gameId?: number) {
     this.formState = GameFormViewModel.getInitialState();
@@ -42,6 +44,15 @@ export class GameFormViewModel {
     this.syncReactState(updates);
   }
 
+  private applyDeadlineDefaultsFromApi(byFormat: Record<GameFormat, number> | null | undefined): void {
+    if (!byFormat) return;
+    this.unregisterDeadlineHoursByFormat = byFormat;
+  }
+
+  private deadlineHoursFor(format: GameFormat): number | undefined {
+    return this.unregisterDeadlineHoursByFormat?.[format];
+  }
+
   /**
    * Load default game settings (for creating a new game)
    */
@@ -50,6 +61,7 @@ export class GameFormViewModel {
       this.updateState({ isInitialLoading: true, error: null });
       
       const defaults = await gamesApi.getDefaultGameSettings();
+      this.applyDeadlineDefaultsFromApi(defaults.unregisterDeadlineHoursByFormat);
       const defaultDate = defaults.date;
       
       if (defaultDate.getHours() === 0 && defaultDate.getMinutes() === 0) {
@@ -68,9 +80,11 @@ export class GameFormViewModel {
         updates.paymentAmount = defaults.paymentAmount;
         updates.paymentAmountDisplay = centsToEuroString(defaults.paymentAmount);
       }
-      if (defaults.gameFormat) {
-        updates.gameFormat = defaults.gameFormat;
-        updates.unregisterDeadlineHours = defaultUnregisterDeadlineHours(defaults.gameFormat);
+      const format = defaults.gameFormat ?? this.formState.gameFormat;
+      updates.gameFormat = format;
+      const deadlineHours = this.deadlineHoursFor(format);
+      if (deadlineHours !== undefined) {
+        updates.unregisterDeadlineHours = deadlineHours;
       }
 
       this.updateState(updates);
@@ -98,13 +112,22 @@ export class GameFormViewModel {
     
     try {
       this.updateState({ isLoading: true, error: null });
-      const game = await gamesApi.getGame(this.gameId);
+      const [game, defaults] = await Promise.all([
+        gamesApi.getGame(this.gameId),
+        gamesApi.getDefaultGameSettings().catch((err) => {
+          logDebug('Error fetching deadline defaults for edit form:');
+          logDebug(err);
+          return null;
+        }),
+      ]);
+      if (defaults?.unregisterDeadlineHoursByFormat) {
+        this.applyDeadlineDefaultsFromApi(defaults.unregisterDeadlineHoursByFormat);
+      }
       
       this.updateState({
         selectedDate: new Date(game.dateTime),
         maxPlayers: game.maxPlayers,
-        unregisterDeadlineHours:
-          game.unregisterDeadlineHours || defaultUnregisterDeadlineHours(game.gameFormat),
+        unregisterDeadlineHours: game.unregisterDeadlineHours,
         paymentAmount: game.paymentAmount || 0,
         paymentAmountDisplay: centsToEuroString(game.paymentAmount || 0),
         pricingMode: game.pricingMode || PricingMode.PER_PARTICIPANT,
@@ -171,15 +194,19 @@ export class GameFormViewModel {
   }
 
   /**
-   * Handle game format change
+   * Handle game format change — deadline hours follow backend policy map when loaded.
    */
   handleGameFormatChange(value: string): void {
     const format = parseGameFormat(value);
-    if (format) {
+    if (!format) return;
+    const deadlineHours = this.deadlineHoursFor(format);
+    if (deadlineHours !== undefined) {
       this.updateState({
         gameFormat: format,
-        unregisterDeadlineHours: defaultUnregisterDeadlineHours(format),
+        unregisterDeadlineHours: deadlineHours,
       });
+    } else {
+      this.updateState({ gameFormat: format });
     }
   }
 
@@ -354,7 +381,7 @@ export class GameFormViewModel {
     return {
       selectedDate: null,
       maxPlayers: 14,
-      unregisterDeadlineHours: defaultUnregisterDeadlineHours('recreational'),
+      unregisterDeadlineHours: 5,
       paymentAmount: 500, // Stored in cents
       paymentAmountDisplay: centsToEuroString(500), // Display value in euros
       pricingMode: PricingMode.PER_PARTICIPANT,
