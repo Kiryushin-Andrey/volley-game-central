@@ -424,16 +424,16 @@
 }
 
 .game-card {
-  background: var(--tg-theme-bg-color);
-  border: 1px solid #e1e8ed;
+  background: color-mix(in srgb, var(--court-sand, #f6ebd9) 48%, var(--tg-theme-bg-color));
+  border: 1px solid color-mix(in srgb, var(--court-navy, #1b3a6b) 16%, #e1e8ed);
   border-radius: 12px;
   padding: 16px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: var(--court-shadow, 0 2px 8px rgba(27, 58, 107, 0.12));
   position: relative;
   overflow: hidden;
-  border-left-width: 4px;
+  border-left-width: 2px;
 
   &:hover {
     transform: translateY(-2px);
@@ -447,7 +447,11 @@
 
   &.registered {
     border-color: var(--tg-theme-button-color);
-    background: linear-gradient(135deg, var(--tg-theme-bg-color) 0%, rgba(36, 129, 204, 0.05) 100%);
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--court-sand, #f6ebd9) 40%, var(--tg-theme-bg-color)) 0%,
+      color-mix(in srgb, var(--tg-theme-button-color) 8%, var(--tg-theme-bg-color)) 100%
+    );
   }
 
   &.with-positions {

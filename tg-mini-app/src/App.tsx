@@ -13,6 +13,8 @@ import PlayerLevels from './pages/PlayerLevels';
 import PriorityPlayers from './pages/PriorityPlayers';
 import LoadingSpinner from './components/LoadingSpinner';
 import PhoneAuth from './components/auth/PhoneAuth';
+import CourtLines from './components/CourtLines';
+import VolleyballMark from './components/VolleyballMark';
 import './App.scss';
 import { logDebug, isDebugMode } from './debug';
 import { initAppTheme } from './utils/theme';
@@ -123,7 +125,6 @@ function App() {
     content = (
       <div className="container">
         <LoadingSpinner />
-        <div>Loading...</div>
       </div>
     );
   }
@@ -134,6 +135,10 @@ function App() {
     const telegramUrl = botName ? `https://t.me/${botName}` : undefined;
     content = (
       <div className="landing-container">
+        <div className="court-backdrop" aria-hidden="true">
+          <CourtLines className="court-backdrop-lines" />
+        </div>
+        <VolleyballMark className="landing-mark" />
         <h1 className="landing-title">Welcome</h1>
         <p className="landing-subtitle">Choose how you want to continue:</p>
         <div className="landing-buttons">

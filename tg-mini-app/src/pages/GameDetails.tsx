@@ -33,6 +33,10 @@ import { ActionLoadingOverlay } from "../components/game-details/ActionLoadingOv
 import { AdminActions } from "../components/game-details/AdminActions";
 import PlayerInfoDialog from "../components/PlayerInfoDialog";
 import CategoryInfoBlock from "../components/CategoryInfoBlock";
+import FormatPill from "../components/FormatPill";
+import CapacityMeter from "../components/CapacityMeter";
+import VolleyballMark from "../components/VolleyballMark";
+import { markCourtTransition, withViewTransition } from "../utils/courtMotion";
 
 interface GameDetailsProps {
   user: User;
@@ -78,6 +82,11 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
 
 
 
+  const goHome = () => {
+    if (gameData.game) markCourtTransition(gameData.game.id);
+    withViewTransition(() => navigate("/"));
+  };
+
   if (gameData.isLoading) {
     return <LoadingSpinner />;
   }
@@ -88,7 +97,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
         <div className="error-message">
           <h2>Error</h2>
           <p>{gameData.error || "Game not found"}</p>
-          <button onClick={() => navigate("/")} className="back-button">
+          <button onClick={goHome} className="back-button">
             Back to Games
           </button>
         </div>
@@ -122,6 +131,9 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
   const isHalloween = gameData.game.tag === 'halloween';
   const isNewYear = gameData.game.tag === 'newyear';
   const isMarch8 = gameData.game.tag === 'march8';
+  const rosterCount = isPastGame ? paidActiveCount : activeRegistrations.length;
+  const rosterMax = isPastGame ? totalActiveCount : gameData.game.maxPlayers;
+  const showRosterMeter = !gameData.game.readonly || isGameAdmin;
 
   return (
     <div className={`game-details-container ${isHalloween ? 'halloween-theme' : ''} ${isNewYear ? 'newyear-theme' : ''} ${isMarch8 ? 'march8-theme' : ''}`}>
@@ -135,7 +147,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
         <March8PageDecorations />
       )}
       {inTelegram && (
-        <BackButton onClick={() => navigate("/")} />
+        <BackButton onClick={goHome} />
       )}
       <div className="game-header">
         {showAddParticipantButton && dialogs.showUserSearch && (
@@ -158,6 +170,7 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
         {/* First line: Game date and time */}
         <div className="game-date-line">
           <div className="game-date">{formatDate(gameData.game.dateTime)}</div>
+          <FormatPill format={gameData.game.gameFormat} />
           {(gameData.game.locationName || gameData.game.locationLink) && (
             <div className="game-location">
               <a
@@ -232,6 +245,25 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
             />
           )}
         </div>
+
+        {(showRosterMeter || (!isPastGame && waitlistRegistrations.length > 0)) && (
+          <div className="compact-stats">
+            {showRosterMeter && (
+              <CapacityMeter
+                count={rosterCount}
+                max={rosterMax}
+                kind={isPastGame ? 'payments' : 'roster'}
+                countClassName="registered-count"
+                maxClassName="max-count"
+              />
+            )}
+            {!isPastGame && waitlistRegistrations.length > 0 && (
+              <span className="waitlist-indicator">
+                (+{waitlistRegistrations.length})
+              </span>
+            )}
+          </div>
+        )}
       </div>
       
       {viewModel.gameCategory && !gameData.game.readonly && (
@@ -349,26 +381,9 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
       )}
 
       <div className="players-container">
-        {((!gameData.game.readonly || isGameAdmin) || viewModel.shouldShowAddGuestButton()) && (
+        {viewModel.shouldShowAddGuestButton() && (
           <div className="players-stats-header">
             <div className="stats-row">
-              {(!gameData.game.readonly || isGameAdmin) && (
-                <div className="compact-stats">
-                  <span className="registered-count">
-                    {isPastGame ? paidActiveCount : activeRegistrations.length}
-                  </span>
-                  <span className="stats-divider">/</span>
-                  <span className="max-count">
-                    {isPastGame ? totalActiveCount : gameData.game.maxPlayers}
-                  </span>
-                  {!isPastGame && waitlistRegistrations.length > 0 && (
-                    <span className="waitlist-indicator">
-                      (+{waitlistRegistrations.length})
-                    </span>
-                  )}
-                </div>
-              )}
-
               {viewModel.shouldShowAddGuestButton() && (
                 <div className="header-actions">
                   <button
@@ -446,10 +461,11 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
         ) : (
           <div className="bottom-action-bar">
             <button
-              className="tg-main-button btn btn-primary"
+              className={`tg-main-button btn btn-primary${mainButtonText === 'Join Game' ? ' step-on-court' : ''}`}
               onClick={mainButtonClick}
               disabled={action.isActionLoading}
             >
+              {mainButtonText === 'Join Game' && <VolleyballMark className="button-ball" />}
               {action.isActionLoading ? "Processing..." : (mainButtonText || "Action")}
             </button>
           </div>

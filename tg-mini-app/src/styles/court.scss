@@ -1,0 +1,398 @@
+// Court theme tokens. Telegram background, text, and button colors stay in charge.
+:root {
+  --court-navy: #1b3a6b;
+  --court-sand: #f6ebd9;
+  --ball-yellow: #f5c518;
+  --ball-blue: #2e6bff;
+  --format-positions: #ffc107;
+  --format-recreational: #4caf50;
+  --format-priority: #1b3a6b;
+  --waitlist-orange: #ff9500;
+  --court-radius: 12px;
+  --court-radius-control: 10px;
+  --court-shadow: 0 2px 8px rgba(27, 58, 107, 0.12);
+  --court-shadow-lift: 0 8px 18px rgba(27, 58, 107, 0.16);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --court-sand: #3a3226;
+    --court-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+    --court-shadow-lift: 0 8px 18px rgba(0, 0, 0, 0.45);
+  }
+}
+
+// Shared press and radius so dialogs and admin actions feel like the same product.
+.btn,
+.dialog-btn,
+.landing-button,
+.wa-button,
+.retry-button,
+.back-button,
+.tc-player-levels-link {
+  border-radius: var(--court-radius-control);
+}
+
+.btn:active:not(:disabled),
+.dialog-btn:active,
+.landing-button:active,
+.wa-button:active:not(:disabled),
+.retry-button:active,
+.back-button:active,
+.icon-button:active,
+.tc-player-levels-link:active,
+.players-hub-link:active,
+.add-guest-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.players-hub-link,
+.administrator-item,
+.player-levels-list,
+.players-container,
+.dialog {
+  border-radius: var(--court-radius);
+  box-shadow: var(--court-shadow);
+}
+
+.format-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.4;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.format-pill-recreational {
+  color: #1b5e20;
+  background: color-mix(in srgb, var(--format-recreational) 18%, var(--tg-theme-bg-color));
+  box-shadow: inset 0 0 0 1px var(--format-recreational);
+}
+
+.format-pill-positions {
+  color: #6d4c00;
+  background: color-mix(in srgb, var(--format-positions) 32%, var(--tg-theme-bg-color));
+  box-shadow: inset 0 0 0 1px var(--format-positions);
+}
+
+.format-pill-priority {
+  color: #ffffff;
+  background: var(--court-navy);
+}
+
+@media (prefers-color-scheme: dark) {
+  .format-pill-recreational {
+    color: #b9f6ca;
+  }
+
+  .format-pill-positions {
+    color: #ffe082;
+  }
+}
+
+.game-card.format-priority {
+  border-left-color: var(--format-priority);
+}
+
+.game-stats,
+.game-header .compact-stats,
+.game-stats .compact-stats {
+  width: 100%;
+}
+
+.game-stats .compact-stats {
+  display: block;
+}
+
+.game-header .compact-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.game-header .waitlist-indicator {
+  color: var(--waitlist-orange);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.capacity-meter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.capacity-track {
+  position: relative;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--court-navy) 14%, var(--tg-theme-secondary-bg-color));
+  overflow: visible;
+}
+
+.capacity-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--ball-blue), var(--ball-yellow));
+  transition: width 420ms ease;
+}
+
+.capacity-meter.is-full .capacity-fill {
+  background: var(--waitlist-orange);
+}
+
+.capacity-ball-slot {
+  position: absolute;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  margin-left: -8px;
+  margin-top: -8px;
+  animation: court-ball-settle 700ms ease forwards;
+}
+
+.capacity-ball {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.capacity-dots {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.capacity-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in srgb, var(--court-navy) 45%, transparent);
+  background: transparent;
+  position: relative;
+}
+
+.capacity-dot.filled {
+  background: radial-gradient(circle at 35% 35%, var(--ball-yellow), var(--ball-blue));
+  border-color: var(--court-navy);
+}
+
+.capacity-dot.arriving .capacity-ball {
+  position: absolute;
+  inset: -3px;
+  width: auto;
+  height: auto;
+  animation: court-ball-settle 700ms ease forwards;
+}
+
+.capacity-count {
+  display: inline-flex;
+  align-items: baseline;
+  font-size: 16px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.capacity-bench {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--waitlist-orange);
+}
+
+.game-card-wrapper {
+  animation: court-card-in 420ms ease both;
+  animation-delay: calc(var(--court-stagger, 0) * 40ms);
+}
+
+.player-item {
+  animation: court-row-in 320ms ease both;
+  animation-delay: calc(var(--court-stagger, 0) * 28ms);
+}
+
+.vt-source .game-date,
+.game-details-container .game-date-line .game-date {
+  view-transition-name: court-game-date;
+}
+
+.vt-source .format-pill,
+.game-details-container .game-date-line .format-pill {
+  view-transition-name: court-game-format;
+}
+
+.volleyball-spinner {
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+.volleyball-spinner-sm {
+  width: 16px;
+  height: 16px;
+}
+
+.loading-spinner .spinner {
+  display: none;
+}
+
+.court-empty {
+  position: relative;
+  width: min(240px, 70%);
+  margin: 0 auto 12px;
+  color: var(--court-navy);
+}
+
+.court-empty-lines {
+  width: 100%;
+  height: auto;
+  opacity: 0.22;
+  display: block;
+}
+
+.court-empty-ball {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 36px;
+  height: 36px;
+  transform: translate(-50%, -50%);
+}
+
+.no-games {
+  background: color-mix(in srgb, var(--court-sand) 70%, var(--tg-theme-bg-color));
+  border-radius: var(--court-radius);
+  border: 1px solid color-mix(in srgb, var(--court-navy) 16%, transparent);
+}
+
+.landing-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.court-backdrop {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 6%;
+  height: 42%;
+  color: var(--court-navy);
+  opacity: 0.16;
+  pointer-events: none;
+}
+
+.court-backdrop-lines {
+  width: 100%;
+  height: 100%;
+}
+
+.landing-mark {
+  width: 64px;
+  height: 64px;
+  position: relative;
+  z-index: 1;
+}
+
+.landing-title,
+.landing-subtitle,
+.landing-buttons,
+.landing-auth,
+.how-it-works,
+.landing-hint {
+  position: relative;
+  z-index: 1;
+}
+
+.bottom-action-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  margin: 16px -16px 0;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--tg-theme-bg-color) 92%, transparent);
+  border-top: 2px solid var(--court-navy);
+}
+
+.bottom-action-bar .tg-main-button {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: var(--court-radius-control);
+  border: none;
+  background: var(--tg-theme-button-color);
+  color: var(--tg-theme-button-text-color);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--court-shadow);
+}
+
+.bottom-action-bar .tg-main-button.step-on-court {
+  box-shadow: inset 0 0 0 2px var(--court-navy), var(--court-shadow);
+}
+
+.bottom-action-bar .button-ball {
+  width: 18px;
+  height: 18px;
+}
+
+.game-details-container .game-date-line .format-pill {
+  align-self: center;
+}
+
+@keyframes court-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes court-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes court-ball-settle {
+  0% {
+    transform: translate(-12px, -18px) scale(0.55);
+    opacity: 0;
+  }
+  45% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-card-wrapper,
+  .player-item,
+  .volleyball-spinner,
+  .capacity-ball-slot,
+  .capacity-dot.arriving .capacity-ball,
+  .capacity-fill {
+    animation: none !important;
+    transition: none !important;
+  }
+}

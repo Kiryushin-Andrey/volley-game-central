@@ -4,13 +4,18 @@ import { FaUsers, FaCog, FaPlus } from 'react-icons/fa';
 import { useGamesListViewModel } from './GamesListViewModel';
 import { GameWithStats, User } from '../types';
 import { formatDate, isGameUpcoming } from '../utils/gameDateUtils';
-import { isPositionsGame } from '../utils/gameFormat';
 import { isTcOnly } from '../utils/userRoles';
 import { resolveLocationLink } from '../utils/locationUtils';
+import { formatCardClass, listCapacity } from '../utils/courtTheme';
+import { markCourtTransition, readCourtTransitionId, withViewTransition } from '../utils/courtMotion';
 import { HalloweenDecorations } from '../components/HalloweenDecorations';
 import { NewYearDecorations } from '../components/NewYearDecorations';
 import { March8Decorations } from '../components/March8Decorations';
 import LoadingSpinner from '../components/LoadingSpinner';
+import FormatPill from '../components/FormatPill';
+import CapacityMeter from '../components/CapacityMeter';
+import CourtLines from '../components/CourtLines';
+import VolleyballMark from '../components/VolleyballMark';
 import UnpaidGamesList from '../components/UnpaidGamesList';
 import CategoryMultiSelect from '../components/CategoryMultiSelect';
 import './GamesList.scss';
@@ -29,11 +34,20 @@ const GameItem = memo(({ game, onClick, formatDate }: {
   const isHalloween = game.tag === 'halloween';
   const isNewYear = game.tag === 'newyear';
   const isMarch8 = game.tag === 'march8';
+  const capacity = listCapacity(game);
+  const isTransitionSource = readCourtTransitionId() === game.id;
 
   return (
     <div
-      className={`game-card ${game.isUserRegistered ? 'registered' : ''} ${isHalloween ? 'halloween-theme' : ''} ${isNewYear ? 'newyear-theme' : ''} ${isMarch8 ? 'march8-theme' : ''} ${isPositionsGame(game.gameFormat) ? 'with-positions' : 'without-positions'}`}
-      onClick={() => onClick(game.id)}
+      className={`game-card ${game.isUserRegistered ? 'registered' : ''} ${isHalloween ? 'halloween-theme' : ''} ${isNewYear ? 'newyear-theme' : ''} ${isMarch8 ? 'march8-theme' : ''} ${formatCardClass(game.gameFormat)} ${isTransitionSource ? 'vt-source' : ''}`}
+      onClick={(event) => {
+        markCourtTransition(game.id);
+        document.querySelectorAll('.game-card.vt-source').forEach((card) => {
+          card.classList.remove('vt-source');
+        });
+        event.currentTarget.classList.add('vt-source');
+        withViewTransition(() => onClick(game.id));
+      }}
     >
       {isHalloween && <HalloweenDecorations variant="card" />}
       {isNewYear && <NewYearDecorations variant="card" />}
@@ -42,6 +56,7 @@ const GameItem = memo(({ game, onClick, formatDate }: {
         <div className="game-header-top">
           <div className="game-date-location">
             <span className="game-date">{formatDate(game.dateTime)}</span>
+            <FormatPill format={game.gameFormat} />
             {isUpcomingGame && (game.locationName || game.locationLink) && (
               <span className="game-location">
                 <a
@@ -69,34 +84,11 @@ const GameItem = memo(({ game, onClick, formatDate }: {
       </div>
       
       {/* Show stats for non-readonly games, or for past readonly games (which have paidCount) */}
-      {(!game.readonly || game.paidCount !== undefined) && (
+      {capacity && (
         <div className="game-stats">
-          {/* Past games: show paid/total counts */}
-          {game.paidCount !== undefined && (
-            <div className="compact-stats">
-              <span className="counter">{game.paidCount}</span>
-              <span className="divider">/</span>
-              <span className="counter">{game.totalRegisteredCount}</span>
-            </div>
-          )}
-
-          {/* Upcoming games within registration window: show registered/total */}
-          {game.registeredCount !== undefined && (
-            <div className="compact-stats">
-              <span className="counter">{game.registeredCount}</span>
-              <span className="divider">/</span>
-              <span className="counter">{game.maxPlayers}</span>
-            </div>
-          )}
-          
-          {/* Regular upcoming games: show current count/capacity */}
-          {game.paidCount === undefined && game.registeredCount === undefined && (
-            <div className="compact-stats">
-              <span className="counter">{game.totalRegisteredCount}</span>
-              <span className="divider">/</span>
-              <span className="counter">{game.maxPlayers}</span>
-            </div>
-          )}
+          <div className="compact-stats">
+            <CapacityMeter count={capacity.count} max={capacity.max} kind={capacity.kind} />
+          </div>
         </div>
       )}
     </div>
@@ -107,17 +99,22 @@ const GameItem = memo(({ game, onClick, formatDate }: {
 const GameItemsList = memo(({ 
   games, 
   formatDate,
-  handleGameClick
+  handleGameClick,
+  emptyMessage,
 }: { 
   games: GameWithStats[], 
   formatDate: (date: string) => string,
-  handleGameClick: (id: number) => void
+  handleGameClick: (id: number) => void,
+  emptyMessage: string,
 }) => {  
-  // Show no games message when no games are available
   if (games.length === 0) {
     return (
       <div className="no-games">
-        <p>No games available</p>
+        <div className="court-empty">
+          <CourtLines className="court-empty-lines" />
+          <VolleyballMark className="court-empty-ball" />
+        </div>
+        <p>{emptyMessage}</p>
       </div>
     );
   }
@@ -125,7 +122,7 @@ const GameItemsList = memo(({
   // Show the list of games
   return (
     <div className="games-list">
-      {games.map((game) => {
+      {games.map((game, index) => {
         const isHalloween = game.tag === 'halloween';
         const isNewYear = game.tag === 'newyear';
         const isMarch8 = game.tag === 'march8';
@@ -133,6 +130,7 @@ const GameItemsList = memo(({
           <div 
             key={game.id} 
             className={`game-card-wrapper ${isHalloween ? 'halloween-wrapper' : ''} ${isNewYear ? 'newyear-wrapper' : ''} ${isMarch8 ? 'march8-wrapper' : ''}`}
+            style={{ ['--court-stagger' as string]: Math.min(index, 12) } as React.CSSProperties}
           >
             {isHalloween && <div className="leaf-layer" />}
             {isNewYear && <div className="snowflake-layer" />}
@@ -172,7 +170,6 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
       <div className="games-list-container">
         <div className="games-loading">
           <LoadingSpinner />
-          <p className="loading-text">Loading...</p>
         </div>
       </div>
     );
@@ -319,13 +316,13 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
           {vm.loadingGames ? (
             <div className="games-loading">
               <LoadingSpinner />
-              <p className="loading-text">Loading...</p>
             </div>
           ) : (
             <GameItemsList
               games={vm.games}
               formatDate={formatDate}
               handleGameClick={vm.handleGameClick}
+              emptyMessage={vm.gameFilter === 'past' ? 'No past games' : 'No games this week'}
             />
           )}
         </>

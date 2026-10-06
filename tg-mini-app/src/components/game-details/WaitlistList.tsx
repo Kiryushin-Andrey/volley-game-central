@@ -20,8 +20,12 @@ export const WaitlistList: React.FC<Props> = ({
 }) => {
   return (
     <div className="players-list">
-      {registrations.map((registration) => (
-        <div key={registration.id} className="player-item waitlist">
+      {registrations.map((registration, index) => (
+        <div
+          key={registration.id}
+          className="player-item waitlist"
+          style={{ ['--court-stagger' as string]: Math.min(index, 12) } as React.CSSProperties}
+        >
           <div className="player-info">
             <div
               className={`player-avatar ${canTapPlayerInfo && registration.user ? 'clickable' : ''}`}

@@ -58,7 +58,7 @@ Spec: `e2e/auth-session.spec.ts`
 
 Spec: `e2e/games-home.spec.ts`
 
-- [x] E2E-HOME-001: Participant A loads the games home and sees upcoming games or the `No games available` empty state.
+- [x] E2E-HOME-001: Participant A loads the games home and sees upcoming games or the `No games this week` empty state.
 - [x] E2E-HOME-002: Participant A opens a game card and reaches the matching game details page.
 - [x] E2E-HOME-003: Participant A uses the category multi-select on upcoming games and sees matching game cards (no category info blocks on the games home).
 - [x] E2E-HOME-004: A registered participant sees the `You're in` badge for an active registration on the games home.
@@ -70,8 +70,8 @@ Spec: `e2e/games-home.spec.ts`
 - [x] E2E-HOME-010: Global Admin sees `Players` and `Create New Game` controls for non-integration admin access.
 - [x] E2E-HOME-011: Assigned Admin sees `Create New Game` access without global-only administration links.
 - [x] E2E-HOME-012: Home error state shows `Error` and `Retry` when the games API fails, then recovers after retry.
-- [x] E2E-HOME-013: With default category filter (Sunday), participant sees `No games available` when the only upcoming game is a Thursday 5-1 game.
-- [x] E2E-HOME-014: Participant deselects all category options in the multi-select and sees `No games available` even when games exist for other categories.
+- [x] E2E-HOME-013: With default category filter (Sunday), participant sees `No games this week` when the only upcoming game is a Thursday 5-1 game.
+- [x] E2E-HOME-014: Participant deselects all category options in the multi-select and sees `No games this week` even when games exist for other categories.
 - [x] E2E-HOME-015: Participant A with an unpaid past game (after admin sent payment requests) sees `Your unpaid games` on the upcoming home view, opens the entry, and **Pay now** opens the Bunq payment link in a new browser tab (or window).
 - [x] E2E-HOME-016: Games home cards use a yellow left border for 5-1 games and a green left border for non-5-1 games.
 

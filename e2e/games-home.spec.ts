@@ -249,7 +249,7 @@ test.describe('games home scenarios', () => {
     await page.evaluate(() => localStorage.removeItem('selectedCategories'));
     await page.reload();
 
-    await expect(page.getByText('No games available')).toBeVisible();
+    await expect(page.getByText('No games this week')).toBeVisible();
   });
 
   test('E2E-HOME-014 category multiselect can exclude all visible games', async ({ page, request }, testInfo) => {
@@ -270,7 +270,7 @@ test.describe('games home scenarios', () => {
     await page.locator('label.category-multiselect-option').filter({ hasText: 'Thursday 5-1' }).click();
     await page.locator('label.category-multiselect-option').filter({ hasText: 'Sunday' }).click();
 
-    await expect(page.getByText('No games available')).toBeVisible();
+    await expect(page.getByText('No games this week')).toBeVisible();
   });
 
   test('E2E-HOME-015 participant sees unpaid games block and Pay now opens payment link', async ({
