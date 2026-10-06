@@ -243,6 +243,57 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
         </div>
       )}
 
+      {(gameData.game.myOffers?.length ?? 0) > 0 && (
+        <div className="spot-offer-banner my-offers">
+          {gameData.game.myOffers!.map((offer) => (
+            <div key={offer.id} className="spot-offer-row">
+              <span>
+                {offer.guestName
+                  ? `You're offering guest "${offer.guestName}"'s spot…`
+                  : "You're offering your spot…"}
+              </span>
+              <button
+                type="button"
+                className="spot-offer-cancel"
+                disabled={action.isActionLoading}
+                onClick={() => viewModel.handleCancelSpotOffer(offer.guestName)}
+              >
+                Cancel
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {(gameData.game.activeSpotOffers ?? [])
+        .filter(
+          (offer) =>
+            !gameData.game!.readonly &&
+            !isGamePast(gameData.game!.dateTime) &&
+            offer.offererUserId !== user.id,
+        )
+        .map((offer) => {
+          const label = offer.guestName
+            ? `${offer.offererDisplayName || 'Someone'}'s guest "${offer.guestName}"`
+            : offer.offererDisplayName || 'Someone';
+          const canAccept = viewModel.canAcceptOffer(offer);
+          return (
+            <div key={`accept-${offer.id}`} className="spot-offer-banner accept">
+              <span>{label} is offering a spot for the game</span>
+              {canAccept && (
+                <button
+                  type="button"
+                  className="spot-offer-accept"
+                  disabled={action.isActionLoading}
+                  onClick={() => viewModel.handleAcceptSpotOffer(offer.id)}
+                >
+                  Accept
+                </button>
+              )}
+            </div>
+          );
+        })}
+
       {isHalloween && (
         <div className="halloween-note">
           <p>
@@ -349,6 +400,10 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
               canUnregister={viewModel.canUnregister()}
               canTapPlayerInfo={canOpenPlayerInfo}
               onShowUserInfo={canOpenPlayerInfo ? (u) => viewModel.handleShowPlayerInfo(u) : undefined}
+              canOfferGuestSpot={(guestName) => viewModel.canOfferSpot(guestName)}
+              onOfferGuestSpot={(guestName) => {
+                void viewModel.handleOfferSpot(guestName);
+              }}
             />
           </div>
         ) : null}

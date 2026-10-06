@@ -124,6 +124,26 @@ Spec: `e2e/game-details-participant.spec.ts`
 - [x] E2E-GAME-012: Global Admin opens a past game that had waitlisted players and sees only the main players list (no waiting list section or waitlisted names).
 - [x] E2E-GAME-013: Participant A opens a Thursday 5-1 game and sees the category notice with 5-1 (yellow) styling on game details.
 
+## Offer my spot scenarios
+
+Spec: `e2e/spot-offer.spec.ts`
+
+Post-deadline roster transfer offers (#55). Playwright stack sets short `SPOT_OFFER_INVITE_SPACING_MS` / `SPOT_OFFER_POLLER_INTERVAL_MS` so waitlist invite spacing is testable. Private invite DMs require `telegram_id` (set via DB helper); Telegram network sends are suppressed in `DEV_MODE` but invite rows + synthetic message ids are still written.
+
+Named mid-test screenshots are attached via `testInfo.attach` (config `screenshot: 'on'` only keeps the final frame) for guest Offer UI and Accept-hidden views.
+
+- [x] E2E-OFFER-001: Before leave deadline: `Leave Game` visible, `Offer my spot` hidden; after deadline: `Offer my spot` available, player stays registered after creating an offer.
+- [x] E2E-OFFER-002: Waitlisted participant accepts an open offer and takes the same roster registration row (`id` + `createdAt` preserved).
+- [x] E2E-OFFER-003: After invite spacing, the next waitlisted user receives an invite row; the **first** invitee can still accept.
+- [x] E2E-OFFER-004: Eligible **non-waitlisted** user accepts during waitlist walk (no invite row) **and** after public-phase create (≤5h to game); **Join Game** is hidden while the offer is open.
+- [x] E2E-OFFER-005: Cancel self offer; host with self + guest offers cancels the guest offer via matching `guestName` without clearing the self offer, then cancels self.
+- [x] E2E-OFFER-006: Concurrent double accept from two browsers: exactly one winner on the roster.
+- [x] E2E-OFFER-007: Host offers a guest spot; another user accepts and replaces that guest registration row.
+- [x] E2E-OFFER-008: On a **positions** game with level restrictions, a **beginner** sees the offer banner but **not** Accept; an eligible (advanced) outsider sees Accept.
+- [x] E2E-OFFER-009: Offerer sees own offer banner without Accept; already-on-roster players see the offer banner without Accept; an eligible outsider sees Accept.
+- [x] E2E-OFFER-010: Re-offer chain A→B→C keeps the same registration row (`id` + `createdAt`); two fulfilled `spot_offers` rows share that `registration_id`.
+- [x] E2E-OFFER-011: While any open spot offer exists, an eligible outsider sees **Accept** and no **Join Game** (even with roster capacity); after the offer is cancelled, **Join Game** returns.
+
 ## Registration window scenarios
 
 Spec: `e2e/registration-windows-guests-blocked.spec.ts`
