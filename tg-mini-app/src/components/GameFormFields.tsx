@@ -1,5 +1,6 @@
 import React from 'react';
 import DatePicker from 'react-datepicker';
+import { Input, Select } from '@telegram-apps/telegram-ui';
 import { PricingMode } from '../types';
 import { ToggleSwitch } from './ToggleSwitch';
 import { GameFormState, GameFormViewModel } from '../viewmodels/GameFormViewModel';
@@ -51,10 +52,10 @@ export const GameFormFields: React.FC<GameFormFieldsProps> = ({
       </div>
 
       <div className="form-group">
-        <label htmlFor="maxPlayers">Maximum Players:</label>
-        <input
+        <Input
           type="number"
           id="maxPlayers"
+          header="Maximum Players:"
           value={maxPlayers}
           onChange={(e) => viewModel.handleMaxPlayersChange(parseInt(e.target.value))}
           min="2"
@@ -64,10 +65,10 @@ export const GameFormFields: React.FC<GameFormFieldsProps> = ({
       </div>
 
       <div className="form-group">
-        <label htmlFor="unregisterDeadlineHours">Unregister Deadline (hours before game):</label>
-        <input
+        <Input
           type="number"
           id="unregisterDeadlineHours"
+          header="Unregister Deadline (hours before game):"
           value={unregisterDeadlineHours}
           onChange={(e) => viewModel.handleUnregisterDeadlineHoursChange(parseInt(e.target.value))}
           min="0"
@@ -95,12 +96,10 @@ export const GameFormFields: React.FC<GameFormFieldsProps> = ({
       </div>
 
       <div className="form-group">
-        <label htmlFor="paymentAmount">
-          {pricingMode === PricingMode.PER_PARTICIPANT ? 'Cost per Participant (€):' : 'Total Game Cost (€):'}
-        </label>
-        <input
+        <Input
           type="number"
           id="paymentAmount"
+          header={pricingMode === PricingMode.PER_PARTICIPANT ? 'Cost per Participant (€):' : 'Total Game Cost (€):'}
           value={paymentAmountDisplay}
           onChange={(e) => viewModel.handlePaymentAmountChange(e)}
           step="0.01"
@@ -115,10 +114,10 @@ export const GameFormFields: React.FC<GameFormFieldsProps> = ({
       </div>
 
       <div className="form-group">
-        <label htmlFor="locationName">Location name:</label>
-        <input
+        <Input
           type="text"
           id="locationName"
+          header="Location name:"
           value={locationName}
           onChange={(e) => viewModel.handleLocationNameChange(e.target.value)}
           placeholder="e.g. Victoria Park, Amsterdam"
@@ -127,10 +126,10 @@ export const GameFormFields: React.FC<GameFormFieldsProps> = ({
       </div>
 
       <div className="form-group">
-        <label htmlFor="locationLink">Location link (Maps URL):</label>
-        <input
+        <Input
           type="url"
           id="locationLink"
+          header="Location link (Maps URL):"
           value={locationLink}
           onChange={(e) => viewModel.handleLocationLinkChange(e.target.value)}
           placeholder="Paste a Google/Apple Maps link (optional)"
@@ -141,10 +140,10 @@ export const GameFormFields: React.FC<GameFormFieldsProps> = ({
       </div>
 
       <div className="form-group">
-        <label htmlFor="title">Game Title (optional):</label>
-        <input
+        <Input
           type="text"
           id="title"
+          header="Game Title (optional):"
           value={title}
           onChange={(e) => viewModel.handleTitleChange(e.target.value)}
           placeholder="e.g. Tournament Final, Friendly Match"
@@ -156,9 +155,9 @@ export const GameFormFields: React.FC<GameFormFieldsProps> = ({
       </div>
 
       <div className="form-group">
-        <label htmlFor="gameFormat">Game format:</label>
-        <select
+        <Select
           id="gameFormat"
+          header="Game format:"
           value={gameFormat}
           onChange={(e) => viewModel.handleGameFormatChange(e.target.value)}
         >
@@ -167,7 +166,7 @@ export const GameFormFields: React.FC<GameFormFieldsProps> = ({
               {option.label}
             </option>
           ))}
-        </select>
+        </Select>
         <div className="field-description">
           Recreational: open registration for everyone. With positions: 5-1 assigned positions. With priority players: early registration windows without positions.
         </div>

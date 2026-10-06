@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
+import { Button } from '@telegram-apps/telegram-ui';
 import { dialogService, type PopupButton } from '../../services/dialogService';
 import './DialogProvider.scss';
 
@@ -78,17 +79,20 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           <div className="dialog-actions">
             {popup.buttons.map((b, i) => {
               const label = b.text || (b.type === 'ok' ? 'OK' : b.type === 'cancel' ? 'Cancel' : 'Delete');
+              const mode = b.type === 'cancel' ? 'gray' : b.type === 'destructive' ? 'bezeled' : 'filled';
               return (
-                <button
+                <Button
                   key={(b.id || b.type || '') + i}
                   className={`dialog-btn ${b.type}`}
+                  mode={mode}
+                  size="s"
                   onClick={() => {
                     setPopup(null);
                     popup.cb?.(b.id ?? b.type);
                   }}
                 >
                   {label}
-                </button>
+                </Button>
               );
             })}
           </div>
@@ -111,24 +115,27 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           <div className="dialog-title">Confirm</div>
           <div className="dialog-message">{confirm.message}</div>
           <div className="dialog-actions">
-            <button
+            <Button
               className="dialog-btn cancel"
+              mode="gray"
+              size="s"
               onClick={() => {
                 setConfirm(null);
                 confirm.cb(false);
               }}
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               className="dialog-btn ok"
+              size="s"
               onClick={() => {
                 setConfirm(null);
                 confirm.cb(true);
               }}
             >
               OK
-            </button>
+            </Button>
           </div>
         </div>
       </div>

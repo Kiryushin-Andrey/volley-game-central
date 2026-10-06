@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useSyncExternalStore } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { Banner, Button, Placeholder, Title } from "@telegram-apps/telegram-ui";
 import { User, PricingMode } from "../types";
 import LoadingSpinner from "../components/LoadingSpinner";
 import PasswordDialog from "../components/PasswordDialog";
@@ -85,13 +86,15 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
   if (gameData.error || !gameData.game) {
     return (
       <div className="game-details-container">
-        <div className="error-message">
-          <h2>Error</h2>
-          <p>{gameData.error || "Game not found"}</p>
-          <button onClick={() => navigate("/")} className="back-button">
-            Back to Games
-          </button>
-        </div>
+        <Placeholder
+          header={<Title Component="h2">Error</Title>}
+          description={gameData.error || "Game not found"}
+          action={
+            <Button onClick={() => navigate("/")} className="back-button">
+              Back to Games
+            </Button>
+          }
+        />
       </div>
     );
   }
@@ -295,35 +298,23 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
         })}
 
       {isHalloween && (
-        <div className="halloween-note">
-          <p>
-            🎃 Halloween Special! Get ready for a spooky volleyball evening! 👻🦇
-          </p>
-        </div>
+        <Banner className="halloween-note" type="section" description="🎃 Halloween Special! Get ready for a spooky volleyball evening! 👻🦇" />
       )}
 
       {isNewYear && (
-        <div className="newyear-note">
-          <p>
-            ❄️ New Year Special! Get ready for a festive volleyball evening! 🎄☃️
-          </p>
-        </div>
+        <Banner className="newyear-note" type="section" description="❄️ New Year Special! Get ready for a festive volleyball evening! 🎄☃️" />
       )}
 
       {isMarch8 && (
-        <div className="march8-note">
-          <p>
-            🌸 March 8 Special! Spring, flowers &amp; beauty — get ready for a lovely volleyball evening! 💐🌷
-          </p>
-        </div>
+        <Banner className="march8-note" type="section" description="🌸 March 8 Special! Spring, flowers & beauty — get ready for a lovely volleyball evening! 💐🌷" />
       )}
 
       {gameData.game.readonly && (
-        <div className="readonly-note">
-          <p>
-            🔒 This game is readonly. Registration and deregistration are closed. Please contact the game organizers if you have any questions.
-          </p>
-        </div>
+        <Banner
+          className="readonly-note"
+          type="section"
+          description="🔒 This game is readonly. Registration and deregistration are closed. Please contact the game organizers if you have any questions."
+        />
       )}
 
       {isPastGame && gameData.game.collectorUser && (user.isAdmin || (gameData.game.isAssignedAdmin ?? false)) && (
@@ -371,13 +362,15 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
 
               {viewModel.shouldShowAddGuestButton() && (
                 <div className="header-actions">
-                  <button
+                  <Button
+                    size="s"
+                    mode="bezeled"
                     className="add-guest-button"
                     onClick={() => viewModel.handleGuestRegister()}
                     disabled={action.isActionLoading || dialogs.isGuestRegistering}
                   >
                     {dialogs.isGuestRegistering ? "Registering..." : "Add guest"}
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
@@ -423,10 +416,11 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
 
         {activeRegistrations.length === 0 &&
           waitlistRegistrations.length === 0 && (
-            <div className="no-players">
-              <h2>No players registered yet</h2>
-              <p>Be the first to join this game!</p>
-            </div>
+            <Placeholder
+              className="no-players"
+              header={<Title Component="h2">No players registered yet</Title>}
+              description="Be the first to join this game!"
+            />
           )}
       </div>
 
@@ -445,13 +439,15 @@ const GameDetails: React.FC<GameDetailsProps> = ({ user }) => {
           />
         ) : (
           <div className="bottom-action-bar">
-            <button
-              className="tg-main-button btn btn-primary"
+            <Button
+              size="l"
+              stretched
+              className="tg-main-button"
               onClick={mainButtonClick}
               disabled={action.isActionLoading}
             >
               {action.isActionLoading ? "Processing..." : (mainButtonText || "Action")}
-            </button>
+            </Button>
           </div>
         )
       )}

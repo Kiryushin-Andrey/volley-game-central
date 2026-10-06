@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Title } from '@telegram-apps/telegram-ui';
 import { gamesApi } from '../services/api';
 import { BackButton } from '@twa-dev/sdk/react';
 import { isTelegramApp } from '../utils/telegram';
@@ -55,7 +56,7 @@ const CheckPayments = () => {
       {inTelegram && (
         <BackButton onClick={handleCancel} />
       )}
-      <h1>Check Payments</h1>
+      <Title Component="h1" weight="1">Check Payments</Title>
       <p>This will check the payment status of all unpaid games and update the database accordingly.</p>
       
       <div className="check-payments-content">

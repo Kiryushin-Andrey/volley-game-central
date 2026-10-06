@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Button, Title } from '@telegram-apps/telegram-ui';
 import { useAuthenticatedUser } from '../hooks/useAuthenticatedUser';
 import { UserSearchInput } from '../components/UserSearchInput';
 import { BackButton } from '@twa-dev/sdk/react';
@@ -155,7 +156,7 @@ const PriorityPlayers: React.FC = () => {
       <div className="priority-players">
         <div className="priority-players-header">
           {inTelegram && <BackButton onClick={() => navigate(-1)} />}
-          <h1>Priority Players</h1>
+          <Title Component="h1" weight="1">Priority Players</Title>
         </div>
         <div className="loading">Loading...</div>
       </div>
@@ -166,7 +167,7 @@ const PriorityPlayers: React.FC = () => {
     <div className="priority-players">
       <div className="priority-players-header">
         {inTelegram && <BackButton onClick={() => navigate(-1)} />}
-        <h1>Priority Players</h1>
+        <Title Component="h1" weight="1">Priority Players</Title>
       </div>
 
       {state.error && (
@@ -272,14 +273,15 @@ const PriorityPlayers: React.FC = () => {
               {state.createError}
             </div>
           )}
-          <button
-            className="btn btn-primary"
+          <Button
+            stretched
+            size="l"
             onClick={() => viewModel.showCreateForm()}
             type="button"
             disabled={state.showCreateForm}
           >
             Add Priority Player
-          </button>
+          </Button>
         </div>
       )}
 

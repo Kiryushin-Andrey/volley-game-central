@@ -1,4 +1,5 @@
 import React from 'react';
+import { Button } from '@telegram-apps/telegram-ui';
 import { GiVolleyballBall } from 'react-icons/gi';
 import './BringBallDialog.scss';
 
@@ -63,20 +64,23 @@ const BringBallDialog: React.FC<BringBallDialogProps> = ({
           </p>
           
           <div className="dialog-buttons">
-            <button
+            <Button
+              mode="gray"
+              stretched
               className="no-button"
               onClick={() => onSubmit(false)}
               disabled={isProcessing}
             >
               {isProcessing ? 'Registering...' : 'No, I won\'t bring one'}
-            </button>
-            <button
+            </Button>
+            <Button
+              stretched
               className="yes-button"
               onClick={() => onSubmit(true)}
               disabled={isProcessing}
             >
               {isProcessing ? 'Registering...' : 'Yes, I\'ll bring one! 🏐'}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

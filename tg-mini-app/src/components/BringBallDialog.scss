@@ -91,47 +91,12 @@
       flex-direction: column;
       gap: 12px;
 
-      button {
-        padding: 14px 20px;
-        border: none;
-        border-radius: 10px;
-        font-size: 16px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        text-align: center;
-
-        &:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-      }
-
       .yes-button {
-        background-color: #2196F3;
-        color: white;
         order: 1;
-
-        &:hover:not(:disabled) {
-          background-color: #1976D2;
-          transform: translateY(-1px);
-          box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
-        }
-
-        &:active:not(:disabled) {
-          transform: translateY(0);
-        }
       }
 
       .no-button {
-        background-color: var(--tg-theme-secondary-bg-color, #f8f8f8);
-        color: var(--tg-theme-text-color, #000);
-        border: 1px solid var(--tg-theme-section-separator-color, #e5e5e5);
         order: 2;
-
-        &:hover:not(:disabled) {
-          background-color: var(--tg-theme-section-separator-color, #e5e5e5);
-        }
       }
     }
   }
