@@ -135,10 +135,10 @@ function App() {
     const telegramUrl = botName ? `https://t.me/${botName}` : undefined;
     content = (
       <div className="landing-container">
-        <div className="court-backdrop" aria-hidden="true">
-          <CourtLines className="court-backdrop-lines" />
+        <div className="landing-court" aria-hidden="true">
+          <CourtLines className="landing-court-lines" />
+          <VolleyballMark className="landing-ball" />
         </div>
-        <VolleyballMark className="landing-mark" />
         <h1 className="landing-title">Welcome</h1>
         <p className="landing-subtitle">Choose how you want to continue:</p>
         <div className="landing-buttons">

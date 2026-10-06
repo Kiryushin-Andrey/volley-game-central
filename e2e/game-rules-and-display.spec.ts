@@ -143,11 +143,11 @@ test.describe('game rules and display scenarios', () => {
 
     await expect(fiveOneCard).toHaveClass(/with-positions/);
     await expect(fiveOneCard).not.toHaveClass(/without-positions/);
-    await expect(fiveOneCard).toHaveCSS('border-left-color', 'rgb(255, 193, 7)');
+    await expect(fiveOneCard).toHaveCSS('border-left-color', 'rgb(196, 161, 90)');
 
     await expect(regularCard).toHaveClass(/without-positions/);
     await expect(regularCard).not.toHaveClass(/with-positions/);
-    await expect(regularCard).toHaveCSS('border-left-color', 'rgb(76, 175, 80)');
+    await expect(regularCard).toHaveCSS('border-left-color', 'rgb(31, 78, 121)');
   });
 
   test('E2E-GAME-013 game details category notice follows schedule category', async ({ page, request }, testInfo) => {

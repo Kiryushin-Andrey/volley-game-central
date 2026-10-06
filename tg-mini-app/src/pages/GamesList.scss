@@ -10,14 +10,14 @@
 
 /* Positions note */
 .positions-note {
-  background-color: #fff8e1; // Light yellow background
-  border-left: 4px solid #ffc107; // Yellow border
+  background-color: color-mix(in srgb, var(--ball-gold, #e2b340) 22%, var(--tg-theme-bg-color));
+  border-left: 3px solid var(--format-positions, #c4a15a);
   padding: 12px 16px;
   margin-bottom: 16px;
   border-radius: 0 4px 4px 0;
   font-size: 14px;
   line-height: 1.4;
-  color: #5d4037; // Dark brown text
+  color: var(--tg-theme-text-color);
   
   p {
     margin: 0;
@@ -82,11 +82,11 @@
         
         // Color coding based on selected category
         &.category-dropdown-thursday-5-1 {
-          border-color: #ffc107; // Yellow border
+          border-color: var(--format-positions, #c4a15a);
         }
         
         &.category-dropdown-sunday {
-          border-color: #4caf50; // Green border
+          border-color: var(--court-blue, #1f4e79);
         }
       }
     }
@@ -424,8 +424,8 @@
 }
 
 .game-card {
-  background: color-mix(in srgb, var(--court-sand, #f6ebd9) 48%, var(--tg-theme-bg-color));
-  border: 1px solid color-mix(in srgb, var(--court-navy, #1b3a6b) 16%, #e1e8ed);
+  background: color-mix(in srgb, var(--court-surface, #f3f6fa) 88%, var(--tg-theme-bg-color));
+  border: 1px solid color-mix(in srgb, var(--court-blue, #1f4e79) 18%, #e1e8ed);
   border-radius: 12px;
   padding: 16px;
   cursor: pointer;
@@ -449,17 +449,17 @@
     border-color: var(--tg-theme-button-color);
     background: linear-gradient(
       135deg,
-      color-mix(in srgb, var(--court-sand, #f6ebd9) 40%, var(--tg-theme-bg-color)) 0%,
+      color-mix(in srgb, var(--court-surface, #f3f6fa) 70%, var(--tg-theme-bg-color)) 0%,
       color-mix(in srgb, var(--tg-theme-button-color) 8%, var(--tg-theme-bg-color)) 100%
     );
   }
 
   &.with-positions {
-    border-left-color: #ffc107; // Yellow for games with positions
+    border-left-color: #c4a15a;
   }
 
   &.without-positions {
-    border-left-color: #4caf50; // Green for games without positions
+    border-left-color: #1f4e79;
   }
 }
 

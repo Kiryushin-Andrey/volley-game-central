@@ -436,14 +436,14 @@
 
 /* Positions note */
 .positions-note {
-  background-color: #fff8e1; // Light yellow background
-  border-left: 4px solid #ffc107; // Yellow border
+  background-color: color-mix(in srgb, var(--ball-gold, #e2b340) 22%, var(--tg-theme-bg-color));
+  border-left: 3px solid var(--format-positions, #c4a15a);
   padding: 12px 16px;
   margin-bottom: 16px;
   border-radius: 0 4px 4px 0;
   font-size: 14px;
   line-height: 1.4;
-  color: #5d4037; // Dark brown text
+  color: var(--tg-theme-text-color);
 
   p {
     margin: 0;

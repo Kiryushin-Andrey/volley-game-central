@@ -1,22 +1,30 @@
 // Court theme tokens. Telegram background, text, and button colors stay in charge.
 :root {
-  --court-navy: #1b3a6b;
-  --court-sand: #f6ebd9;
-  --ball-yellow: #f5c518;
-  --ball-blue: #2e6bff;
-  --format-positions: #ffc107;
-  --format-recreational: #4caf50;
-  --format-priority: #1b3a6b;
-  --waitlist-orange: #ff9500;
+  --court-blue: #1f4e79;
+  --court-blue-deep: #16375a;
+  --court-surface: #f3f6fa;
+  --court-line: #f7f9fc;
+  --ball-base: #f6f3ec;
+  --ball-gold: #e2b340;
+  --ball-blue: var(--court-blue);
+  --court-clay: #c4654a;
+  --format-positions: #c4a15a;
+  --format-recreational: var(--court-blue);
+  --format-priority: var(--court-blue-deep);
+  --court-navy: var(--court-blue);
+  --court-sand: var(--court-surface);
+  --ball-yellow: var(--ball-gold);
+  --waitlist-orange: var(--court-clay);
   --court-radius: 12px;
   --court-radius-control: 10px;
-  --court-shadow: 0 2px 8px rgba(27, 58, 107, 0.12);
-  --court-shadow-lift: 0 8px 18px rgba(27, 58, 107, 0.16);
+  --court-shadow: 0 2px 8px rgba(22, 55, 90, 0.12);
+  --court-shadow-lift: 0 8px 18px rgba(22, 55, 90, 0.16);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --court-sand: #3a3226;
+    --court-surface: #1c2836;
+    --court-sand: var(--court-surface);
     --court-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
     --court-shadow-lift: 0 8px 18px rgba(0, 0, 0, 0.45);
   }
@@ -70,29 +78,29 @@
 }
 
 .format-pill-recreational {
-  color: #1b5e20;
-  background: color-mix(in srgb, var(--format-recreational) 18%, var(--tg-theme-bg-color));
-  box-shadow: inset 0 0 0 1px var(--format-recreational);
+  color: var(--court-blue-deep);
+  background: color-mix(in srgb, var(--court-blue) 12%, var(--tg-theme-bg-color));
+  box-shadow: inset 0 0 0 1px var(--court-blue);
 }
 
 .format-pill-positions {
-  color: #6d4c00;
-  background: color-mix(in srgb, var(--format-positions) 32%, var(--tg-theme-bg-color));
+  color: #6e5420;
+  background: color-mix(in srgb, var(--ball-gold) 34%, var(--tg-theme-bg-color));
   box-shadow: inset 0 0 0 1px var(--format-positions);
 }
 
 .format-pill-priority {
-  color: #ffffff;
-  background: var(--court-navy);
+  color: var(--court-line);
+  background: var(--court-blue);
 }
 
 @media (prefers-color-scheme: dark) {
   .format-pill-recreational {
-    color: #b9f6ca;
+    color: #d5e4f2;
   }
 
   .format-pill-positions {
-    color: #ffe082;
+    color: #f0d48a;
   }
 }
 
@@ -141,12 +149,12 @@
 .capacity-fill {
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--ball-blue), var(--ball-yellow));
+  background: var(--court-blue);
   transition: width 420ms ease;
 }
 
 .capacity-meter.is-full .capacity-fill {
-  background: var(--waitlist-orange);
+  background: var(--court-clay);
 }
 
 .capacity-ball-slot {
@@ -181,8 +189,8 @@
 }
 
 .capacity-dot.filled {
-  background: radial-gradient(circle at 35% 35%, var(--ball-yellow), var(--ball-blue));
-  border-color: var(--court-navy);
+  background: radial-gradient(circle at 32% 30%, #ffffff, var(--court-blue) 58%);
+  border-color: var(--court-blue-deep);
 }
 
 .capacity-dot.arriving .capacity-ball {
@@ -244,31 +252,31 @@
 
 .court-empty {
   position: relative;
-  width: min(240px, 70%);
+  width: min(220px, 78%);
   margin: 0 auto 12px;
-  color: var(--court-navy);
 }
 
-.court-empty-lines {
+.court-empty-lines,
+.landing-court-lines {
   width: 100%;
   height: auto;
-  opacity: 0.22;
   display: block;
 }
 
-.court-empty-ball {
+.court-empty-ball,
+.landing-ball {
   position: absolute;
-  left: 50%;
-  top: 46%;
-  width: 36px;
-  height: 36px;
-  transform: translate(-50%, -50%);
+  width: 16%;
+  height: auto;
+  left: 56%;
+  top: 48%;
+  filter: drop-shadow(0 3px 2px rgba(16, 36, 58, 0.35));
 }
 
 .no-games {
-  background: color-mix(in srgb, var(--court-sand) 70%, var(--tg-theme-bg-color));
+  background: color-mix(in srgb, var(--court-surface) 82%, var(--tg-theme-bg-color));
   border-radius: var(--court-radius);
-  border: 1px solid color-mix(in srgb, var(--court-navy) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--court-blue) 18%, transparent);
 }
 
 .landing-container {
@@ -276,27 +284,11 @@
   overflow: hidden;
 }
 
-.court-backdrop {
-  position: absolute;
-  left: 8%;
-  right: 8%;
-  top: 6%;
-  height: 42%;
-  color: var(--court-navy);
-  opacity: 0.16;
-  pointer-events: none;
-}
-
-.court-backdrop-lines {
-  width: 100%;
-  height: 100%;
-}
-
-.landing-mark {
-  width: 64px;
-  height: 64px;
+.landing-court {
   position: relative;
+  width: min(340px, 88vw);
   z-index: 1;
+  margin-bottom: 4px;
 }
 
 .landing-title,
