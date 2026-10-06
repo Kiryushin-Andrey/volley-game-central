@@ -40,34 +40,6 @@
   margin-top: 8px;
 }
 
-.dialog-btn {
-  padding: 10px 14px;
-  border-radius: 10px;
-  border: 1px solid;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.dialog-btn.ok {
-  background: var(--tg-theme-button-color, #111827);
-  color: var(--tg-theme-button-text-color, #ffffff);
-  border-color: var(--tg-theme-button-color, #111827);
-}
-
-.dialog-btn.cancel {
-  background: var(--tg-theme-secondary-bg-color, #f3f4f6);
-  color: var(--tg-theme-text-color, #111827);
-  border-color: color-mix(in srgb, var(--tg-theme-text-color, #111827) 10%, transparent);
-}
-
 .dialog-btn.destructive {
-  background: #fee2e2;
   color: #991b1b;
-  border-color: #fecaca;
-}
-
-/* Improve tap targets on mobile */
-.dialog-btn:active {
-  transform: translateY(1px);
 }

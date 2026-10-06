@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Input, Placeholder, Title } from '@telegram-apps/telegram-ui';
 import { BackButton } from '@twa-dev/sdk/react';
 import { useAuthenticatedUser } from '../hooks/useAuthenticatedUser';
 import { canManagePlayerLevels, playerInfoDialogViewer } from '../utils/userRoles';
@@ -77,7 +78,7 @@ const PlayerLevels: React.FC = () => {
       <div className="player-levels-page">
         <div className="player-levels-header">
           {inTelegram && <BackButton onClick={() => navigate(-1)} />}
-          <h1>Player levels</h1>
+          <Title Component="h1" weight="1">Player levels</Title>
         </div>
         <div className="loading">Loading...</div>
       </div>
@@ -88,13 +89,13 @@ const PlayerLevels: React.FC = () => {
     <div className="player-levels-page">
       <div className="player-levels-header">
         {inTelegram && <BackButton onClick={() => navigate(-1)} />}
-        <h1>Player levels</h1>
+        <Title Component="h1" weight="1">Player levels</Title>
       </div>
 
       {state.error && <div className="error-message">{state.error}</div>}
 
       <div className="player-levels-filters">
-        <input
+        <Input
           type="search"
           placeholder="Filter by name..."
           value={state.filterQuery}
@@ -113,7 +114,7 @@ const PlayerLevels: React.FC = () => {
 
       <div className="players-list player-levels-list">
         {filteredUsers.length === 0 ? (
-          <div className="empty-state">No players match your filter.</div>
+          <Placeholder description="No players match your filter." />
         ) : (
           filteredUsers.map((row) => (
             <div

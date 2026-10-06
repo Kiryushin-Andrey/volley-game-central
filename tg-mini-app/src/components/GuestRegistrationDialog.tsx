@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Button, Input } from '@telegram-apps/telegram-ui';
 import { UserSearchInput } from './UserSearchInput';
 import { FiChevronRight, FiChevronDown } from 'react-icons/fi';
 import './GuestRegistrationDialog.scss';
@@ -81,19 +82,17 @@ const GuestRegistrationDialog: React.FC<GuestRegistrationDialogProps> = ({
               />
             </div>
           )}
-          <div className="form-group">
-            <label htmlFor="guestName">Guest Name:</label>
-            <input
-              id="guestName"
-              type="text"
-              value={guestName}
-              onChange={(e) => setGuestName(e.target.value)}
-              placeholder="Enter guest name"
-              disabled={isProcessing}
-              autoFocus
-              maxLength={255}
-            />
-          </div>
+          <Input
+            id="guestName"
+            header="Guest Name:"
+            type="text"
+            value={guestName}
+            onChange={(e) => setGuestName(e.target.value)}
+            placeholder="Enter guest name"
+            disabled={isProcessing}
+            autoFocus
+            maxLength={255}
+          />
 
           {!allowInviterSelection && (
             <div
@@ -134,8 +133,9 @@ const GuestRegistrationDialog: React.FC<GuestRegistrationDialogProps> = ({
           )}
 
           <div className="dialog-buttons">
-            <button
+            <Button
               type="submit"
+              stretched
               disabled={
                 isProcessing ||
                 !guestName.trim() ||
@@ -144,7 +144,7 @@ const GuestRegistrationDialog: React.FC<GuestRegistrationDialogProps> = ({
               className="submit-button"
             >
               {isProcessing ? 'Registering...' : 'Register Guest'}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

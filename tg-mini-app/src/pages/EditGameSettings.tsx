@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Button, Title } from '@telegram-apps/telegram-ui';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { BackButton } from '@twa-dev/sdk/react';
 import { isTelegramApp } from '../utils/telegram';
@@ -63,7 +64,7 @@ const EditGameSettings: React.FC = () => {
       {inTelegram && (
         <BackButton onClick={handleCancel} />
       )}
-      <h1>Edit Game Settings</h1>
+      <Title Component="h1" weight="1">Edit Game Settings</Title>
       
       {state.error && <div className="error-message">{state.error}</div>}
       
@@ -71,21 +72,24 @@ const EditGameSettings: React.FC = () => {
         <GameFormFields state={state} viewModel={viewModel} />
         
         <div className="button-group">
-          <button 
-            type="button" 
-            className="cancel-button" 
+          <Button
+            type="button"
+            mode="gray"
+            stretched
+            className="cancel-button"
             onClick={handleCancel}
             disabled={state.isSaving}
           >
             Cancel
-          </button>
-          <button 
-            type="submit" 
-            className="submit-button" 
+          </Button>
+          <Button
+            type="submit"
+            stretched
+            className="submit-button"
             disabled={state.isSaving}
           >
             {state.isSaving ? 'Saving...' : 'Save Changes'}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

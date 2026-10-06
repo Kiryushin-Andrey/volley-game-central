@@ -1,4 +1,5 @@
 import React from 'react';
+import { Button, Checkbox, Input } from '@telegram-apps/telegram-ui';
 
 interface PhoneStepProps {
   countryPrefix: string;
@@ -33,28 +34,24 @@ const PhoneStep: React.FC<PhoneStepProps> = ({
   
   return (
     <div className="wa-section">
-      <label className="wa-label" htmlFor="wa-phone">Phone number</label>
-      <div className="wa-input-group">
-        <span className="wa-prefix">{countryPrefix}</span>
-        <input
-          id="wa-phone"
-          className="wa-input"
-          type="tel"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          value={phoneLocal}
-          ref={inputRef}
-          onChange={(e) => onPhoneChange(e.target.value)}
-          disabled={isProcessing}
-        />
-      </div>
+      <Input
+        id="wa-phone"
+        header="Phone number"
+        type="tel"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        value={phoneLocal}
+        ref={inputRef}
+        before={<span className="wa-prefix">{countryPrefix}</span>}
+        onChange={(e) => onPhoneChange(e.target.value)}
+        disabled={isProcessing}
+      />
 
       {isDevMode ? (
         <>
-          <label className="wa-label" htmlFor="wa-name" style={{ marginTop: 16 }}>Display name</label>
-          <input
+          <Input
             id="wa-name"
-            className="wa-input"
+            header="Display name"
             type="text"
             value={displayName}
             ref={nameInputRef}
@@ -62,27 +59,25 @@ const PhoneStep: React.FC<PhoneStepProps> = ({
             disabled={isProcessing}
             placeholder="Your name"
           />
-          <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <input
+          <div className="checkbox-label">
+            <Checkbox
               id="wa-admin"
-              type="checkbox"
+              aria-label="Administrator"
               checked={isAdmin}
               onChange={(e) => setIsAdmin(e.target.checked)}
               disabled={isProcessing}
-              style={{ width: 18, height: 18, cursor: 'pointer' }}
             />
-            <label htmlFor="wa-admin" style={{ cursor: 'pointer', fontSize: 14 }}>Administrator</label>
+            <span>Administrator</span>
           </div>
-          <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <input
+          <div className="checkbox-label">
+            <Checkbox
               id="wa-tc"
-              type="checkbox"
+              aria-label="Technical Committee"
               checked={isTc}
               onChange={(e) => setIsTc(e.target.checked)}
               disabled={isProcessing}
-              style={{ width: 18, height: 18, cursor: 'pointer' }}
             />
-            <label htmlFor="wa-tc" style={{ cursor: 'pointer', fontSize: 14 }}>Technical Committee</label>
+            <span>Technical Committee</span>
           </div>
           <p className="wa-note">Dev mode: No SMS verification required</p>
         </>
@@ -96,23 +91,23 @@ const PhoneStep: React.FC<PhoneStepProps> = ({
 
       <div className="wa-actions">
         {isDevMode && onDevLogin ? (
-          <button
+          <Button
             type="button"
-            className="wa-button"
+            stretched
             disabled={!phoneLocal.trim() || !displayName.trim() || isProcessing}
             onClick={() => onDevLogin(displayName, isAdmin, isTc)}
           >
             {isProcessing ? 'Logging in…' : 'Dev Login'}
-          </button>
+          </Button>
         ) : (
-          <button
+          <Button
             type="button"
-            className="wa-button"
+            stretched
             disabled={!phoneLocal.trim() || isProcessing}
             onClick={onContinue}
           >
             {isProcessing ? 'Sending…' : 'Continue'}
-          </button>
+          </Button>
         )}
       </div>
     </div>

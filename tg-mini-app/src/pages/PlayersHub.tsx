@@ -1,5 +1,7 @@
 import React, { useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { List, Section, Title } from '@telegram-apps/telegram-ui';
+import { CellLink } from '../components/ui/RouterButton';
 import { BackButton } from '@twa-dev/sdk/react';
 import { useAuthenticatedUser } from '../hooks/useAuthenticatedUser';
 import { isGlobalAdmin, isTcOnly } from '../utils/userRoles';
@@ -23,18 +25,17 @@ const PlayersHub: React.FC = () => {
 
   return (
     <div className="players-hub">
-      <div className="players-hub-header">
-        {inTelegram && <BackButton onClick={() => navigate(-1)} />}
-        <h1>Players</h1>
-      </div>
-      <nav className="players-hub-links" aria-label="Players administration">
-        <Link to="/game-administrators" className="players-hub-link">
-          Game administrators
-        </Link>
-        <Link to="/player-levels" className="players-hub-link">
-          Player levels
-        </Link>
-      </nav>
+      {inTelegram && <BackButton onClick={() => navigate(-1)} />}
+      <List>
+        <Section header={<Title Component="h1" weight="1">Players</Title>}>
+          <CellLink to="/game-administrators">
+            Game administrators
+          </CellLink>
+          <CellLink to="/player-levels">
+            Player levels
+          </CellLink>
+        </Section>
+      </List>
     </div>
   );
 };

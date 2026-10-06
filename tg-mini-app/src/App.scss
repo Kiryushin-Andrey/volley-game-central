@@ -108,6 +108,14 @@ body {
   font-size: 14px;
 }
 
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0;
+  cursor: pointer;
+}
+
 .logout-btn {
   padding: 6px 10px;
   border-radius: 8px;
@@ -122,7 +130,7 @@ body {
 .page-content {
   max-width: 800px;
   margin: 0 auto;
-  padding: 16px;
+  padding: 0 0 24px;
 }
 
 .error-message {

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Button, Input, Title } from '@telegram-apps/telegram-ui';
 import { BunqCredentials } from '../viewmodels/BunqSettingsViewModel';
 
 interface CredentialsFormProps {
@@ -18,65 +19,60 @@ const CredentialsForm: React.FC<CredentialsFormProps> = ({
 }) => {  
   return (
     <div className="credentials-form">
-      <h3>Specify Bunq API Credentials</h3>
+      <Title Component="h3">Specify Bunq API Credentials</Title>
       <p className="form-description">
         Enter your Bunq API key and create a password for secure storage.
       </p>
       
-      <div className="form-group">
-        <label htmlFor="apiKey">API Key</label>
-        <input
-          type="password"
-          id="apiKey"
-          value={credentials.apiKey}
-          onChange={(e) => onCredentialsChange({ apiKey: e.target.value })}
-          placeholder="Provide your Bunq API key"
-          disabled={isProcessing}
-        />
-      </div>
+      <Input
+        type="password"
+        id="apiKey"
+        header="API Key"
+        value={credentials.apiKey}
+        onChange={(e) => onCredentialsChange({ apiKey: e.target.value })}
+        placeholder="Provide your Bunq API key"
+        disabled={isProcessing}
+      />
       
-      <div className="form-group">
-        <label htmlFor="apiKeyName">API Key Name</label>
-        <input
-          type="text"
-          id="apiKeyName"
-          value={credentials.apiKeyName}
-          onChange={(e) => onCredentialsChange({ apiKeyName: e.target.value })}
-          placeholder="Enter a name for this API key (used as User-Agent)"
-          disabled={isProcessing}
-        />
-        <small className="form-help">This name will be used to identify your API key in Bunq</small>
-      </div>
+      <Input
+        type="text"
+        id="apiKeyName"
+        header="API Key Name"
+        value={credentials.apiKeyName}
+        onChange={(e) => onCredentialsChange({ apiKeyName: e.target.value })}
+        placeholder="Enter a name for this API key (used as User-Agent)"
+        disabled={isProcessing}
+      />
+      <small className="form-help">This name will be used to identify your API key in Bunq</small>
       
-      <div className="form-group">
-        <label htmlFor="password">Password</label>
-        <input
-          type="password"
-          id="password"
-          value={credentials.password}
-          onChange={(e) => onCredentialsChange({ password: e.target.value })}
-          placeholder="Devise a password for API key encryption"
-          disabled={isProcessing}
-        />
-      </div>
+      <Input
+        type="password"
+        id="password"
+        header="Password"
+        value={credentials.password}
+        onChange={(e) => onCredentialsChange({ password: e.target.value })}
+        placeholder="Devise a password for API key encryption"
+        disabled={isProcessing}
+      />
       
       <div className="form-actions">
-        <button 
-          className="btn btn-secondary"
+        <Button 
+          mode="gray"
+          type="button"
           onClick={onCancel}
           disabled={isProcessing}
         >
           Cancel
-        </button>
-        <button 
-          className="btn btn-primary"
+        </Button>
+        <Button 
+          type="button"
           onClick={onSubmit}
           disabled={isProcessing || !credentials.apiKey.trim() || !credentials.password.trim() || !credentials.apiKeyName.trim()}
         >
           {isProcessing 
             ? 'Enabling...' 
             : 'Enable Integration'}
-        </button>
+        </Button>
       </div>
     </div>
   );

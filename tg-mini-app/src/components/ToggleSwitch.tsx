@@ -1,4 +1,5 @@
 import React from 'react';
+import { Switch } from '@telegram-apps/telegram-ui';
 import './ToggleSwitch.scss';
 
 interface ToggleSwitchProps {
@@ -16,16 +17,13 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
 }) => {
   return (
     <div className="toggle-container">
-      <label className="toggle-switch" htmlFor={id}>
-        <input
-          type="checkbox"
-          id={id}
-          checked={checked}
-          onChange={(e) => onChange(e.target.checked)}
-        />
-        <span className="slider round"></span>
-      </label>
-      <span className="toggle-label">{label}</span>
+      <Switch
+        id={id}
+        aria-label={label}
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+      <label className="toggle-label" htmlFor={id}>{label}</label>
     </div>
   );
 };
