@@ -330,13 +330,158 @@ export function waitForAdminGameUpdateResponse(page: Page, gameId: number) {
 }
 
 export async function cleanupE2eData() {
+  // Spot-offer tables arrive with migration 0035; skip if not migrated yet.
+  const spotTables = await pool.query(
+    `select to_regclass('public.spot_offers') as spot_offers,
+            to_regclass('public.spot_offer_invites') as spot_offer_invites`,
+  );
+  if (spotTables.rows[0]?.spot_offer_invites) {
+    await pool.query(
+      `delete from spot_offer_invites where spot_offer_id in (
+         select so.id from spot_offers so
+         inner join games g on g.id = so.game_id
+         where g.title like 'E2E %'
+       )`,
+    );
+  }
+  if (spotTables.rows[0]?.spot_offers) {
+    await pool.query(
+      `delete from spot_offers where game_id in (select id from games where title like 'E2E %')`,
+    );
+  }
   await pool.query(`delete from payment_requests where payment_request_id like 'e2e-%'`);
+  await pool.query(
+    `delete from payment_requests where game_registration_id in (
+       select gr.id from game_registrations gr
+       inner join games g on g.id = gr.game_id
+       where g.title like 'E2E %'
+     )`,
+  );
   await pool.query(`delete from game_registrations where game_id in (select id from games where title like 'E2E %')`);
   await pool.query(`delete from priority_players where user_id in (select id from users where display_name like 'E2E %')`);
   await pool.query(`delete from game_administrators where user_id in (select id from users where display_name like 'E2E %')`);
   await pool.query(`delete from bunq_credentials where user_id in (select id from users where display_name like 'E2E %')`);
   await pool.query(`delete from games where title like 'E2E %'`);
   await pool.query(`delete from users where display_name like 'E2E %'`);
+}
+
+/** Hours from now, floored to the whole hour (stable for datetime pickers). */
+export function hoursFromNow(hours: number) {
+  const date = new Date();
+  date.setTime(date.getTime() + hours * 3_600_000);
+  date.setMinutes(0, 0, 0);
+  return date;
+}
+
+/**
+ * Post-leave-deadline game that is still in the private waitlist-walk window
+ * (leave deadline hours > 5 so public T−5h has not hit yet).
+ */
+export function postDeadlineWaitlistWalkGameTime() {
+  // Game in ~10h, leave freeze at T−12h ⇒ already frozen; public at T−5h ⇒ still walking.
+  return {
+    dateTime: hoursFromNow(10),
+    unregisterDeadlineHours: 12,
+    gameFormat: 'recreational' as const,
+  };
+}
+
+/** Post-leave-deadline and already in public announce window (≤5h to game). */
+export function postDeadlinePublicPhaseGameTime() {
+  return {
+    dateTime: hoursFromNow(3),
+    unregisterDeadlineHours: 5,
+    gameFormat: 'recreational' as const,
+  };
+}
+
+/**
+ * Retarget an existing upcoming game into a spot-offer timing window via Edit Game Settings.
+ * Prefer this over creating with an awkward near-term datetime (picker flakiness).
+ */
+export async function setSpotOfferTimingViaUi(
+  page: Page,
+  gameId: number,
+  timing: { dateTime: Date; unregisterDeadlineHours: number },
+): Promise<void> {
+  await page.goto(`/game/${gameId}/edit`);
+  await expect(page.getByRole('heading', { name: 'Edit Game Settings' })).toBeVisible();
+  const dateInput = page.getByPlaceholder('Select date and time');
+  await dateInput.fill(formatGameDateTimeForInput(timing.dateTime));
+  await dateInput.press('Enter');
+  await page.locator('#unregisterDeadlineHours').fill(String(timing.unregisterDeadlineHours));
+  const updatePromise = waitForAdminGameUpdateResponse(page, gameId);
+  await page.getByRole('button', { name: 'Save Changes' }).click();
+  const updateResponse = await updatePromise;
+  expect(updateResponse.ok()).toBeTruthy();
+  if (page.url().includes('/edit')) {
+    await page.goto(`/game/${gameId}`);
+  }
+}
+
+/** telegram_id required for private invite DMs (allowSms: false skips null). */
+export async function setUserTelegramId(userId: number, telegramId: string): Promise<void> {
+  await pool.query(`update users set telegram_id = $2 where id = $1`, [userId, telegramId]);
+}
+
+export async function getOpenSpotOfferId(gameId: number, offererUserId?: number): Promise<number | null> {
+  const result = offererUserId
+    ? await pool.query(
+        `select id from spot_offers
+         where game_id = $1 and offerer_user_id = $2 and fulfilled_by_user_id is null
+         order by id desc limit 1`,
+        [gameId, offererUserId],
+      )
+    : await pool.query(
+        `select id from spot_offers
+         where game_id = $1 and fulfilled_by_user_id is null
+         order by id desc limit 1`,
+        [gameId],
+      );
+  return (result.rows[0]?.id as number) ?? null;
+}
+
+export async function countSpotOfferInvites(offerId: number): Promise<number> {
+  const result = await pool.query(
+    `select count(*)::int as count from spot_offer_invites where spot_offer_id = $1`,
+    [offerId],
+  );
+  return result.rows[0].count as number;
+}
+
+export async function getRegistrationOwner(
+  gameId: number,
+  createdAtOrderIndex: number,
+): Promise<{ id: number; userId: number; guestName: string | null; createdAt: Date } | null> {
+  const result = await pool.query(
+    `select id, user_id as "userId", guest_name as "guestName", created_at as "createdAt"
+     from game_registrations where game_id = $1
+     order by created_at asc, id asc
+     offset $2 limit 1`,
+    [gameId, createdAtOrderIndex],
+  );
+  return result.rows[0] ?? null;
+}
+
+export async function listFulfilledSpotOffers(gameId: number): Promise<
+  Array<{
+    id: number;
+    registrationId: number;
+    offererUserId: number;
+    fulfilledByUserId: number;
+  }>
+> {
+  const result = await pool.query(
+    `select id,
+            registration_id as "registrationId",
+            offerer_user_id as "offererUserId",
+            fulfilled_by_user_id as "fulfilledByUserId"
+     from spot_offers
+     where game_id = $1 and fulfilled_by_user_id is not null
+     order by id asc`,
+    [gameId],
+  );
+  return result.rows;
 }
 
 const BUNQ_MOCK_CONTROL_ORIGIN = process.env.BUNQ_MOCK_CONTROL_ORIGIN ?? 'http://127.0.0.1:3999';

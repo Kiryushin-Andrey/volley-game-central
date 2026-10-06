@@ -12,7 +12,6 @@ import { getUserSelectFields } from '../utils/dbQueryUtils';
 import {
   adminAssignmentWithPositionsForGameFormat,
   asGameFormat,
-  isPositionsGame,
   usesPriorityPlayerWindows,
   type GameFormat,
 } from '../domain/gameFormat';
@@ -25,22 +24,28 @@ import {
   isGuestRegistrationOpen,
   registrationOpenDaysFor,
   registrationOpensAt,
+  isWaitlistAtIndex,
   type GameCategory,
 } from '../domain/gamePolicy';
 import {
   findRegistrationIndex,
   getUserById,
-  isWaitlistAtIndex,
   mapRegistrationsWithWaitlist,
   placeRegistration,
   removeRegistration,
 } from '../services/registrationService';
 import {
+  canUserAcceptSpotOfferOnGame,
   computeSelfRegistrationEligibility,
   getPlayerLevelForUser,
   userHasSelfRegistrationOnGame,
 } from '../utils/registrationEligibility';
-
+import {
+  acceptSpotOffer,
+  cancelMySpotOffer,
+  createSpotOffer,
+  getSpotOfferDetailFields,
+} from '../services/spotOfferService';
 const router = Router();
 
 // Helper function to check if a user is a priority player for a game
@@ -256,13 +261,17 @@ router.delete('/:gameId/register', async (req, res) => {
             game[0].id,
           );
         }
-      } else if (isPositionsGame(asGameFormat(String(game[0].gameFormat)))) {
+      } else {
         const gameDateTime = new Date(game[0].dateTime);
         const now = new Date();
         const hoursUntilGame =
           (gameDateTime.getTime() - now.getTime()) / 3_600_000;
         if (hoursUntilGame >= 0 && hoursUntilGame < LATE_SIGNOUT_THRESHOLD_HOURS) {
-          sendLateSignoutGroupNotification(gameDateTime, game[0].id).catch(
+          sendLateSignoutGroupNotification(
+            gameDateTime,
+            game[0].id,
+            game[0].gameFormat,
+          ).catch(
             (err) => console.error('Late sign-out notification failed:', err),
           );
         }
@@ -273,6 +282,104 @@ router.delete('/:gameId/register', async (req, res) => {
   } catch (error) {
     console.error('Error unregistering from game:', error);
     res.status(500).json({ error: 'Failed to unregister from game' });
+  }
+});
+
+// Create a spot offer (self or guest) — only after leave deadline
+router.post('/:gameId/spot-offers', async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const gameId = parseInt(req.params.gameId);
+    const { guestName } = req.body as { guestName?: string };
+
+    const game = await db.select().from(games).where(eq(games.id, gameId));
+    if (!game.length) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+
+    const result = await createSpotOffer({
+      game: game[0],
+      userId: req.user.id,
+      guestName,
+    });
+
+    if (!result.ok) {
+      return res.status(result.status).json({ error: result.error, code: result.code });
+    }
+
+    res.status(201).json({
+      offer: result.offer,
+      enteredPublic: result.enteredPublic,
+    });
+  } catch (error) {
+    console.error('Error creating spot offer:', error);
+    res.status(500).json({ error: 'Failed to create spot offer' });
+  }
+});
+
+// Cancel caller's open offer for self or a specific guest
+router.delete('/:gameId/spot-offers/mine', async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const gameId = parseInt(req.params.gameId);
+    const { guestName } = (req.body || {}) as { guestName?: string };
+
+    const result = await cancelMySpotOffer({
+      gameId,
+      userId: req.user.id,
+      guestName,
+    });
+
+    if (!result.ok) {
+      return res.status(result.status).json({ error: result.error, code: result.code });
+    }
+
+    res.json({ message: 'Spot offer cancelled' });
+  } catch (error) {
+    console.error('Error cancelling spot offer:', error);
+    res.status(500).json({ error: 'Failed to cancel spot offer' });
+  }
+});
+
+// Accept an open spot offer — any eligible user; invite row never required
+router.post('/:gameId/spot-offers/:offerId/accept', async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const gameId = parseInt(req.params.gameId);
+    const offerId = parseInt(req.params.offerId);
+
+    const game = await db.select().from(games).where(eq(games.id, gameId));
+    if (!game.length) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+
+    const result = await acceptSpotOffer({
+      game: game[0],
+      offerId,
+      acceptorUserId: req.user.id,
+    });
+
+    if (!result.ok) {
+      return res.status(result.status).json({ error: result.error, code: result.code });
+    }
+
+    res.json({
+      message: 'Spot offer accepted',
+      offer: result.offer,
+      registrationId: result.registrationId,
+    });
+  } catch (error) {
+    console.error('Error accepting spot offer:', error);
+    res.status(500).json({ error: 'Failed to accept spot offer' });
   }
 });
 
@@ -354,8 +461,20 @@ router.get('/:gameId', async (req, res) => {
       baseRegistrationOpensAt,
     });
     const guestOpensAt = guestRegistrationOpensAt(game[0].dateTime);
+
+    const spotOfferFields = await getSpotOfferDetailFields(
+      parseInt(gameId),
+      req.user.id,
+    );
+    // Open offers must be taken before self-join / waitlist / guest add
+    const hasOpenSpotOffer = spotOfferFields.activeSpotOffers.length > 0;
+    const canSelfRegister = eligibility.canSelfRegister && !hasOpenSpotOffer;
     const canRegisterGuest =
-      eligibility.canSelfRegister && isGuestRegistrationOpen(game[0].dateTime, now);
+      canSelfRegister && isGuestRegistrationOpen(game[0].dateTime, now);
+    const canAcceptSpotOffer = await canUserAcceptSpotOfferOnGame({
+      game: game[0],
+      userId: req.user.id,
+    });
 
     // Ensure legacy field not leaked; respond with new fields
     const { locationAddress: _deprecated, ...restGame } = game[0] as any;
@@ -367,11 +486,14 @@ router.get('/:gameId', async (req, res) => {
       category: classifyGame(game[0]),
       registrationOpenDays,
       registrationOpensAt: eligibility.registrationOpensAt.toISOString(),
-      canSelfRegister: eligibility.canSelfRegister,
+      canSelfRegister,
       guestRegistrationOpensAt: guestOpensAt.toISOString(),
       guestRegistrationOpenDays: GUEST_REGISTRATION_OPEN_DAYS,
       canRegisterGuest,
       isPriorityPlayer,
+      activeSpotOffers: spotOfferFields.activeSpotOffers,
+      myOffers: spotOfferFields.myOffers,
+      canAcceptSpotOffer,
     });
   } catch (error) {
     console.error('Error fetching game:', error);

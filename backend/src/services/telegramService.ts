@@ -6,7 +6,9 @@ import { gt, lte, and, eq, count } from 'drizzle-orm';
 import {
   REGISTRATION_OPEN_DAYS,
   isBaseRegistrationOpen,
+  lateSignoutTopicEnvKey,
 } from '../domain/gamePolicy';
+import { asGameFormat, type GameFormat } from '../domain/gameFormat';
 import { formatGameDate, formatGameDateShort } from '../utils/dateUtils';
 import { isDevMode, logDevMode } from '../utils/devMode';
 
@@ -20,6 +22,42 @@ const TELEGRAM_GROUP_ID = process.env.TELEGRAM_GROUP_ID || '';
 const TELEGRAM_ANNOUNCEMENTS_TOPIC_ID = process.env.TELEGRAM_ANNOUNCEMENTS_TOPIC_ID
   ? parseInt(process.env.TELEGRAM_ANNOUNCEMENTS_TOPIC_ID)
   : undefined;
+
+/** Synthetic monotonic message ids for DEV_MODE so persist/delete paths are testable. */
+let syntheticMessageIdSeq = 1_000_000;
+
+function nextSyntheticMessageId(): number {
+  syntheticMessageIdSeq += 1;
+  return syntheticMessageIdSeq;
+}
+
+/** Reset synthetic id counter (unit tests). */
+export function resetSyntheticTelegramMessageIds(start = 1_000_000): void {
+  syntheticMessageIdSeq = start;
+}
+
+export function getTelegramGroupId(): string {
+  return TELEGRAM_GROUP_ID;
+}
+
+export type TelegramDmSendResult = { chatId: string; messageId: number };
+export type TelegramGroupSendResult = { messageId: number };
+
+/**
+ * Resolve format-aware late-signout / spot-offer public topic id.
+ * Positions → TELEGRAM_LATE_SIGNOUT_TOPIC_ID_POSITIONS;
+ * recreational / priority_players → TELEGRAM_LATE_SIGNOUT_TOPIC_ID_NON_POSITIONS.
+ * Returns undefined when unset (caller should skip send).
+ */
+export function resolveLateSignoutTopicId(
+  gameFormat: GameFormat | string,
+): number | undefined {
+  const envKey = lateSignoutTopicEnvKey(asGameFormat(String(gameFormat)));
+  const raw = process.env[envKey];
+  if (!raw) return undefined;
+  const parsed = parseInt(raw, 10);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
 
 // Initialize Telegram bot
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN || '');
@@ -93,21 +131,22 @@ export async function checkTelegramGroupMembership(telegramId: string): Promise<
 }
 
 /**
- * Send a notification message to a user via Telegram
- *
- * @param telegramId The Telegram ID of the user to send the notification to
- * @param message The message to send
- * @param gameId Optional game ID for deep linking
- * @returns Promise that resolves when the message is sent
+ * Send a Telegram notification to a user.
+ * Returns chatId + messageId when sent (for later delete); null if failed.
+ * In DEV_MODE returns synthetic ids without hitting the network.
  */
 export async function sendTelegramNotification(
   telegramId: string,
   message: string,
-  gameId?: number
-): Promise<void> {
+  gameId?: number,
+  buttonText = '🏐 View Game',
+): Promise<TelegramDmSendResult | null> {
   if (isDevMode()) {
-    logDevMode(`[SUPPRESSED] Telegram notification to ${telegramId}: ${message}`);
-    return;
+    const messageId = nextSyntheticMessageId();
+    logDevMode(
+      `[SUPPRESSED] Telegram DM to ${telegramId} (synthetic messageId=${messageId}): ${message}`,
+    );
+    return { chatId: telegramId, messageId };
   }
 
   try {
@@ -115,45 +154,51 @@ export async function sendTelegramNotification(
     const botUsername = botInfo.username;
     const botUrl = buildBotUrl(botUsername, gameId);
 
-    await bot.telegram.sendMessage(telegramId, message, {
+    const result = await bot.telegram.sendMessage(telegramId, message, {
       parse_mode: 'HTML',
-      reply_markup: gameId ? {
-        inline_keyboard: [[
-          {
-            text: '🏐 View Game',
-            url: botUrl
+      reply_markup: gameId
+        ? {
+            inline_keyboard: [
+              [
+                {
+                  text: buttonText,
+                  url: botUrl,
+                },
+              ],
+            ],
           }
-        ]]
-      } : undefined
+        : undefined,
     });
     console.log(`Notification sent to user ${telegramId}`);
+    return { chatId: telegramId, messageId: result.message_id };
   } catch (error) {
     console.error(`Failed to send notification to user ${telegramId}:`, error);
-    // Don't throw the error as this is a non-critical operation
+    return null;
   }
 }
 
 /**
- * Send an announcement message to the configured Telegram group
- *
- * @param message The message to send to the group
- * @param gameId Optional game ID for deep linking
- * @param topicId Optional topic ID to send the message to (for forum groups)
- * @returns Promise that resolves when the message is sent
+ * Send an announcement to the configured Telegram group.
+ * Returns messageId when sent (for later delete); null if skipped/failed.
+ * In DEV_MODE returns a synthetic id without hitting the network.
  */
 export async function sendGroupAnnouncement(
   message: string,
   gameId?: number,
-  topicId?: number
-): Promise<void> {
+  topicId?: number,
+  buttonText = '🏐 Join Game',
+): Promise<TelegramGroupSendResult | null> {
   if (isDevMode()) {
-    logDevMode(`[SUPPRESSED] Group announcement: ${message}`);
-    return;
+    const messageId = nextSyntheticMessageId();
+    logDevMode(
+      `[SUPPRESSED] Group announcement (synthetic messageId=${messageId}): ${message}`,
+    );
+    return { messageId };
   }
 
   if (!TELEGRAM_GROUP_ID) {
     console.warn('No Telegram group ID configured, skipping group announcement');
-    return;
+    return null;
   }
 
   try {
@@ -165,24 +210,47 @@ export async function sendGroupAnnouncement(
     const botUsername = botInfo.username;
     const botUrl = buildBotUrl(botUsername, gameId);
 
-    await bot.telegram.sendMessage(TELEGRAM_GROUP_ID, message, {
+    const result = await bot.telegram.sendMessage(TELEGRAM_GROUP_ID, message, {
       parse_mode: 'HTML',
       disable_notification: false,
       message_thread_id: messageThreadId,
       reply_markup: {
         inline_keyboard: [[
           {
-            text: '🏐 Join Game',
+            text: buttonText,
             url: botUrl
           }
         ]]
       }
     });
     console.log(`Announcement sent to group ${TELEGRAM_GROUP_ID}`);
+    return { messageId: result.message_id };
   } catch (error) {
     const logSuffix = (topicId ?? TELEGRAM_ANNOUNCEMENTS_TOPIC_ID) ? ` (topic: ${topicId ?? TELEGRAM_ANNOUNCEMENTS_TOPIC_ID})` : '';
     console.error(`Failed to send announcement to group ${TELEGRAM_GROUP_ID}${logSuffix}:`, error);
-    // Don't throw the error as this is a non-critical operation
+    return null;
+  }
+}
+
+/** Best-effort delete of a Telegram message (DM or group). */
+export async function deleteTelegramMessage(
+  chatId: string,
+  messageId: number,
+): Promise<void> {
+  if (isDevMode()) {
+    logDevMode(
+      `[SUPPRESSED] deleteTelegramMessage chatId=${chatId} messageId=${messageId}`,
+    );
+    return;
+  }
+
+  try {
+    await bot.telegram.deleteMessage(chatId, messageId);
+  } catch (error) {
+    console.error(
+      `Failed to delete Telegram message ${messageId} in chat ${chatId}:`,
+      error,
+    );
   }
 }
 
@@ -190,41 +258,41 @@ export async function sendGroupAnnouncement(
 export const LATE_SIGNOUT_THRESHOLD_HOURS = 48;
 
 /**
- * Send a late sign-out notification to the topic configured via
- * TELEGRAM_LATE_SIGNOUT_TOPIC_ID within TELEGRAM_GROUP_ID.
- * Called only when a roster spot opens up with no one on the waitlist.
- * Silently skips if either env var is unset.
- *
- * @param gameDate Date/time of the game
- * @param gameId Game ID for the deep link button
+ * Send a late sign-out notification to the format-keyed topic within TELEGRAM_GROUP_ID.
+ * Called when a roster spot opens with no one on the waitlist (any format).
+ * Silently skips if group id or the matching topic env is unset.
  */
 export async function sendLateSignoutGroupNotification(
   gameDate: Date,
-  gameId: number
-): Promise<void> {
-  const topicId = process.env.TELEGRAM_LATE_SIGNOUT_TOPIC_ID;
+  gameId: number,
+  gameFormat: GameFormat | string = 'recreational',
+): Promise<TelegramGroupSendResult | null> {
+  const topicId = resolveLateSignoutTopicId(gameFormat);
 
-  if (!TELEGRAM_GROUP_ID || !topicId) {
-    return;
+  if (!TELEGRAM_GROUP_ID || topicId === undefined) {
+    return null;
   }
 
+  const formattedDate = formatGameDate(gameDate);
+  const message =
+    `🏐 A spot just opened up for the volleyball game on <b>${formattedDate}</b>!\n\n` +
+    `Join now before it's taken 👇`;
+
   if (isDevMode()) {
-    logDevMode(`[SUPPRESSED] Late sign-out notification to topic ${topicId} for game ${gameId}`);
-    return;
+    const messageId = nextSyntheticMessageId();
+    logDevMode(
+      `[SUPPRESSED] Late sign-out notification to topic ${topicId} for game ${gameId} (synthetic messageId=${messageId})`,
+    );
+    return { messageId };
   }
 
   try {
-    const formattedDate = formatGameDate(gameDate);
-    const message =
-      `🏐 A spot just opened up for the volleyball game on <b>${formattedDate}</b>!\n\n` +
-      `Join now before it's taken 👇`;
-
     const botInfo = await bot.telegram.getMe();
     const botUrl = buildBotUrl(botInfo.username, gameId);
 
-    await bot.telegram.sendMessage(TELEGRAM_GROUP_ID, message, {
+    const result = await bot.telegram.sendMessage(TELEGRAM_GROUP_ID, message, {
       parse_mode: 'HTML',
-      message_thread_id: parseInt(topicId, 10),
+      message_thread_id: topicId,
       reply_markup: {
         inline_keyboard: [[
           { text: '🏐 Join Game', url: botUrl }
@@ -232,11 +300,47 @@ export async function sendLateSignoutGroupNotification(
       }
     });
     console.log(`Late sign-out notification sent to topic ${topicId} in group ${TELEGRAM_GROUP_ID} for game ${gameId}`);
+    return { messageId: result.message_id };
   } catch (error) {
     console.error(`Failed to send late sign-out notification to topic ${topicId}:`, error);
-    // Non-critical – don't re-throw
+    return null;
   }
 }
+
+/**
+ * Public spot-offer announce — same topic resolver as late sign-out, distinct copy.
+ * In DEV_MODE always returns a synthetic id so unit tests can persist/delete without topic env.
+ */
+export async function sendSpotOfferPublicAnnouncement(params: {
+  gameDate: Date;
+  gameId: number;
+  gameFormat: GameFormat | string;
+}): Promise<TelegramGroupSendResult | null> {
+  const topicId = resolveLateSignoutTopicId(params.gameFormat);
+
+  if (isDevMode()) {
+    const messageId = nextSyntheticMessageId();
+    logDevMode(
+      `[SUPPRESSED] Spot-offer public announce for game ${params.gameId} topic=${topicId ?? 'unset'} (synthetic messageId=${messageId})`,
+    );
+    return { messageId };
+  }
+
+  if (!TELEGRAM_GROUP_ID || topicId === undefined) {
+    return null;
+  }
+
+  const formattedDate = formatGameDate(params.gameDate);
+  const message = `📣 A spot for the volleyball game on <b>${formattedDate}</b> is being offered.`;
+
+  return sendGroupAnnouncement(
+    message,
+    params.gameId,
+    topicId,
+    '🏐 View Game',
+  );
+}
+
 
 /**
  * Check for games that are opening for registration soon (X days befoXe the game)
@@ -478,10 +582,23 @@ export function launchBot(): void {
   
   // Set up periodic job to check for games starting in ~24 hours and send reminders
   setInterval(checkAndSendGameReminders, 60 * 60 * 1000); // Check every hour
+
+  // Spot-offer waitlist walk / public transition poller (default ~30s; override via SPOT_OFFER_POLLER_INTERVAL_MS for E2E)
+  // Lazy import avoids circular deps with spotOfferJobs -> spotOfferService -> telegramService
+  const runSpotOfferJobs = () => {
+    import('./spotOfferJobs')
+      .then(({ processSpotOfferJobs }) => processSpotOfferJobs())
+      .catch((err) => console.error('Spot offer jobs failed:', err));
+  };
+  const pollerMsRaw = Number(process.env.SPOT_OFFER_POLLER_INTERVAL_MS);
+  const pollerMs =
+    Number.isFinite(pollerMsRaw) && pollerMsRaw > 0 ? pollerMsRaw : 30 * 1000;
+  setInterval(runSpotOfferJobs, pollerMs);
   
   // Also check once at startup
   checkAndAnnounceGameRegistrations();
   checkAndSendGameReminders();
+  runSpotOfferJobs();
   
   // Debug: Post notifications about all upcoming games with open registration
   // debugPostAllOpenRegistrations();

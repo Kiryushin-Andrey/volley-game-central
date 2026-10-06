@@ -6,7 +6,7 @@ import {
   positionsGameRegistrationEligibility,
   type PositionsRegistrationEligibilityResult,
 } from '../domain/positionsGameRegistrationEligibility';
-import { asGameFormat, type GameFormat } from '../domain/gameFormat';
+import { asGameFormat, isPositionsGame, type GameFormat } from '../domain/gameFormat';
 import { parsePlayerLevel, type PlayerLevel } from '../domain/playerLevel';
 
 export type GameForEligibility = {
@@ -63,5 +63,74 @@ export function computeSelfRegistrationEligibility(params: {
     hostCanSelfRegister: params.hostCanSelfRegister,
     hasExistingSelfRegistration: params.hasExistingSelfRegistration,
     baseRegistrationOpensAt: params.baseRegistrationOpensAt,
+  });
+}
+
+/**
+ * Positions level restrictions only (no priority windows or registration timing).
+ * Waitlist/roster self-registration grandfathering still applies.
+ */
+export function spotOfferAcceptAllowedByLevel(params: {
+  gameFormat: GameFormat;
+  playerLevel: PlayerLevel | null;
+  hasExistingSelfRegistration: boolean;
+}): boolean {
+  if (params.hasExistingSelfRegistration) {
+    return true;
+  }
+  if (!POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED) {
+    return true;
+  }
+  if (!isPositionsGame(params.gameFormat)) {
+    return true;
+  }
+  return params.playerLevel !== 'beginner';
+}
+
+export async function evaluateSpotOfferAcceptEligibility(params: {
+  game: GameForEligibility & { id: number };
+  acceptorUserId: number;
+}): Promise<
+  | { ok: true }
+  | { ok: false; code: 'ineligible'; status: 403; error: string }
+> {
+  const hasExistingSelfRegistration = await userHasSelfRegistrationOnGame(
+    params.acceptorUserId,
+    params.game.id,
+  );
+  const playerLevel = await getPlayerLevelForUser(params.acceptorUserId);
+
+  if (
+    !spotOfferAcceptAllowedByLevel({
+      gameFormat: asGameFormat(String(params.game.gameFormat)),
+      playerLevel,
+      hasExistingSelfRegistration,
+    })
+  ) {
+    return {
+      ok: false,
+      code: 'ineligible',
+      status: 403,
+      error: 'You cannot register for this game at the moment.',
+    };
+  }
+
+  return { ok: true };
+}
+
+/** For GET /games/:id — whether the viewer may accept an open spot offer. */
+export async function canUserAcceptSpotOfferOnGame(params: {
+  game: GameForEligibility & { id: number };
+  userId: number;
+}): Promise<boolean> {
+  const hasExistingSelfRegistration = await userHasSelfRegistrationOnGame(
+    params.userId,
+    params.game.id,
+  );
+  const playerLevel = await getPlayerLevelForUser(params.userId);
+  return spotOfferAcceptAllowedByLevel({
+    gameFormat: asGameFormat(String(params.game.gameFormat)),
+    playerLevel,
+    hasExistingSelfRegistration,
   });
 }

@@ -1,10 +1,9 @@
 import { after, afterEach, before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import path from 'path';
 import { inArray } from 'drizzle-orm';
-import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { pool, db } from '../db';
-import { gameRegistrations, games, users } from '../db/schema';
+import { migrateTestDatabase } from '../db/migrateForTests';
+import { gameRegistrations, games, spotOffers, users } from '../db/schema';
 import { REGISTRATION_OPEN_DAYS } from '../domain/gamePolicy';
 import {
   capacityPromotions,
@@ -20,9 +19,7 @@ describe('registration service', { concurrency: false }, () => {
   const gameIds: number[] = [];
 
   before(async () => {
-    await migrate(db, {
-      migrationsFolder: path.join(__dirname, '../../drizzle'),
-    });
+    await migrateTestDatabase();
   });
 
   after(async () => {
@@ -31,6 +28,7 @@ describe('registration service', { concurrency: false }, () => {
 
   afterEach(async () => {
     if (gameIds.length > 0) {
+      await db.delete(spotOffers).where(inArray(spotOffers.gameId, gameIds));
       await db
         .delete(gameRegistrations)
         .where(inArray(gameRegistrations.gameId, gameIds));
@@ -299,6 +297,36 @@ describe('registration service', { concurrency: false }, () => {
     assert.equal(decision.ok, true);
     if (decision.ok) {
       assert.equal(decision.isWaitlist, false);
+    }
+    assert.equal((await orderedRows(game.id)).length, 1);
+  });
+
+  it('rejects join and waitlist while an open spot offer exists', async () => {
+    const host = await createUser('Offer Gate Host');
+    const outsider = await createUser('Offer Gate Outsider');
+    const game = await createGame(host.id, 2, GAME_AT);
+    const roster = await seedRegistration(
+      game.id,
+      host.id,
+      new Date('2026-06-01T10:00:00Z'),
+    );
+
+    await db.insert(spotOffers).values({
+      gameId: game.id,
+      registrationId: roster.id,
+      offererUserId: host.id,
+      nextActionAt: new Date('2026-06-18T12:00:00Z'),
+    });
+
+    const blocked = await placeRegistration({
+      game,
+      userId: outsider.id,
+      isPriorityPlayer: false,
+      now: new Date('2026-06-18T12:00:00Z'),
+    });
+    assert.equal(blocked.ok, false);
+    if (!blocked.ok) {
+      assert.equal(blocked.code, 'spot_offer_pending');
     }
     assert.equal((await orderedRows(game.id)).length, 1);
   });

@@ -15,7 +15,8 @@ const getCategoryDescription = (cat: GameCategory, unregisterDeadlineHours: numb
 
 The participant list is frozen ${unregisterDeadlineHours} hours before the game. Until that time, you can deregister without penalties. After that, deregistration is no longer possible.
 
-If you cannot come - let the people from the waitlist now, either in DM or in the group chat. You'll still get the payment request, but you can forward it to your replacement. Or simply give away your slot.
+If you cannot come after the freeze — use <b>Offer my spot</b> on the game page so someone else can take your place. You'll still get the payment request only if nobody takes it in time; otherwise the replacer takes your place for the game.
+
 After the game, the bot will send tickets to all participants from the main list, which need to be paid within 24 hours. If you silently skip games or don't pay for attendance - after a couple of warnings, a ban will follow.
 
 We recommend joining one of our community chats:

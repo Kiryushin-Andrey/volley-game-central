@@ -246,6 +246,13 @@
       "when": 1763246570440,
       "tag": "0034_add_player_level_audit_to_users",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "5",
+      "when": 1763346570440,
+      "tag": "0035_add_spot_offers",
+      "breakpoints": true
     }
   ]
 }

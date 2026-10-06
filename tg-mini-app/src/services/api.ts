@@ -208,6 +208,30 @@ export const gamesApi = {
     }
   },
 
+  createSpotOffer: async (
+    gameId: number,
+    guestName?: string,
+  ): Promise<{ offer: { id: number }; enteredPublic: boolean }> => {
+    const payload: { guestName?: string } = {};
+    if (guestName && guestName.trim()) {
+      payload.guestName = guestName;
+    }
+    const response = await api.post(`/games/${gameId}/spot-offers`, payload);
+    return response.data;
+  },
+
+  cancelMySpotOffer: async (gameId: number, guestName?: string): Promise<void> => {
+    if (guestName && guestName.trim()) {
+      await api.delete(`/games/${gameId}/spot-offers/mine`, { data: { guestName } });
+    } else {
+      await api.delete(`/games/${gameId}/spot-offers/mine`);
+    }
+  },
+
+  acceptSpotOffer: async (gameId: number, offerId: number): Promise<void> => {
+    await api.post(`/games/${gameId}/spot-offers/${offerId}/accept`);
+  },
+
   deleteGame: async (gameId: number): Promise<void> => {
     await api.delete(`/games/admin/${gameId}`);
   },

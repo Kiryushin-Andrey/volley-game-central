@@ -99,6 +99,56 @@ test('GameDetailsViewModel loads via fake API and notifies a single subscribe li
   unsub();
 });
 
+test('open spot offers hide Join Game and show accept-first info text', async () => {
+  installNodeTestShims();
+
+  const { GameDetailsViewModel } = await import('./GameDetailsViewModel');
+
+  const prompts: UiPrompts = {
+    showPopup: () => undefined,
+    showConfirm: (_msg, cb) => cb(false),
+  };
+
+  const user: User = {
+    id: 7,
+    telegramId: '0',
+    displayName: 'Tester',
+    isAdmin: false,
+    isTc: false,
+    createdAt: null,
+  };
+
+  const vm = new GameDetailsViewModel({
+    navigate: () => undefined,
+    user,
+    prompts,
+    gamesApi: {
+      getGame: async () =>
+        sampleGame({
+          canSelfRegister: false,
+          canRegisterGuest: false,
+          activeSpotOffers: [
+            {
+              id: 1,
+              offererUserId: 99,
+              guestName: null,
+              offererDisplayName: 'Offerer',
+            },
+          ],
+        }),
+    } as never,
+    bunqApi: { getStatus: async () => ({ enabled: false }) } as never,
+  });
+
+  await vm.loadGame(42);
+  assert.equal(vm.userMaySelfRegister(), false);
+  assert.equal(vm.getMainButtonProps().show, false);
+  assert.equal(
+    vm.getInfoText(),
+    'Accept the offer to join the game',
+  );
+});
+
 test('injected UiPrompts are used (no DialogProvider required)', async () => {
   installNodeTestShims();
 

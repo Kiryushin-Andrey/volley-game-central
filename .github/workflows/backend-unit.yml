@@ -24,6 +24,7 @@ jobs:
       POSTGRES_PORT: 5432
       POSTGRES_USER: postgres
       POSTGRES_DB: volley_game_central
+      POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED: 'true'
     services:
       postgres:
         image: postgres:15-alpine

@@ -1,6 +1,6 @@
 import { and, eq, isNull } from 'drizzle-orm';
 import { db } from '../db';
-import { gameRegistrations, games, users } from '../db/schema';
+import { gameRegistrations, games, spotOffers, users } from '../db/schema';
 import { POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED } from '../config/positionsGameLevelRestrictions';
 import {
   asGameFormat,
@@ -10,6 +10,7 @@ import {
 import {
   evaluateRegistrationEligibility,
   GUEST_REGISTRATION_OPEN_DAYS,
+  isWaitlistAtIndex,
   REGISTRATION_OPEN_DAYS,
   registrationOpenDaysFor,
   registrationOpensAt,
@@ -21,6 +22,16 @@ import {
   userHasSelfRegistrationOnGame,
 } from '../utils/registrationEligibility';
 
+/** True when at least one unfulfilled spot offer exists for the game. */
+export async function gameHasOpenSpotOffer(gameId: number): Promise<boolean> {
+  const rows = await db
+    .select({ id: spotOffers.id })
+    .from(spotOffers)
+    .where(and(eq(spotOffers.gameId, gameId), isNull(spotOffers.fulfilledByUserId)))
+    .limit(1);
+  return rows.length > 0;
+}
+
 type GameRow = typeof games.$inferSelect;
 type RegistrationRow = typeof gameRegistrations.$inferSelect;
 
@@ -31,11 +42,6 @@ export type OrderedRegistration = {
   guestName?: string | null;
   createdAt?: Date | string | null;
 };
-
-/** Whether the registration at `index` (0-based, createdAt order) is on the waitlist. */
-export function isWaitlistAtIndex(index: number, maxPlayers: number): boolean {
-  return index >= 0 && index >= maxPlayers;
-}
 
 export function findRegistrationIndex(
   ordered: ReadonlyArray<OrderedRegistration>,
@@ -162,7 +168,8 @@ export type PlaceRegistrationResult =
         | 'readonly'
         | 'duplicate'
         | 'closed_window'
-        | 'level_blocked';
+        | 'level_blocked'
+        | 'spot_offer_pending';
       status: 400 | 403;
       error: string;
       registrationOpensAt?: Date;
@@ -281,6 +288,16 @@ export async function placeRegistration(
       gameDateTime,
       registrationOpensAt: windowDecision.registrationOpensAt,
       registrationOpenDays: windowDecision.registrationOpenDays,
+    };
+  }
+
+  // Offered spots must be claimed before anyone joins roster or waitlist
+  if (await gameHasOpenSpotOffer(game.id)) {
+    return {
+      ok: false,
+      code: 'spot_offer_pending',
+      status: 403,
+      error: 'Accept the offer to join the game',
     };
   }
 
