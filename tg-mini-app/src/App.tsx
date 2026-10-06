@@ -176,15 +176,15 @@ function App() {
             <Accordion.Summary>How it works</Accordion.Summary>
             <Accordion.Content>
               <div className="how-content">
-                <Text>
+                <Text Component="p">
                   We are a non-profit, recreational volleyball community based in Haarlem. We organize regular
                   volleyball games and everyone is welcome to join.
                 </Text>
-                <Text>
+                <Text Component="p">
                   You can register for any game via this website using your Telegram account or phone number.
                   Connecting via Telegram or phone number lets us send you payment requests and important notifications (like time or venue changes).
                 </Text>
-                <Text>
+                <Text Component="p">
                   We only collect payments to cover the cost of the hall rental — we don’t make a profit.
                   After each game, payment requests are sent via Telegram or SMS to the people who registered for this game.
                 </Text>
