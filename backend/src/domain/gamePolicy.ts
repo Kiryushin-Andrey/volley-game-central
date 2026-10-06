@@ -147,3 +147,114 @@ export function evaluateRegistrationEligibility(
 ): PositionsRegistrationEligibilityResult {
   return positionsGameRegistrationEligibility(input);
 }
+
+// --- Spot offers (post-deadline roster transfer) ---
+
+/** Fixed hours before game when spot-offer public announce becomes due (not per-game deadline). */
+export const SPOT_OFFER_PUBLIC_ANNOUNCE_HOURS = 5;
+
+/** Default spacing between waitlist invite DMs (ms). Overridable via SPOT_OFFER_INVITE_SPACING_MS. */
+export const DEFAULT_SPOT_OFFER_INVITE_SPACING_MS = 5 * 60 * 1000;
+
+export function spotOfferInviteSpacingMs(): number {
+  const raw = process.env.SPOT_OFFER_INVITE_SPACING_MS;
+  if (raw !== undefined && raw !== '') {
+    const parsed = Number(raw);
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      return parsed;
+    }
+  }
+  return DEFAULT_SPOT_OFFER_INVITE_SPACING_MS;
+}
+
+/** Instant when leave/unregister freezes for roster players. */
+export function leaveDeadlineAt(
+  gameDateTime: Date | string,
+  unregisterDeadlineHours: number,
+): Date {
+  const deadline = new Date(gameDateTime);
+  deadline.setHours(deadline.getHours() - unregisterDeadlineHours);
+  return deadline;
+}
+
+/** Instant at which the public announce threshold is reached (T−5h). */
+export function publicAnnounceAt(gameDateTime: Date | string): Date {
+  const at = new Date(gameDateTime);
+  at.setHours(at.getHours() - SPOT_OFFER_PUBLIC_ANNOUNCE_HOURS);
+  return at;
+}
+
+export type SpotOfferCreateGate =
+  | { ok: true }
+  | {
+      ok: false;
+      code: 'readonly' | 'past' | 'before_deadline' | 'not_roster';
+      error: string;
+    };
+
+export type GameForSpotOfferCreateGate = {
+  dateTime: Date | string;
+  unregisterDeadlineHours: number;
+  readonly: boolean;
+  maxPlayers: number;
+};
+
+/** Whether the registration at `index` (0-based, createdAt order) is on the waitlist. */
+export function isWaitlistAtIndex(index: number, maxPlayers: number): boolean {
+  return index >= 0 && index >= maxPlayers;
+}
+
+/**
+ * Pure create-gate checks (caller still verifies registration exists / ownership).
+ */
+export function evaluateSpotOfferCreateGate(params: {
+  now: Date;
+  game: GameForSpotOfferCreateGate;
+  index: number;
+}): SpotOfferCreateGate {
+  const { now, game, index } = params;
+  const unregisterDeadlineHours = game.unregisterDeadlineHours || 5;
+
+  if (game.readonly) {
+    return {
+      ok: false,
+      code: 'readonly',
+      error:
+        'This game is readonly. Spot offers are closed. Please contact the game organizers if you have any questions.',
+    };
+  }
+
+  const gameDate = new Date(game.dateTime);
+  if (now >= gameDate) {
+    return {
+      ok: false,
+      code: 'past',
+      error: 'Cannot offer a spot for a game that has already started',
+    };
+  }
+
+  if (isWaitlistAtIndex(index, game.maxPlayers)) {
+    return {
+      ok: false,
+      code: 'not_roster',
+      error: 'Only players with a spot for the game can offer it',
+    };
+  }
+
+  if (now <= leaveDeadlineAt(game.dateTime, unregisterDeadlineHours)) {
+    return {
+      ok: false,
+      code: 'before_deadline',
+      error: `You can only offer your spot after the leave deadline (${unregisterDeadlineHours} hours before the game)`,
+    };
+  }
+
+  return { ok: true };
+}
+
+/** Env topic id for late-signout / spot-offer public announces by format. */
+export function lateSignoutTopicEnvKey(format: GameFormat | string): string {
+  return isPositionsGame(format as GameFormat)
+    ? 'TELEGRAM_LATE_SIGNOUT_TOPIC_ID_POSITIONS'
+    : 'TELEGRAM_LATE_SIGNOUT_TOPIC_ID_NON_POSITIONS';
+}

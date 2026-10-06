@@ -18,6 +18,8 @@ interface Props {
   canUnregister: boolean;
   canTapPlayerInfo?: boolean;
   onShowUserInfo?: (user: UserPublicInfo) => void;
+  canOfferGuestSpot?: (guestName: string) => boolean;
+  onOfferGuestSpot?: (guestName: string) => void;
 }
 
 export const PlayersList: React.FC<Props> = ({
@@ -34,6 +36,8 @@ export const PlayersList: React.FC<Props> = ({
   canUnregister: canUnregister,
   canTapPlayerInfo = false,
   onShowUserInfo,
+  canOfferGuestSpot,
+  onOfferGuestSpot,
 }) => {
   return (
     <div className="players-list">
@@ -117,6 +121,23 @@ export const PlayersList: React.FC<Props> = ({
               return (
                 <div className="self-actions">
                   {isSelf && <div className="player-badge">You</div>}
+                  {!isSelf &&
+                    registration.guestName &&
+                    canOfferGuestSpot?.(registration.guestName) &&
+                    onOfferGuestSpot && (
+                      <button
+                        type="button"
+                        className="inline-offer-spot-button"
+                        disabled={isActionLoading}
+                        title="Offer this guest's spot for the game"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOfferGuestSpot(registration.guestName!);
+                        }}
+                      >
+                        Offer
+                      </button>
+                    )}
                   {!isPastGame && canUnregister && (
                     <div className="admin-player-actions" title={tooltip}>
                       <RemovePlayerButton

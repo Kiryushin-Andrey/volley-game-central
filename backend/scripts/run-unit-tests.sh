@@ -15,6 +15,7 @@ export POSTGRES_HOST="${POSTGRES_HOST:-localhost}"
 export POSTGRES_PORT="${POSTGRES_PORT:-5432}"
 export POSTGRES_USER="${POSTGRES_USER:-postgres}"
 export POSTGRES_DB="${POSTGRES_DB:-volley_game_central}"
+export POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED="${POSITIONS_GAME_LEVEL_RESTRICTIONS_ENABLED:-true}"
 
 shopt -s globstar nullglob
 exec npx tsx --test src/**/*.test.ts

@@ -74,6 +74,24 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
+}
+
+.player-info .self-actions .inline-offer-spot-button {
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  background: var(--tg-theme-button-color, #2481cc);
+  color: var(--tg-theme-button-text-color, #fff);
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 }
 
 .player-info .self-actions .admin-player-actions {
@@ -1005,5 +1023,65 @@
   }
   100% {
     transform: rotate(360deg);
+  }
+}
+
+.spot-offer-banner {
+  display: flex;
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--tg-theme-button-color, #2481cc) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tg-theme-button-color, #2481cc) 35%, transparent);
+
+  &.my-offers {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &.accept {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .spot-offer-row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  span {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 14px;
+    line-height: 1.35;
+    color: var(--tg-theme-text-color);
+  }
+
+  button {
+    flex-shrink: 0;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .spot-offer-cancel {
+    background: transparent;
+    color: var(--tg-theme-destructive-text-color, #e53935);
+    border: 1px solid color-mix(in srgb, var(--tg-theme-destructive-text-color, #e53935) 40%, transparent);
+  }
+
+  .spot-offer-accept {
+    background: var(--tg-theme-button-color, #2481cc);
+    color: var(--tg-theme-button-text-color, #fff);
   }
 }

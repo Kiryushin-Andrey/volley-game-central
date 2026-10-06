@@ -1,17 +1,20 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  DEFAULT_SPOT_OFFER_INVITE_SPACING_MS,
   GUEST_REGISTRATION_OPEN_DAYS,
   REGISTRATION_OPEN_DAYS,
   REGULAR_PLAYER_REGISTRATION_OPEN_DAYS,
   baseRegistrationOpensAt,
   classifyGame,
   evaluateRegistrationEligibility,
+  evaluateSpotOfferCreateGate,
   guestRegistrationOpensAt,
   isBaseRegistrationOpen,
   isGuestRegistrationOpen,
   registrationOpenDaysFor,
   registrationOpensAt,
+  spotOfferInviteSpacingMs,
 } from './gamePolicy';
 import { INTERMEDIATE_LEVEL_REGISTRATION_OPEN_DAYS } from './positionsGameRegistrationEligibility';
 
@@ -165,5 +168,54 @@ describe('evaluateRegistrationEligibility (positions cases via policy)', () => {
     const expected = new Date(gameDate);
     expected.setDate(expected.getDate() - INTERMEDIATE_LEVEL_REGISTRATION_OPEN_DAYS);
     assert.equal(tooEarly.registrationOpensAt.getTime(), expected.getTime());
+  });
+});
+
+describe('spot offer policy', () => {
+  const gameAt = new Date('2026-06-20T18:00:00Z');
+
+  it('rejects create before deadline and when not on roster', () => {
+    const game = {
+      dateTime: gameAt,
+      unregisterDeadlineHours: 24,
+      readonly: false,
+      maxPlayers: 8,
+    };
+
+    const before = evaluateSpotOfferCreateGate({
+      now: new Date('2026-06-19T12:00:00Z'),
+      game,
+      index: 0,
+    });
+    assert.equal(before.ok, false);
+    if (!before.ok) assert.equal(before.code, 'before_deadline');
+
+    const after = evaluateSpotOfferCreateGate({
+      now: new Date('2026-06-19T19:00:00Z'),
+      game,
+      index: 0,
+    });
+    assert.equal(after.ok, true);
+
+    const waitlist = evaluateSpotOfferCreateGate({
+      now: new Date('2026-06-19T19:00:00Z'),
+      game,
+      index: 8,
+    });
+    assert.equal(waitlist.ok, false);
+    if (!waitlist.ok) assert.equal(waitlist.code, 'not_roster');
+  });
+
+  it('defaults invite spacing to 5 minutes and honors env override', () => {
+    const prev = process.env.SPOT_OFFER_INVITE_SPACING_MS;
+    try {
+      delete process.env.SPOT_OFFER_INVITE_SPACING_MS;
+      assert.equal(spotOfferInviteSpacingMs(), DEFAULT_SPOT_OFFER_INVITE_SPACING_MS);
+      process.env.SPOT_OFFER_INVITE_SPACING_MS = '1000';
+      assert.equal(spotOfferInviteSpacingMs(), 1000);
+    } finally {
+      if (prev === undefined) delete process.env.SPOT_OFFER_INVITE_SPACING_MS;
+      else process.env.SPOT_OFFER_INVITE_SPACING_MS = prev;
+    }
   });
 });

@@ -104,6 +104,19 @@ export interface Game extends GameSummary {
   canSelfRegister: boolean;
   canRegisterGuest: boolean;
   isPriorityPlayer: boolean;
+  /** Open spot offers visible to eligible users (any phase). */
+  activeSpotOffers?: SpotOfferSummary[];
+  /** Caller's open offers (self and/or guests). */
+  myOffers?: SpotOfferSummary[];
+  /** Positions level restrictions only; not join timing or priority windows. */
+  canAcceptSpotOffer?: boolean;
+}
+
+export interface SpotOfferSummary {
+  id: number;
+  offererUserId: number;
+  guestName: string | null;
+  offererDisplayName: string | null;
 }
 
 // Telegram WebApp types

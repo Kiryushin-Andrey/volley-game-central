@@ -739,6 +739,9 @@ export class GameDetailsViewModel {
       // If user is not registered, check if they can join
       if (!this.userMaySelfRegister()) {
         const game = this.state.gameData.game;
+        if ((game.activeSpotOffers?.length ?? 0) > 0) {
+          return 'Accept the offer to join the game';
+        }
         const timingAllowsJoin = canJoinGame(game.registrationOpensAt);
         if (!game.canSelfRegister && timingAllowsJoin) {
           return 'You cannot register for this game at the moment.';
@@ -813,6 +816,7 @@ export class GameDetailsViewModel {
 
     // Find user's own registration (exclude their guests)
     const userRegistration = getUserRegistration(this.state.gameData.game, this.user.id);
+    const mySelfOffer = (this.state.gameData.game.myOffers || []).find((o) => !o.guestName);
 
     if (userRegistration) {
       // Check if user can leave the game (up to X hours before or anytime if waitlisted)
@@ -833,6 +837,23 @@ export class GameDetailsViewModel {
           },
         };
       }
+
+      // After leave deadline: Offer my spot (roster only, not waitlist, no existing self offer)
+      if (
+        !userRegistration.isWaitlist &&
+        !mySelfOffer &&
+        isGameUpcoming(this.state.gameData.game.dateTime)
+      ) {
+        return {
+          show: true,
+          text: "Offer my spot",
+          onClick: () => {
+            if (this.actionGuard.isAllowed()) {
+              this.handleOfferSpot();
+            }
+          },
+        };
+      }
     } else {
       // Check if user can join the game (starting X days before)
       if (this.userMaySelfRegister()) {
@@ -848,8 +869,129 @@ export class GameDetailsViewModel {
       }
     }
 
-    // Default: don't show button
     return { show: false };
+  }
+
+  canOfferSpot(guestName?: string | null): boolean {
+    const game = this.state.gameData.game;
+    if (!game || game.readonly || isGamePast(game.dateTime)) return false;
+    const deadlineHours = game.unregisterDeadlineHours || 5;
+    if (canLeaveGame(game.dateTime, false, deadlineHours)) return false;
+
+    const match = game.registrations.find(
+      (r) =>
+        r.userId === this.user.id &&
+        (guestName ? r.guestName === guestName : !r.guestName) &&
+        !r.isWaitlist,
+    );
+    if (!match) return false;
+
+    const alreadyOffering = (game.myOffers || []).some((o) =>
+      guestName ? o.guestName === guestName : !o.guestName,
+    );
+    return !alreadyOffering;
+  }
+
+  async handleOfferSpot(guestName?: string): Promise<void> {
+    const game = this.state.gameData.game;
+    if (!game) return;
+
+    const label = guestName ? `guest "${guestName}"` : 'your spot';
+    this.prompts.showConfirm(
+      `Offer ${label}? You'll stay registered until someone accepts. Once someone accepts your offer, you cannot take your spot back anymore.`,
+      async (confirmed) => {
+        if (!confirmed) return;
+        this.setAction({ isActionLoading: true });
+        try {
+          await this.gamesApi.createSpotOffer(game.id, guestName);
+          await this.loadGame(game.id);
+          this.prompts.showPopup({
+            title: 'Spot offered',
+            message: 'Your spot is being offered. You can cancel it from this page.',
+            buttons: [{ type: 'ok' }],
+          });
+        } catch (error: any) {
+          const message =
+            error?.response?.data?.error || error?.message || 'Failed to offer spot';
+          this.prompts.showPopup({
+            title: 'Error',
+            message,
+            buttons: [{ type: 'ok' }],
+          });
+        } finally {
+          this.setAction({ isActionLoading: false });
+        }
+      },
+    );
+  }
+
+  async handleCancelSpotOffer(guestName?: string | null): Promise<void> {
+    const game = this.state.gameData.game;
+    if (!game) return;
+
+    this.prompts.showConfirm('Cancel this spot offer?', async (confirmed) => {
+      if (!confirmed) return;
+      this.setAction({ isActionLoading: true });
+      try {
+        await this.gamesApi.cancelMySpotOffer(game.id, guestName || undefined);
+        await this.loadGame(game.id);
+      } catch (error: any) {
+        const message =
+          error?.response?.data?.error || error?.message || 'Failed to cancel offer';
+        this.prompts.showPopup({
+          title: 'Error',
+          message,
+          buttons: [{ type: 'ok' }],
+        });
+      } finally {
+        this.setAction({ isActionLoading: false });
+      }
+    });
+  }
+
+  async handleAcceptSpotOffer(offerId: number): Promise<void> {
+    const game = this.state.gameData.game;
+    if (!game) return;
+
+    this.prompts.showConfirm(
+      'Accept this offered spot? You will take their place for the game.',
+      async (confirmed) => {
+        if (!confirmed) return;
+        this.setAction({ isActionLoading: true });
+        try {
+          await this.gamesApi.acceptSpotOffer(game.id, offerId);
+          await this.loadGame(game.id);
+          this.prompts.showPopup({
+            title: 'Spot accepted',
+            message: "You're in! Spot accepted.",
+            buttons: [{ type: 'ok' }],
+          });
+        } catch (error: any) {
+          const message =
+            error?.response?.data?.error || error?.message || 'Failed to accept spot';
+          this.prompts.showPopup({
+            title: 'Error',
+            message,
+            buttons: [{ type: 'ok' }],
+          });
+        } finally {
+          this.setAction({ isActionLoading: false });
+        }
+      },
+    );
+  }
+
+  /** Whether the caller may Accept an open offer (button only; banner is always shown). */
+  canAcceptOffer(offer: { offererUserId: number }): boolean {
+    const game = this.state.gameData.game;
+    if (!game || game.readonly || isGamePast(game.dateTime)) return false;
+    if (offer.offererUserId === this.user.id) return false;
+    if (game.canAcceptSpotOffer === false) return false;
+
+    const onRoster = game.registrations.some(
+      (r) => r.userId === this.user.id && !r.isWaitlist,
+    );
+    return !onRoster;
   }
 
   /**

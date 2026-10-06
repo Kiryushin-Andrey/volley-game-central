@@ -26,6 +26,10 @@ import {
   unregisterDeadlineHoursByFormat,
 } from '../domain/gamePolicy';
 import { capacityPromotions } from '../services/registrationService';
+import {
+  abortOffersDemotedByCapacity,
+  abortOpenOfferForRegistration,
+} from '../services/spotOfferService';
 
 const router = Router();
 
@@ -191,6 +195,7 @@ router.put('/:gameId', async (req, res) => {
     const newDateTime = new Date(dateTime);
     const originalMaxPlayers = existingGame[0].maxPlayers;
     const capacityIncreased = maxPlayers > originalMaxPlayers;
+    const capacityDecreased = maxPlayers < originalMaxPlayers;
 
     const game = await db
       .update(games)
@@ -239,6 +244,15 @@ router.put('/:gameId', async (req, res) => {
           `🎉 Great news! The game capacity has been increased and ${subject} been moved from the waiting list to the participants list for the volleyball game on ${formattedDate}. See you there! 🏐`,
           gameId
         );
+      }
+    }
+
+    // Capacity shrink: abort open offers whose offered registration is now waitlisted
+    if (capacityDecreased) {
+      try {
+        await abortOffersDemotedByCapacity(gameId, maxPlayers);
+      } catch (abortErr) {
+        console.error('Failed to abort demoted spot offers after capacity shrink:', abortErr);
       }
     }
 
@@ -492,6 +506,14 @@ router.delete('/:gameId/participants/:userId', async (req, res) => {
 
     if (!registration.length) {
       return res.status(404).json({ error: 'Registration not found' });
+    }
+
+    // Abort open offer on this registration before delete (FK RESTRICT + Telegram cleanup)
+    try {
+      await abortOpenOfferForRegistration(registration[0].id);
+    } catch (abortErr) {
+      console.error('Failed to abort spot offer before participant remove:', abortErr);
+      return res.status(500).json({ error: 'Failed to cancel related spot offer before removal' });
     }
 
     await db.delete(gameRegistrations).where(eq(gameRegistrations.id, registration[0].id));

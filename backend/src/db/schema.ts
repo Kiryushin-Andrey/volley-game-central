@@ -1,4 +1,5 @@
-import { pgTable, serial, varchar, timestamp, boolean, integer, text, uuid, unique } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, timestamp, boolean, integer, text, uuid, unique, bigint, index, uniqueIndex } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
@@ -129,4 +130,48 @@ export const priorityPlayers = pgTable('priority_players', {
   createdAt: timestamp('created_at').defaultNow(),
 }, (table) => ({
   uniqueAdministratorUser: unique().on(table.gameAdministratorId, table.userId),
+}));
+
+/**
+ * Post-deadline roster spot transfer offers.
+ * Row existence = offer still relevant. Open = fulfilled_by_user_id IS NULL.
+ * Cancel deletes the row (after Telegram cleanup). Fulfill sets fulfilled_by_user_id.
+ */
+export const spotOffers = pgTable('spot_offers', {
+  id: serial('id').primaryKey(),
+  gameId: integer('game_id').notNull().references(() => games.id, { onDelete: 'cascade' }),
+  /** Offered registration row; stays after fulfill (user_id becomes replacer). ON DELETE RESTRICT. */
+  registrationId: integer('registration_id').notNull().references(() => gameRegistrations.id, { onDelete: 'restrict' }),
+  /** Who offered; kept after fulfill even though registration.user_id changes. */
+  offererUserId: integer('offerer_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  publicAnnouncedAt: timestamp('public_announced_at'),
+  publicTelegramMessageId: bigint('public_telegram_message_id', { mode: 'number' }),
+  fulfilledByUserId: integer('fulfilled_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+  /** Poller due time for next invite DM or public transition; NULL once public or fulfilled. */
+  nextActionAt: timestamp('next_action_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => ({
+  gameIdIdx: index('spot_offers_game_id_idx').on(table.gameId),
+  openByGameIdx: index('spot_offers_open_by_game_idx')
+    .on(table.gameId)
+    .where(sql`${table.fulfilledByUserId} IS NULL`),
+  dueNextActionIdx: index('spot_offers_due_next_action_idx')
+    .on(table.nextActionAt)
+    .where(sql`${table.fulfilledByUserId} IS NULL AND ${table.nextActionAt} IS NOT NULL`),
+  oneOpenPerRegistration: uniqueIndex('spot_offers_one_open_per_registration_uidx')
+    .on(table.registrationId)
+    .where(sql`${table.fulfilledByUserId} IS NULL`),
+}));
+
+/** Private waitlist invite DMs for spacing/dedupe/deleteMessage. Never an accept gate. */
+export const spotOfferInvites = pgTable('spot_offer_invites', {
+  id: serial('id').primaryKey(),
+  spotOfferId: integer('spot_offer_id').notNull().references(() => spotOffers.id, { onDelete: 'cascade' }),
+  inviteeUserId: integer('invitee_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  invitedAt: timestamp('invited_at').defaultNow().notNull(),
+  telegramChatId: varchar('telegram_chat_id', { length: 255 }),
+  telegramMessageId: bigint('telegram_message_id', { mode: 'number' }),
+}, (table) => ({
+  uniqueOfferInvitee: unique().on(table.spotOfferId, table.inviteeUserId),
 }));
