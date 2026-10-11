@@ -739,12 +739,14 @@ export class GameDetailsViewModel {
       // If user is not registered, check if they can join
       if (!this.userMaySelfRegister()) {
         const game = this.state.gameData.game;
+        // Open offers set canSelfRegister false even after the window opens.
+        // Eligible viewers must see the accept prompt before the generic block.
+        if ((game.activeSpotOffers ?? []).some((offer) => this.canAcceptOffer(offer))) {
+          return 'Accept the offer to join the game';
+        }
         const timingAllowsJoin = canJoinGame(game.registrationOpensAt);
         if (!game.canSelfRegister && timingAllowsJoin) {
           return 'You cannot register for this game at the moment.';
-        }
-        if ((game.activeSpotOffers?.length ?? 0) > 0) {
-          return 'Accept the offer to join the game';
         }
 
         const gameDateTime = new Date(game.dateTime);

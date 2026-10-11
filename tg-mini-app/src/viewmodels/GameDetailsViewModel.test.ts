@@ -149,6 +149,108 @@ test('open spot offers hide Join Game and show accept-first info text', async ()
   );
 });
 
+test('open spot offer still prompts accept after the registration window is open', async () => {
+  installNodeTestShims();
+
+  const { GameDetailsViewModel } = await import('./GameDetailsViewModel');
+
+  const prompts: UiPrompts = {
+    showPopup: () => undefined,
+    showConfirm: (_msg, cb) => cb(false),
+  };
+
+  const user: User = {
+    id: 7,
+    telegramId: '0',
+    displayName: 'Tester',
+    isAdmin: false,
+    isTc: false,
+    createdAt: null,
+  };
+
+  const vm = new GameDetailsViewModel({
+    navigate: () => undefined,
+    user,
+    prompts,
+    gamesApi: {
+      getGame: async () =>
+        sampleGame({
+          dateTime: '2027-06-20T18:00:00.000Z',
+          registrationOpensAt: '2026-01-01T00:00:00.000Z',
+          canSelfRegister: false,
+          canRegisterGuest: false,
+          canAcceptSpotOffer: true,
+          activeSpotOffers: [
+            {
+              id: 1,
+              offererUserId: 99,
+              guestName: null,
+              offererDisplayName: 'Offerer',
+            },
+          ],
+        }),
+    } as never,
+    bunqApi: { getStatus: async () => ({ enabled: false }) } as never,
+  });
+
+  await vm.loadGame(42);
+  assert.equal(
+    vm.getInfoText(),
+    'Accept the offer to join the game',
+  );
+});
+
+test('ineligible viewer does not get the accept prompt for an open offer', async () => {
+  installNodeTestShims();
+
+  const { GameDetailsViewModel } = await import('./GameDetailsViewModel');
+
+  const prompts: UiPrompts = {
+    showPopup: () => undefined,
+    showConfirm: (_msg, cb) => cb(false),
+  };
+
+  const user: User = {
+    id: 7,
+    telegramId: '0',
+    displayName: 'Tester',
+    isAdmin: false,
+    isTc: false,
+    createdAt: null,
+  };
+
+  const vm = new GameDetailsViewModel({
+    navigate: () => undefined,
+    user,
+    prompts,
+    gamesApi: {
+      getGame: async () =>
+        sampleGame({
+          dateTime: '2027-06-20T18:00:00.000Z',
+          registrationOpensAt: '2026-01-01T00:00:00.000Z',
+          canSelfRegister: false,
+          canRegisterGuest: false,
+          canAcceptSpotOffer: false,
+          activeSpotOffers: [
+            {
+              id: 1,
+              offererUserId: 99,
+              guestName: null,
+              offererDisplayName: 'Offerer',
+            },
+          ],
+        }),
+    } as never,
+    bunqApi: { getStatus: async () => ({ enabled: false }) } as never,
+  });
+
+  await vm.loadGame(42);
+  assert.equal(
+    vm.getInfoText(),
+    'You cannot register for this game at the moment.',
+  );
+});
+
 test('injected UiPrompts are used (no DialogProvider required)', async () => {
   installNodeTestShims();
 
