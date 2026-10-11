@@ -154,7 +154,7 @@ export function evaluateRegistrationEligibility(
 export const SPOT_OFFER_PUBLIC_ANNOUNCE_HOURS = 5;
 
 /** Default spacing between waitlist invite DMs (ms). Overridable via SPOT_OFFER_INVITE_SPACING_MS. */
-export const DEFAULT_SPOT_OFFER_INVITE_SPACING_MS = 5 * 60 * 1000;
+export const DEFAULT_SPOT_OFFER_INVITE_SPACING_MS = 20 * 60 * 1000;
 
 export function spotOfferInviteSpacingMs(): number {
   const raw = process.env.SPOT_OFFER_INVITE_SPACING_MS;
