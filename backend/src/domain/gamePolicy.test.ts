@@ -206,11 +206,12 @@ describe('spot offer policy', () => {
     if (!waitlist.ok) assert.equal(waitlist.code, 'not_roster');
   });
 
-  it('defaults invite spacing to 5 minutes and honors env override', () => {
+  it('defaults invite spacing to 20 minutes and honors env override', () => {
     const prev = process.env.SPOT_OFFER_INVITE_SPACING_MS;
     try {
       delete process.env.SPOT_OFFER_INVITE_SPACING_MS;
-      assert.equal(spotOfferInviteSpacingMs(), DEFAULT_SPOT_OFFER_INVITE_SPACING_MS);
+      assert.equal(DEFAULT_SPOT_OFFER_INVITE_SPACING_MS, 20 * 60 * 1000);
+      assert.equal(spotOfferInviteSpacingMs(), 20 * 60 * 1000);
       process.env.SPOT_OFFER_INVITE_SPACING_MS = '1000';
       assert.equal(spotOfferInviteSpacingMs(), 1000);
     } finally {
