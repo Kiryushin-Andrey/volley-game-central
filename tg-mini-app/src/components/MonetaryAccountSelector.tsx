@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Button, Input, Select } from '@telegram-apps/telegram-ui';
 import {
     MonetaryAccountSelectorViewModel,
     MonetaryAccountSelectorState
@@ -72,14 +73,15 @@ const MonetaryAccountSelector: React.FC<MonetaryAccountSelectorProps> = ({
 
     if (state.showPasswordPrompt) {
         return <div className="form-group">
-            <input
+            <Input
                 type="password"
                 id="accountPassword"
+                header="Password:"
                 value={state.tempPassword}
                 onChange={(e) => viewModel.updatePasswordForAccounts(e.target.value)}
                 placeholder="Enter your password"
                 disabled={state.isProcessing}
-                onKeyPress={(e) => {
+                onKeyDown={(e) => {
                     if (e.key === 'Enter' && state.tempPassword.trim()) {
                         viewModel.handleSubmitPassword(state);
                     }
@@ -87,20 +89,21 @@ const MonetaryAccountSelector: React.FC<MonetaryAccountSelectorProps> = ({
             />
 
             <div className="form-actions">
-                <button
-                    className="btn btn-secondary"
+                <Button
+                    mode="gray"
+                    type="button"
                     onClick={() => viewModel.handleCancelPasswordPrompt()}
                     disabled={state.isProcessing}
                 >
                     Cancel
-                </button>
-                <button
-                    className="btn btn-primary"
+                </Button>
+                <Button
+                    type="button"
                     onClick={() => viewModel.handleSubmitPassword(state)}
                     disabled={state.isProcessing || !state.tempPassword.trim()}
                 >
                     {state.isProcessing ? 'Loading...' : 'Load Accounts'}
-                </button>
+                </Button>
             </div>
         </div>;
     }
@@ -114,9 +117,9 @@ const MonetaryAccountSelector: React.FC<MonetaryAccountSelectorProps> = ({
     if (state.monetaryAccounts.length > 0) {
         return (
             <div className="form-group">
-                <label htmlFor="monetaryAccount">Choose account to receive payments to</label>
-                <select
+                <Select
                     id="monetaryAccount"
+                    header="Choose account to receive payments to"
                     value={state.selectedMonetaryAccountId || ''}
                     onChange={(e) => viewModel.handleMonetaryAccountChange(Number(e.target.value))}
                     disabled={state.isProcessing}
@@ -127,7 +130,7 @@ const MonetaryAccountSelector: React.FC<MonetaryAccountSelectorProps> = ({
                             {account.description}
                         </option>
                     ))}
-                </select>
+                </Select>
             </div>
         );
     }
@@ -136,13 +139,14 @@ const MonetaryAccountSelector: React.FC<MonetaryAccountSelectorProps> = ({
         return (
             <div className="form-group">
                 <div className="button-group">
-                    <button
-                        className="btn btn-primary"
+                    <Button
+                        type="button"
+                        stretched
                         onClick={() => viewModel.handleShowPasswordPrompt()}
                         disabled={state.isProcessing}
                     >
                         Choose account to receive payments to
-                    </button>
+                    </Button>
                 </div>
             </div>
         );

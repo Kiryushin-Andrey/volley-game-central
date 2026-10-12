@@ -1,6 +1,16 @@
 import React, { memo } from 'react';
-import { Link } from 'react-router-dom';
 import { FaUsers, FaCog, FaPlus } from 'react-icons/fa';
+import { ButtonLink, CellLink } from '../components/ui/RouterButton';
+import {
+  Button,
+  Cell,
+  List,
+  Placeholder,
+  Section,
+  SegmentedControl,
+  Spinner,
+  Switch,
+} from '@telegram-apps/telegram-ui';
 import { useGamesListViewModel } from './GamesListViewModel';
 import { GameWithStats, User } from '../types';
 import { formatDate, isGameUpcoming } from '../utils/gameDateUtils';
@@ -10,7 +20,6 @@ import { resolveLocationLink } from '../utils/locationUtils';
 import { HalloweenDecorations } from '../components/HalloweenDecorations';
 import { NewYearDecorations } from '../components/NewYearDecorations';
 import { March8Decorations } from '../components/March8Decorations';
-import LoadingSpinner from '../components/LoadingSpinner';
 import UnpaidGamesList from '../components/UnpaidGamesList';
 import CategoryMultiSelect from '../components/CategoryMultiSelect';
 import './GamesList.scss';
@@ -30,10 +39,39 @@ const GameItem = memo(({ game, onClick, formatDate }: {
   const isNewYear = game.tag === 'newyear';
   const isMarch8 = game.tag === 'march8';
 
+  const stats = (!game.readonly || game.paidCount !== undefined) ? (
+    <div className="game-stats">
+      {game.paidCount !== undefined && (
+        <div className="compact-stats">
+          <span className="counter">{game.paidCount}</span>
+          <span className="divider">/</span>
+          <span className="counter">{game.totalRegisteredCount}</span>
+        </div>
+      )}
+      {game.registeredCount !== undefined && (
+        <div className="compact-stats">
+          <span className="counter">{game.registeredCount}</span>
+          <span className="divider">/</span>
+          <span className="counter">{game.maxPlayers}</span>
+        </div>
+      )}
+      {game.paidCount === undefined && game.registeredCount === undefined && (
+        <div className="compact-stats">
+          <span className="counter">{game.totalRegisteredCount}</span>
+          <span className="divider">/</span>
+          <span className="counter">{game.maxPlayers}</span>
+        </div>
+      )}
+    </div>
+  ) : undefined;
+
   return (
-    <div
+    <Cell
       className={`game-card ${game.isUserRegistered ? 'registered' : ''} ${isHalloween ? 'halloween-theme' : ''} ${isNewYear ? 'newyear-theme' : ''} ${isMarch8 ? 'march8-theme' : ''} ${isPositionsGame(game.gameFormat) ? 'with-positions' : 'without-positions'}`}
       onClick={() => onClick(game.id)}
+      multiline
+      subtitle={game.title || undefined}
+      after={stats}
     >
       {isHalloween && <HalloweenDecorations variant="card" />}
       {isNewYear && <NewYearDecorations variant="card" />}
@@ -48,7 +86,7 @@ const GameItem = memo(({ game, onClick, formatDate }: {
                   href={resolveLocationLink(game.locationName, game.locationLink)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()} // Prevent card click when clicking location
+                  onClick={(e) => e.stopPropagation()}
                 >
                   📍 {game.locationName || 'Location'}
                 </a>
@@ -56,50 +94,13 @@ const GameItem = memo(({ game, onClick, formatDate }: {
             )}
           </div>
           {game.isUserRegistered && (
-            <div className={`registration-badge ${game.userRegistration?.isWaitlist ? 'waitlist' : 'active'}`}>
+            <span className={`registration-badge ${game.userRegistration?.isWaitlist ? 'waitlist' : 'active'}`}>
               {game.userRegistration?.isWaitlist ? 'Waitlist' : 'You\'re in'}
-            </div>
+            </span>
           )}
         </div>
-        {game.title && (
-          <div className="game-title">
-            {game.title}
-          </div>
-        )}
       </div>
-      
-      {/* Show stats for non-readonly games, or for past readonly games (which have paidCount) */}
-      {(!game.readonly || game.paidCount !== undefined) && (
-        <div className="game-stats">
-          {/* Past games: show paid/total counts */}
-          {game.paidCount !== undefined && (
-            <div className="compact-stats">
-              <span className="counter">{game.paidCount}</span>
-              <span className="divider">/</span>
-              <span className="counter">{game.totalRegisteredCount}</span>
-            </div>
-          )}
-
-          {/* Upcoming games within registration window: show registered/total */}
-          {game.registeredCount !== undefined && (
-            <div className="compact-stats">
-              <span className="counter">{game.registeredCount}</span>
-              <span className="divider">/</span>
-              <span className="counter">{game.maxPlayers}</span>
-            </div>
-          )}
-          
-          {/* Regular upcoming games: show current count/capacity */}
-          {game.paidCount === undefined && game.registeredCount === undefined && (
-            <div className="compact-stats">
-              <span className="counter">{game.totalRegisteredCount}</span>
-              <span className="divider">/</span>
-              <span className="counter">{game.maxPlayers}</span>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+    </Cell>
   );
 });
 
@@ -116,15 +117,13 @@ const GameItemsList = memo(({
   // Show no games message when no games are available
   if (games.length === 0) {
     return (
-      <div className="no-games">
-        <p>No games available</p>
-      </div>
+      <Placeholder header="No games available" />
     );
   }
   
   // Show the list of games
   return (
-    <div className="games-list">
+    <Section className="games-list">
       {games.map((game) => {
         const isHalloween = game.tag === 'halloween';
         const isNewYear = game.tag === 'newyear';
@@ -145,7 +144,7 @@ const GameItemsList = memo(({
           </div>
         );
       })}
-    </div>
+    </Section>
   );
 });
 
@@ -155,13 +154,11 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
   if (vm.error) {
     return (
       <div className="games-list-container">
-        <div className="error-message">
-          <h2>Error</h2>
-          <p>{vm.error}</p>
-          <button onClick={() => vm.loadGames()} className="retry-button">
-            Retry
-          </button>
-        </div>
+        <Placeholder
+          header="Error"
+          description={vm.error}
+          action={<Button onClick={() => vm.loadGames()} className="retry-button">Retry</Button>}
+        />
       </div>
     );
   }
@@ -171,7 +168,7 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
     return (
       <div className="games-list-container">
         <div className="games-loading">
-          <LoadingSpinner />
+          <Spinner size="l" />
           <p className="loading-text">Loading...</p>
         </div>
       </div>
@@ -179,36 +176,19 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
   }
 
   return (
-    <div className="games-list-container">
-      <div style={{ margin: '8px 12px' }}>
-        {vm.unpaidItems.length > 0 && vm.gameFilter === 'upcoming' && (
-          <>
-            <div style={{ fontWeight: 600, margin: '0 0 6px 2px' }}>Your unpaid games</div>
-            <UnpaidGamesList items={vm.unpaidItems} />
-            {!vm.showPageContent && (
-              <button
-                type="button"
-                onClick={() => vm.setShowPageContent(true)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  padding: '8px 4px',
-                  color: 'var(--tg-theme-link-color, #2481cc)',
-                  textDecoration: 'underline',
-                  cursor: 'pointer',
-                  fontSize: 14,
-                  marginLeft: 2,
-                }}
-              >
-                Show upcoming games
-              </button>
-            )}
-          </>
-        )}
-      </div>
+    <List className="games-list-container">
+      {vm.unpaidItems.length > 0 && vm.gameFilter === 'upcoming' && (
+        <Section header="Your unpaid games" footer={!vm.showPageContent ? (
+          <Button mode="plain" type="button" onClick={() => vm.setShowPageContent(true)}>
+            Show upcoming games
+          </Button>
+        ) : undefined}>
+          <UnpaidGamesList items={vm.unpaidItems} />
+        </Section>
+      )}
 
       {vm.showPageContent && (
-        <>
+        <Section>
           <div className="games-header">
             <div className="filters-container">
             {vm.gameFilter === 'upcoming' && (
@@ -220,118 +200,86 @@ const GamesList: React.FC<GamesListProps> = ({ user }) => {
                 />
               </div>
             )}
-            
-            {/* Admin controls */}
+
               {(user.isAdmin || vm.hasAdminAssignments) && (
                 <div className="admin-controls">
                   <div className="game-filters">
                   <div className="radio-group-with-actions">
-                  <div className="radio-group">
-                    <label className={`radio-label ${vm.gameFilter === 'upcoming' ? 'active' : ''}`}>
-                      <input
-                        type="radio"
-                        name="gameFilter"
-                        value="upcoming"
-                        checked={vm.gameFilter === 'upcoming'}
-                        onChange={() => vm.setGameFilter('upcoming')}
-                      />
-                      <span>Upcoming</span>
-                    </label>
-                    <label className={`radio-label ${vm.gameFilter === 'past' ? 'active' : ''}`}>
-                      <input
-                        type="radio"
-                        name="gameFilter"
-                        value="past"
-                        checked={vm.gameFilter === 'past'}
-                        onChange={() => vm.setGameFilter('past')}
-                      />
-                      <span>Past</span>
-                    </label>
-                    </div>
+                    <SegmentedControl>
+                      <SegmentedControl.Item
+                        selected={vm.gameFilter === 'upcoming'}
+                        onClick={() => vm.setGameFilter('upcoming')}
+                      >
+                        Upcoming
+                      </SegmentedControl.Item>
+                      <SegmentedControl.Item
+                        selected={vm.gameFilter === 'past'}
+                        onClick={() => vm.setGameFilter('past')}
+                      >
+                        Past
+                      </SegmentedControl.Item>
+                    </SegmentedControl>
                     {user.isAdmin && (
                       <div className="admin-icon-buttons">
-                        <Link
-                          to="/players"
-                          className="icon-button"
-                          title="Players"
-                        >
+                        <ButtonLink to="/players" mode="gray" size="s" title="Players" aria-label="Players">
                           <FaUsers />
-                        </Link>
-                        <Link
-                          to="/bunq-settings"
-                          className="icon-button"
-                          title="Bunq Settings"
-                        >
+                        </ButtonLink>
+                        <ButtonLink to="/bunq-settings" mode="gray" size="s" title="Bunq Settings" aria-label="Bunq Settings">
                           <FaCog />
-                        </Link>
-                        <Link
-                          to="/games/new"
-                          className="icon-button icon-button-primary"
-                          title="Create New Game"
-                        >
+                        </ButtonLink>
+                        <ButtonLink to="/games/new" mode="filled" size="s" title="Create New Game" aria-label="Create New Game">
                           <FaPlus />
-                        </Link>
+                        </ButtonLink>
                       </div>
                     )}
                     {!user.isAdmin && vm.hasAdminAssignments && (
                       <div className="admin-icon-buttons">
-                        <Link
-                          to="/games/new"
-                          className="icon-button icon-button-primary"
-                          title="Create New Game"
-                        >
+                        <ButtonLink to="/games/new" mode="filled" size="s" title="Create New Game" aria-label="Create New Game">
                           <FaPlus />
-                        </Link>
+                        </ButtonLink>
                       </div>
                     )}
                   </div>
-                  
+
                   {(user.isAdmin || vm.hasAdminAssignments) && (
-                  <div className="show-all-toggle">
-                    <input
-                      type="checkbox"
-                      id="showAllGames"
-                      checked={vm.showAll}
-                      onChange={(e) => vm.setShowAll(e.target.checked)}
-                    />
-                    <label htmlFor="showAllGames">
-                      {vm.gameFilter == 'upcoming' ? "Show all scheduled games" : "Show fully paid games"}
-                    </label>
-                  </div>
+                  <Cell
+                    after={
+                      <Switch
+                        id="showAllGames"
+                        aria-label={vm.gameFilter == 'upcoming' ? 'Show all scheduled games' : 'Show fully paid games'}
+                        checked={vm.showAll}
+                        onChange={(e) => vm.setShowAll(e.target.checked)}
+                      />
+                    }
+                  >
+                    {vm.gameFilter == 'upcoming' ? 'Show all scheduled games' : 'Show fully paid games'}
+                  </Cell>
                   )}
                   </div>
                 </div>
               )}
             {isTcOnly(user) && (
-              <div className="tc-player-levels-nav">
-                <Link
-                  to="/player-levels"
-                  className="tc-player-levels-link"
-                  title="Manage player levels"
-                >
-                  <FaUsers aria-hidden />
-                  <span>Manage player levels</span>
-                </Link>
-              </div>
+              <CellLink to="/player-levels" before={<FaUsers aria-hidden />}>
+                Manage player levels
+              </CellLink>
             )}
             </div>
           </div>
-          {vm.loadingGames ? (
-            <div className="games-loading">
-              <LoadingSpinner />
-              <p className="loading-text">Loading...</p>
-            </div>
-          ) : (
-            <GameItemsList
-              games={vm.games}
-              formatDate={formatDate}
-              handleGameClick={vm.handleGameClick}
-            />
-          )}
-        </>
+        </Section>
       )}
-
-    </div>
+      {vm.showPageContent && (vm.loadingGames ? (
+        <div className="games-loading">
+          <Spinner size="l" />
+          <p className="loading-text">Loading...</p>
+        </div>
+      ) : (
+        <GameItemsList
+          games={vm.games}
+          formatDate={formatDate}
+          handleGameClick={vm.handleGameClick}
+        />
+      ))}
+    </List>
   );
 };
 

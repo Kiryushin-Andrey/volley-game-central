@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Button, Input } from '@telegram-apps/telegram-ui';
 import './PasswordDialog.scss';
 
 interface PasswordDialogProps {
@@ -55,19 +56,17 @@ const PasswordDialog: React.FC<PasswordDialogProps> = ({
           <p>{message}</p>
           
           <form onSubmit={handleSubmit} className="password-form">
-            <div className="form-group">
-              <label htmlFor="password">Password:</label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                disabled={isProcessing}
-                autoFocus
-                required
-              />
-            </div>
+            <Input
+              id="password"
+              header="Password:"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
+              disabled={isProcessing}
+              autoFocus
+              required
+            />
             
             {error && (
               <div className="error-message">
@@ -76,21 +75,22 @@ const PasswordDialog: React.FC<PasswordDialogProps> = ({
             )}
             
             <div className="dialog-buttons">
-              <button
+              <Button
                 type="button"
+                mode="gray"
                 onClick={onCancel}
                 disabled={isProcessing}
                 className="cancel-button"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
                 disabled={!password.trim() || isProcessing}
                 className="submit-button"
               >
                 {isProcessing ? 'Processing...' : 'Submit'}
-              </button>
+              </Button>
             </div>
           </form>
         </div>

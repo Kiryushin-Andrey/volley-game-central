@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Button, Title } from '@telegram-apps/telegram-ui';
 import { 
   BunqSettingsViewModel, 
   BunqSettingsState
@@ -80,7 +81,7 @@ const BunqSettings: React.FC = () => {
     return (
       <div className="bunq-settings-container">
         <div className="bunq-settings-header">
-          <h1>Bunq Settings</h1>
+          <Title Component="h1" weight="1">Bunq Settings</Title>
         </div>
         <div className="settings-content">
           <div className="loading">Loading...</div>
@@ -95,7 +96,7 @@ const BunqSettings: React.FC = () => {
         {inTelegram && (
           <BackButton onClick={() => navigate(-1)} />
         )}
-        <h1>Bunq Settings{state.assignedUserName && ` (${state.assignedUserName})`}</h1>
+        <Title Component="h1" weight="1">Bunq Settings{state.assignedUserName && ` (${state.assignedUserName})`}</Title>
       </div>
       
       <div className="settings-content">
@@ -125,13 +126,14 @@ const BunqSettings: React.FC = () => {
             <p className="description">
               Enable Bunq integration to accept payments for volleyball games.
             </p>
-            <button 
-              className="btn btn-primary"
+            <Button
+              type="button"
+              stretched
               onClick={() => viewModel.handleShowCredentialsForm()}
               disabled={state.isProcessing}
             >
               Enable Bunq Integration
-            </button>
+            </Button>
           </div>
         )}
 
@@ -156,22 +158,25 @@ const BunqSettings: React.FC = () => {
             {/* Hide buttons when password form is shown */}
             {!isPasswordFormShown && (
               <div className="button-group">
-                <button 
-                  className="btn btn-secondary"
+                <Button
+                  mode="gray"
+                  type="button"
                   onClick={handleOpenPasswordDialog}
                   disabled={state.isProcessing}
                 >
                   {state.isProcessing ? 'Installing Webhook...' : 'Install Webhook'}
-                </button>
-                <button 
-                  className="btn btn-secondary"
+                </Button>
+                <Button
+                  mode="gray"
+                  type="button"
                   onClick={() => viewModel.handleShowCredentialsForm()}
                   disabled={state.isProcessing}
                 >
                   Update API Key
-                </button>
-                <button 
-                  className="btn btn-danger"
+                </Button>
+                <Button
+                  mode="bezeled"
+                  type="button"
                   onClick={async (e) => {
                     e.preventDefault();
                     try {
@@ -184,7 +189,7 @@ const BunqSettings: React.FC = () => {
                   disabled={state.isProcessing}
                 >
                   {state.isProcessing ? 'Disabling...' : 'Disable Integration'}
-                </button>
+                </Button>
               </div>
             )}
           </div>

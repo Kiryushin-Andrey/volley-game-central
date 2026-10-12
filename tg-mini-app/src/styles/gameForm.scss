@@ -22,45 +22,8 @@
   .button-group {
     display: flex;
     justify-content: space-between;
+    gap: 12px;
     margin-top: 2rem;
-    
-    button {
-      padding: 0.75rem 1.5rem;
-      border: none;
-      border-radius: 8px;
-      font-size: 1rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: opacity 0.2s, transform 0.1s;
-      
-      &:active {
-        transform: scale(0.98);
-      }
-      
-      &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-      }
-    }
-    
-    .cancel-button {
-      background-color: var(--tg-theme-bg-color, #f5f5f5);
-      color: var(--tg-theme-text-color, #000);
-      border: 1px solid var(--tg-theme-hint-color, #ccc);
-      
-      &:hover:not(:disabled) {
-        background-color: #eaeaea;
-      }
-    }
-    
-    .submit-button {
-      background-color: var(--tg-theme-button-color, #50a8eb);
-      color: var(--tg-theme-button-text-color, #fff);
-      
-      &:hover:not(:disabled) {
-        opacity: 0.9;
-      }
-    }
   }
 }
 

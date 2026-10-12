@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { ButtonLink } from '../components/ui/RouterButton';
+import { Button, Checkbox, IconButton, Placeholder, Select, Title } from '@telegram-apps/telegram-ui';
 import { useAuthenticatedUser } from '../hooks/useAuthenticatedUser';
 import { UserSearchInput } from '../components/UserSearchInput';
 import { BackButton } from '@twa-dev/sdk/react';
@@ -125,7 +127,7 @@ const GameAdministrators: React.FC = () => {
       <div className="game-administrators">
         <div className="game-administrators-header">
           {inTelegram && <BackButton onClick={() => navigate(-1)} />}
-          <h1>Game Administrators</h1>
+          <Title Component="h1" weight="1">Game Administrators</Title>
         </div>
         <div className="loading">Loading...</div>
       </div>
@@ -136,7 +138,7 @@ const GameAdministrators: React.FC = () => {
     <div className="game-administrators">
       <div className="game-administrators-header">
         {inTelegram && <BackButton onClick={() => navigate(-1)} />}
-        <h1>Game Administrators</h1>
+        <Title Component="h1" weight="1">Game Administrators</Title>
       </div>
 
       {state.error && (
@@ -149,10 +151,10 @@ const GameAdministrators: React.FC = () => {
         <>
           <div className="administrators-list">
             {state.administrators.length === 0 ? (
-              <div className="empty-state">
-                <p>No administrator assignments yet.</p>
-                <p>Create one to get started.</p>
-              </div>
+              <Placeholder
+                header="No administrator assignments yet."
+                description="Create one to get started."
+              />
             ) : (
               state.administrators.map((admin) => (
                 <div key={admin.id} className="administrator-item">
@@ -185,28 +187,33 @@ const GameAdministrators: React.FC = () => {
                     </div>
                   </div>
                   <div className="administrator-actions">
-                    <Link
+                    <ButtonLink
                       to={`/priority-players/${admin.id}`}
-                      className="btn btn-small btn-secondary"
+                      mode="gray"
+                      size="s"
                       title="Manage Priority Players"
+                      aria-label="Manage Priority Players"
                     >
                       <FaUsers />
-                    </Link>
-                    <Link
+                    </ButtonLink>
+                    <ButtonLink
                       to={`/bunq-settings/user/${admin.userId}`}
-                      className="btn btn-small btn-secondary"
+                      mode="gray"
+                      size="s"
                       title="Configure Bunq Settings"
+                      aria-label="Configure Bunq Settings"
                     >
                       <FaCog />
-                    </Link>
-                    <button
+                    </ButtonLink>
+                    <IconButton
                       className="delete-button"
                       onClick={() => handleDelete(admin.id)}
                       type="button"
                       aria-label="Delete assignment"
+                      mode="plain"
                     >
                       ×
-                    </button>
+                    </IconButton>
                   </div>
                 </div>
               ))
@@ -214,18 +221,19 @@ const GameAdministrators: React.FC = () => {
           </div>
 
           <div className="actions">
-            <button
-              className="btn btn-primary"
+            <Button
+              stretched
+              size="l"
               onClick={() => viewModel.showCreateForm()}
               type="button"
             >
               Add Assignment
-            </button>
+            </Button>
           </div>
         </>
       ) : (
         <div className="create-form">
-          <h2>New Assignment</h2>
+          <Title Component="h2">New Assignment</Title>
           
           {state.createError && (
             <div className="error-message">
@@ -234,9 +242,9 @@ const GameAdministrators: React.FC = () => {
           )}
 
           <div className="form-group">
-            <label htmlFor="dayOfWeek">Day of Week</label>
-            <select
+            <Select
               id="dayOfWeek"
+              header="Day of Week"
               value={state.selectedDayOfWeek}
               onChange={(e) => viewModel.setSelectedDayOfWeek(parseInt(e.target.value))}
               disabled={state.isCreating}
@@ -246,19 +254,19 @@ const GameAdministrators: React.FC = () => {
                   {day}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div className="form-group">
-            <label className="checkbox-label">
-              <input
-                type="checkbox"
+            <div className="checkbox-label">
+              <Checkbox
+                aria-label="5-1 positions game"
                 checked={state.withPositions}
                 onChange={(e) => viewModel.setWithPositions(e.target.checked)}
                 disabled={state.isCreating}
               />
               <span>5-1 positions game</span>
-            </label>
+            </div>
           </div>
 
           <div className="form-group">
@@ -272,22 +280,21 @@ const GameAdministrators: React.FC = () => {
           </div>
 
           <div className="form-actions">
-            <button
-              className="btn btn-secondary"
+            <Button
+              mode="gray"
               onClick={handleCancelCreate}
               type="button"
               disabled={state.isCreating}
             >
               Cancel
-            </button>
-            <button
-              className="btn btn-primary"
+            </Button>
+            <Button
               onClick={handleCreate}
               disabled={state.isCreating || !state.selectedUserId}
               type="button"
             >
               {state.isCreating ? 'Creating...' : 'Create'}
-            </button>
+            </Button>
           </div>
         </div>
       )}
